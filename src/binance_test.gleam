@@ -2,34 +2,33 @@ import glibe/binance/binance
 import glibe/binance/types as types
 import gleam/io
 import gleam/result
+import gleam/list
 import gleam/int
 import gleam/float
 
 pub fn main() {
   io.println("Fetching BTCUSDT 1h klines...")
-  case binance.fetch_klines("BTCUSDT", types.H1, 5) {
-    Ok(bars) ->
-      io.println("Got bars: " <> bars_to_string(bars))
+  case binance.fetch_klines("BTCUSDT", types.H1, 1) {
+    Ok(bars) -> handle_bars(bars)
     Error(e) -> io.println("Error: " <> debug(e))
   }
 }
 
-fn bars_to_string(bars) {
-  case bars {
-    [] -> "0 bars"
-    [first, ..rest] ->
-      format_first_bar(first)
+fn handle_bars(bars: List(types.SourceBar)) {
+  case list.first(bars) {
+    Ok(first) -> {
+      io.println("Got " <> int.to_string(list.length(bars)) <> " bars")
+      io.println("First bar:")
+      io.println("  date: " <> first.date)
+      io.println("  open: " <> float.to_string(first.open))
+      io.println("  high: " <> float.to_string(first.high))
+      io.println("  low: " <> float.to_string(first.low))
+      io.println("  close: " <> float.to_string(first.close))
+      io.println("  volume: " <> int.to_string(first.volume))
+      Nil
+    }
+    Error(_) -> io.println("No bars returned")
   }
-}
-
-fn format_first_bar(bar: types.SourceBar) {
-  let date = bar.date
-  let open = bar.open
-  let high = bar.high
-  let low = bar.low
-  let close = bar.close
-  let volume = bar.volume
-  "First: " <> date <> " O:" <> float.to_string(open) <> " H:" <> float.to_string(high) <> " L:" <> float.to_string(low) <> " C:" <> float.to_string(close) <> " V:" <> int.to_string(volume)
 }
 
 fn debug(e) {

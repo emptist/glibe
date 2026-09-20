@@ -3,6 +3,8 @@ import gleam/dynamic/decode
 import gleam/json
 import gleam/list
 import gleam/result
+import gleam/int
+import gleam/float
 
 pub type SourceBar {
   SourceBar(
@@ -48,7 +50,11 @@ fn get_string(arr: List(dynamic.Dynamic), idx: Int) -> Result(String, Nil) {
     Ok(d) ->
       case decode.run(d, decode.string) {
         Ok(s) -> Ok(s)
-        Error(_) -> Error(Nil)
+        Error(_) ->
+          case decode.run(d, decode.int) {
+            Ok(i) -> Ok(int.to_string(i))
+            Error(_) -> Error(Nil)
+          }
       }
     Error(_) -> Error(Nil)
   }
@@ -59,7 +65,15 @@ fn get_float(arr: List(dynamic.Dynamic), idx: Int) -> Result(Float, Nil) {
     Ok(d) ->
       case decode.run(d, decode.float) {
         Ok(f) -> Ok(f)
-        Error(_) -> Error(Nil)
+        Error(_) ->
+          case decode.run(d, decode.string) {
+            Ok(s) ->
+case float.parse(s) {
+            Ok(f) -> Ok(f)
+            Error(_) -> Error(Nil)
+          }
+            Error(_) -> Error(Nil)
+          }
       }
     Error(_) -> Error(Nil)
   }
@@ -70,7 +84,19 @@ fn get_int(arr: List(dynamic.Dynamic), idx: Int) -> Result(Int, Nil) {
     Ok(d) ->
       case decode.run(d, decode.int) {
         Ok(i) -> Ok(i)
-        Error(_) -> Error(Nil)
+        Error(_) ->
+          case decode.run(d, decode.float) {
+            Ok(f) -> Ok(float.truncate(f))
+            Error(_) ->
+              case decode.run(d, decode.string) {
+                Ok(s) ->
+                  case float.parse(s) {
+                    Ok(f) -> Ok(float.truncate(f))
+                    Error(_) -> Error(Nil)
+                  }
+                Error(_) -> Error(Nil)
+              }
+          }
       }
     Error(_) -> Error(Nil)
   }
@@ -80,8 +106,8 @@ pub fn decode_bar(arr: List(dynamic.Dynamic)) -> Result(SourceBar, Nil) {
   let date = case get_string(arr, 0) { Ok(s) -> s _ -> "" }
   let open = case get_float(arr, 1) { Ok(f) -> f _ -> 0.0 }
   let high = case get_float(arr, 2) { Ok(f) -> f _ -> 0.0 }
-  let low = case get_float(arr, 3) { Ok(f) -> f _ -> 0.0 }
-  let close = case get_float(arr, 4) { Ok(f) -> f _ -> 0.0 }
+  let low = case get_float(arr, 4) { Ok(f) -> f _ -> 0.0 }
+  let close = case get_float(arr, 3) { Ok(f) -> f _ -> 0.0 }
   let volume = case get_int(arr, 5) { Ok(i) -> i _ -> 0 }
 
   Ok(SourceBar(date:, open:, high:, low:, close:, volume:))
