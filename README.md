@@ -136,6 +136,19 @@ pub type Timeframe {
 }
 ```
 
+### Leaf Indexing Rules (Critical)
+
+Two key facts that save hours of debugging:
+
+1. **Working bar index = `databar_list.length`** — The bar currently being computed is NOT in `databar_list` yet. Its global index equals the list length.
+
+2. **Leaf start/end indices**:
+   - New leaf `start_idx = databar_list.length` (working bar index)
+   - Closed leaf `end_idx = databar_list.length - 1` (previous settled bar)
+   - Leaf is "new" when `leaf.start_idx == databar_list.length`
+
+This means a 1-bar leaf has `start_idx == end_idx == databar_list.length - 1` after it closes.
+
 ### Settings (from `settings.json`)
 
 ```json
