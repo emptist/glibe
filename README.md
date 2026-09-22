@@ -149,6 +149,21 @@ Two key facts that save hours of debugging:
 
 This means a 1-bar leaf has `start_idx == end_idx == databar_list.length - 1` after it closes.
 
+### Count-Back Index (Newest-First List)
+
+Since `databar_list` is **newest-first** (head = latest settled bar), global index `i` maps to list index:
+
+```
+list_index = databar_list.length - 1 - global_index
+```
+
+Examples for list of length 5 (global indices 0..4, newest at head):
+- Global 4 (newest) → list index 0 (head)
+- Global 2 → list index 5 - 1 - 2 = 2
+- Global 0 (oldest) → list index 4 (last)
+
+This applies to ALL list accesses by global index: SMA leaving bar, leaf start/corner values, etc.
+
 ### Settings (from `settings.json`)
 
 ```json
