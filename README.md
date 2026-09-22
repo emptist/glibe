@@ -10,7 +10,7 @@ Port of `glib` (JavaScript-target) to BEAM with Interactive Brokers TWS/Client P
 |-----------|--------|-------|
 | **IB Client Portal** | ✅ Working | Client Portal Gateway on :5001, curl FFI |
 | **Binance REST** | ✅ Working | testnet.binance.vision (works from China), curl FFI |
-| **Stream Processing** | 🚧 Planned | Phase 3 |
+| **Stream Processing** | ✅ Working | Phase 3 (SMA, Bollinger, KDJ, Leaf, Branch) |
 
 ## Quick Start
 
@@ -119,6 +119,8 @@ SourceBar → sourcebar_gate → working_databar (Option)
   → bucket closes → databar_processing 
     → indicator(databar, timeframe, settings) 
       → sma() ×4 → kdj() → bollinger() 
+    → leaves() 
+    → branches() 
     → accept() → databar_list (newest-first)
 ```
 
@@ -132,6 +134,18 @@ pub type Timeframe {
     market_type: MarketType,
     working_databar: Option(DataBar),  // None after close until next source bar
     databar_list: List(DataBar),       // newest-first
+
+    // Leaf fields
+    growing_yin_leaf: DataLeaf,
+    growing_yang_leaf: DataLeaf,
+    yin_leaf_list: List(DataLeaf),
+    yang_leaf_list: List(DataLeaf),
+
+    // Branch fields
+    growing_yin_branch: DataBranch,
+    growing_yang_branch: DataBranch,
+    yin_branch_list: List(DataBranch),
+    yang_branch_list: List(DataBranch),
   )
 }
 ```
@@ -163,6 +177,30 @@ Examples for list of length 5 (global indices 0..4, newest at head):
 - Global 0 (oldest) → list index 4 (last)
 
 This applies to ALL list accesses by global index: SMA leaving bar, leaf start/corner values, etc.
+
+### Branch Indexing Rules
+
+Branch detection runs after Leaf detection, using completed leaf lists.
+
+**Index semantics (per DESIGN.md §6):**
+- `start_idx` / `end_idx`: trend **FACTS** (where trend actually started/ended)
+- `exit_idx` / `enter_idx`: trading **SIGNALS** (where we exit/enter, known only later)
+  - `exit_idx` = discrimination bar where over-long leaf detected
+  - `enter_idx` = previous branch's `exit_idx` = over-long leaf's `corner_idx`
+
+**Key rules:**
+1. **No branch at bar 0** — cannot determine until first leaf completes
+2. **Opposite polarity**: YinBranch tracks YangLeaf list, YangBranch tracks YinLeaf list
+3. **Continuation = length test** (not price): `branch_exit_leaf_size` from settings
+4. **New leaf** (1-bar): if no growing branch → start new branch at leaf's `corner_idx`
+5. **Old leaf too large** (> `branch_exit_leaf_size`): close current branch (`exit_idx` = current bar, `end_idx` = leaf's `start_idx`); start new at newest opposite leaf's `corner_idx`
+6. **Retrospective recognition**: branch facts (`start_idx`/`end_idx`) determined after the fact
+7. **AI improvement** (Phase 4): AI strategy does NOT change branch definitions. Main target: POST-APPROVE both enter_idx AND exit_idx earlier than structural signals.
+   - enter_idx: structural = 100 bars after start_idx; AI post-approves at 80 bars
+   - exit_idx: end_idx marks highest SMA in yang_branch (we're in yin_leaf, opposite polarity). Structural exit_idx comes late; AI post-approves earlier to capture more profit.
+   Prediction (guessing before confirmation) is riskier and less trustworthy.
+   Analogy: like a good doctor who DIAGNOSES issues earlier, not PREDICTS disease in healthy patients.
+   扁鹊也只是早起诊断，不是预测蔡桓公将要生病。
 
 ### Settings (from `settings.json`)
 
@@ -208,11 +246,13 @@ The stream processing logic is split into focused modules:
 | `kdj.gleam` | KDJ oscillator (LLV/HHV batch + incremental SMA for K/D/M) |
 | `bollinger.gleam` | Bollinger Bands (selected SMA centre, σ from window, Fibonacci ratios) |
 | `indicator.gleam` | Pipeline composition: SMA×4 → KDJ → Bollinger |
+| `leaf.gleam` | DataLeaf types + streaming detection (Yin/Yang leaves, CMA) |
+| `branch.gleam` | DataBranch types + streaming detection (Yin/Yang branches) |
 | `timeframe.gleam` | Timeframe type + `sourcebar_gate` + `databar_processing` |
 
 Dependency graph (no cycles):
 ```
-indicator_settings → sma, kdj, bollinger → indicator → timeframe
+indicator_settings → sma, kdj, bollinger → indicator → leaf → branch → timeframe
 ```
 
 ### Bias (Future)

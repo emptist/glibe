@@ -4,6 +4,7 @@
 // Access: list.drop(list, list.length(list) - 1 - global_idx) |> list.first
 
 import gleam/option.{type Option, None, Some}
+import gleam/int
 import gleam/list
 import glibe/types as types
 
@@ -105,8 +106,13 @@ fn get_sma_tiny_at(databar_list: List(types.DataBar), global_idx: Int) -> Option
 // Streaming Leaf Detection
 // ============================================================================
 
+/// Compute CMA for continuing leaf: incremental from previous bar's cma
+fn compute_cma(prev_cma: Float, sma_tiny: Float, count: Int) -> Float {
+  {prev_cma *. int.to_float(count) +. sma_tiny} /. int.to_float(count + 1)
+}
+
 /// Update growing yin leaf with new sma_tiny value.
-/// Returns #(Option(completed_leaf), updated_growing_leaf).
+/// Returns #(Option(completed_leaf), updated_growing_leaf, cma_for_this_bar).
 /// Leaf laws (DESIGN.md §5):
 /// - Law 1: First bar (idx=0) opens both twins
 /// - Law 2: Every bar in current yin AND yang leaf
@@ -114,59 +120,79 @@ fn get_sma_tiny_at(databar_list: List(types.DataBar), global_idx: Int) -> Option
 ///   Killing bar belongs to newborn. Shortest leaf = 1 bar (start=corner=end).
 /// The growing leaf IS the DataLeaf record (YinLeaf variant); end_idx updates each bar.
 /// When new leaf born, old leaf completed with end_idx = idx - 1.
+/// CMA = running mean of sma_tiny within leaf (from start_idx to idx).
+/// New leaf: cma = sma_tiny. Continuing: incremental from databar_list.first.yin_leaf_cma.
 pub fn update_yin_leaf(
   growing: DataLeaf,
   idx: Int,
   databar_list: List(types.DataBar),
   sma_tiny: Float,
-) -> #(Option(DataLeaf), DataLeaf) {
-  let start_val = case get_sma_tiny_at(databar_list, leaf_start_idx(growing)) {
-    None -> sma_tiny
-    Some(v) -> v
-  }
+) -> #(Option(DataLeaf), DataLeaf, Float) {
+  // Leaf is new when start_idx == current working bar index (databar_list.length)
+  let is_new_leaf = leaf_start_idx(growing) == idx
 
-  case sma_tiny >. start_val {
+  case is_new_leaf {
     True -> {
-      // New yin leaf born at idx (killing bar belongs to newborn)
+      // New yin leaf born at idx
       let completed = YinLeaf(
         start_idx: leaf_start_idx(growing),
         end_idx: idx - 1,
         corner_idx: leaf_corner_idx(growing),
       )
-      #(Some(completed), init_yin_leaf(idx))
+      #(Some(completed), init_yin_leaf(idx), sma_tiny)
     }
     False -> {
-      let corner_val = case get_sma_tiny_at(databar_list, leaf_corner_idx(growing)) {
-        None -> start_val
+      let start_val = case get_sma_tiny_at(databar_list, leaf_start_idx(growing)) {
+        None -> sma_tiny
         Some(v) -> v
       }
+      let is_threshold_crossed = sma_tiny >. start_val
 
-      case sma_tiny <. corner_val {
-        True ->
-          // New low within leaf: update corner and end
-          #(None, YinLeaf(start_idx: leaf_start_idx(growing), end_idx: idx, corner_idx: idx))
-        False ->
-          // Just extend end
-          #(None, YinLeaf(start_idx: leaf_start_idx(growing), end_idx: idx, corner_idx: leaf_corner_idx(growing)))
+      case is_threshold_crossed {
+        True -> {
+          // New yin leaf born at idx (threshold crossed)
+          let completed = YinLeaf(
+            start_idx: leaf_start_idx(growing),
+            end_idx: idx - 1,
+            corner_idx: leaf_corner_idx(growing),
+          )
+          #(Some(completed), init_yin_leaf(idx), sma_tiny)
+        }
+        False -> {
+          let cma = case list.first(databar_list) {
+            Ok(bar) -> compute_cma(bar.yin_leaf_cma, sma_tiny, idx - leaf_start_idx(growing))
+            Error(_) -> sma_tiny
+          }
+          let corner_val = case get_sma_tiny_at(databar_list, leaf_corner_idx(growing)) {
+            None -> case get_sma_tiny_at(databar_list, leaf_start_idx(growing)) { None -> sma_tiny Some(v) -> v }
+            Some(v) -> v
+          }
+          case sma_tiny <. corner_val {
+            True -> #(None, YinLeaf(start_idx: leaf_start_idx(growing), end_idx: idx, corner_idx: idx), cma)
+            False -> #(None, YinLeaf(start_idx: leaf_start_idx(growing), end_idx: idx, corner_idx: leaf_corner_idx(growing)), cma)
+          }
+        }
       }
     }
   }
 }
 
 /// Update growing yang leaf with new sma_tiny value.
-/// Returns #(Option(completed_leaf), updated_growing_leaf).
+/// Returns #(Option(completed_leaf), updated_growing_leaf, cma_for_this_bar).
 pub fn update_yang_leaf(
   growing: DataLeaf,
   idx: Int,
   databar_list: List(types.DataBar),
   sma_tiny: Float,
-) -> #(Option(DataLeaf), DataLeaf) {
+) -> #(Option(DataLeaf), DataLeaf, Float) {
   let start_val = case get_sma_tiny_at(databar_list, leaf_start_idx(growing)) {
     None -> sma_tiny
     Some(v) -> v
   }
 
-  case sma_tiny <. start_val {
+  let is_new_leaf = sma_tiny <. start_val
+
+  case is_new_leaf {
     True -> {
       // New yang leaf born at idx
       let completed = YangLeaf(
@@ -174,19 +200,20 @@ pub fn update_yang_leaf(
         end_idx: idx - 1,
         corner_idx: leaf_corner_idx(growing),
       )
-      #(Some(completed), init_yang_leaf(idx))
+      #(Some(completed), init_yang_leaf(idx), sma_tiny)
     }
     False -> {
+      let cma = case list.first(databar_list) {
+        Ok(bar) -> compute_cma(bar.yang_leaf_cma, sma_tiny, idx - leaf_start_idx(growing))
+        Error(_) -> sma_tiny
+      }
       let corner_val = case get_sma_tiny_at(databar_list, leaf_corner_idx(growing)) {
-        None -> start_val
+        None -> case get_sma_tiny_at(databar_list, leaf_start_idx(growing)) { None -> sma_tiny Some(v) -> v }
         Some(v) -> v
       }
-
       case sma_tiny >. corner_val {
-        True ->
-          #(None, YangLeaf(start_idx: leaf_start_idx(growing), end_idx: idx, corner_idx: idx))
-        False ->
-          #(None, YangLeaf(start_idx: leaf_start_idx(growing), end_idx: idx, corner_idx: leaf_corner_idx(growing)))
+        True -> #(None, YangLeaf(start_idx: leaf_start_idx(growing), end_idx: idx, corner_idx: idx), cma)
+        False -> #(None, YangLeaf(start_idx: leaf_start_idx(growing), end_idx: idx, corner_idx: leaf_corner_idx(growing)), cma)
       }
     }
   }
