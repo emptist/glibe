@@ -12,68 +12,6 @@ pub type SourceBar {
   )
 }
 
-/// Which polarity of leaf the bar belongs to.
-pub type LeafType {
-  YinLeaf
-  YangLeaf
-}
-
-pub type BranchType {
-  YinBranch
-  YangBranch
-}
-
-/// Settled fractal records — indices only, no values.
-/// Values read from databar_list at indices.
-/// Per DESIGN.md §4, NAMING.md rule 1.18: DataLeaf / DataBranch (not Leaf / Branch)
-pub type DataLeaf {
-  DataYinLeaf(start_idx: Int, end_idx: Int, corner_idx: Int)
-  DataYangLeaf(start_idx: Int, end_idx: Int, corner_idx: Int)
-}
-
-pub type DataBranch {
-  DataYinBranch(start_idx: Int, enter_idx: Int, end_idx: Int, exit_idx: Int)
-  DataYangBranch(start_idx: Int, enter_idx: Int, end_idx: Int, exit_idx: Int)
-}
-
-pub fn data_leaf_size(leaf: DataLeaf) -> Int {
-  let start = case leaf {
-    DataYinLeaf(s, _, _) -> s
-    DataYangLeaf(s, _, _) -> s
-  }
-  let end = case leaf {
-    DataYinLeaf(_, e, _) -> e
-    DataYangLeaf(_, e, _) -> e
-  }
-  end - start + 1
-}
-
-pub fn data_branch_size(branch: DataBranch) -> Int {
-  let start = case branch {
-    DataYinBranch(s, _, _, _) -> s
-    DataYangBranch(s, _, _, _) -> s
-  }
-  let end = case branch {
-    DataYinBranch(_, _, e, _) -> e
-    DataYangBranch(_, _, e, _) -> e
-  }
-  end - start + 1
-}
-
-pub fn mk_data_leaf(lt: LeafType, start: Int, end: Int, corner: Int) -> DataLeaf {
-  case lt {
-    YinLeaf -> DataYinLeaf(start_idx: start, end_idx: end, corner_idx: corner)
-    YangLeaf -> DataYangLeaf(start_idx: start, end_idx: end, corner_idx: corner)
-  }
-}
-
-pub fn mk_data_branch(bt: BranchType, start: Int, enter: Int, end: Int, exit: Int) -> DataBranch {
-  case bt {
-    YinBranch -> DataYinBranch(start_idx: start, enter_idx: enter, end_idx: end, exit_idx: exit)
-    YangBranch -> DataYangBranch(start_idx: start, enter_idx: enter, end_idx: end, exit_idx: exit)
-  }
-}
-
 pub type Interval {
   D1
   H1

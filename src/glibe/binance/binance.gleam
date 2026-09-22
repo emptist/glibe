@@ -20,22 +20,7 @@ fn get(path: String, query: List(#(String, String))) -> Result(String, BinanceEr
         200 -> Ok(resp.body)
         code -> Error(HttpError(code, resp.body))
       }
-    Error(e) -> Error(HttpError(0, error_to_string(e)))
-  }
-}
-
-fn error_to_string(e: httpc.HttpError) -> String {
-  case e {
-    httpc.FailedToConnect(ip4, ip6) -> "Failed to connect: " <> connect_error_to_string(ip4) <> ", " <> connect_error_to_string(ip6)
-    httpc.ResponseTimeout -> "Request timeout"
-    httpc.InvalidUtf8Response -> "Invalid UTF-8 response"
-  }
-}
-
-fn connect_error_to_string(e: httpc.ConnectError) -> String {
-  case e {
-    httpc.Posix(code) -> "Posix: " <> code
-    httpc.TlsAlert(code, detail) -> "TLS: " <> code <> " " <> detail
+    Error(e) -> Error(HttpError(0, "http error"))
   }
 }
 

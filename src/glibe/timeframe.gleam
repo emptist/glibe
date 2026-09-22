@@ -1,14 +1,13 @@
 // Timeframe — one (symbol, interval), holds everything.
-// Phase 1: sourcebar_gate, databar_processing, SMA series, Bollinger, KDJ.
+// Phase 1: sourcebar_gate, databar_processing, SMA series, Bollinger, KDJ, Leaf.
 
 import gleam/list
 import gleam/option.{type Option, None, Some}
-import gleam/result
-import gleam/int
 import gleam/float
 import glibe/types as types
 import glibe/indicator_settings.{type TimeframeSettings}
 import glibe/indicator
+import glibe/leaf
 
 pub type Timeframe {
   Timeframe(
@@ -19,6 +18,13 @@ pub type Timeframe {
     // working_databar is Option — after a close, None until next source bar
     working_databar: Option(types.DataBar),
     databar_list: List(types.DataBar), // newest-first
+
+    // Leaf fields (NOT Option - every bar is in both leaves per DESIGN.md §3.4)
+    // Growing leaf IS the DataLeaf record (YinLeaf/YangLeaf variant)
+    growing_yin_leaf: leaf.DataLeaf,
+    growing_yang_leaf: leaf.DataLeaf,
+    yin_leaf_list: List(leaf.DataLeaf),
+    yang_leaf_list: List(leaf.DataLeaf),
   )
 }
 
@@ -30,6 +36,10 @@ pub fn new(symbol: String, interval: types.Interval, market_type: types.MarketTy
     market_type: market_type,
     working_databar: None,
     databar_list: [],
+    growing_yin_leaf: leaf.init_yin_leaf(-1),
+    growing_yang_leaf: leaf.init_yang_leaf(-1),
+    yin_leaf_list: [],
+    yang_leaf_list: [],
   )
 }
 
@@ -125,8 +135,34 @@ fn fold_databar(databar: types.DataBar, sourcebar: types.SourceBar) -> types.Dat
 /// The super function — lives in Timeframe module, holds no arithmetic of its own
 pub fn databar_processing(timeframe: Timeframe, databar: types.DataBar, settings: TimeframeSettings) -> Timeframe {
   let databar = indicator.run(databar, timeframe.databar_list, settings)
-  // TODO: leaves, branches, strategy, runtime_test
+  let timeframe = leaves(databar, timeframe, settings)
+  // TODO: branches, strategy, runtime_test
   accept(timeframe, databar)
+}
+
+/// Leaf detection — after KDJ, before Bollinger per DESIGN.md §15.3
+/// Updates growing leaves, moves completed leaves to lists
+fn leaves(databar: types.DataBar, timeframe: Timeframe, settings: TimeframeSettings) -> Timeframe {
+  let idx = list.length(timeframe.databar_list)
+  let sma_tiny = databar.sma_tiny
+
+  // Update growing yin leaf (IS the YinLeaf record, end_idx updates each bar)
+  let #(closed_yin, new_yin) = leaf.update_yin_leaf(timeframe.growing_yin_leaf, idx, timeframe.databar_list, sma_tiny)
+  // Update growing yang leaf
+  let #(closed_yang, new_yang) = leaf.update_yang_leaf(timeframe.growing_yang_leaf, idx, timeframe.databar_list, sma_tiny)
+
+  Timeframe(..timeframe,
+    growing_yin_leaf: new_yin,
+    growing_yang_leaf: new_yang,
+    yin_leaf_list: case closed_yin {
+      Some(l) -> list.prepend(timeframe.yin_leaf_list, l)
+      None -> timeframe.yin_leaf_list
+    },
+    yang_leaf_list: case closed_yang {
+      Some(l) -> list.prepend(timeframe.yang_leaf_list, l)
+      None -> timeframe.yang_leaf_list
+    },
+  )
 }
 
 /// The finished bar goes into databar_list (newest-first)

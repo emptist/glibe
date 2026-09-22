@@ -4,7 +4,6 @@
 import gleam/list
 import gleam/result
 import gleam/int
-import gleam/float
 import glibe/types as types
 import glibe/indicator_settings.{type TimeframeSettings}
 
