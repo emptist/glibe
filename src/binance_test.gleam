@@ -1,14 +1,13 @@
 import glibe/binance/binance
 import glibe/binance/types as types
 import gleam/io
-import gleam/result
 import gleam/list
 import gleam/int
 import gleam/float
 
 pub fn main() {
   io.println("Fetching BTCUSDT 1h klines...")
-  case binance.fetch_klines("BTCUSDT", types.H1, 1) {
+  case binance.fetch_klines("BTCUSDT", types.H1, 10) {
     Ok(bars) -> handle_bars(bars)
     Error(e) -> io.println("Error: " <> debug(e))
   }

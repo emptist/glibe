@@ -6,40 +6,40 @@ pub type IbkrError {
   HttpError(Int, String)
 }
 
-@external(erlang, "ibkr_ffi", "setup")
+@external(erlang, "Elixir.Glibe.Ibkr", "setup")
 fn do_setup(port: String) -> Result(Nil, Dynamic)
 
-@external(erlang, "ibkr_ffi", "check_auth_status")
+@external(erlang, "Elixir.Glibe.Ibkr", "check_auth_status")
 fn do_check_auth_status() -> Result(Dynamic, Dynamic)
 
-@external(erlang, "ibkr_ffi", "ping_server")
+@external(erlang, "Elixir.Glibe.Ibkr", "ping_server")
 fn do_ping_server() -> Result(Dynamic, Dynamic)
 
-@external(erlang, "ibkr_ffi", "get_accounts")
+@external(erlang, "Elixir.Glibe.Ibkr", "get_accounts")
 fn do_get_accounts() -> Result(Dynamic, Dynamic)
 
-@external(erlang, "ibkr_ffi", "get_positions")
+@external(erlang, "Elixir.Glibe.Ibkr", "get_positions")
 fn do_get_positions(account_id: String) -> Result(Dynamic, Dynamic)
 
-@external(erlang, "ibkr_ffi", "search_contracts")
+@external(erlang, "Elixir.Glibe.Ibkr", "search_contracts")
 fn do_search_contracts(symbol: String) -> Result(Dynamic, Dynamic)
 
-@external(erlang, "ibkr_ffi", "get_market_snapshot")
+@external(erlang, "Elixir.Glibe.Ibkr", "get_market_snapshot")
 fn do_get_market_snapshot(conids: String, fields: String) -> Result(Dynamic, Dynamic)
 
-@external(erlang, "ibkr_ffi", "get_historical")
+@external(erlang, "Elixir.Glibe.Ibkr", "get_historical")
 fn do_get_historical(conid: String, period: String, bar: String) -> Result(Dynamic, Dynamic)
 
-@external(erlang, "ibkr_ffi", "get_orders")
+@external(erlang, "Elixir.Glibe.Ibkr", "get_orders")
 fn do_get_orders() -> Result(Dynamic, Dynamic)
 
-@external(erlang, "ibkr_ffi", "preview_order")
+@external(erlang, "Elixir.Glibe.Ibkr", "preview_order")
 fn do_preview_order(account_id: String, orders: Dynamic) -> Result(Dynamic, Dynamic)
 
-@external(erlang, "ibkr_ffi", "place_order")
+@external(erlang, "Elixir.Glibe.Ibkr", "place_order")
 fn do_place_order(account_id: String, orders: Dynamic) -> Result(Dynamic, Dynamic)
 
-@external(erlang, "ibkr_ffi", "cancel_order")
+@external(erlang, "Elixir.Glibe.Ibkr", "cancel_order")
 fn do_cancel_order(account_id: String, order_id: String) -> Result(Dynamic, Dynamic)
 
 pub fn setup(port: String) -> Result(Nil, IbkrError) {

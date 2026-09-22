@@ -1,6 +1,7 @@
 import glibe/ib/ibkr
 import gleam/io
 import gleam/dynamic
+import gleam/int
 
 pub fn main() {
   io.println("Setting up IB connection...")
@@ -34,17 +35,5 @@ fn debug(e) -> String {
 }
 
 fn int_to_string(n: Int) -> String {
-  case n {
-    0 -> "0"
-    1 -> "1"
-    2 -> "2"
-    3 -> "3"
-    4 -> "4"
-    5 -> "5"
-    6 -> "6"
-    7 -> "7"
-    8 -> "8"
-    9 -> "9"
-    _ -> "N"
-  }
+  int.to_string(n)
 }

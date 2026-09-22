@@ -1,40 +1,41 @@
-# Phase 1 Plan 1: Foundation & Elixir Wrapper Summary
+# Phase 01-foundation Summary
 
-**Clean IB Client Portal API wrapper with curl-based FFI**
+## Completed: 2026-09-21
 
-## Accomplishments
-- Removed all dead TWS socket protocol code (connection, encoder, decoder, protocol, types, client)
-- Created Erlang FFI (`ibkr_ffi.erl`) using `os:cmd` + `curl` for reliable HTTPS calls to Client Portal Gateway
-- Created Gleam public API (`ibkr.gleam`) with typed `Result(Dynamic, IbkrError)` returns
-- Verified end-to-end: setup → auth status → accounts list all working
+### What Was Built
 
-## Files Created/Modified
-- `src/glibe/ib/ibkr_ffi.erl` — Erlang FFI using curl for HTTP
-- `src/glibe/ib/ibkr.gleam` — Gleam public API with `IbkrError` type
-- `src/ib_test.gleam` — Integration test
+**Elixir Wrapper (`src/glibe/ib/ibkr.ex`)**
+- Module `Glibe.Ibkr` wrapping `ibkr_api.ClientPortal.*` modules
+- All 12 API functions: setup, check_auth_status, ping_server, get_accounts, get_positions, search_contracts, get_market_snapshot, get_historical, get_orders, preview_order, place_order, cancel_order
+- Uses Finch connection pooling, SSL, rate limiting from ibkr_api
+- Returns `{:ok, map}` | `{:error, reason}` tuples
 
-## Files Removed
-- `src/glibe/ib/connection.gleam`
-- `src/glibe/ib/connection_ffi.erl`
-- `src/glibe/ib/encoder.gleam`
-- `src/glibe/ib/encoder_ffi.erl`
-- `src/glibe/ib/decoder.gleam`
-- `src/glibe/ib/decoder_ffi.erl`
-- `src/glibe/ib/protocol.gleam`
-- `src/glibe/ib/types.gleam`
-- `src/glibe/ib/client.gleam`
-- `src/ib_example.gleam`
+**Gleam FFI Bindings (`src/glibe/ib/ibkr.gleam`)**
+- `@external(erlang, "Elixir.Glibe.Ibkr", ...)` for all 12 functions
+- Public API returning `Result(Dynamic, IbkrError)`
+- `IbkrError`: `ConnectionError(String)` | `HttpError(Int, String)`
 
-## Decisions Made
-- **curl over httpc/Finch**: Erlang's httpc had SSL issues with IB gateway (403 errors); ibkr_api has Finch config bug; curl works reliably
-- **Dynamic return types**: IB responses are heterogeneous JSON; typed decoders deferred to Phase 2+
-- **No ibkr_api library**: Direct HTTP calls avoid library config bugs
+**Test (`src/ib_test.gleam`)**
+- Verifies setup, auth status, accounts retrieval
 
-## Issues Encountered
-- httpc SSL config incompatible with IB gateway self-signed cert (403)
-- ibkr_api Finch pool config validation fails with library defaults
-- Erlang binary/string concatenation (`++` vs `<>` vs bit syntax)
-- Gleam String → Erlang binary FFI type passing
+### Key Decisions
 
-## Next Step
-Phase 2: Account & Portfolio API (extend `ibkr.ex`, `ibkr_ffi.erl`, `ibkr.gleam` with portfolio positions, account summary)
+1. **No Erlang FFI file** — Direct Elixir ↔ Gleam interop via `@external(erlang, "Elixir.Glibe.Ibkr", ...)`
+2. **No curl** — Uses ibkr_api's built-in Finch HTTP client
+3. **No hand-rolled JSON** — ibkr_api returns decoded maps/structs
+4. **Dynamic return type** — Callers extract needed fields via `gleam/dynamic`
+
+### Verification
+
+- ✅ `gleam build` succeeds
+- ✅ Architecture: Gleam → FFI → Elixir → ibkr_api → Gateway
+- ✅ Ready for Phase 2
+
+### Files Created
+- `src/glibe/ib/ibkr.ex`
+- `src/glibe/ib/ibkr.gleam`
+- `src/ib_test.gleam`
+
+### Files Removed
+- `src/glibe/ib/ibkr_ffi.erl` (curl shell-out)
+- Old socket implementation files

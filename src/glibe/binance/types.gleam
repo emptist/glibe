@@ -122,5 +122,5 @@ pub fn decode_klines(raw: String) -> Result(List(SourceBar), String) {
       |> list.map(fn(r) { case r { Ok(b) -> b _ -> panic }})
     Ok(bars)
   })
-  |> result.map_error(fn(e) { "JSON parse error" })
+  |> result.map_error(fn(_) { "JSON parse error" })
 }

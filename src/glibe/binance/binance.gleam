@@ -1,50 +1,58 @@
-import gleam/json
+import gleam/httpc
+import gleam/http/request
 import gleam/result
+import gleam/int
 import glibe/binance/types.{type SourceBar, type Interval, decode_klines}
-import gleam/dynamic.{type Dynamic}
 
 pub type BinanceError {
   HttpError(Int, String)
   JsonError
 }
 
-@external(erlang, "binance_ffi", "get_klines")
-fn do_get_klines(symbol: String, interval: String, limit: Int) -> Result(String, String)
+fn get(path: String, query: List(#(String, String))) -> Result(String, BinanceError) {
+  let req = request.new()
+  |> request.set_host("testnet.binance.vision")
+  |> request.set_path(path)
+  |> request.set_query(query)
+  case httpc.send(req) {
+    Ok(resp) ->
+      case resp.status {
+        200 -> Ok(resp.body)
+        code -> Error(HttpError(code, resp.body))
+      }
+    Error(e) -> Error(HttpError(0, error_to_string(e)))
+  }
+}
 
-@external(erlang, "binance_ffi", "get_ticker")
-fn do_get_ticker(symbol: String) -> Result(String, String)
+fn error_to_string(e: httpc.HttpError) -> String {
+  case e {
+    httpc.FailedToConnect(ip4, ip6) -> "Failed to connect: " <> connect_error_to_string(ip4) <> ", " <> connect_error_to_string(ip6)
+    httpc.ResponseTimeout -> "Request timeout"
+    httpc.InvalidUtf8Response -> "Invalid UTF-8 response"
+  }
+}
 
-@external(erlang, "binance_ffi", "get_exchange_info")
-fn do_get_exchange_info() -> Result(String, String)
-
-@external(erlang, "binance_ffi", "set_base_url")
-fn do_set_base_url(url: String) -> Result(Nil, Dynamic)
+fn connect_error_to_string(e: httpc.ConnectError) -> String {
+  case e {
+    httpc.Posix(code) -> "Posix: " <> code
+    httpc.TlsAlert(code, detail) -> "TLS: " <> code <> " " <> detail
+  }
+}
 
 pub fn fetch_klines(symbol: String, interval: Interval, limit: Int) -> Result(List(SourceBar), BinanceError) {
   let interval_str = types.interval_to_binance_string(interval)
-  do_get_klines(symbol, interval_str, limit)
-  |> result.map_error(fn(e) { HttpError(0, e) })
-  |> result.try(fn(raw) { decode_klines(raw) |> result.map_error(fn(e) { JsonError }) })
-  |> result.map_error(fn(e) {
-    case e {
-      HttpError(c, m) -> HttpError(c, m)
-      _ -> e
-    }
-  })
+  get("/api/v3/klines", [
+    #("symbol", symbol),
+    #("interval", interval_str),
+    #("limit", int.to_string(limit)),
+  ])
+  |> result.try(fn(raw) { decode_klines(raw) |> result.map_error(fn(_) { JsonError }) })
 }
 
 pub fn fetch_ticker(symbol: String) -> Result(String, BinanceError) {
-  do_get_ticker(symbol)
-  |> result.map_error(fn(e) { HttpError(0, e) })
+  get("/api/v3/ticker/24hr", [#("symbol", symbol)])
 }
 
 pub fn fetch_exchange_info() -> Result(String, BinanceError) {
-  do_get_exchange_info()
-  |> result.map_error(fn(e) { HttpError(0, e) })
-}
-
-pub fn set_base_url(url: String) -> Result(Nil, BinanceError) {
-  do_set_base_url(url)
-  |> result.map_error(fn(e) { HttpError(0, dynamic.classify(e)) })
-  |> result.map(fn(_) { Nil })
+  get("/api/v3/exchangeInfo", [])
 }
