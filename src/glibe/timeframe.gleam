@@ -243,9 +243,9 @@ pub fn to_csv(timeframe: Timeframe) -> String {
   let bars = list.reverse(timeframe.databar_list) // oldest-first
   let header = "time,open,high,low,close,volume,sma_tiny,sma_small,sma_medium,sma_large,bb_m,bb_u3,bb_l3,bb_u2,bb_u1,bb_l1,bb_l2,k,d,j,m,yin_leaf_cma,yang_leaf_cma,yin_leaf_start,yin_leaf_end,yin_leaf_corner,yang_leaf_start,yang_leaf_end,yang_leaf_corner"
   
-  let rows = list.map(bars, fn(bar) {
+  let rows = list.map(bars, fn(_bar) {
     // Simplified: just export bar data, leaf/branch indices need separate tracking
-    "#{bar.date},#{bar.open},#{bar.high},#{bar.low},#{bar.close},#{bar.volume},#{bar.sma_tiny},#{bar.sma_small},#{bar.sma_medium},#{bar.sma_large},#{bar.bb_m},#{bar.bb_u3},#{bar.bb_l3},#{bar.bb_u2},#{bar.bb_u1},#{bar.bb_l1},#{bar.bb_l2},#{bar.k},#{bar.d},#{bar.j},#{bar.m},#{bar.yin_leaf_cma},#{bar.yang_leaf_cma},0,0,0,0,0,0"
+    "#{_bar.date},#{_bar.open},#{_bar.high},#{_bar.low},#{_bar.close},#{_bar.volume},#{_bar.sma_tiny},#{_bar.sma_small},#{_bar.sma_medium},#{_bar.sma_large},#{_bar.bb_m},#{_bar.bb_u3},#{_bar.bb_l3},#{_bar.bb_u2},#{_bar.bb_u1},#{_bar.bb_l1},#{_bar.bb_l2},#{_bar.k},#{_bar.d},#{_bar.j},#{_bar.m},#{_bar.yin_leaf_cma},#{_bar.yang_leaf_cma},0,0,0,0,0,0"
   })
   
   list.append([header], rows) |> string.join("\n")
