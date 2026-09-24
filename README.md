@@ -8,9 +8,9 @@ Port of `glib` (JavaScript-target) to BEAM with Interactive Brokers TWS/Client P
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| **IB Client Portal** | ✅ Working | Client Portal Gateway on :5001, curl FFI |
-| **Binance REST** | ✅ Working | testnet.binance.vision (works from China), curl FFI |
-| **Stream Processing** | ✅ Working | Phase 3 (SMA, Bollinger, KDJ, Leaf, Branch) |
+| **IB Client Portal** | ✅ Working | Elixir `ibkr_api` + Finch (proper HTTP/SSL) |
+| **Binance REST** | ✅ Working | testnet.binance.vision (works from China), `gleam_httpc` |
+| **Stream Processing** | 🚧 In Progress | Phase 3 (8/13): SMA, Bollinger, KDJ, Leaf, Branch complete |
 
 ## Quick Start
 
@@ -59,14 +59,14 @@ src/
 ├── glibe/
 │   ├── ib/
 │   │   ├── ibkr.gleam       # IB public API
-│   │   ├── ibkr_ffi.erl     # IB Erlang FFI (curl)
-│   │   └── ibkr.ex          # IB Elixir wrapper (planned)
+│   │   ├── ibkr_ffi.erl     # IB Erlang FFI (legacy, disabled)
+│   │   └── ibkr.ex          # IB Elixir wrapper (ibkr_api + Finch)
 │   └── binance/
 │       ├── types.gleam      # SourceBar, Interval, decoders
-│       ├── binance_ffi.erl  # Binance Erlang FFI (curl)
-│       └── binance.gleam    # Binance public API
+│       ├── binance_ffi.erl  # Binance Erlang FFI (legacy, disabled)
+│       └── binance.gleam    # Binance public API (gleam_httpc)
 ├── binance_test.gleam       # Binance integration test
-└── ib_test.gleam            # IB integration test
+└── ib_test.gleam            # IB integration test (disabled)
 ```
 
 ## Testing
@@ -241,7 +241,9 @@ The stream processing logic is split into focused modules:
 
 | Module | Responsibility |
 |--------|----------------|
-| `indicator_settings.gleam` | Shared types: `SmaSeries`, `SmaForBbm`, `TimeframeSettings` |
+| `api.gleam` | SourceBar, Interval, MarketType, JSON decoders |
+| `databar.gleam` | DataBar (core streaming bar with all indicators) |
+| `indicators.gleam` | SmaSeries, SmaForBbm, TimeframeSettings, BollingerBands, KDJ |
 | `sma.gleam` | SMA series (Tiny/Small/Medium/Large) with three-case incremental logic |
 | `kdj.gleam` | KDJ oscillator (LLV/HHV batch + incremental SMA for K/D/M) |
 | `bollinger.gleam` | Bollinger Bands (selected SMA centre, σ from window, Fibonacci ratios) |
@@ -252,7 +254,7 @@ The stream processing logic is split into focused modules:
 
 Dependency graph (no cycles):
 ```
-indicator_settings → sma, kdj, bollinger → indicator → leaf → branch → timeframe
+api, databar, indicators → sma, kdj, bollinger → indicator → leaf → branch → timeframe
 ```
 
 ### Bias (Future)
@@ -270,7 +272,7 @@ Bias field names follow SMA naming (`sma_tiny_bias`, `sma_small_bias`, etc.) —
 See `.planning/ROADMAP.md` for detailed phases:
 - Phase 1: IB Foundation ✅
 - Phase 2: Binance API ✅
-- Phase 3: Stream Processing (SMA, Bollinger, KDJ, Fractal)
+- Phase 3: Stream Processing (8/13 complete: SMA, Bollinger, KDJ, Leaf, Branch)
 - Phase 4: Strategy & AI
 - Phase 5: Integration & Examples
 
