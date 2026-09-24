@@ -23,10 +23,11 @@ pub type Interval {
   MIN30  // 30 minutes
 }
 
-/// Market type determines trading calendar
+/// Market type determines trading calendar and instrument rules
 pub type MarketType {
   Stock   // Traditional markets (IB): ~20 trading days/month, RTH/ETH
-  Crypto  // Binance: 30 days/month, 24/7 trading
+  Crypto  // Native crypto (Binance): 30 days/month, 24/7 trading
+  BStock  // Binance tokenized stocks (bStocks): 24/7, 1:1 backed, dividends via multiplier
 }
 
 /// Decode SourceBar from JSON

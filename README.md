@@ -91,41 +91,55 @@ gleam build # Build the project
 
 The `Timeframe` module (`src/glibe/timeframe.gleam`) implements the streaming data pipeline per the design in glib's `DESIGN.md` and `NAMING.md`.
 
-### Two Top-Level Functions
+### Two Top-Level Functions (ONLY entry points)
 
-1. **`sourcebar_gate(timeframe, sourcebar) -> #(Option(DataBar), Timeframe)`**
-   - Only function that touches `SourceBar`
-   - Folds incoming `SourceBar`s into `working_databar` until bucket ends
-   - Returns `Some(closed_databar)` when bucket completes, `None` otherwise
-   - Decision `bucket_ends` uses only timestamp + interval (no chicken-egg problem)
+```gleam
+// 1. Feed raw exchange data — only function that touches SourceBar
+sourcebar_gate(timeframe: Timeframe, sourcebar: SourceBar) -> #(Option(DataBar), Timeframe)
 
-2. **`databar_processing(timeframe, databar, settings) -> Timeframe`**
-   - Super function in Timeframe module, holds no arithmetic
-   - Calls indicator steps in dependency order: SMA → KDJ → Bollinger
-   - Ends with `accept` putting finished bar into `databar_list` (newest-first)
+ // 2. Process a completed bar — all computation happens here
+databar_processing(timeframe: Timeframe, databar: DataBar, settings: TimeframeSettings) -> Timeframe
+```
 
-### Indicators
+**That's it.** All stream processing flows through these two functions.
 
-| Indicator | Method | Key Properties |
-|-----------|--------|----------------|
-| **SMA series** (Tiny/Small/Medium/Large) | Three cases by list length: empty → close; warm-up → true mean `(held*prev+close)/(held+1)`; full → incremental `(size*prev+close-leaving)/size` | Always divides by window size; leaving bar via `list.drop(size-1)` |
-| **KDJ** | LLV/HHV batch over `window_kdj_size` (9) window; RSV → K/D/M via approximate incremental SMA | `M = SMA(K, 10)` fixed; K/D periods configurable; RSV window = `window_kdj_size` |
-| **Bollinger** | Uses selected SMA as centre (`sma_for_bbm`); σ from `databar_list` window; Fibonacci ratios 0.382/0.618/1.0 | σ divisor = actual window count (warm-up safe); lower bands floored at 0.001/0.0001/0.00001 |
+### `sourcebar_gate` — Time bucket aggregation
+- Folds incoming `SourceBar`s into `working_databar` (OHLCV accumulation)
+- Returns `Some(closed_databar)` when time bucket completes, `None` otherwise
+- Decision `bucket_ends` uses ONLY timestamp + interval (no chicken-egg problem)
+
+### `databar_processing` — The computation pipeline (holds NO arithmetic)
+```gleam
+pub fn databar_processing(tf: Timeframe, db: DataBar, settings: TimeframeSettings) -> Timeframe {
+  let db = indicator.run(db, tf.databar_list, settings)  // JOB 1: Indicators
+  let #(db, tf) = leaves(db, tf, settings)               // JOB 2: Leaf detection
+  let #(db, tf) = branches(db, tf, settings)             // JOB 3: Branch detection
+  accept(tf, db)                                         // JOB 4: Commit to history
+}
+```
+
+**All jobs and where they live:**
+
+| Job | Module | Function | What it does |
+|-----|--------|----------|--------------|
+| **Indicators** | `indicator.gleam` | `run/3` | SMA×4 → KDJ → Bollinger (writes all fields to `DataBar`) |
+| **Leaves** | `leaf.gleam` | `update_yin_leaf/4`, `update_yang_leaf/4` | Streaming Yin/Yang leaf detection, CMA |
+| **Branches** | `branch.gleam` | `update_yin_branch/5`, `update_yang_branch/5` | Streaming Yin/Yang branch detection (9 laws) |
+| **Accept** | `timeframe.gleam` | `accept/2` | Prepend finished bar to `databar_list` (newest-first) |
 
 ### Data Flow
-
 ```
 SourceBar → sourcebar_gate → working_databar (Option) 
   → bucket closes → databar_processing 
-    → indicator(databar, timeframe, settings) 
-      → sma() ×4 → kdj() → bollinger() 
-    → leaves() 
-    → branches() 
-    → accept() → databar_list (newest-first)
+    → indicator.run()        [JOB 1: SMA/KDJ/Bollinger]
+    → leaves()               [JOB 2: Yin/Yang leaf + CMA]
+    → branches()             [JOB 3: Yin/Yang branch]
+    → strategy_signal()      [JOB 4: Manual/AI/hybrid strategy]
+    → runtime_test()         [JOB 5: Backtest/forward-test hook]
+    → accept()               [JOB 6: commit to databar_list]
 ```
 
 ### Timeframe Structure
-
 ```gleam
 pub type Timeframe {
   Timeframe(
@@ -135,18 +149,40 @@ pub type Timeframe {
     working_databar: Option(DataBar),  // None after close until next source bar
     databar_list: List(DataBar),       // newest-first
 
-    // Leaf fields
+    // Leaf state (always present, not Option)
     growing_yin_leaf: DataLeaf,
     growing_yang_leaf: DataLeaf,
     yin_leaf_list: List(DataLeaf),
     yang_leaf_list: List(DataLeaf),
 
-    // Branch fields
+    // Branch state (always present, not Option)
     growing_yin_branch: DataBranch,
     growing_yang_branch: DataBranch,
     yin_branch_list: List(DataBranch),
     yang_branch_list: List(DataBranch),
   )
+}
+```
+
+**Key invariant**: `working_databar` is the bar being built (present — decision making, trading, research); `databar_list` contains only COMPLETED bars (history — immutable facts). When bucket closes, `working_databar` moves to `databar_list` via `accept()`.
+
+### Architecture: Parallel Timeframes for Free
+
+Each `Timeframe` = one (symbol, interval, market_type), fully independent:
+- No shared state, no locks
+- Each has its own `TimeframeSettings` (per market: Stock vs Crypto have different calendars, hours, params)
+- Multiple instruments/intervals run simultaneously
+- Same pure functions process all timeframes
+
+```gleam
+// Portfolio composes timeframes — settings live on each Timeframe, not mixed here
+type Portfolio { Portfolio(timeframes: List(Timeframe)) }
+
+fn portfolio_step(portfolio: Portfolio, sourcebars: Map(String, SourceBar)) -> Portfolio {
+  // For each timeframe, feed its sourcebar (settings travel with timeframe)
+  // Collect signals from all timeframes
+  // Risk management across instruments
+  // Position sizing, correlation checks
 }
 ```
 
@@ -204,22 +240,59 @@ Branch detection runs after Leaf detection, using completed leaf lists.
 
 ### Settings (from `settings.json`)
 
+**Per-market settings** — Stock and Crypto have fundamentally different rules:
+
 ```json
 {
-  "sma_tiny_window_size": 7,
-  "sma_small_window_size": 70,
-  "sma_medium_window_size": 140,
-  "sma_large_window_size": 252,
-  "window_kdj_size": 9,
-  "kdj_k_period": 3,
-  "kdj_d_period": 2,
-  "bb_multiplier": 1.99,
-  "sma_for_bbm": "sma_medium",
-  "branch_exit_leaf_size": 40
+  "Crypto": {
+    "trading_hours": "24/7",
+    "calendar": "continuous",
+    "sma_tiny_window_size": 7,
+    "sma_small_window_size": 70,
+    "sma_medium_window_size": 140,
+    "sma_large_window_size": 252,
+    "window_kdj_size": 9,
+    "kdj_k_period": 3,
+    "kdj_d_period": 2,
+    "bb_multiplier": 1.99,
+    "sma_for_bbm": "sma_medium",
+    "branch_exit_leaf_size": 40
+  },
+  "BStock": {
+    "trading_hours": "24/7",
+    "calendar": "continuous",
+    "dividend_handling": "multiplier_rebase",
+    "withholding_tax": 0.30,
+    "convert_to_real_hours": "US_RTH",
+    "sma_tiny_window_size": 7,
+    "sma_small_window_size": 70,
+    "sma_medium_window_size": 140,
+    "sma_large_window_size": 252,
+    "window_kdj_size": 9,
+    "kdj_k_period": 3,
+    "kdj_d_period": 2,
+    "bb_multiplier": 1.99,
+    "sma_for_bbm": "sma_medium",
+    "branch_exit_leaf_size": 40
+  },
+  "Stock": {
+    "trading_hours": "RTH 09:30-16:00 ET",
+    "calendar": "NYSE",
+    "sma_tiny_window_size": 5,
+    "sma_small_window_size": 50,
+    "sma_medium_window_size": 100,
+    "sma_large_window_size": 200,
+    "window_kdj_size": 9,
+    "kdj_k_period": 3,
+    "kdj_d_period": 2,
+    "bb_multiplier": 1.99,
+    "sma_for_bbm": "sma_medium",
+    "branch_exit_leaf_size": 20
+  }
 }
 ```
 
-One block per interval (multiple intervals run simultaneously).
+One block per market + interval (multiple intervals run simultaneously per market).
 
 ### Usage
 

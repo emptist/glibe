@@ -32,7 +32,7 @@ pub type SmaSeries {
   SmaSeriesLarge
 }
 
-/// Configuration for all indicators
+/// Configuration for all indicators (per market)
 pub type TimeframeSettings {
   TimeframeSettings(
     sma_tiny_window_size: Int,
@@ -48,7 +48,7 @@ pub type TimeframeSettings {
   )
 }
 
-/// Default indicator configuration
+/// Default indicator configuration (Crypto defaults)
 pub fn default_timeframe_settings() -> TimeframeSettings {
   TimeframeSettings(
     sma_tiny_window_size: 7,
