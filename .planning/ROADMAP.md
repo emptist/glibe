@@ -67,28 +67,32 @@ Phase 5: End-to-end testing, examples
 ## Phase 3: Stream Processing 📋
 **Goal**: Port all indicator modules from glib
 
-### Tasks
-1. Port `types.gleam` — SourceBar, DataBar, Order, Position, AccountSummary
-2. Port `stream/stream_types.gleam` — StreamConfig, BarState, indicator states
-3. Port `stream/pipeline.gleam` — bar processing pipeline
-4. Port `stream/sma.gleam`, `bollinger.gleam`, `kdj.gleam` — indicators
-5. Port `stream/fractal.gleam` — fractal analysis
-6. Port `stream/data_bar.gleam` — DataBar construction
-7. Port `stream/live.gleam` — LiveSession
-8. Port `fractal.gleam` — fractal helpers
+### Completed ✅
+- Types split: `api.gleam`, `databar.gleam`, `indicators.gleam` (was `types.gleam`)
+- SMA series (Tiny/Small/Medium/Large) with 3-case incremental logic
+- KDJ oscillator (LLV/HHV + SMA for K/D/M)
+- Bollinger Bands (selected SMA centre, σ from window, Fibonacci ratios)
+- Indicator pipeline: SMA×4 → KDJ → Bollinger
+- Leaf detection: Yin/Yang leaves with CMA
+- Branch detection: Yin/Yang branches with 9 laws
+- Timeframe pipeline: sourcebar_gate → indicators → leaves → branches → accept
+
+### Remaining Tasks
+1. **Binance live feed integration** — connect `binance.gleam` klines to `Timeframe` pipeline
+2. **Tests** — unit tests for SMA/KDJ/Bollinger, property tests for leaf/branch indices
+3. **CSV export verification** — already have `Timeframe.to_csv/1`, verify with TradingView
 
 ### Files
-- All `src/glibe/stream/*.gleam` (to be created)
-- `src/glibe/fractal.gleam` (to be created)
-- `src/glibe/types.gleam` (core types)
-- `src/glibe/stream/stream_types.gleam` (to be created)
+- `test/` — integration tests
+- Extend `src/glibe/binance/binance.gleam` for streaming klines
 
 ### Dependencies
 - Phase 2 (Binance API for live data)
 
 ### Verification
+- [ ] Fractal analysis module implemented
+- [ ] LiveSession manages live trading state
 - [ ] All stream tests pass
-- [ ] Pipeline processes bars correctly
 - [ ] Integration: Binance data → indicators → signals
 
 ---
@@ -149,9 +153,9 @@ Phase 5: End-to-end testing, examples
 |-------|----------------|--------|-----------|
 | 1. IB Foundation | 1/1 | Complete | 2026-09-21 |
 | 2. Binance API | 1/1 | Complete | 2026-09-21 |
-| 3. Stream Processing | 0/1 | Not started | - |
-| 4. Strategy & AI | 0/1 | Not started | - |
-| 5. Integration | 0/1 | Not started | - |
+| 3. Stream Processing | 8/13 | In Progress | - |
+| 4. Strategy & AI | 0/1 | Planned | - |
+| 5. Integration | 0/1 | Planned | - |
 
 ---
 
