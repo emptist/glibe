@@ -3,9 +3,16 @@
 ## What Was Done
 
 ### Core Types (Split from monolithic types.gleam)
-- `api.gleam`: SourceBar, Interval, MarketType, JSON decoders
+- `api.gleam`: SourceBar, Interval, MarketType (Stock/Crypto/BStock), JSON decoders
 - `databar.gleam`: DataBar with all indicator fields
 - `indicators.gleam`: SmaSeries, SmaForBbm, TimeframeSettings, BollingerBands, KDJ
+
+### Market Types (api.gleam)
+| MarketType | Trading | Calendar | Key Features |
+|------------|---------|----------|--------------|
+| `Stock` | RTH 09:30-16:00 ET | NYSE | Direct ownership, voting rights |
+| `Crypto` | 24/7 | continuous | Native assets (BTC, ETH) |
+| `BStock` | 24/7 | continuous | 1:1 tokenized US equities, dividends via multiplier_rebase, 30% withholding, convert 1:1 during US RTH |
 
 ### Indicators (Ported from glib)
 - **SMA series**: Tiny/Small/Medium/Large with 3-case incremental logic (empty → close, warm-up → true mean, full → incremental with leaving bar)
@@ -26,9 +33,11 @@
 
 ### Timeframe Pipeline
 ```
-sourcebar_gate → indicator.run → leaves → branches → accept
+sourcebar_gate → indicator.run → leaves → branches → strategy_signal → runtime_test → accept
 ```
 - 4 leaf fields + 4 branch fields added to Timeframe
+- strategy_signal: manual/AI/hybrid strategy after all structural facts
+- runtime_test: backtest/forward-test hook before commit
 
 ## Build Status
 - `gleam build` passes cleanly (zero warnings)
@@ -37,7 +46,7 @@ sourcebar_gate → indicator.run → leaves → branches → accept
 ## What's Next (Remaining Phase 3)
 
 ### 1. Binance Live Feed Integration
-- Extend `binance.gleam` to stream klines (WebSocket or polling)
+- Extend `binance.gleam` to stream klines (WebSocket or polling) for Crypto + BStock symbols
 - Feed `SourceBar` into `Timeframe.sourcebar_gate`
 
 ### 2. Tests
@@ -50,7 +59,7 @@ sourcebar_gate → indicator.run → leaves → branches → accept
 
 ## Files to Work With
 - `test/` — to create
-- `src/glibe/binance/binance.gleam` — extend for streaming
+- `src/glibe/binance/binance.gleam` — extend for streaming (Crypto + BStock symbols)
 
 ## Verification
 - `gleam build` must pass

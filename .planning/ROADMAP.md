@@ -68,32 +68,37 @@ Phase 5: End-to-end testing, examples
 **Goal**: Port all indicator modules from glib
 
 ### Completed ✅
-- Types split: `api.gleam`, `databar.gleam`, `indicators.gleam` (was `types.gleam`)
+- Types split: `api.gleam` (SourceBar, Interval, MarketType: Stock/Crypto/BStock), `databar.gleam`, `indicators.gleam`
 - SMA series (Tiny/Small/Medium/Large) with 3-case incremental logic
 - KDJ oscillator (LLV/HHV + SMA for K/D/M)
 - Bollinger Bands (selected SMA centre, σ from window, Fibonacci ratios)
 - Indicator pipeline: SMA×4 → KDJ → Bollinger
 - Leaf detection: Yin/Yang leaves with CMA
 - Branch detection: Yin/Yang branches with 9 laws
-- Timeframe pipeline: sourcebar_gate → indicators → leaves → branches → accept
+- Timeframe pipeline: sourcebar_gate → indicators → leaves → branches → strategy → runtime_test → accept
+
+### Market Types (defined in api.gleam)
+| MarketType | Trading | Calendar | Key Features |
+|------------|---------|----------|--------------|
+| `Stock` | RTH 09:30-16:00 ET | NYSE | Direct ownership, voting rights |
+| `Crypto` | 24/7 | continuous | Native assets (BTC, ETH) |
+| `BStock` | 24/7 | continuous | 1:1 tokenized US equities, dividends via multiplier_rebase, 30% withholding, convert 1:1 during US RTH |
 
 ### Remaining Tasks
-1. **Binance live feed integration** — connect `binance.gleam` klines to `Timeframe` pipeline
+1. **Binance live feed integration** — connect `binance.gleam` klines (Crypto + BStock) to `Timeframe` pipeline
 2. **Tests** — unit tests for SMA/KDJ/Bollinger, property tests for leaf/branch indices
 3. **CSV export verification** — already have `Timeframe.to_csv/1`, verify with TradingView
 
 ### Files
 - `test/` — integration tests
-- Extend `src/glibe/binance/binance.gleam` for streaming klines
+- Extend `src/glibe/binance/binance.gleam` for streaming klines (Crypto + BStock symbols)
 
 ### Dependencies
 - Phase 2 (Binance API for live data)
 
 ### Verification
-- [ ] Fractal analysis module implemented
-- [ ] LiveSession manages live trading state
 - [ ] All stream tests pass
-- [ ] Integration: Binance data → indicators → signals
+- [ ] Integration: Binance data (Crypto + BStock) → indicators → signals
 
 ---
 
