@@ -151,6 +151,8 @@ pub fn databar_processing(timeframe: Timeframe, databar: databar.DataBar, settin
   let databar = indicator.run(databar, timeframe.databar_list, settings)
   let #(databar, timeframe) = leaves(databar, timeframe, settings)
   let #(databar, timeframe) = branches(databar, timeframe, settings)
+  let databar = strategy_signal(databar, timeframe, settings)
+  let databar = runtime_test(databar, timeframe, settings)
   accept(timeframe, databar)
 }
 
@@ -249,4 +251,25 @@ pub fn to_csv(timeframe: Timeframe) -> String {
   })
   
   list.append([header], rows) |> string.join("\n")
+}
+
+/// Strategy signal — manual rules, AI, or hybrid.
+/// Runs after all structural facts (indicators, leaves, branches) are computed.
+/// Reads completed DataBar + Timeframe state (leaves/branches lists).
+/// Writes signal to databar.signal field.
+fn strategy_signal(databar: databar.DataBar, _timeframe: Timeframe, _settings: indicators_settings.TimeframeSettings) -> databar.DataBar {
+  // Manual strategy rules:
+  // - KDJ cross + leaf CMA alignment
+  // - Bollinger position + branch state
+  // AI strategy (Phase 4): analogical reasoning on historical patterns
+  // Hybrid: AI confirms/rejects manual signal
+  databar
+}
+
+/// Runtime test / backtest hook — verify signal quality on historical data.
+/// Runs after strategy, before commit. Can track hypothetical P&L.
+fn runtime_test(databar: databar.DataBar, _timeframe: Timeframe, _settings: indicators_settings.TimeframeSettings) -> databar.DataBar {
+  // Backtest hooks: hypothetical entry/exit, P&L tracking
+  // Forward test: paper trading validation
+  databar
 }
