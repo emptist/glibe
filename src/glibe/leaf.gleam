@@ -6,7 +6,7 @@
 import gleam/option.{type Option, None, Some}
 import gleam/int
 import gleam/list
-import glibe/types as types
+import glibe/databar as databar
 
 // ============================================================================
 // Public Types
@@ -81,7 +81,7 @@ pub fn init_yang_leaf(idx: Int) -> DataLeaf {
 // ============================================================================
 
 /// Get DataBar at global index from newest-first list
-fn get_bar_at(databar_list: List(types.DataBar), global_idx: Int) -> Option(types.DataBar) {
+fn get_bar_at(databar_list: List(databar.DataBar), global_idx: Int) -> Option(databar.DataBar) {
   let len = list.length(databar_list)
   let list_idx = len - 1 - global_idx
   case list_idx < 0 {
@@ -95,7 +95,7 @@ fn get_bar_at(databar_list: List(types.DataBar), global_idx: Int) -> Option(type
 }
 
 /// Get sma_tiny at global index
-fn get_sma_tiny_at(databar_list: List(types.DataBar), global_idx: Int) -> Option(Float) {
+fn get_sma_tiny_at(databar_list: List(databar.DataBar), global_idx: Int) -> Option(Float) {
   case get_bar_at(databar_list, global_idx) {
     None -> None
     Some(bar) -> Some(bar.sma_tiny)
@@ -125,7 +125,7 @@ fn compute_cma(prev_cma: Float, sma_tiny: Float, count: Int) -> Float {
 pub fn update_yin_leaf(
   growing: DataLeaf,
   idx: Int,
-  databar_list: List(types.DataBar),
+  databar_list: List(databar.DataBar),
   sma_tiny: Float,
 ) -> #(Option(DataLeaf), DataLeaf, Float) {
   // Leaf is new when start_idx == current working bar index (databar_list.length)
@@ -182,7 +182,7 @@ pub fn update_yin_leaf(
 pub fn update_yang_leaf(
   growing: DataLeaf,
   idx: Int,
-  databar_list: List(types.DataBar),
+  databar_list: List(databar.DataBar),
   sma_tiny: Float,
 ) -> #(Option(DataLeaf), DataLeaf, Float) {
   let start_val = case get_sma_tiny_at(databar_list, leaf_start_idx(growing)) {

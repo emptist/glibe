@@ -3,11 +3,11 @@
 import gleam/list
 import gleam/float
 import gleam/int
-import glibe/types as types
+import glibe/databar as databar
 import glibe/indicator_settings.{type TimeframeSettings}
 
 /// KDJ — batch LLV/HHV over window, incremental SMA for K/D/M
-pub fn kdj(databar: types.DataBar, databar_list: List(types.DataBar), settings: TimeframeSettings) -> types.DataBar {
+pub fn kdj(databar: databar.DataBar, databar_list: List(databar.DataBar), settings: TimeframeSettings) -> databar.DataBar {
   // Window for LLV/HHV
   let window = list.take(databar_list, settings.window_kdj_size)
 
@@ -35,7 +35,7 @@ pub fn kdj(databar: types.DataBar, databar_list: List(types.DataBar), settings: 
   // M = SMA(K, 10) - fixed 10 period
   let m = incremental_sma(databar.m, k, 10)
 
-  types.DataBar(
+  databar.DataBar(
     ..databar,
     k: k,
     d: d,

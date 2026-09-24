@@ -4,11 +4,11 @@ import glibe/sma
 import glibe/kdj
 import glibe/bollinger
 import glibe/indicator_settings.{type TimeframeSettings}
-import glibe/types as types
+import glibe/databar as databar
 
 /// Indicator pipeline — SMA series → KDJ → Bollinger
 /// Returns updated databar; timeframe update handled by caller
-pub fn run(databar: types.DataBar, databar_list: List(types.DataBar), settings: TimeframeSettings) -> types.DataBar {
+pub fn run(databar: databar.DataBar, databar_list: List(databar.DataBar), settings: TimeframeSettings) -> databar.DataBar {
   // SMA series
   let databar = sma.sma(databar, databar_list, settings, sma.SmaSeriesTiny)
   let databar = sma.sma(databar, databar_list, settings, sma.SmaSeriesSmall)

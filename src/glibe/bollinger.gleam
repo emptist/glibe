@@ -5,11 +5,11 @@ import gleam/result
 import gleam/int
 import gleam/float
 import glibe/indicator_settings.{type TimeframeSettings, type SmaForBbm, SmaForBbmTiny, SmaForBbmSmall, SmaForBbmMedium, SmaForBbmLarge}
-import glibe/types as types
+import glibe/databar as databar
 
 /// Bollinger — uses selected SMA as centre, Fibonacci ratios 0.382 / 0.618
 /// Returns updated databar; timeframe update handled by caller
-pub fn bollinger(databar: types.DataBar, databar_list: List(types.DataBar), settings: TimeframeSettings) -> types.DataBar {
+pub fn bollinger(databar: databar.DataBar, databar_list: List(databar.DataBar), settings: TimeframeSettings) -> databar.DataBar {
   // Get the selected SMA as centre (bbm)
   let bb_m = select_bbm(databar, settings.sma_for_bbm)
 
@@ -38,7 +38,7 @@ pub fn bollinger(databar: types.DataBar, databar_list: List(types.DataBar), sett
   let bb_l3 = max(bb_m -. spread, 0.00001)
 
   // Set Bollinger values + sigma (deviation) on databar
-  types.DataBar(
+  databar.DataBar(
     ..databar,
     bb_m: bb_m,
     bb_u3: bb_u3,
@@ -53,7 +53,7 @@ pub fn bollinger(databar: types.DataBar, databar_list: List(types.DataBar), sett
 }
 
 /// Select which SMA is the Bollinger centre
-pub fn select_bbm(databar: types.DataBar, which: SmaForBbm) -> Float {
+pub fn select_bbm(databar: databar.DataBar, which: SmaForBbm) -> Float {
   case which {
     SmaForBbmTiny -> databar.sma_tiny
     SmaForBbmSmall -> databar.sma_small

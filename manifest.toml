@@ -7,8 +7,6 @@
 # You should check this file into your source control repository.
 
 packages = [
-  { name = "error_message", version = "0.3.3", build_tools = ["mix"], requirements = ["jason", "plug"], otp_app = "error_message", source = "hex", outer_checksum = "671A0A78708B299D119ACDADC5F771C8C3CC4B171A9562745936BFE117674B73" },
-  { name = "finch", version = "0.23.0", build_tools = ["mix"], requirements = ["mime", "mint", "nimble_options", "nimble_pool", "telemetry"], otp_app = "finch", source = "hex", outer_checksum = "80E58D3F936F57E3FDF404F83A3642897AE6D9FB642934E46DA4D8FE761B99D5" },
   { name = "gleam_erlang", version = "1.0.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_erlang", source = "hex", outer_checksum = "7E6A5234F927C4B24F8054AB1E4572206C41F9E6D5C6C02273CB7531E7E5CED0" },
   { name = "gleam_http", version = "4.4.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_http", source = "hex", outer_checksum = "F065CE9941A7756ABBAEAE7F9F32A96CAD29DA3311A381DB2D926EA8E8C156DC" },
   { name = "gleam_httpc", version = "5.0.0", build_tools = ["gleam"], requirements = ["gleam_erlang", "gleam_http", "gleam_stdlib"], otp_app = "gleam_httpc", source = "hex", outer_checksum = "C545172618D07811494E97AAA4A0FB34DA6F6D0061FDC8041C2F8E3BE2B2E48F" },
@@ -16,19 +14,6 @@ packages = [
   { name = "gleam_otp", version = "1.3.0", build_tools = ["gleam"], requirements = ["gleam_erlang", "gleam_stdlib"], otp_app = "gleam_otp", source = "hex", outer_checksum = "DE4CA6850842F0266EE95317A25DD6A0A0F20CDFAB7C0ADC2E63251D7C3C72EC" },
   { name = "gleam_stdlib", version = "1.0.5", build_tools = ["gleam"], requirements = [], otp_app = "gleam_stdlib", source = "hex", outer_checksum = "CEE5B6C076A85B45F60C585F4316C63EC8B7127C119D5738C3958A9C4D50404E" },
   { name = "gleeunit", version = "1.11.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleeunit", source = "hex", outer_checksum = "EC31ABA74256AEA531EDF8169931D775BBB384FED0A8A1BDC4DD9354E3E21826" },
-  { name = "hammer", version = "7.5.0", build_tools = ["mix"], requirements = ["igniter"], otp_app = "hammer", source = "hex", outer_checksum = "CB6FB12E5B5A7F1631D5753E9C45493B225BC11F4F09F11EC7F28140C9F0905F" },
-  { name = "hpax", version = "1.0.4", build_tools = ["mix"], requirements = [], otp_app = "hpax", source = "hex", outer_checksum = "AFC7CB142EBCC2D01CE7816190B98CE5DD49E799111B24249F3443D730F377CA" },
-  { name = "ibkr_api", version = "1.0.3", build_tools = ["mix"], requirements = ["error_message", "finch", "hammer", "jason", "nimble_options", "proper_case", "websockex"], otp_app = "ibkr_api", source = "hex", outer_checksum = "04464E64547E4DED2E3F60B53FD3DD6DAD0CAFD9A90BC63933EF1F2DE0E6FA79" },
-  { name = "jason", version = "1.4.5", build_tools = ["mix"], requirements = ["decimal"], otp_app = "jason", source = "hex", outer_checksum = "B0C823996102BCD0239B3C2444EB00409B72F6A140C1950BC8B457D836B30684" },
-  { name = "mime", version = "2.0.7", build_tools = ["mix"], requirements = [], otp_app = "mime", source = "hex", outer_checksum = "6171188E399EE16023FFC5B76CE445EB6D9672E2E241D2DF6050F3C771E80CCD" },
-  { name = "mint", version = "1.10.0", build_tools = ["mix"], requirements = ["castore", "hpax"], otp_app = "mint", source = "hex", outer_checksum = "8B16FB72AAA7531D206A1F05E4CC85509BA531CCEC7A17A22736C9C95CBB24D1" },
-  { name = "nimble_options", version = "1.1.1", build_tools = ["mix"], requirements = [], otp_app = "nimble_options", source = "hex", outer_checksum = "821B2470CA9442C4B6984882FE9BB0389371B8DDEC4D45A9504F00A66F650B44" },
-  { name = "nimble_pool", version = "1.1.0", build_tools = ["mix"], requirements = [], otp_app = "nimble_pool", source = "hex", outer_checksum = "AF2E4E6B34197DB81F7AAD230C1118EAC993ACC0DAE6BC83BAC0126D4AE0813A" },
-  { name = "plug", version = "1.20.3", build_tools = ["mix"], requirements = ["mime", "plug_crypto", "telemetry"], otp_app = "plug", source = "hex", outer_checksum = "BE266AEE1B8536EF6409D58CF39A3121319F0EC47CFA1B24024485AA0E76AD76" },
-  { name = "plug_crypto", version = "2.2.0", build_tools = ["mix"], requirements = [], otp_app = "plug_crypto", source = "hex", outer_checksum = "83A95744AB1C75876542B6FAB135FCC176280E0F301A111C1F757FDDCEC95D2C" },
-  { name = "proper_case", version = "1.3.1", build_tools = ["mix"], requirements = [], otp_app = "proper_case", source = "hex", outer_checksum = "6CC715550CC1895E61608060BBE67AEF0D7C9CF55D7DDB013C6D7073036811DD" },
-  { name = "telemetry", version = "1.4.2", build_tools = ["rebar3"], requirements = [], otp_app = "telemetry", source = "hex", outer_checksum = "928F6495066506077862C0D1646609EED891A4326BEE3126BA54B60AF61FEBB1" },
-  { name = "websockex", version = "0.4.3", build_tools = ["mix"], requirements = [], otp_app = "websockex", source = "hex", outer_checksum = "95F2E7072B85A3A4CC385602D42115B73CE0B74A9121D0D6DBBF557645AC53E4" },
 ]
 
 [requirements]
@@ -39,4 +24,3 @@ gleam_json = { version = ">= 3.1.0 and < 4.0.0" }
 gleam_otp = { version = ">= 1.3.0 and < 2.0.0" }
 gleam_stdlib = { version = ">= 1.0.0 and < 2.0.0" }
 gleeunit = { version = ">= 1.0.0 and < 2.0.0" }
-ibkr_api = { version = ">= 1.0.3 and < 2.0.0" }

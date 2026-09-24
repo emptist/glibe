@@ -4,7 +4,7 @@
 import gleam/list
 import gleam/result
 import gleam/int
-import glibe/types as types
+import glibe/databar as databar
 import glibe/indicator_settings.{type TimeframeSettings}
 
 pub type SmaSeries {
@@ -15,7 +15,7 @@ pub type SmaSeries {
 }
 
 /// SMA — three cases by list length (plan 31-01)
-pub fn sma(working: types.DataBar, databar_list: List(types.DataBar), settings: TimeframeSettings, name: SmaSeries) -> types.DataBar {
+pub fn sma(working: databar.DataBar, databar_list: List(databar.DataBar), settings: TimeframeSettings, name: SmaSeries) -> databar.DataBar {
   let size = size_of(settings, name)
   let len = list.length(databar_list)
 
@@ -54,7 +54,7 @@ pub fn sma(working: types.DataBar, databar_list: List(types.DataBar), settings: 
   set_sma_of(working, name, mean)
 }
 
-fn sma_of(databar: types.DataBar, name: SmaSeries) -> Float {
+fn sma_of(databar: databar.DataBar, name: SmaSeries) -> Float {
   case name {
     SmaSeriesTiny -> databar.sma_tiny
     SmaSeriesSmall -> databar.sma_small
@@ -63,23 +63,23 @@ fn sma_of(databar: types.DataBar, name: SmaSeries) -> Float {
   }
 }
 
-fn set_sma_of(databar: types.DataBar, name: SmaSeries, value: Float) -> types.DataBar {
+fn set_sma_of(databar: databar.DataBar, name: SmaSeries, value: Float) -> databar.DataBar {
   case name {
-    SmaSeriesTiny -> types.DataBar(..databar, sma_tiny: value)
-    SmaSeriesSmall -> types.DataBar(..databar, sma_small: value)
-    SmaSeriesMedium -> types.DataBar(..databar, sma_medium: value)
-    SmaSeriesLarge -> types.DataBar(..databar, sma_large: value)
+    SmaSeriesTiny -> databar.DataBar(..databar, sma_tiny: value)
+    SmaSeriesSmall -> databar.DataBar(..databar, sma_small: value)
+    SmaSeriesMedium -> databar.DataBar(..databar, sma_medium: value)
+    SmaSeriesLarge -> databar.DataBar(..databar, sma_large: value)
   }
 }
 
-/// Bias setter for future use (enable when needed)
-/// bias = 100 * (close - sma) / sma (can be positive or negative)
-// fn set_bias_of(databar: types.DataBar, name: SmaSeries, value: Float) -> types.DataBar {
+// Bias setter for future use (enable when needed)
+// bias = 100 * (close - sma) / sma (can be positive or negative)
+// fn set_bias_of(databar: databar.DataBar, name: SmaSeries, value: Float) -> databar.DataBar {
 //   case name {
-//     SmaSeriesTiny -> types.DataBar(..databar, sma_tiny_bias: value)
-//     SmaSeriesSmall -> types.DataBar(..databar, sma_small_bias: value)
-//     SmaSeriesMedium -> types.DataBar(..databar, sma_medium_bias: value)
-//     SmaSeriesLarge -> types.DataBar(..databar, sma_large_bias: value)
+//     SmaSeriesTiny -> databar.DataBar(..databar, sma_tiny_bias: value)
+//     SmaSeriesSmall -> databar.DataBar(..databar, sma_small_bias: value)
+//     SmaSeriesMedium -> databar.DataBar(..databar, sma_medium_bias: value)
+//     SmaSeriesLarge -> databar.DataBar(..databar, sma_large_bias: value)
 //   }
 // }
 

@@ -20,7 +20,7 @@ fn get(path: String, query: List(#(String, String))) -> Result(String, BinanceEr
         200 -> Ok(resp.body)
         code -> Error(HttpError(code, resp.body))
       }
-    Error(e) -> Error(HttpError(0, "http error"))
+    Error(_e) -> Error(HttpError(0, "http error"))
   }
 }
 

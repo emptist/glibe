@@ -5,8 +5,9 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/float
 import gleam/string
-import glibe/types as types
-import glibe/indicator_settings.{type TimeframeSettings}
+import glibe/api as api
+import glibe/databar as databar
+import glibe/indicator_settings as indicators_settings
 import glibe/indicator
 import glibe/leaf
 import glibe/branch
@@ -14,12 +15,12 @@ import glibe/branch
 pub type Timeframe {
   Timeframe(
     symbol: String,
-    interval: types.Interval,
-    market_type: types.MarketType,
+    interval: api.Interval,
+    market_type: api.MarketType,
 
     // working_databar is Option — after a close, None until next source bar
-    working_databar: Option(types.DataBar),
-    databar_list: List(types.DataBar), // newest-first
+    working_databar: Option(databar.DataBar),
+    databar_list: List(databar.DataBar), // newest-first
 
     // Leaf fields (NOT Option - every bar is in both leaves per DESIGN.md §3.4)
     // Growing leaf IS the DataLeaf record (YinLeaf/YangLeaf variant)
@@ -38,7 +39,7 @@ pub type Timeframe {
 }
 
 /// Born with NO bar. First bar comes through sourcebar_gate.
-pub fn new(symbol: String, interval: types.Interval, market_type: types.MarketType) -> Timeframe {
+pub fn new(symbol: String, interval: api.Interval, market_type: api.MarketType) -> Timeframe {
   Timeframe(
     symbol: symbol,
     interval: interval,
@@ -58,7 +59,7 @@ pub fn new(symbol: String, interval: types.Interval, market_type: types.MarketTy
 
 /// The ONLY function that touches SourceBar.
 /// Returns #(closed_databar_if_any, new_timeframe)
-pub fn sourcebar_gate(timeframe: Timeframe, sourcebar: types.SourceBar) -> #(Option(types.DataBar), Timeframe) {
+pub fn sourcebar_gate(timeframe: Timeframe, sourcebar: api.SourceBar) -> #(Option(databar.DataBar), Timeframe) {
   let in_hand = case timeframe.working_databar {
     None -> first_databar(sourcebar)
     Some(bar) -> fold_databar(bar, sourcebar)
@@ -77,17 +78,17 @@ pub fn sourcebar_gate(timeframe: Timeframe, sourcebar: types.SourceBar) -> #(Opt
 }
 
 /// Does this source bar end its bucket? Decision from timestamp + interval only.
-fn bucket_ends(_sourcebar: types.SourceBar, interval: types.Interval) -> Bool {
+fn bucket_ends(_sourcebar: api.SourceBar, interval: api.Interval) -> Bool {
   case interval {
-    types.D1 -> True
-    types.H1 -> True
+    api.D1 -> True
+    api.H1 -> True
     _ -> True
   }
 }
 
 /// First source bar of a bucket becomes a new DataBar (OHLCV = that bar's values)
-fn first_databar(sourcebar: types.SourceBar) -> types.DataBar {
-  types.DataBar(
+fn first_databar(sourcebar: api.SourceBar) -> databar.DataBar {
+  databar.DataBar(
     date: sourcebar.date,
     open: sourcebar.open,
     high: sourcebar.high,
@@ -135,8 +136,8 @@ fn first_databar(sourcebar: types.SourceBar) -> types.DataBar {
 }
 
 /// Fold source bar into working DataBar (update high/low/close/volume)
-fn fold_databar(databar: types.DataBar, sourcebar: types.SourceBar) -> types.DataBar {
-  types.DataBar(
+fn fold_databar(databar: databar.DataBar, sourcebar: api.SourceBar) -> databar.DataBar {
+  databar.DataBar(
     ..databar,
     high: float.max(databar.high, sourcebar.high),
     low: float.min(databar.low, sourcebar.low),
@@ -146,7 +147,7 @@ fn fold_databar(databar: types.DataBar, sourcebar: types.SourceBar) -> types.Dat
 }
 
 /// The super function — lives in Timeframe module, holds no arithmetic of its own
-pub fn databar_processing(timeframe: Timeframe, databar: types.DataBar, settings: TimeframeSettings) -> Timeframe {
+pub fn databar_processing(timeframe: Timeframe, databar: databar.DataBar, settings: indicators_settings.TimeframeSettings) -> Timeframe {
   let databar = indicator.run(databar, timeframe.databar_list, settings)
   let #(databar, timeframe) = leaves(databar, timeframe, settings)
   let #(databar, timeframe) = branches(databar, timeframe, settings)
@@ -155,7 +156,7 @@ pub fn databar_processing(timeframe: Timeframe, databar: types.DataBar, settings
 
 /// Leaf detection — after KDJ, before Bollinger per DESIGN.md §15.3
 /// Updates growing leaves, moves completed leaves to lists, writes CMA to databar
-fn leaves(databar: types.DataBar, timeframe: Timeframe, _settings: TimeframeSettings) -> #(types.DataBar, Timeframe) {
+fn leaves(databar: databar.DataBar, timeframe: Timeframe, _settings: indicators_settings.TimeframeSettings) -> #(databar.DataBar, Timeframe) {
   let idx = list.length(timeframe.databar_list)
   let sma_tiny = databar.sma_tiny
 
@@ -165,7 +166,7 @@ fn leaves(databar: types.DataBar, timeframe: Timeframe, _settings: TimeframeSett
   let #(closed_yang, new_yang, yang_cma) = leaf.update_yang_leaf(timeframe.growing_yang_leaf, idx, timeframe.databar_list, sma_tiny)
 
   // Write CMA to databar
-  let databar = types.DataBar(..databar, yin_leaf_cma: yin_cma, yang_leaf_cma: yang_cma)
+  let databar = databar.DataBar(..databar, yin_leaf_cma: yin_cma, yang_leaf_cma: yang_cma)
 
   let timeframe = Timeframe(..timeframe,
     growing_yin_leaf: new_yin,
@@ -185,7 +186,7 @@ fn leaves(databar: types.DataBar, timeframe: Timeframe, _settings: TimeframeSett
 
 /// Branch detection — after Leaf per DESIGN.md §15.3
 /// Updates growing branches, moves completed branches to lists
-fn branches(databar: types.DataBar, timeframe: Timeframe, settings: TimeframeSettings) -> #(types.DataBar, Timeframe) {
+fn branches(databar: databar.DataBar, timeframe: Timeframe, settings: indicators_settings.TimeframeSettings) -> #(databar.DataBar, Timeframe) {
   let idx = list.length(timeframe.databar_list)
   let exit_leaf_size = settings.branch_exit_leaf_size
 
@@ -226,7 +227,7 @@ fn branches(databar: types.DataBar, timeframe: Timeframe, settings: TimeframeSet
 }
 
 /// The finished bar goes into databar_list (newest-first)
-fn accept(timeframe: Timeframe, databar: types.DataBar) -> Timeframe {
+fn accept(timeframe: Timeframe, databar: databar.DataBar) -> Timeframe {
   Timeframe(
     ..timeframe,
     databar_list: list.prepend(timeframe.databar_list, databar),
