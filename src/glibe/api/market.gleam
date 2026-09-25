@@ -1,7 +1,6 @@
 /// Market types - Exchange + AssetClass + Rules
 
-import gleam/option.{type Option, Some, None}
-import glibe/api/asset.{type AssetClass, type AssetRef}
+import glibe/api/asset.{type AssetClass}
 import glibe/api/rules.{type MarketRules}
 
 /// Market = Exchange + AssetClass + Rules (trading rules live here)

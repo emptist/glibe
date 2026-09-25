@@ -1,7 +1,6 @@
 /// SourceBar - Raw API bar data from exchange
 
 import gleam/dynamic/decode
-import gleam/json.{type Json}
 
 /// Raw API bar data from exchange (Binance/IB)
 pub type SourceBar {

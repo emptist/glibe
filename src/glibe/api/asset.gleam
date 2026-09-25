@@ -1,7 +1,5 @@
 /// Asset types - legally standardized tradable things
 
-import gleam/option.{type Option, Some, None}
-
 /// Asset = legally standardized tradable thing
 pub type Asset {
   Asset(
@@ -29,4 +27,18 @@ pub type AssetClass {
   Future      // Futures contracts
   Option      // Options contracts
   Currency    // Forex pairs (USD, CNY, HKD)
+}
+
+/// Parse AssetClass from string (for config)
+pub fn asset_class_from_string(s: String) -> AssetClass {
+  case s {
+    "Crypto" -> Crypto
+    "Equity" -> Equity
+    "ETF" -> ETF
+    "BStock" -> BStock
+    "Future" -> Future
+    "Option" -> Option
+    "Currency" -> Currency
+    _ -> panic as "Unknown AssetClass"
+  }
 }

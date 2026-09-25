@@ -46,10 +46,12 @@ defmodule GlibeWeb.DataGenerator do
   @impl true
   def handle_info(:tick, state) do
     new_bar = generate_next_bar(state.bars)
-    new_leaves = generate_leaves_from_bars([new_bar | state.bars])
-    new_branches = generate_branches_from_leaves(new_leaves)
-
-    # Detect new leaf/branch
+    
+    # Incremental: only check new bar for leaf/branch completion
+    new_leaves = generate_leaves_incremental(new_bar, state.bars, state.leaves)
+    new_branches = generate_branches_incremental(new_bar, new_leaves, state.branches)
+    
+    # Detect new leaf/branch (compare with previous state)
     new_leaf = detect_new_leaf(state.leaves, new_leaves)
     new_branch = detect_new_branch(state.branches, new_branches)
 
@@ -115,7 +117,7 @@ defmodule GlibeWeb.DataGenerator do
   defp generate_leaves_from_bars(bars) do
     # Simplified: create leaf markers based on SMA crossovers
     Enum.with_index(Enum.reverse(bars))
-    |> Enum.filter(fn {bar, i} -> i > 0 && rem(i, 15) == 0 end)
+    |> Enum.filter(fn {_bar, i} -> i > 0 && rem(i, 15) == 0 end)
     |> Enum.map(fn {bar, i} ->
       %{
         type: if(rem(i, 30) == 0, do: "yin", else: "yang"),
@@ -132,7 +134,7 @@ defmodule GlibeWeb.DataGenerator do
   defp generate_branches_from_leaves(leaves) do
     Enum.with_index(leaves)
     |> Enum.filter(fn {_, i} -> rem(i, 5) == 0 end)
-    |> Enum.map(fn {leaf, i} ->
+    |> Enum.map(fn {leaf, _i} ->
       %{
         type: leaf.type,
         time: leaf.time,
@@ -147,4 +149,45 @@ defmodule GlibeWeb.DataGenerator do
 
   defp detect_new_leaf(old, new), do: List.first(new) |> (fn l -> if l != List.first(old), do: l end).()
   defp detect_new_branch(old, new), do: List.first(new) |> (fn b -> if b != List.first(old), do: b end).()
+
+  # Incremental leaf generation - only check the newest bar
+  defp generate_leaves_incremental(new_bar, bars, existing_leaves) do
+    # Simplified: create leaf marker every 15 bars from the end
+    total_bars = length(bars) + 1  # +1 for new_bar
+    if rem(total_bars, 15) == 0 and total_bars > 15 do
+      leaf = %{
+        type: if(rem(total_bars, 30) == 0, do: "yin", else: "yang"),
+        time: new_bar.time,
+        price: new_bar.close,
+        start_idx: total_bars - 15,
+        end_idx: total_bars - 1,
+        corner_idx: total_bars - 8,
+        cma: new_bar.yin_leaf_cma
+      }
+      [leaf | existing_leaves]
+    else
+      existing_leaves
+    end
+  end
+
+  # Incremental branch generation - only check newest leaf
+  defp generate_branches_incremental(_new_bar, leaves, existing_branches) do
+    # Create branch every 5 leaves
+    leaf_count = length(leaves)
+    if leaf_count > 0 and rem(leaf_count, 5) == 0 do
+      leaf = List.first(leaves)
+      branch = %{
+        type: leaf.type,
+        time: leaf.time,
+        price: leaf.price,
+        start_idx: leaf.start_idx,
+        end_idx: leaf.end_idx + 100,
+        corner_idx: leaf.corner_idx,
+        exit_idx: leaf.end_idx + 120
+      }
+      [branch | existing_branches]
+    else
+      existing_branches
+    end
+  end
 end

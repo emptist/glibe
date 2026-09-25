@@ -1,6 +1,5 @@
 /// Symbol = Instrument = Asset on specific Market (what you actually trade)
 
-import gleam/option.{type Option, Some, None}
 import glibe/api/asset.{type AssetRef}
 
 /// Symbol = Instrument = Asset on specific Market (what you actually trade)

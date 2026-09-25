@@ -5,8 +5,9 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/float
 import gleam/string
-import glibe/api/interval.{type Interval}
+import glibe/api/interval.{type Interval, D1, H1}
 import glibe/api/exchange.{type MarketType}
+import glibe/api/sourcebar.{type SourceBar}
 import glibe/databar as databar
 import glibe/indicator_settings as indicators_settings
 import glibe/indicator
@@ -78,16 +79,44 @@ pub fn sourcebar_gate(timeframe: Timeframe, sourcebar: SourceBar) -> #(Option(da
   }
 }
 
-/// Does this source bar end its bucket? Decision from timestamp + interval only.
-fn bucket_ends(_sourcebar: SourceBar, interval: Interval) -> Bool {
+fn bucket_ends(sourcebar: SourceBar, interval: Interval) -> Bool {
   case interval {
-    api.D1 -> True
-    api.H1 -> True
+    D1 -> bucket_ends_daily(sourcebar.date)
+    H1 -> bucket_ends_hourly(sourcebar.date)
     _ -> True
   }
 }
 
-/// First source bar of a bucket becomes a new DataBar (OHLCV = that bar's values)
+fn bucket_ends_daily(_date: String) -> Bool {
+  // date format: "2024-01-15 09:30:00" or "2024-01-15T09:30:00"
+  // Daily bucket ends at day boundary - always true for new day
+  // For now, treat each bar as potential day end
+  True
+}
+
+fn bucket_ends_hourly(date: String) -> Bool {
+  // date format: "2024-01-15 09:30:00" or "2024-01-15T09:30:00"
+  // Hourly bucket ends when minute == 0
+  case string.split(date, " ") {
+    [_date_part, time_part] ->
+      case string.split(time_part, ":") {
+        [_hour, "00", _seconds] -> True
+        [_hour, "00"] -> True
+        _ -> False
+      }
+    [time_part] ->
+      case string.split(time_part, "T") {
+        [_date, time_part] ->
+          case string.split(time_part, ":") {
+            [_hour, "00", _seconds] -> True
+            [_hour, "00"] -> True
+            _ -> False
+          }
+        _ -> False
+      }
+    _ -> False
+  }
+}
 fn first_databar(sourcebar: SourceBar) -> databar.DataBar {
   databar.DataBar(
     date: sourcebar.date,

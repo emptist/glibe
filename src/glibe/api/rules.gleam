@@ -1,6 +1,10 @@
 /// Market rules and trading parameters
 
-import gleam/option.{type Option, Some, None}
+import gleam/float
+import gleam/int
+import gleam/list
+import gleam/option.{type Option}
+import gleam/string
 
 /// Fee schedule per market
 pub type FeeSchedule {
@@ -61,6 +65,68 @@ pub type AuctionType {
 /// Circuit breaker
 pub type CircuitBreaker {
   CircuitBreaker(threshold_pct: Float, window_seconds: Int, halt_minutes: Int)
+}
+
+/// Parse TradingHours from string (for config)
+/// Formats: "TwentyFourSeven", "TwentyFourFive", "RTH;09:30;16:00;America/New_York", "Custom;09:30:12:00:Asia/Hong_Kong|13:00:16:00:Asia/Hong_Kong"
+pub fn trading_hours_from_string(s: String) -> TradingHours {
+  case string.split(s, ";") {
+    ["TwentyFourSeven"] -> TwentyFourSeven
+    ["TwentyFourFive"] -> TwentyFourFive
+    ["RTH", open, close, timezone] -> RTH(open: open, close: close, timezone: timezone)
+    ["Custom", sessions_str] ->
+      Custom(list.map(string.split(sessions_str, "|"), fn(sess) {
+        case string.split(sess, ":") {
+          [open, close, timezone] -> Session(open: open, close: close, timezone: timezone)
+          _ -> panic as "Invalid session format"
+        }
+      }))
+    _ -> panic as "Unknown TradingHours format"
+  }
+}
+
+/// Parse SettlementType from string (for config)
+pub fn settlement_type_from_string(s: String) -> SettlementType {
+  case s {
+    "Instant" -> Instant
+    "TPlus1" -> TPlus1
+    "TPlus2" -> TPlus2
+    "CryptoOnChain" -> CryptoOnChain
+    _ -> panic as "Unknown SettlementType"
+  }
+}
+
+/// Parse AuctionType from string (for config)
+pub fn auction_type_from_string(s: String) -> AuctionType {
+  case s {
+    "Opening" -> Opening
+    "Closing" -> Closing
+    "Both" -> Both
+    _ -> panic as "Unknown AuctionType"
+  }
+}
+
+/// Parse CircuitBreaker from string (for config)
+/// Format: "CircuitBreaker:0.07:300:15"
+pub fn circuit_breaker_from_string(s: String) -> CircuitBreaker {
+  case string.split(s, ":") {
+    ["CircuitBreaker", threshold_str, window_str, halt_str] -> {
+      let threshold_pct = case float.parse(threshold_str) {
+        Ok(v) -> v
+        Error(_) -> panic as "Invalid threshold_pct"
+      }
+      let window_seconds = case int.parse(window_str) {
+        Ok(v) -> v
+        Error(_) -> panic as "Invalid window_seconds"
+      }
+      let halt_minutes = case int.parse(halt_str) {
+        Ok(v) -> v
+        Error(_) -> panic as "Invalid halt_minutes"
+      }
+      CircuitBreaker(threshold_pct: threshold_pct, window_seconds: window_seconds, halt_minutes: halt_minutes)
+    }
+    _ -> panic as "Invalid CircuitBreaker format"
+  }
 }
 
 /// Market-specific trading rules

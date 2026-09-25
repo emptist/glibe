@@ -12,4 +12,6 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
+config :esbuild, :version, "0.25.0"
+
 import_config "#{config_env()}.exs"

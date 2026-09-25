@@ -1,7 +1,7 @@
 /// Exchange and venue types
 /// Core types for exchange identity and connection details
 
-import gleam/option.{type Option, Some, None}
+import gleam/option.{type Option}
 
 /// Exchange = venue identity + connection details
 pub type Exchange {

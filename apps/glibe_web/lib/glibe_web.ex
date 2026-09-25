@@ -5,13 +5,7 @@ defmodule GlibeWeb do
 
   use Phoenix.Component
 
-  import Phoenix.HTML
-  import Phoenix.LiveView.Helpers
-  import Phoenix.LiveView.Helpers
-
-  @doc """
-  When used with `:router`, it sets up the router for the application.
-  """
+  # When used with `:router`, it sets up the router for the application.
   defmacro __using__(:router) do
     quote do
       use Phoenix.Router
@@ -19,9 +13,7 @@ defmodule GlibeWeb do
     end
   end
 
-  @doc """
-  When used with `:controller`, it sets up the controller for the application.
-  """
+  # When used with `:controller`, it sets up the controller for the application.
   defmacro __using__(:controller) do
     quote do
       use Phoenix.Controller
@@ -29,9 +21,7 @@ defmodule GlibeWeb do
     end
   end
 
-  @doc """
-  When used with `:live_view`, it sets up the live view for the application.
-  """
+  # When used with `:live_view`, it sets up the live view for the application.
   defmacro __using__(:live_view) do
     quote do
       use Phoenix.LiveView
@@ -40,9 +30,7 @@ defmodule GlibeWeb do
     end
   end
 
-  @doc """
-  When used with `:view`, it sets up the view for the application.
-  """
+  # When used with `:view`, it sets up the view for the application.
   defmacro __using__(:view) do
     quote do
       use Phoenix.View
