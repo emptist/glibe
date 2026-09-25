@@ -5,7 +5,8 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/float
 import gleam/string
-import glibe/api as api
+import glibe/api/interval.{type Interval}
+import glibe/api/exchange.{type MarketType}
 import glibe/databar as databar
 import glibe/indicator_settings as indicators_settings
 import glibe/indicator
@@ -15,8 +16,8 @@ import glibe/branch
 pub type Timeframe {
   Timeframe(
     symbol: String,
-    interval: api.Interval,
-    market_type: api.MarketType,
+    interval: Interval,
+    market_type: MarketType,
 
     // working_databar is Option — after a close, None until next source bar
     working_databar: Option(databar.DataBar),
@@ -39,7 +40,7 @@ pub type Timeframe {
 }
 
 /// Born with NO bar. First bar comes through sourcebar_gate.
-pub fn new(symbol: String, interval: api.Interval, market_type: api.MarketType) -> Timeframe {
+pub fn new(symbol: String, interval: Interval, market_type: MarketType) -> Timeframe {
   Timeframe(
     symbol: symbol,
     interval: interval,
@@ -59,7 +60,7 @@ pub fn new(symbol: String, interval: api.Interval, market_type: api.MarketType) 
 
 /// The ONLY function that touches SourceBar.
 /// Returns #(closed_databar_if_any, new_timeframe)
-pub fn sourcebar_gate(timeframe: Timeframe, sourcebar: api.SourceBar) -> #(Option(databar.DataBar), Timeframe) {
+pub fn sourcebar_gate(timeframe: Timeframe, sourcebar: SourceBar) -> #(Option(databar.DataBar), Timeframe) {
   let in_hand = case timeframe.working_databar {
     None -> first_databar(sourcebar)
     Some(bar) -> fold_databar(bar, sourcebar)
@@ -78,7 +79,7 @@ pub fn sourcebar_gate(timeframe: Timeframe, sourcebar: api.SourceBar) -> #(Optio
 }
 
 /// Does this source bar end its bucket? Decision from timestamp + interval only.
-fn bucket_ends(_sourcebar: api.SourceBar, interval: api.Interval) -> Bool {
+fn bucket_ends(_sourcebar: SourceBar, interval: Interval) -> Bool {
   case interval {
     api.D1 -> True
     api.H1 -> True
@@ -87,7 +88,7 @@ fn bucket_ends(_sourcebar: api.SourceBar, interval: api.Interval) -> Bool {
 }
 
 /// First source bar of a bucket becomes a new DataBar (OHLCV = that bar's values)
-fn first_databar(sourcebar: api.SourceBar) -> databar.DataBar {
+fn first_databar(sourcebar: SourceBar) -> databar.DataBar {
   databar.DataBar(
     date: sourcebar.date,
     open: sourcebar.open,
@@ -136,7 +137,7 @@ fn first_databar(sourcebar: api.SourceBar) -> databar.DataBar {
 }
 
 /// Fold source bar into working DataBar (update high/low/close/volume)
-fn fold_databar(databar: databar.DataBar, sourcebar: api.SourceBar) -> databar.DataBar {
+fn fold_databar(databar: databar.DataBar, sourcebar: SourceBar) -> databar.DataBar {
   databar.DataBar(
     ..databar,
     high: float.max(databar.high, sourcebar.high),

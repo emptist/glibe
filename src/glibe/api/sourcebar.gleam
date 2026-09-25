@@ -1,4 +1,7 @@
+/// SourceBar - Raw API bar data from exchange
+
 import gleam/dynamic/decode
+import gleam/json.{type Json}
 
 /// Raw API bar data from exchange (Binance/IB)
 pub type SourceBar {
@@ -10,24 +13,6 @@ pub type SourceBar {
     close: Float,
     volume: Int,
   )
-}
-
-/// Timeframe intervals
-pub type Interval {
-  D1
-  H1
-  W1
-  MO1  // 1 month
-  MIN1   // 1 minute
-  MIN15  // 15 minutes
-  MIN30  // 30 minutes
-}
-
-/// Market type determines trading calendar and instrument rules
-pub type MarketType {
-  Stock   // Traditional markets (IB): ~20 trading days/month, RTH/ETH
-  Crypto  // Native crypto (Binance): 30 days/month, 24/7 trading
-  BStock  // Binance tokenized stocks (bStocks): 24/7, 1:1 backed, dividends via multiplier
 }
 
 /// Decode SourceBar from JSON
