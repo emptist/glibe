@@ -263,3 +263,162 @@ The absolute minimum to make glibe's charts "actually generate" (not mock data):
 This would take ~1 hour and gives glibe actual chart generation capability matching glib.
 
 The key insight is that glibe already has the indicator pipeline producing real DataBar values - it just needs to expose them via the same SSE/PubSub path that glib uses.
+
+## DataLeaf Design: Indices vs DataBar References
+
+A significant design difference exists in how leaf boundaries are recorded:
+
+| Aspect | glib (JS) | glibe (Erlang) |
+|--------|-----------|----------------|
+| **DataLeaf fields** | `start_bar: DataBar`, `end_bar: DataBar`, `corner_bar: DataBar` | `start_idx: Int`, `end_idx: Int`, `corner_idx: Int` |
+| **Accessing sma_tiny from leaf** | `leaf.start_bar.sma_tiny` — direct, no index math needed | `databar_list[leaf.start_idx].sma_tiny` — requires index lookup |
+| **Design rationale** | Leaves are self-contained with bar references; simplifies leaf-level analysis | Compact: 3 Int fields vs 3 DataBar refs; indices are implicit via `databar_list.length` |
+| **Practical impact** | Easier to inspect leaf properties without tracking global indices | More compact; same end result since CMA values are on the DataBar |
+
+**Key insight**: glib's design makes leaf-level bar access trivially easy — you get the SMA value directly from the leaf's start/end/corner bars. glibe requires a simple index lookup (`databar_list[idx]`), which is still O(1) since `databar_list_size` is carried in the Timeframe struct (Question 40).
+
+For chart generation, this difference is irrelevant because both designs write `yin_leaf_cma`/`yang_leaf_cma` to the DataBar during `leaves()`, and the chart broadcasts the DataBar, not the leaf data directly.
+
+
+
+
+## The Real Benefit: DataBar.idx vs Leaf Indices
+
+A critical design difference that the user identified is **whether DataBar records its index**:
+
+| Aspect | glib (JS) | glibe (Erlang) |
+|--------|-----------|----------------|
+| **DataBar.idx** | ✅ Present: `idx: Int` — the bar's position in the stream | ❌ Absent: DataBar has no `idx` field |
+| **DataLeaf fields** | `start_bar: DataBar`, `end_bar: DataBar`, `corner_bar: DataBar` (bar references) | `start_idx: Int`, `end_idx: Int`, `corner_idx: Int` (integer indices) |
+| **How leaf positions resolve** | Leaf references bars directly; no index math needed | Indices refer to positions in `databar_list` (requires list context) |
+| **Count-back formula** | `list_index = databar_list.length - 1 - global_index` (Question 40) | Implicit via list length; no global→list conversion needed |
+| **Key enablement** | `idx` on DataBar makes global→list mapping O(1) | Leaf indices are already relative to the list; no extra field needed |
+
+### Why glib's Design Matters
+
+**glib's `DataBar.idx` is the foundation** for the entire stream processing architecture:
+
+1. **Question 40 optimization**: `databar_list_size` carried in Timeframe makes `list.length()` O(1) — no need to walk the list
+
+2. **Global→list index conversion**: `list_index = databar_list.length - 1 - global_index` enables any bar to be located in the list
+
+3. **Leaf indexing**: Leaf `start_idx`/`end_idx`/`corner_idx` are list positions, directly resolvable via the formula above
+
+4. **prev_* fields removal**: The design ruled away `prev_sma_tiny`, `prev_bb_m`, etc. because `list.first(databar_list)` gives the previous bar — and `idx` makes this O(1)
+
+### The Trade-Off
+
+- **glib**: DataBar.idx + DataLeaf bar references = **maximum flexibility**, can access any bar by global index or by leaf reference. Slightly larger DataBar type.
+
+- **glibe**: No DataBar.idx + DataLeaf integer indices = **more compact**, leaf positions are inherently relative to the streaming list. Slightly less flexible (need list context to resolve indices) but sufficient for the chart generation use case.
+
+### Bottom Line
+
+**Yes, the user is correct: glib's `DataBar.idx` recording IS the real benefit**. It's what makes the entire index mapping system work elegantly:
+
+- O(1) bar location via `databar_list_size`
+- Simple count-back formula for global→list conversion  
+- Leaf indices that directly map to list positions
+- Ability to ruled away `prev_*` fields in favor of `list.first()`
+
+glibe's design is equally valid for its use case (chart generation broadcasts DataBar, not individual bar lookups), but glib's `idx` field provides a more general-purpose foundation that enables richer index-dependent operations across the entire stream processing pipeline.
+
+The chart generation fix I implemented works the same way under both designs because it broadcasts the DataBar, but having `idx` on DataBar is what makes the broader index operations (leaf lookup, global→list conversion, strategy signal computation) work without extra machinery.
+ "Worth It"? — Benefit Analysis
+
+### Benefits of glib's Design (DataBar references in DataLeaf)
+
+1. **Direct bar access without index math**
+   - `leaf.start_bar.sma_tiny` gives you the SMA value immediately
+   - No need to remember `databar_list.length - 1 - global_idx` conversion
+   - Makes leaf-level analysis trivially easy in isolation
+
+2. **Leaf self-containedness**
+   - A leaf carries all the bar references it needs
+   - Can inspect leaf properties without looking at the global timeframe state
+   - Simplifies debugging: "what does this leaf contain?" → open the leaf, read its bars
+
+3. **Eliminates index-mapping bugs**
+   - The global→list index conversion (`Question 40`) is a known complexity source
+   - glib's design sidesteps this entirely for leaf-internal access
+   - Fewer ways to get the "wrong bar" when working at leaf level
+
+4. **Better for interactive inspection / REPL**
+   - In a debugging context, you can inspect a leaf and immediately see its bars
+   - No need to track which global bar maps to which list position
+
+### Benefits of glibe's Design (integer indices in DataLeaf)
+
+1. **More compact representation**
+   - 3 `Int` fields vs 3 `DataBar` references
+   - Significant memory savings at scale (millions of leaves)
+
+2. **Consistent with list-based architecture**
+   - `databar_list` is newest-first; indices have clear meaning
+   - `databar_list_size` carried in Timeframe gives O(1) index→bar mapping (Question 40)
+   - Indices are the "natural" way to position things in a list
+
+3. **Simpler serialization**
+   - 3 integers serialize smaller than 3 DataBar references
+   - Easier to persist/reconstitute leaf state
+
+4. **No circular dependency risk**
+   - DataLeaf → DataBar → DataLeaf would be a cycle
+   - Using indices breaks any potential cycle (though this is already managed by design)
+
+### Which Design Is "Worth It"?
+
+**For chart generation**: Neither is inherently better. Both write CMA to DataBar and broadcast DataBar. The chart works the same regardless.
+
+**For general development ergonomics**: glib's design has the edge.
+- The `leaf.start_bar.sma_tiny` access pattern is intuitively simpler
+- Eliminates a class of index-mapping bugs
+- Makes leaf-level code easier to read and debug
+
+**However**, glibe's design is not "wrong" — it's a reasonable trade-off:
+- The index lookup `databar_list[leaf.start_idx]` is O(1) (with `databar_list_size`)
+- The memory savings matter at very large scales
+- The design is consistent with the overall list-based approach
+
+### Bottom Line
+
+glib's DataLeaf design is **worth it for ergonomics** — it makes leaf-level bar access simpler and reduces cognitive load. The trade-off is slightly larger leaf types and a small memory overhead.
+
+For glibe, the index-based design is equally valid. The `databar_list_size` optimization (Question 40) already gives O(1) index-to-bar mapping, so the lookup cost is negligible. The chart generation feature I implemented works identically under both designs because it broadcasts the DataBar, not the leaf data.
+
+If you're starting a new project and leaf-level bar access is a frequent concern, glib's design offers a real ergonomic benefit. If storage efficiency or list-consistency is the priority, glibe's design is fine.
+
+
+
+## Clarification: DataBar.idx vs Computing List Size
+
+The user noted: "you don't need to compute a databar_list size, since it is looked up from the list.first.idx"
+
+**This is not correct.** You cannot derive `databar_list_size` from `list.first.idx` alone. Here's why:
+
+- `list.first.idx` = the **global index** of the newest bar (e.g., 42)
+- `databar_list_size` = the **count** of bars in the list (e.g., 43 bars, indices 0-42)
+- Knowing the newest bar's global index does NOT tell you how many bars are in the list
+
+**What `list.first.idx` enables:**
+- Knowing the newest bar's position: "bar at global index 42 is at list position 0"
+- Combined with `databar_list_size`, computing: "global index G is at list position `databar_list_size - 1 - (G - list_first_idx)`"
+
+**What the `databar_list_size` optimization (Question 40) actually does:**
+- Carries `databar_list_size: Int` in the Timeframe struct
+- Avoids calling `list.length(databar_list)` which walks the entire list
+- Was called 6 times per bar in the old design, making runs O(n²)
+- With the size carried, it's O(1) per access
+
+**glibe's approach (no `databar_list_size`):**
+- Uses `databar_list.length` which walks the list
+- This is the known inefficiency from Question 40
+- Acceptable for glibe's use case (chart generation doesn't need frequent list size lookup)
+- Would need the optimization for strategies that access bars by global index frequently
+
+### Summary
+
+- **glib**: Carries `databar_list_size` + `DataBar.idx` = O(1) index mapping, enables rich global→list operations
+- **glibe**: No `databar_list_size`, no `DataBar.idx` = walks list for length, sufficient for chart broadcast use case
+
+The chart generation fix works identically under both designs because it broadcasts the DataBar over SSE — it doesn't need list size lookups. But for general stream processing, glib's `idx` + `databar_list_size` combination provides a genuine O(1) optimization that glibe lacks.
