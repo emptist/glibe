@@ -12,7 +12,8 @@ Port of `glib` (JavaScript-target) to BEAM with Interactive Brokers TWS/Client P
 | **Binance REST** | ✅ Working | testnet.binance.vision (works from China), `gleam_httpc` |
 | **Stream Processing** | ✅ Core Complete | Phase 3: SMA, Bollinger, KDJ, Leaf, Branch, Timeframe pipeline |
 | **Tests** | ✅ Passing | 13 unit tests for config, indicators, leaf/branch |
-| **Visualization** | ✅ LiveView | Phoenix + Lightweight Charts real-time streaming |
+| **Visualization** | ✅ LiveView + Chart Generation | Phoenix + Lightweight Charts real-time streaming; DataBar broadcast via SSE |
+| **Chart Generation** | ✅ Enabled | `broadcast_chart` FFI sends DataBar over SSE; LiveView renders from real indicator output |
 
 ## Quick Start
 
@@ -288,7 +289,50 @@ Real-time BTCUSDT 1h chart with:
 - Yin/Yang branch markers (circles with entry/exit info)
 - Updates every 2 seconds via Phoenix PubSub
 
+## Chart Generation
+
+glibe now supports real chart generation via the `broadcast_chart` FFI declaration
+(`src/glibe/timeframe.gleam:45`). This sends `DataBar` values over SSE to the
+browser, where the `ChartHook` phx-hook renders [Lightweight Charts](https://tradingview.github.io/lightweight-charts/).
+
+### How it works
+
+1. **Gleam side** (`timeframe.gleam:databar_processing`): After indicator computation
+   and strategy test, `broadcast_chart(databar)` is called, which invokes the Erlang
+   FFI to JavaScript (`priv/chart_ffi.mjs`).
+
+2. **JavaScript side** (`priv/chart_ffi.mjs`): Receives the `DataBar` and broadcasts
+   it via Phoenix PubSub on the `chart:updates` channel with the full bar data
+   (open, high, low, close, SMA series, Bollinger Bands, KDJ, CMA values, signal).
+
+3. **LiveView side** (`apps/glibe_web/lib/glibe_web/live/chart_live.ex`): The page
+   subscribes to `chart_updates` topic and the `ChartHook` renders Lightweight Charts
+   with candlesticks and indicator overlays.
+
+4. **Data flow**: Raw SourceBar → `sourcebar_gate` → indicator pipeline (SMA×5 →
+   Bollinger → KDJ) → `broadcast_chart` → SSE → browser Lightweight Charts.
+
+This mirrors glib's chart generation capability, but uses Erlang FFI + SSE instead
+of the JS-internal FFI that glib uses.
+
+### Quick Start
+
+```bash
+# Build Gleam core
+gleam build
+
+# Run tests
+gleam test
+
+# Start Phoenix visualization (real-time streaming with chart)
+cd apps/glibe_web
+mix phx.server
+# Open http://localhost:4000
+```
+
 ## Roadmap
+
+See `.planning/ROADMAP.md` for detailed phases:
 
 See `.planning/ROADMAP.md` for detailed phases:
 - Phase 1: Stream Processing Core ✅

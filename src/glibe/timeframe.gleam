@@ -39,6 +39,12 @@ pub type Timeframe {
     yang_branch_list: List(branch.DataBranch),
   )
 }
+// --- Chart broadcast FFI (plan 33-01, UC-57) ---
+// The engine names the external \`web\` sender; \`web\` owns the wire (UC-46, UC-53).
+// FFI to JavaScript module that broadcasts DataBar over SSE for Lightweight Charts.
+@external(erlang, "./priv/chart_ffi", "broadcast_chart")
+pub fn broadcast_chart(databar: databar.DataBar) -> Nil
+
 
 /// Born with NO bar. First bar comes through sourcebar_gate.
 pub fn new(symbol: String, interval: Interval, market_type: MarketType) -> Timeframe {
@@ -183,6 +189,7 @@ pub fn databar_processing(timeframe: Timeframe, databar: databar.DataBar, settin
   let #(databar, timeframe) = branches(databar, timeframe, settings)
   let databar = strategy_signal(databar, timeframe, settings)
   let databar = runtime_test(databar, timeframe, settings)
+  broadcast_chart(databar)
   accept(timeframe, databar)
 }
 
