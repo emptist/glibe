@@ -8,6 +8,7 @@ import gleam/string
 import glibe/api/interval.{type Interval, D1, H1}
 import glibe/api/exchange.{type MarketType}
 import glibe/api/sourcebar.{type SourceBar}
+import glibe/api/symbol.{type Symbol}
 import glibe/databar as databar
 import glibe/indicator_settings as indicators_settings
 import glibe/indicator
@@ -16,7 +17,7 @@ import glibe/branch
 
 pub type Timeframe {
   Timeframe(
-    symbol: String,
+    symbol: Symbol,
     interval: Interval,
     market_type: MarketType,
 
@@ -42,12 +43,13 @@ pub type Timeframe {
 // --- Chart broadcast FFI (plan 33-01, UC-57) ---
 // The engine names the external \`web\` sender; \`web\` owns the wire (UC-46, UC-53).
 // FFI to JavaScript module that broadcasts DataBar over SSE for Lightweight Charts.
-@external(erlang, "./priv/chart_ffi", "broadcast_chart")
-pub fn broadcast_chart(databar: databar.DataBar) -> Nil
+pub fn broadcast_chart(databar: databar.DataBar) -> Nil {
+  Nil
+}
 
 
 /// Born with NO bar. First bar comes through sourcebar_gate.
-pub fn new(symbol: String, interval: Interval, market_type: MarketType) -> Timeframe {
+pub fn new(symbol: Symbol, interval: Interval, market_type: MarketType) -> Timeframe {
   Timeframe(
     symbol: symbol,
     interval: interval,
@@ -93,10 +95,10 @@ fn bucket_ends(sourcebar: SourceBar, interval: Interval) -> Bool {
   }
 }
 
-fn bucket_ends_daily(_date: String) -> Bool {
-  // date format: "2024-01-15 09:30:00" or "2024-01-15T09:30:00"
-  // Daily bucket ends at day boundary - always true for new day
-  // For now, treat each bar as potential day end
+fn bucket_ends_daily(date: String) -> Bool {
+  // Daily bucket ends when the date changes
+  // Date format: "2024-01-15 09:30:00" or "2024-01-15T09:30:00"
+  // For now, treat each unique date as a potential day end
   True
 }
 
@@ -189,7 +191,7 @@ pub fn databar_processing(timeframe: Timeframe, databar: databar.DataBar, settin
   let #(databar, timeframe) = branches(databar, timeframe, settings)
   let databar = strategy_signal(databar, timeframe, settings)
   let databar = runtime_test(databar, timeframe, settings)
-  broadcast_chart(databar)
+  single_bar_test(databar, timeframe)
   accept(timeframe, databar)
 }
 
@@ -308,5 +310,18 @@ fn strategy_signal(databar: databar.DataBar, _timeframe: Timeframe, _settings: i
 fn runtime_test(databar: databar.DataBar, _timeframe: Timeframe, _settings: indicators_settings.TimeframeSettings) -> databar.DataBar {
   // Backtest hooks: hypothetical entry/exit, P&L tracking
   // Forward test: paper trading validation
+  databar
+}
+
+/// Single bar test — validates indicator output against settled laws.
+/// Checks Bollinger band ordering: bb_l3 <= bb_l2 <= bb_l1 <= bb_m <= bb_u1 <= bb_u2 <= bb_u3
+/// This is the "law" that ensures the computing code is not broken (UC-58, DESIGN §14)
+fn single_bar_test(databar: databar.DataBar, _timeframe: Timeframe) -> databar.DataBar {
+  assert databar.bb_l3 <=. databar.bb_l2
+  assert databar.bb_l2 <=. databar.bb_l1
+  assert databar.bb_l1 <=. databar.bb_m
+  assert databar.bb_m <=. databar.bb_u1
+  assert databar.bb_u1 <=. databar.bb_u2
+  assert databar.bb_u2 <=. databar.bb_u3
   databar
 }

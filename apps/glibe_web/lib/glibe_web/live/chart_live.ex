@@ -1,17 +1,15 @@
 defmodule GlibeWeb.ChartLive do
   use GlibeWeb, :live_view
 
-  alias GlibeWeb.DataGenerator
-
   @impl true
   def mount(_params, _session, socket) do
     # Subscribe to data updates
     Phoenix.PubSub.subscribe(GlibeWeb.PubSub, "chart_updates")
 
-    # Get initial data
-    bars = DataGenerator.get_bars()
-    leaves = DataGenerator.get_leaves()
-    branches = DataGenerator.get_branches()
+    # Initial placeholder data - real data comes from the Gleam pipeline
+    bars = []
+    leaves = []
+    branches = []
 
     {:ok,
      socket

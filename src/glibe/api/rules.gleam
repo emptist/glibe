@@ -107,9 +107,9 @@ pub fn auction_type_from_string(s: String) -> AuctionType {
 }
 
 /// Parse CircuitBreaker from string (for config)
-/// Format: "CircuitBreaker:0.07:300:15"
+/// Format: "CircuitBreaker;0.07;300;15"
 pub fn circuit_breaker_from_string(s: String) -> CircuitBreaker {
-  case string.split(s, ":") {
+  case string.split(s, ";") {
     ["CircuitBreaker", threshold_str, window_str, halt_str] -> {
       let threshold_pct = case float.parse(threshold_str) {
         Ok(v) -> v

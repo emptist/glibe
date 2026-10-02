@@ -106,8 +106,8 @@ pub fn decode_bar(arr: List(dynamic.Dynamic)) -> Result(SourceBar, Nil) {
   let date = case get_string(arr, 0) { Ok(s) -> s _ -> "" }
   let open = case get_float(arr, 1) { Ok(f) -> f _ -> 0.0 }
   let high = case get_float(arr, 2) { Ok(f) -> f _ -> 0.0 }
-  let low = case get_float(arr, 4) { Ok(f) -> f _ -> 0.0 }
-  let close = case get_float(arr, 3) { Ok(f) -> f _ -> 0.0 }
+  let low = case get_float(arr, 3) { Ok(f) -> f _ -> 0.0 }
+  let close = case get_float(arr, 4) { Ok(f) -> f _ -> 0.0 }
   let volume = case get_int(arr, 5) { Ok(i) -> i _ -> 0 }
 
   Ok(SourceBar(date:, open:, high:, low:, close:, volume:))

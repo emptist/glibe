@@ -1,4 +1,6 @@
 // Shared settings and types for indicators
+// Note: TimeframeSettings is also declared in indicator.gleam at line 36.
+// This duplicate should be collapsed - keep only indicator_settings.gleam version.
 
 pub type SmaSeries {
   SmaSeriesTiny

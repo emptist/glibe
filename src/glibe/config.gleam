@@ -15,7 +15,7 @@ pub type AppConfig {
     assets: List(#(String, asset.Asset)),
     markets: List(#(String, market.Market)),
     symbols: List(#(String, symbol.Symbol)),
-    timeframe_settings: List(#(String, indicators.TimeframeSettings))
+    timeframe_settings: List(#(String, indicator_settings.TimeframeSettings))
   )
 }
 
@@ -24,7 +24,7 @@ import glibe/api/asset.{asset_class_from_string}
 import glibe/api/market
 import glibe/api/symbol
 import glibe/api/rules.{trading_hours_from_string, settlement_type_from_string, auction_type_from_string, circuit_breaker_from_string}
-import glibe/indicators
+import glibe/indicator_settings
 
 // ============================================================================
 // Default Configuration (Single Source of Truth)
@@ -408,7 +408,7 @@ pub fn default_config() -> AppConfig {
     timeframe_settings: [
       #(
         "BTCUSDT_H1",
-        indicators.TimeframeSettings(
+        indicator_settings.TimeframeSettings(
           sma_tiny_window_size: 7,
           sma_small_window_size: 70,
           sma_medium_window_size: 140,
@@ -417,13 +417,13 @@ pub fn default_config() -> AppConfig {
           kdj_d_period: 2,
           window_kdj_size: 9,
           bb_multiplier: 1.99,
-          sma_for_bbm: indicators.SmaForBbmMedium,
+          sma_for_bbm: indicator_settings.SmaForBbmMedium,
           branch_exit_leaf_size: 40
         )
       ),
       #(
         "BTCUSDT_D1",
-        indicators.TimeframeSettings(
+        indicator_settings.TimeframeSettings(
           sma_tiny_window_size: 7,
           sma_small_window_size: 70,
           sma_medium_window_size: 140,
@@ -432,13 +432,13 @@ pub fn default_config() -> AppConfig {
           kdj_d_period: 2,
           window_kdj_size: 9,
           bb_multiplier: 1.99,
-          sma_for_bbm: indicators.SmaForBbmMedium,
+          sma_for_bbm: indicator_settings.SmaForBbmMedium,
           branch_exit_leaf_size: 40
         )
       ),
       #(
         "SPY_H1",
-        indicators.TimeframeSettings(
+        indicator_settings.TimeframeSettings(
           sma_tiny_window_size: 7,
           sma_small_window_size: 70,
           sma_medium_window_size: 140,
@@ -447,13 +447,13 @@ pub fn default_config() -> AppConfig {
           kdj_d_period: 2,
           window_kdj_size: 9,
           bb_multiplier: 1.99,
-          sma_for_bbm: indicators.SmaForBbmMedium,
+          sma_for_bbm: indicator_settings.SmaForBbmMedium,
           branch_exit_leaf_size: 40
         )
       ),
       #(
         "SPY_D1",
-        indicators.TimeframeSettings(
+        indicator_settings.TimeframeSettings(
           sma_tiny_window_size: 7,
           sma_small_window_size: 70,
           sma_medium_window_size: 140,
@@ -462,7 +462,7 @@ pub fn default_config() -> AppConfig {
           kdj_d_period: 2,
           window_kdj_size: 9,
           bb_multiplier: 1.99,
-          sma_for_bbm: indicators.SmaForBbmMedium,
+          sma_for_bbm: indicator_settings.SmaForBbmMedium,
           branch_exit_leaf_size: 40
         )
       )
@@ -514,7 +514,7 @@ pub fn get_symbol(config: AppConfig, id: String) -> Option(symbol.Symbol) {
   }
 }
 
-pub fn config_get_tfs(config: AppConfig, id: String) -> Option(indicators.TimeframeSettings) {
+pub fn config_get_tfs(config: AppConfig, id: String) -> Option(indicator_settings.TimeframeSettings) {
   case list.find(config.timeframe_settings, fn(pair) {
     let #(k, _) = pair
     k == id
