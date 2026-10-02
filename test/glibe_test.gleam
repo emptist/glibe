@@ -91,6 +91,7 @@ fn settings() -> indicator_settings.TimeframeSettings {
     window_kdj_size: 7,
     kdj_k_period: 3,
     kdj_d_period: 3,
+    kdj_m_period: 10,
     bb_multiplier: 2.0,
     sma_for_bbm: indicator_settings.SmaForBbmSmall,
     branch_exit_leaf_size: 40,

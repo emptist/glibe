@@ -32,8 +32,12 @@ pub fn kdj(databar: databar.DataBar, databar_list: List(databar.DataBar), settin
   // J = 3*K - 2*D
   let j = 3.0 *. k -. 2.0 *. d
 
-  // M = SMA(K, 10) - fixed 10 period
-  let m = incremental_sma(databar.m, k, 10)
+  // M = true arithmetic mean of last kdj_m_period K values (including current)
+  let prev_ks = list.take(databar_list, settings.kdj_m_period - 1) |> list.map(fn(b) { b.k })
+  let all_ks = list.prepend(prev_ks, k)
+  let m_count = list.length(all_ks)
+  let m_sum = list.fold(all_ks, 0.0, fn(acc, v) { acc +. v })
+  let m = m_sum /. int.to_float(m_count)
 
   databar.DataBar(
     ..databar,

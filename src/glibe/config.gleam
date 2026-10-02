@@ -415,7 +415,8 @@ pub fn default_config() -> AppConfig {
           sma_large_window_size: 252,
           kdj_k_period: 3,
           kdj_d_period: 2,
-          window_kdj_size: 9,
+          kdj_m_period: 10,
+          window_kdj_size: 7,
           bb_multiplier: 1.99,
           sma_for_bbm: indicator_settings.SmaForBbmMedium,
           branch_exit_leaf_size: 40
@@ -430,7 +431,8 @@ pub fn default_config() -> AppConfig {
           sma_large_window_size: 252,
           kdj_k_period: 3,
           kdj_d_period: 2,
-          window_kdj_size: 9,
+          kdj_m_period: 10,
+          window_kdj_size: 7,
           bb_multiplier: 1.99,
           sma_for_bbm: indicator_settings.SmaForBbmMedium,
           branch_exit_leaf_size: 40
@@ -445,7 +447,8 @@ pub fn default_config() -> AppConfig {
           sma_large_window_size: 252,
           kdj_k_period: 3,
           kdj_d_period: 2,
-          window_kdj_size: 9,
+          kdj_m_period: 10,
+          window_kdj_size: 7,
           bb_multiplier: 1.99,
           sma_for_bbm: indicator_settings.SmaForBbmMedium,
           branch_exit_leaf_size: 40
@@ -460,7 +463,8 @@ pub fn default_config() -> AppConfig {
           sma_large_window_size: 252,
           kdj_k_period: 3,
           kdj_d_period: 2,
-          window_kdj_size: 9,
+          kdj_m_period: 10,
+          window_kdj_size: 7,
           bb_multiplier: 1.99,
           sma_for_bbm: indicator_settings.SmaForBbmMedium,
           branch_exit_leaf_size: 40

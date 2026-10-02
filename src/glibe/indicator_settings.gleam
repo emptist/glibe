@@ -23,6 +23,7 @@ pub type TimeframeSettings {
     window_kdj_size: Int,
     kdj_k_period: Int,
     kdj_d_period: Int,
+    kdj_m_period: Int,
     bb_multiplier: Float,
     sma_for_bbm: SmaForBbm,
     branch_exit_leaf_size: Int,
