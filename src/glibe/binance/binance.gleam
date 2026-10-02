@@ -2,7 +2,9 @@ import gleam/httpc
 import gleam/http/request
 import gleam/result
 import gleam/int
-import glibe/binance/types.{type SourceBar, type Interval, decode_klines}
+import glibe/api/interval.{type Interval}
+import glibe/api/sourcebar.{type SourceBar}
+import glibe/binance/kline.{decode_klines, interval_to_binance_string}
 
 pub type BinanceError {
   HttpError(Int, String)
@@ -25,7 +27,7 @@ fn get(path: String, query: List(#(String, String))) -> Result(String, BinanceEr
 }
 
 pub fn fetch_klines(symbol: String, interval: Interval, limit: Int) -> Result(List(SourceBar), BinanceError) {
-  let interval_str = types.interval_to_binance_string(interval)
+  let interval_str = interval_to_binance_string(interval)
   get("/api/v3/klines", [
     #("symbol", symbol),
     #("interval", interval_str),
