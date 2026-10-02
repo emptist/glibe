@@ -2,6 +2,7 @@
 /// Used by timeframe, SMA, KDJ, Bollinger, Leaf, Branch.
 pub type DataBar {
   DataBar(
+    idx: Int,    // global position in databar_list (0 = oldest settled bar)
     date: String,
     open: Float,
     high: Float,

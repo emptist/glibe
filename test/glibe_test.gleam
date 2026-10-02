@@ -21,6 +21,7 @@ pub fn main() {
 /// Used as a seed for indicator tests.
 fn bar(close: Float) -> databar.DataBar {
   databar.DataBar(
+    idx: 0,
     date: "2024-01-01",
     open: close,
     high: close,
