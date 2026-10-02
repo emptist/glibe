@@ -3,6 +3,7 @@
 import gleam/list
 import gleam/float
 import gleam/int
+import gleam/result
 import glibe/databar as databar
 import glibe/indicator_settings.{type TimeframeSettings}
 
@@ -23,21 +24,41 @@ pub fn kdj(databar: databar.DataBar, databar_list: List(databar.DataBar), settin
     False -> 50.0
   }
 
-  // K = SMA(RSV, k_period) - approximate incremental
-  let k = incremental_sma(databar.k, rsv, settings.kdj_k_period)
+  // Previous bar's K/D/M — read from settled list, not from working bar (which starts at 50)
+  let prev_bar = list.first(databar_list)
+  let prev_k = prev_bar |> result.map(fn(b) { b.k }) |> result.unwrap(50.0)
+  let prev_d = prev_bar |> result.map(fn(b) { b.d }) |> result.unwrap(50.0)
+  let prev_m = prev_bar |> result.map(fn(b) { b.m }) |> result.unwrap(50.0)
 
-  // D = SMA(K, d_period)
-  let d = incremental_sma(databar.d, k, settings.kdj_d_period)
+  // K = incremental SMA(RSV, k_period)
+  let k = incremental_sma(prev_k, rsv, settings.kdj_k_period)
+
+  // D = incremental SMA(K, d_period)
+  let d = incremental_sma(prev_d, k, settings.kdj_d_period)
 
   // J = 3*K - 2*D
   let j = 3.0 *. k -. 2.0 *. d
 
-  // M = true arithmetic mean of last kdj_m_period K values (including current)
-  let prev_ks = list.take(databar_list, settings.kdj_m_period - 1) |> list.map(fn(b) { b.k })
-  let all_ks = list.prepend(prev_ks, k)
-  let m_count = list.length(all_ks)
-  let m_sum = list.fold(all_ks, 0.0, fn(acc, v) { acc +. v })
-  let m = m_sum /. int.to_float(m_count)
+  // M = streaming incremental mean of last kdj_m_period K values
+  // Same three-case pattern as sma_tiny: empty / warm-up / full window
+  let len = list.length(databar_list)
+  let m = case len == 0 {
+    True -> k
+    False ->
+      case len < settings.kdj_m_period {
+        True ->
+          { int.to_float(len) *. prev_m +. k } /. int.to_float(len + 1)
+        False -> {
+          let leaving_k =
+            list.drop(databar_list, settings.kdj_m_period - 1)
+            |> list.first()
+            |> result.map(fn(b) { b.k })
+            |> result.unwrap(k)
+          { int.to_float(settings.kdj_m_period) *. prev_m +. k -. leaving_k }
+            /. int.to_float(settings.kdj_m_period)
+        }
+      }
+  }
 
   databar.DataBar(
     ..databar,

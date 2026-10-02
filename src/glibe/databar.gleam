@@ -12,14 +12,12 @@ pub type DataBar {
 
     // SMA series
     sma_tiny: Float,
-    prev_sma_tiny: Float,
     sma_small: Float,
     sma_medium: Float,
     sma_large: Float,
 
     // Bollinger Bands
     bb_m: Float,
-    prev_bb_m: Float,
     bb_u3: Float,
     bb_l3: Float,
     bb_u2: Float,
@@ -32,8 +30,6 @@ pub type DataBar {
     d: Float,
     j: Float,
     m: Float,
-    prev_k: Float,
-    prev_j: Float,
 
     // Bias
     bias: Float,

@@ -45,7 +45,6 @@ pub fn bollinger(databar: databar.DataBar, databar_list: List(databar.DataBar), 
   databar.DataBar(
     ..databar,
     bb_m: bb_m,
-    prev_bb_m: databar.bb_m,
     bb_u3: bb_u3,
     bb_l3: bb_l3,
     bb_u2: bb_u2,

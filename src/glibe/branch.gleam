@@ -120,13 +120,13 @@ pub fn init_yang_branch(b: DataBar) -> DataBranch {
 /// The just-died yang leaf is at the head; its corner_bar is the new branch's start.
 pub fn update_yin_branch(
   growing: DataBranch,
-  current_bar: DataBar,
+  databar: DataBar,
   growing_yang_leaf: leaf.DataLeaf,
   yang_leaf_list: List(leaf.DataLeaf),
   exit_leaf_size: Int,
 ) -> #(Option(DataBranch), DataBranch) {
   let yang_leaf_is_new =
-    leaf.leaf_start_bar(growing_yang_leaf).idx == current_bar.idx
+    leaf.leaf_start_bar(growing_yang_leaf).idx == databar.idx
   let yang_leaf_size = leaf.data_leaf_size(growing_yang_leaf)
 
   case yang_leaf_is_new {
@@ -134,21 +134,21 @@ pub fn update_yin_branch(
       // A new yang leaf just born — the just-died yang leaf is at yang_leaf_list head.
       // Its corner_bar is where the new YinBranch starts (branch law 6/7).
       let has_growing_branch =
-        branch_start_bar(growing).idx != current_bar.idx
+        branch_start_bar(growing).idx != databar.idx
       case has_growing_branch {
         True -> #(None, growing)
         False -> {
           let start_bar = case list.first(yang_leaf_list) {
             Ok(prev) -> leaf.leaf_corner_bar(prev)
-            Error(_) -> current_bar
+            Error(_) -> databar
           }
           #(
             None,
             YinBranch(
               start_bar: start_bar,
-              end_bar: current_bar,
-              enter_bar: current_bar,
-              exit_bar: current_bar,
+              end_bar: databar,
+              enter_bar: databar,
+              exit_bar: databar,
             ),
           )
         }
@@ -164,14 +164,14 @@ pub fn update_yin_branch(
               start_bar: branch_start_bar(growing),
               end_bar: leaf.leaf_start_bar(growing_yang_leaf),
               enter_bar: branch_enter_bar(growing),
-              exit_bar: current_bar,
+              exit_bar: databar,
             )
           let new_branch =
             YinBranch(
               start_bar: leaf.leaf_corner_bar(growing_yang_leaf),
-              end_bar: current_bar,
-              enter_bar: current_bar,
-              exit_bar: current_bar,
+              end_bar: databar,
+              enter_bar: databar,
+              exit_bar: databar,
             )
           #(Some(completed), new_branch)
         }
@@ -180,7 +180,7 @@ pub fn update_yin_branch(
             None,
             YinBranch(
               start_bar: branch_start_bar(growing),
-              end_bar: current_bar,
+              end_bar: databar,
               enter_bar: branch_enter_bar(growing),
               exit_bar: branch_exit_bar(growing),
             ),
@@ -197,13 +197,13 @@ pub fn update_yin_branch(
 /// The just-died yin leaf is at the head; its corner_bar is the new branch's start.
 pub fn update_yang_branch(
   growing: DataBranch,
-  current_bar: DataBar,
+  databar: DataBar,
   yin_leaf_list: List(leaf.DataLeaf),
   growing_yin_leaf: leaf.DataLeaf,
   exit_leaf_size: Int,
 ) -> #(Option(DataBranch), DataBranch) {
   let yin_leaf_is_new =
-    leaf.leaf_start_bar(growing_yin_leaf).idx == current_bar.idx
+    leaf.leaf_start_bar(growing_yin_leaf).idx == databar.idx
   let yin_leaf_size = leaf.data_leaf_size(growing_yin_leaf)
 
   case yin_leaf_is_new {
@@ -211,21 +211,21 @@ pub fn update_yang_branch(
       // A new yin leaf just born — the just-died yin leaf is at yin_leaf_list head.
       // Its corner_bar is where the new YangBranch starts (branch law 6/7).
       let has_growing_branch =
-        branch_start_bar(growing).idx != current_bar.idx
+        branch_start_bar(growing).idx != databar.idx
       case has_growing_branch {
         True -> #(None, growing)
         False -> {
           let start_bar = case list.first(yin_leaf_list) {
             Ok(prev) -> leaf.leaf_corner_bar(prev)
-            Error(_) -> current_bar
+            Error(_) -> databar
           }
           #(
             None,
             YangBranch(
               start_bar: start_bar,
-              end_bar: current_bar,
-              enter_bar: current_bar,
-              exit_bar: current_bar,
+              end_bar: databar,
+              enter_bar: databar,
+              exit_bar: databar,
             ),
           )
         }
@@ -241,14 +241,14 @@ pub fn update_yang_branch(
               start_bar: branch_start_bar(growing),
               end_bar: leaf.leaf_start_bar(growing_yin_leaf),
               enter_bar: branch_enter_bar(growing),
-              exit_bar: current_bar,
+              exit_bar: databar,
             )
           let new_branch =
             YangBranch(
               start_bar: leaf.leaf_corner_bar(growing_yin_leaf),
-              end_bar: current_bar,
-              enter_bar: current_bar,
-              exit_bar: current_bar,
+              end_bar: databar,
+              enter_bar: databar,
+              exit_bar: databar,
             )
           #(Some(completed), new_branch)
         }
@@ -257,7 +257,7 @@ pub fn update_yang_branch(
             None,
             YangBranch(
               start_bar: branch_start_bar(growing),
-              end_bar: current_bar,
+              end_bar: databar,
               enter_bar: branch_enter_bar(growing),
               exit_bar: branch_exit_bar(growing),
             ),
