@@ -309,8 +309,8 @@ browser, where the `ChartHook` phx-hook renders [Lightweight Charts](https://tra
    subscribes to `chart_updates` topic and the `ChartHook` renders Lightweight Charts
    with candlesticks and indicator overlays.
 
-4. **Data flow**: Raw SourceBar → `sourcebar_gate` → indicator pipeline (SMA×5 →
-   Bollinger → KDJ) → `broadcast_chart` → SSE → browser Lightweight Charts.
+4. **Data flow**: Raw SourceBar → `sourcebar_gate` → indicator pipeline (SMA×4 →
+   KDJ → Bollinger) → `broadcast_chart` → SSE → browser Lightweight Charts.
 
 This mirrors glib's chart generation capability, but uses Erlang FFI + SSE instead
 of the JS-internal FFI that glib uses.

@@ -68,7 +68,9 @@ pub type CircuitBreaker {
 }
 
 /// Parse TradingHours from string (for config)
-/// Formats: "TwentyFourSeven", "TwentyFourFive", "RTH;09:30;16:00;America/New_York", "Custom;09:30:12:00:Asia/Hong_Kong|13:00:16:00:Asia/Hong_Kong"
+/// Formats: "TwentyFourSeven", "TwentyFourFive", "RTH;09:30;16:00;America/New_York",
+///           "Custom;09:30,12:00,Asia/Hong_Kong|13:00,16:00,Asia/Hong_Kong"
+/// Session fields use "," as separator (time values contain ":" so ":" cannot be used).
 pub fn trading_hours_from_string(s: String) -> TradingHours {
   case string.split(s, ";") {
     ["TwentyFourSeven"] -> TwentyFourSeven
@@ -76,7 +78,7 @@ pub fn trading_hours_from_string(s: String) -> TradingHours {
     ["RTH", open, close, timezone] -> RTH(open: open, close: close, timezone: timezone)
     ["Custom", sessions_str] ->
       Custom(list.map(string.split(sessions_str, "|"), fn(sess) {
-        case string.split(sess, ":") {
+        case string.split(sess, ",") {
           [open, close, timezone] -> Session(open: open, close: close, timezone: timezone)
           _ -> panic as "Invalid session format"
         }

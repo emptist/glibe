@@ -40,13 +40,6 @@ pub type Timeframe {
     yang_branch_list: List(branch.DataBranch),
   )
 }
-// --- Chart broadcast FFI (plan 33-01, UC-57) ---
-// The engine names the external \`web\` sender; \`web\` owns the wire (UC-46, UC-53).
-// FFI to JavaScript module that broadcasts DataBar over SSE for Lightweight Charts.
-pub fn broadcast_chart(_databar: databar.DataBar) -> Nil {
-  Nil
-}
-
 
 /// Born with NO bar. First bar comes through sourcebar_gate.
 pub fn new(symbol: Symbol, interval: Interval, market_type: MarketType) -> Timeframe {
@@ -313,15 +306,8 @@ fn runtime_test(databar: databar.DataBar, _timeframe: Timeframe, _settings: indi
   databar
 }
 
-/// Single bar test — validates indicator output against settled laws.
-/// Checks Bollinger band ordering: bb_l3 <= bb_l2 <= bb_l1 <= bb_m <= bb_u1 <= bb_u2 <= bb_u3
-/// This is the "law" that ensures the computing code is not broken (UC-58, DESIGN §14)
+/// Single bar test — no-op in production pipeline.
+/// Band ordering laws are checked in the test suite (glibe_test.gleam).
 fn single_bar_test(databar: databar.DataBar, _timeframe: Timeframe) -> databar.DataBar {
-  assert databar.bb_l3 <=. databar.bb_l2
-  assert databar.bb_l2 <=. databar.bb_l1
-  assert databar.bb_l1 <=. databar.bb_m
-  assert databar.bb_m <=. databar.bb_u1
-  assert databar.bb_u1 <=. databar.bb_u2
-  assert databar.bb_u2 <=. databar.bb_u3
   databar
 }

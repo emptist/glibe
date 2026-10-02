@@ -20,13 +20,18 @@ pub fn bollinger(databar: databar.DataBar, databar_list: List(databar.DataBar), 
 
   // Compute std around bb_m using the window
   // divisor = count of bars in window (not window_size during warm-up)
+  // Guard: count == 0 on the very first bar — sigma is 0, bands collapse to bb_m
   let count = list.length(window)
   let sum_sq_diff = list.fold(window, 0.0, fn(acc, bar) {
     let diff = bar.close -. bb_m
     acc +. diff *. diff
   })
-  let variance = sum_sq_diff /. int.to_float(count)
-  let sigma = float.power(variance, 0.5) |> result.unwrap(0.0)
+  let sigma = case count == 0 {
+    True -> 0.0
+    False ->
+      float.power(sum_sq_diff /. int.to_float(count), 0.5)
+      |> result.unwrap(0.0)
+  }
 
   // Build bands at Fibonacci ratios: 0.382, 0.618, 1.0
   let spread = settings.bb_multiplier *. sigma
