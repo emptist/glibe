@@ -275,21 +275,23 @@ fn branches(databar: databar.DataBar, timeframe: Timeframe, settings: indicators
   let exit_leaf_size = settings.branch_exit_leaf_size
 
   // Update growing yin branch (tracks growing yang leaf)
+  // Pass yang_leaf_list: just-died yang leaf is at the head (branch start source)
   let #(closed_yin_branch, new_yin_branch) =
     branch.update_yin_branch(
       timeframe.growing_yin_branch,
       databar,
       timeframe.growing_yang_leaf,
-      timeframe.yin_leaf_list,
+      timeframe.yang_leaf_list,
       exit_leaf_size,
     )
 
   // Update growing yang branch (tracks growing yin leaf)
+  // Pass yin_leaf_list: just-died yin leaf is at the head (branch start source)
   let #(closed_yang_branch, new_yang_branch) =
     branch.update_yang_branch(
       timeframe.growing_yang_branch,
       databar,
-      timeframe.yang_leaf_list,
+      timeframe.yin_leaf_list,
       timeframe.growing_yin_leaf,
       exit_leaf_size,
     )

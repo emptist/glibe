@@ -42,18 +42,16 @@ pub fn bollinger(databar: databar.DataBar, databar_list: List(databar.DataBar), 
   let bb_l2 = max(bb_m -. spread *. 0.618, 0.0001)
   let bb_l3 = max(bb_m -. spread, 0.00001)
 
-  // Set Bollinger values + sigma (deviation) on databar
   databar.DataBar(
     ..databar,
     bb_m: bb_m,
+    prev_bb_m: databar.bb_m,
     bb_u3: bb_u3,
     bb_l3: bb_l3,
     bb_u2: bb_u2,
     bb_u1: bb_u1,
     bb_l1: bb_l1,
     bb_l2: bb_l2,
-    // Store sigma as deviation on the bar
-    prev_bb_m: sigma,
   )
 }
 
