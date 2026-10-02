@@ -43,7 +43,7 @@ pub type Timeframe {
 // --- Chart broadcast FFI (plan 33-01, UC-57) ---
 // The engine names the external \`web\` sender; \`web\` owns the wire (UC-46, UC-53).
 // FFI to JavaScript module that broadcasts DataBar over SSE for Lightweight Charts.
-pub fn broadcast_chart(databar: databar.DataBar) -> Nil {
+pub fn broadcast_chart(_databar: databar.DataBar) -> Nil {
   Nil
 }
 
@@ -95,7 +95,7 @@ fn bucket_ends(sourcebar: SourceBar, interval: Interval) -> Bool {
   }
 }
 
-fn bucket_ends_daily(date: String) -> Bool {
+fn bucket_ends_daily(_date: String) -> Bool {
   // Daily bucket ends when the date changes
   // Date format: "2024-01-15 09:30:00" or "2024-01-15T09:30:00"
   // For now, treat each unique date as a potential day end
