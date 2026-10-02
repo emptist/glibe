@@ -12,6 +12,7 @@ pub type SmaSeries {
   SmaSeriesSmall
   SmaSeriesMedium
   SmaSeriesLarge
+  SmaSeriesHuge
 }
 
 /// SMA — three cases by list length (plan 31-01)
@@ -60,6 +61,7 @@ fn sma_of(databar: databar.DataBar, name: SmaSeries) -> Float {
     SmaSeriesSmall -> databar.sma_small
     SmaSeriesMedium -> databar.sma_medium
     SmaSeriesLarge -> databar.sma_large
+    SmaSeriesHuge -> databar.sma_huge
   }
 }
 
@@ -69,6 +71,7 @@ fn set_sma_of(databar: databar.DataBar, name: SmaSeries, value: Float) -> databa
     SmaSeriesSmall -> databar.DataBar(..databar, sma_small: value)
     SmaSeriesMedium -> databar.DataBar(..databar, sma_medium: value)
     SmaSeriesLarge -> databar.DataBar(..databar, sma_large: value)
+    SmaSeriesHuge -> databar.DataBar(..databar, sma_huge: value)
   }
 }
 
@@ -89,5 +92,6 @@ fn size_of(settings: TimeframeSettings, name: SmaSeries) -> Int {
     SmaSeriesSmall -> settings.sma_small_window_size
     SmaSeriesMedium -> settings.sma_medium_window_size
     SmaSeriesLarge -> settings.sma_large_window_size
+    SmaSeriesHuge -> settings.sma_huge_window_size
   }
 }

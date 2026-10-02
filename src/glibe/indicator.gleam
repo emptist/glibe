@@ -14,6 +14,7 @@ pub fn run(databar: databar.DataBar, databar_list: List(databar.DataBar), settin
   let databar = sma.sma(databar, databar_list, settings, sma.SmaSeriesSmall)
   let databar = sma.sma(databar, databar_list, settings, sma.SmaSeriesMedium)
   let databar = sma.sma(databar, databar_list, settings, sma.SmaSeriesLarge)
+  let databar = sma.sma(databar, databar_list, settings, sma.SmaSeriesHuge)
 
   // KDJ
   let databar = kdj.kdj(databar, databar_list, settings)

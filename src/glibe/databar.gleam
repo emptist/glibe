@@ -15,6 +15,7 @@ pub type DataBar {
     sma_small: Float,
     sma_medium: Float,
     sma_large: Float,
+    sma_huge: Float,
 
     // Bollinger Bands
     bb_m: Float,

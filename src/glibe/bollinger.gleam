@@ -4,7 +4,7 @@ import gleam/list
 import gleam/result
 import gleam/int
 import gleam/float
-import glibe/indicator_settings.{type TimeframeSettings, type SmaForBbm, SmaForBbmTiny, SmaForBbmSmall, SmaForBbmMedium, SmaForBbmLarge}
+import glibe/indicator_settings.{type TimeframeSettings, type SmaForBbm, SmaForBbmTiny, SmaForBbmSmall, SmaForBbmMedium, SmaForBbmLarge, SmaForBbmHuge}
 import glibe/databar as databar
 
 /// Bollinger — uses selected SMA as centre, Fibonacci ratios 0.382 / 0.618
@@ -61,6 +61,7 @@ pub fn select_bbm(databar: databar.DataBar, which: SmaForBbm) -> Float {
     SmaForBbmSmall -> databar.sma_small
     SmaForBbmMedium -> databar.sma_medium
     SmaForBbmLarge -> databar.sma_large
+    SmaForBbmHuge -> databar.sma_huge
   }
 }
 
@@ -71,6 +72,7 @@ pub fn bb_window_size(settings: TimeframeSettings) -> Int {
     SmaForBbmSmall -> settings.sma_small_window_size
     SmaForBbmMedium -> settings.sma_medium_window_size
     SmaForBbmLarge -> settings.sma_large_window_size
+    SmaForBbmHuge -> settings.sma_huge_window_size
   }
 }
 

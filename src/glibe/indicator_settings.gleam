@@ -12,6 +12,7 @@ pub type SmaForBbm {
   SmaForBbmSmall
   SmaForBbmMedium
   SmaForBbmLarge
+  SmaForBbmHuge
 }
 
 pub type TimeframeSettings {
@@ -20,6 +21,7 @@ pub type TimeframeSettings {
     sma_small_window_size: Int,
     sma_medium_window_size: Int,
     sma_large_window_size: Int,
+    sma_huge_window_size: Int,
     window_kdj_size: Int,
     kdj_k_period: Int,
     kdj_d_period: Int,
