@@ -26,11 +26,23 @@ pub type DataBar {
     bb_l1: Float,
     bb_l2: Float,
 
+    // Welford σ recurrence carried on the bar (plan 31-02 §3); read by
+    // bollinger.sigma/1 and extended O(1) by the next bar. Added to complete
+    // the Welford port, which referenced them but never declared them.
+    sigma_n: Int,
+    sigma_mean: Float,
+    sigma_m2: Float,
+
     // KDJ oscillator
     k: Float,
     d: Float,
     j: Float,
     m: Float,
+    // Amortised-constant LLV/HHV extremes (plan 31-04, UC-64)
+    kdj_h: Float,
+    kdj_h_idx: Int,
+    kdj_l: Float,
+    kdj_l_idx: Int,
 
     // Bias
     bias: Float,

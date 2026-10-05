@@ -1,37 +1,109 @@
 // Bollinger Bands — uses selected SMA as centre, Fibonacci ratios 0.382 / 0.618
+// σ computed via Welford online recurrence (plan 31-02, §3), proposal 2026-10-01.
 
+import gleam/float
+import gleam/int
 import gleam/list
 import gleam/result
-import gleam/int
-import gleam/float
-import glibe/indicator_settings.{type TimeframeSettings, type SmaForBbm, SmaForBbmTiny, SmaForBbmSmall, SmaForBbmMedium, SmaForBbmLarge, SmaForBbmHuge}
-import glibe/databar as databar
+import glibe/databar
+import glibe/indicator_settings.{SmaForBbm(..), type TimeframeSettings}
+
+// ———— Welford recurrence types & state ———————————————————————————————
+
+/// Running state for the Welford online variance recurrence.
+/// Carried on each bar so the next bar extends σ in O(1) without a window cache.
+pub type SigmaState {
+  SigmaState(n: Int, mean: Float, m2: Float)
+}
+
+/// Initial state: n = 0, mean = 0, m2 = 0
+pub fn sigma_init() -> SigmaState { SigmaState(0, 0.0, 0.0) }
+
+/// Add a new close value to the Welford state.
+fn sigma_add(s: SigmaState, x: Float) -> SigmaState {
+  let n = s.n + 1
+  let dn = int.to_float(n)
+  let delta = x -. s.mean
+  let mean = s.mean +. delta /. dn
+  let delta2 = x -. mean
+  SigmaState(n, mean, s.m2 +. delta *. delta2)
+}
+
+/// Remove a leaving close value from the Welford state (window sliding).
+fn sigma_remove(s: SigmaState, x: Float) -> SigmaState {
+  let n = s.n - 1
+  let dn = int.to_float(n)
+  let delta = x -. s.mean
+  let mean = s.mean -. delta /. dn
+  let delta2 = x -. mean
+  SigmaState(n, mean, s.m2 -. delta *. delta2)
+}
+
+/// ———— σ: standard deviation over the selected SMA's window ———————————————
+
+/// σ — the standard deviation of closes over **the very window `bb_m` is the
+/// mean of**: the bar in hand plus the `size - 1` bars that came before it
+/// (plan 31-02 §3). Uses the Welford moving-window recurrence so each bar
+/// is O(1) and the subtraction `Σx² − (Σx)²/n` that DESIGN §14.6 forbids
+/// never forms.
+///
+/// The bar in hand is in its own window, and that is what σ means. `bb_m` is
+/// the mean of `size` closes *ending with this bar* (`sma.gleam`), so σ is
+/// measured against that same sample — not one bar out of step.
+///
+/// One bar in the window (the very first bar of a run) has no spread: `m2` is
+/// 0 and σ is 0, so the lines collapse onto the centre — the honest value, not
+/// a fallback.
+///
+/// Returns `(σ, state)`; `state` is the next bar's carried recurrence. No
+/// extra windowed cache — the leaving close is read from
+/// `databar_list[size - 1]` (newest-first).
+pub fn sigma(
+  working: databar.DataBar,
+  databar_list: List(databar.DataBar),
+  settings: TimeframeSettings,
+) -> #(Float, SigmaState) {
+  let size = bb_window_size(settings)
+  let prev =
+    case list.first(databar_list) {
+      Ok(b) -> SigmaState(b.sigma_n, b.sigma_mean, b.sigma_m2)
+      Error(_) -> sigma_init()
+    }
+  let added = sigma_add(prev, working.close)
+  let state =
+    case prev.n >= size {
+      True -> {
+        let leaving =
+          case list.drop(databar_list, size - 1) |> list.first {
+            Ok(b) -> b.close
+            Error(_) -> working.close
+          }
+        sigma_remove(added, leaving)
+      }
+      False -> added
+    }
+  let sigma =
+    case state.n {
+      0 -> 0.0
+      _ -> float.power(state.m2 /. int.to_float(state.n), 0.5) |> result.unwrap(0.0)
+    }
+  #(sigma, state)
+}
+
+/// ———— Bollinger band construction ———————————————————————————————
 
 /// Bollinger — uses selected SMA as centre, Fibonacci ratios 0.382 / 0.618
 /// Returns updated databar; timeframe update handled by caller
-pub fn bollinger(databar: databar.DataBar, databar_list: List(databar.DataBar), settings: TimeframeSettings) -> databar.DataBar {
+pub fn bollinger(
+  databar: databar.DataBar,
+  databar_list: List(databar.DataBar),
+  settings: TimeframeSettings,
+) -> databar.DataBar {
   // Get the selected SMA as centre (bbm)
   let bb_m = select_bbm(databar, settings.sma_for_bbm)
 
-  // Window = databar_list (newest-first)
-  // Take `size` bars from the list for the window
-  let size = bb_window_size(settings)
-  let window = list.take(databar_list, size)
-
-  // Compute std around bb_m using the window
-  // divisor = count of bars in window (not window_size during warm-up)
-  // Guard: count == 0 on the very first bar — sigma is 0, bands collapse to bb_m
-  let count = list.length(window)
-  let sum_sq_diff = list.fold(window, 0.0, fn(acc, bar) {
-    let diff = bar.close -. bb_m
-    acc +. diff *. diff
-  })
-  let sigma = case count == 0 {
-    True -> 0.0
-    False ->
-      float.power(sum_sq_diff /. int.to_float(count), 0.5)
-      |> result.unwrap(0.0)
-  }
+  // σ via Welford online recurrence (no batch window needed)
+  let #(sigma, state) = sigma(databar, databar_list, settings)
 
   // Build bands at Fibonacci ratios: 0.382, 0.618, 1.0
   let spread = settings.bb_multiplier *. sigma
@@ -51,6 +123,9 @@ pub fn bollinger(databar: databar.DataBar, databar_list: List(databar.DataBar), 
     bb_u1: bb_u1,
     bb_l1: bb_l1,
     bb_l2: bb_l2,
+    sigma_n: state.n,
+    sigma_mean: state.mean,
+    sigma_m2: state.m2,
   )
 }
 

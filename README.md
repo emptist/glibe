@@ -10,10 +10,10 @@ Port of `glib` (JavaScript-target) to BEAM with Interactive Brokers TWS/Client P
 |-----------|--------|-------|
 | **IB Client Portal** | ✅ Working | Elixir `ibkr_api` + Finch (proper HTTP/SSL) |
 | **Binance REST** | ✅ Working | testnet.binance.vision (works from China), `gleam_httpc` |
-| **Stream Processing** | ✅ Core Complete | Phase 3: SMA, Bollinger, KDJ, Leaf, Branch, Timeframe pipeline |
-| **Tests** | ✅ Passing | 13 unit tests for config, indicators, leaf/branch |
-| **Visualization** | ✅ LiveView + Chart Generation | Phoenix + Lightweight Charts real-time streaming; DataBar broadcast via SSE |
-| **Chart Generation** | ✅ Enabled | `broadcast_chart` FFI sends DataBar over SSE; LiveView renders from real indicator output |
+| **Stream Processing** | ✅ Core Complete | Phase 3: SMA×5, Bollinger, KDJ, Leaf, Branch, Timeframe pipeline |
+| **Tests** | ✅ Passing | 23 tests (indicators, api, ingest boundary) |
+| **Visualization** | ⚠️ Web app | Phoenix + Lightweight Charts real-time streaming. The Gleam core does **not** broadcast — `broadcast_chart` was removed; the web app renders from indicator output |
+| **Guards** | ✅ Added | `scripts/guards.sh --all` — build, test, format, and `no_timeframe_mixture` |
 
 ## Quick Start
 
@@ -63,39 +63,39 @@ mix phx.server
 ```
 src/
 ├── glibe/
-│   ├── api/                      # Core market types (Asset, Market, Symbol, Rules)
+│   ├── api/                      # Market types and the ingest boundary
 │   │   ├── asset.gleam           # Asset, AssetRef, AssetClass
 │   │   ├── exchange.gleam        # Exchange, MarketType
 │   │   ├── market.gleam          # Market = Exchange + AssetClass + Rules
 │   │   ├── rules.gleam           # MarketRules, TradingHours, SettlementType, parsers
 │   │   ├── symbol.gleam          # Symbol = Instrument on specific Market
-│   │   ├── sourcebar.gleam       # SourceBar + JSON decode
-│   │   └── interval.gleam        # Interval (D1, H1, W1, MO1, MIN1, MIN15, MIN30)
-│   ├── ib/
-│   │   ├── ibkr.gleam.disabled   # IB public API (FFI needs websockex fix)
-│   │   └── ibkr.ex               # IB Elixir wrapper (ibkr_api + Finch)
+│   │   ├── sourcebar.gleam       # SourceBar + decode + validate + normalize_date (boundary)
+│   │   └── interval.gleam        # Interval + codec (to_string/from_string/all) + bucket_ends
 │   ├── binance/
-│   │   ├── types.gleam           # SourceBar, Interval
+│   │   ├── types.gleam           # legacy SourceBar/Interval (superseded by api/ — see DESIGN.md)
+│   │   ├── kline.gleam           # Binance kline → SourceBar
 │   │   └── binance.gleam         # Binance public API (gleam_httpc)
-│   ├── indicators/
-│   │   ├── sma.gleam             # SMA series (Tiny/Small/Medium/Large) — 3-case logic
-│   │   ├── kdj.gleam             # KDJ oscillator (LLV/HHV + SMA for K/D/M)
-│   │   ├── bollinger.gleam       # Bollinger Bands (SMA centre, σ, Fibonacci ratios)
-│   │   ├── indicator.gleam       # Pipeline: SMA×4 → KDJ → Bollinger
-│   │   └── indicators.gleam      # TimeframeSettings, SmaSeries, SmaForBbm
-│   ├── fractal/
-│   │   ├── leaf.gleam            # Yin/Yang leaf detection + CMA
-│   │   └── branch.gleam          # Yin/Yang branch detection (9 laws)
-│   ├── timeframe.gleam           # Timeframe + sourcebar_gate + databar_processing
-│   ├── databar.gleam             # DataBar (core streaming bar with all indicators)
-│   ├── indicator_settings.gleam  # Indicator settings types
+│   ├── sma.gleam                 # SMA series (Tiny/Small/Medium/Large/Huge) — 5 rungs
+│   ├── kdj.gleam                 # KDJ oscillator (LLV/HHV + SMA for K/D/M)
+│   ├── bollinger.gleam           # Bollinger Bands (SMA centre, σ, Fibonacci ratios)
+│   ├── indicator.gleam           # Pipeline: SMA×5 → KDJ → Bollinger
+│   ├── indicator_settings.gleam  # TimeframeSettings, SmaForBbm
+│   ├── databar.gleam             # DataBar — born from SourceBar, folded; 26 measured fields
+│   ├── leaf.gleam                # DataLeaf — grown one bar at a time + CMA
+│   ├── branch.gleam              # DataBranch — grown one bar at a time, rides a leaf
+│   ├── timeframe.gleam           # Timeframe record + new (state only — see RULINGS.md R7)
+│   ├── engine.gleam              # The pipeline: gate, processing, leaves, branches, accept
+│   ├── trading/
+│   │   └── strategy.gleam        # The manual verdict (manual_signal)
+│   ├── export/
+│   │   └── csv.gleam             # CSV export, one row per accepted bar
 │   └── config.gleam              # AppConfig + default_config (single source of truth)
 ├── apps/glibe_web/               # Phoenix LiveView visualization
 │   ├── lib/glibe_web/live/chart_live.ex
 │   ├── lib/glibe_web/data_generator.ex
 │   └── assets/js/chart_hook.js   # Lightweight Charts hook
 └── test/
-    └── glibe_test.gleam          # 13 unit tests
+    └── glibe_test.gleam          # 23 tests
 ```
 
 ## Testing
@@ -112,15 +112,21 @@ gleam test
 
 The `Timeframe` module (`src/glibe/timeframe.gleam`) implements the streaming data pipeline per the design in glib's `DESIGN.md`.
 
-### Two Top-Level Functions (ONLY entry points)
+### Two Entry Points (in `engine.gleam`)
 
 ```gleam
-// 1. Feed raw exchange data — only function that touches SourceBar
-sourcebar_gate(timeframe: Timeframe, sourcebar: SourceBar) -> #(Option(DataBar), Timeframe)
+// 1. Feed raw exchange data — validates + normalizes; only function that touches SourceBar
+sourcebar_gate(timeframe: Timeframe, sourcebar: SourceBar)
+  -> Result(#(Option(DataBar), Timeframe), String)
 
 // 2. Process a completed bar — all computation happens here
-databar_processing(timeframe: Timeframe, databar: DataBar, settings: TimeframeSettings) -> Timeframe
+databar_processing(timeframe: Timeframe, databar: DataBar, settings: TimeframeSettings)
+  -> Timeframe
 ```
+
+`timeframe.gleam` holds the `Timeframe` record and `new` only; every step that
+moves it lives in `engine.gleam` (RULINGS.md R7). The `Result` from
+`sourcebar_gate` is how a malformed bar is rejected, not repaired (RULINGS.md R8).
 
 ### `sourcebar_gate` — Time bucket aggregation
 - Folds incoming `SourceBar`s into `working_databar` (OHLCV accumulation)
@@ -141,44 +147,48 @@ pub fn databar_processing(tf: Timeframe, db: DataBar, settings: TimeframeSetting
 
 | Job | Module | Function | What it does |
 |-----|--------|----------|--------------|
-| **Indicators** | `indicator.gleam` | `run/3` | SMA×4 → KDJ → Bollinger (writes all fields to `DataBar`) |
-| **Leaves** | `leaf.gleam` | `update_yin_leaf/4`, `update_yang_leaf/4` | Streaming Yin/Yang leaf detection, CMA |
-| **Branches** | `branch.gleam` | `update_yin_branch/5`, `update_yang_branch/5` | Streaming Yin/Yang branch detection (9 laws) |
-| **Accept** | `timeframe.gleam` | `accept/2` | Prepend finished bar to `databar_list` (newest-first) |
+| **Indicators** | `indicator.gleam` | `run/3` | SMA×5 → KDJ → Bollinger (writes measured fields to `DataBar`) |
+| **Leaves** | `leaf.gleam` | `next_yin_leaf/3`, `next_yang_leaf/3`, `leaf_cma/3` | Streaming Yin/Yang leaf detection, CMA |
+| **Branches** | `branch.gleam` | `next_yin_branch/6`, `next_yang_branch/6` | Streaming Yin/Yang branch detection (rides a leaf) |
+| **Strategy** | `trading/strategy.gleam` | `manual_signal/2` | The manual verdict, written on the bar |
+| **Accept** | `engine.gleam` | `accept/2` | Prepend finished bar to `databar_list` (newest-first) |
 
 ### Data Flow
 ```
-SourceBar → sourcebar_gate → working_databar (Option) 
-  → bucket closes → databar_processing 
-    → indicator.run()        [JOB 1: SMA/KDJ/Bollinger]
+SourceBar → sourcebar_gate → working_databar (Option)
+  → bucket closes → databar_processing
+    → indicator.run()        [JOB 1: SMA×5/KDJ/Bollinger]
     → leaves()               [JOB 2: Yin/Yang leaf + CMA]
     → branches()             [JOB 3: Yin/Yang branch]
-    → strategy_signal()      [JOB 4: Manual/AI/hybrid strategy]
-    → runtime_test()         [JOB 5: Backtest/forward-test hook]
-    → accept()               [JOB 6: commit to databar_list]
+    → strategy()             [JOB 4: manual_signal → written on the bar]
+    → accept()               [JOB 5: commit to databar_list]
 ```
 
 ### Timeframe Structure
 ```gleam
 pub type Timeframe {
   Timeframe(
-    symbol: Symbol,              // Updated: Symbol type (was String)
+    symbol: Symbol,              // Symbol type (not String)
     interval: Interval,
     market_type: MarketType,     // Stock | Crypto | BStock
     working_databar: Option(DataBar),  // None after close until next source bar
     databar_list: List(DataBar),       // newest-first
 
-    // Leaf state (always present, not Option)
-    growing_yin_leaf: DataLeaf,
-    growing_yang_leaf: DataLeaf,
+    // Leaf state — Option: a leaf is born on a bar, so before any bar there is none
+    growing_yin_leaf: Option(DataLeaf),
+    growing_yang_leaf: Option(DataLeaf),
     yin_leaf_list: List(DataLeaf),
     yang_leaf_list: List(DataLeaf),
 
-    // Branch state (always present, not Option)
-    growing_yin_branch: DataBranch,
-    growing_yang_branch: DataBranch,
+    // Branch state — Option: a branch exists only once a leaf settles (RULINGS.md R1)
+    growing_yin_branch: Option(DataBranch),
+    growing_yang_branch: Option(DataBranch),
     yin_branch_list: List(DataBranch),
     yang_branch_list: List(DataBranch),
+
+    // The manual strategy's enter/exit points, carried as bars (UC-62)
+    manual_enter: Option(DataBar),
+    manual_exit: Option(DataBar),
   )
 }
 ```
@@ -260,19 +270,22 @@ circuit_breaker_from_string("CircuitBreaker;0.07;300;15")
 
 | Module | Responsibility |
 |--------|----------------|
-| `api/` | Core types: Asset, Market, Symbol, Rules, Exchange |
-| `sma.gleam` | SMA series (Tiny/Small/Medium/Large) with three-case incremental logic |
-| `kdj.gleam` | KDJ oscillator (LLV/HHV batch + incremental SMA for K/D/M) |
-| `bollinger.gleam` | Bollinger Bands (selected SMA centre, σ from window, Fibonacci ratios) |
-| `indicator.gleam` | Pipeline composition: SMA×4 → KDJ → Bollinger |
+| `api/` | Core types: Asset, Market, Symbol, Rules, Exchange — and the ingest boundary (`sourcebar.validate`, `normalize_date`) |
+| `sma.gleam` | SMA series (Tiny/Small/Medium/Large/Huge) — 5 rungs |
+| `kdj.gleam` | KDJ oscillator (LLV/HHV batch + SMA for K/D/M) |
+| `bollinger.gleam` | Bollinger Bands (selected SMA centre, σ via Welford online recurrence, Fibonacci ratios) |
+| `indicator.gleam` | Pipeline composition: SMA×5 → KDJ → Bollinger |
 | `leaf.gleam` | DataLeaf types + streaming detection (Yin/Yang leaves, CMA) |
-| `branch.gleam` | DataBranch types + streaming detection (Yin/Yang branches, 9 laws) |
-| `timeframe.gleam` | Timeframe type + `sourcebar_gate` + `databar_processing` |
+| `branch.gleam` | DataBranch types + streaming detection (Yin/Yang branches, rides a leaf) |
+| `timeframe.gleam` | Timeframe record + `new` (state only) |
+| `engine.gleam` | `sourcebar_gate`, `databar_processing`, `leaves`, `branches`, `accept` (the pipeline) |
+| `trading/strategy.gleam` | The manual verdict |
+| `export/csv.gleam` | CSV export, one row per accepted bar |
 | `config.gleam` | AppConfig + default_config |
 
 Dependency graph (no cycles):
 ```
-api, databar, indicators → sma, kdj, bollinger → indicator → leaf → branch → timeframe
+api, databar → sma, kdj, bollinger → indicator → leaf → branch → engine → timeframe
 ```
 
 ### Visualization (Phoenix LiveView)
@@ -289,31 +302,17 @@ Real-time BTCUSDT 1h chart with:
 - Yin/Yang branch markers (circles with entry/exit info)
 - Updates every 2 seconds via Phoenix PubSub
 
-## Chart Generation
+## Visualization
 
-glibe now supports real chart generation via the `broadcast_chart` FFI declaration
-(`src/glibe/timeframe.gleam:45`). This sends `DataBar` values over SSE to the
-browser, where the `ChartHook` phx-hook renders [Lightweight Charts](https://tradingview.github.io/lightweight-charts/).
+The web app (`apps/glibe_web`, Phoenix LiveView + Lightweight Charts) renders the
+engine's output. **The Gleam core does not broadcast** — `broadcast_chart` was
+removed; nothing in `src/glibe` sends bars over SSE. The web app obtains bars from
+the engine and draws candlesticks with indicator overlays.
 
-### How it works
-
-1. **Gleam side** (`timeframe.gleam:databar_processing`): After indicator computation
-   and strategy test, `broadcast_chart(databar)` is called, which invokes the Erlang
-   FFI to JavaScript (`priv/chart_ffi.mjs`).
-
-2. **JavaScript side** (`priv/chart_ffi.mjs`): Receives the `DataBar` and broadcasts
-   it via Phoenix PubSub on the `chart:updates` channel with the full bar data
-   (open, high, low, close, SMA series, Bollinger Bands, KDJ, CMA values, signal).
-
-3. **LiveView side** (`apps/glibe_web/lib/glibe_web/live/chart_live.ex`): The page
-   subscribes to `chart_updates` topic and the `ChartHook` renders Lightweight Charts
-   with candlesticks and indicator overlays.
-
-4. **Data flow**: Raw SourceBar → `sourcebar_gate` → indicator pipeline (SMA×4 →
-   KDJ → Bollinger) → `broadcast_chart` → SSE → browser Lightweight Charts.
-
-This mirrors glib's chart generation capability, but uses Erlang FFI + SSE instead
-of the JS-internal FFI that glib uses.
+The engine's one exporter is `export/csv.gleam` (`to_csv`), which writes one row
+per accepted bar, oldest first — for checking the engine against something that is
+not the engine (TradingView, a spreadsheet, another implementation). An exporter is
+not part of the engine (RULINGS.md R7).
 
 ### Quick Start
 
@@ -347,8 +346,29 @@ See `.planning/ROADMAP.md` for detailed phases:
 1. **TradingHours parsing** — Fixed `:` delimiter bug for RTH/Custom formats (now uses `;`)
 2. **Timeframe bucket_ends** — Implemented proper H1/D1 bucket logic (was always `True`)
 3. **Leaf/Branch detection** — Fixed O(n²) full regeneration bug (now incremental)
-4. **Zero warnings** — `gleam build` / `mix compile` / `gleam test` all clean
-5. **Tests added** — 13 unit tests for config, asset, rules parsing
+4. **Zero warnings** — `gleam build` / `gleam test` clean, `gleam format --check` clean
+5. **Tests added** — 23 tests (config, asset, rules, indicators, ingest boundary)
+
+## Recent Fixes (2026-10-04)
+
+1. **Module purity** — `timeframe.gleam` now holds the record and `new` only; the
+   pipeline moved to `engine.gleam`. `scripts/no_timeframe_mixture.sh` fails the
+   build if the mixture returns (RULINGS.md R7).
+2. **Ingest boundary** — `api/sourcebar.gleam` `validate` rejects a malformed bar
+   (never repairs); `normalize_date` turns epoch-milliseconds into ISO-8601 at the
+   boundary, fixing the H1 bug where an hourly bar never closed on Binance data.
+3. **Verdict ownership** — dropped 15 `DataBar` fields no module wrote; the manual
+   verdict lives in `trading/strategy.gleam`. `DataBar` now carries 26 measured
+   fields only.
+4. **Optional end/exit bars** — `end_bar` / `exit_bar` on leaf and branch are
+   `Option` (RULINGS.md R1); no sentinel, no false size.
+5. **Guards** — `scripts/guards.sh --all` runs build, test, format, and the mixture
+    check.
+6. **Bollinger σ ported to Welford recurrence** — replaced batch `sum_sq_diff / count`
+   with online Welford mean/variance recurrence (`SigmaState(n, mean, m2)`) per plan
+   31-02 §3 (2026-10-01). eliminates window cache, avoids catastrophic cancellation
+   (DESIGN.md §14.6), and carries σ forward bar-to-bar on `DataBar`. sigma_n /
+   sigma_mean / sigma_m2 fields added to `DataBar`.
 
 ## License
 
