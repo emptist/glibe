@@ -23,25 +23,43 @@ pub fn sma(
   name: SmaSeries,
 ) -> databar.DataBar {
   let size = size_of(settings, name)
-  let len = list.length(databar_list)
+  incremental_mean(
+    working,
+    databar_list,
+    size,
+    fn(b) { sma_of(b, name) },
+    fn(b) { b.close },
+    fn(b, v) { set_sma_of(b, name, v) },
+  )
+}
 
-  // Three cases by length:
-  // 1. len == 0: no settled bars -> close
-  // 2. len < size: fewer than span -> true mean of bars so far
-  // 3. len >= size: window full -> incremental with leaving bar
+/// Generic incremental windowed mean over `databar_list` (newest-first), the
+/// bar in hand included. `size` bars end at `working` (working's value plus the
+/// `size - 1` settled bars). `prev_of` reads the carried mean from the previous
+/// bar, `value_of` reads the arriving value from any bar, `set_of` writes the
+/// new mean back. The five SMA ladders and KDJ's M all use this one recurrence,
+/// so the windowing math lives in exactly one place.
+pub fn incremental_mean(
+  working: databar.DataBar,
+  databar_list: List(databar.DataBar),
+  size: Int,
+  prev_of: fn(databar.DataBar) -> Float,
+  value_of: fn(databar.DataBar) -> Float,
+  set_of: fn(databar.DataBar, Float) -> databar.DataBar,
+) -> databar.DataBar {
+  let len = list.length(databar_list)
   let mean = case len == 0 {
-    True -> working.close
+    True -> value_of(working)
     False ->
       case len < size {
         True -> {
-          // true mean: (held * previous_sma + close) / (held + 1)
+          // warm-up: true mean of the bars seen so far
           let previous = list.first(databar_list) |> result.unwrap(working)
           let held = int.to_float(len)
-          { held *. sma_of(previous, name) +. working.close } /. { held +. 1.0 }
+          { held *. prev_of(previous) +. value_of(working) } /. { held +. 1.0 }
         }
         False -> {
-          // window full: (size * previous_sma + close - leaving.close) / size
-          // leaving bar is at index size - 1 (newest-first list)
+          // window full: slide one bar out, one in
           let previous = list.first(databar_list) |> result.unwrap(working)
           let leaving =
             list.drop(databar_list, size - 1)
@@ -49,24 +67,15 @@ pub fn sma(
             |> result.unwrap(working)
           {
             int.to_float(size)
-            *. sma_of(previous, name)
-            +. working.close
-            -. leaving.close
+            *. prev_of(previous)
+            +. value_of(working)
+            -. value_of(leaving)
           }
           /. int.to_float(size)
         }
       }
   }
-
-  // TODO: bias calculation for this SMA series (enable when needed)
-  // bias = 100 * (close - sma) / sma
-  // let bias = case mean >. 0.0 {
-  //   True -> { working.close -. mean } /. mean *. 100.0
-  //   False -> 0.0
-  // }
-  // set_bias_of(working, name, bias)
-
-  set_sma_of(working, name, mean)
+  set_of(working, mean)
 }
 
 fn sma_of(databar: databar.DataBar, name: SmaSeries) -> Float {
