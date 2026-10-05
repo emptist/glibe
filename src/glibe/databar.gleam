@@ -1,5 +1,14 @@
 /// The bar the streaming system works with — computed from SourceBar + indicators.
 /// Used by timeframe, SMA, KDJ, Bollinger, Leaf, Branch.
+///
+/// Every field here is a measurement something computed. A bar carries no
+/// verdict (those are derived in `trading/strategy`); it carries no leaf index
+/// it cannot name (those come back when a bar can name the leaf it sits in).
+/// Fields that no step ever wrote were removed — an uncomputed number printed
+/// is a lie the reader cannot tell from a zero.
+import gleam/float
+import glibe/api/sourcebar.{type SourceBar}
+
 pub type DataBar {
   DataBar(
     idx: Int,    // global position in databar_list (0 = oldest settled bar)
@@ -44,34 +53,67 @@ pub type DataBar {
     kdj_l: Float,
     kdj_l_idx: Int,
 
-    // Bias
-    bias: Float,
-
-    // Crossovers
-    small_above_tiny: Bool,
-    cmas_up: Bool,
-    bars_k_on_d: Int,
-    bars_d_on_k: Int,
-
-    // Leaf CMA
+    // Leaf CMA — running mean of sma_tiny over the leaf the bar sits in
     yin_leaf_cma: Float,
     yang_leaf_cma: Float,
-    inner_yin_leaf_cma: Float,
-    inner_yang_leaf_cma: Float,
-    inner_inner_yin_leaf_cma: Float,
-    inner_inner_yang_leaf_cma: Float,
-
-    // KDJ signals
-    kdj_cross_up: Bool,
-    kdj_bearish_left: Bool,
-
-    // Price action
-    price_at_lower_band: Bool,
-    sma_tiny_rising: Bool,
-    leaf_cmas_rising: Bool,
-    leaf_cmas_falling: Bool,
 
     // Strategy signal
     signal: String,
+  )
+}
+
+/// **A source bar becomes the first bar of a bucket.** All indicators start at
+/// their neutral seed so the first accepted bar of a run is honest, not a zero
+/// masquerading as a measurement.
+pub fn of_sourcebar(bar: SourceBar, idx: Int) -> DataBar {
+  DataBar(
+    idx:,
+    date: bar.date,
+    open: bar.open,
+    high: bar.high,
+    low: bar.low,
+    close: bar.close,
+    volume: bar.volume,
+    sma_tiny: 0.0,
+    sma_small: 0.0,
+    sma_medium: 0.0,
+    sma_large: 0.0,
+    sma_huge: 0.0,
+    bb_m: 0.0,
+    bb_u3: 0.0,
+    bb_l3: 0.0,
+    bb_u2: 0.0,
+    bb_u1: 0.0,
+    bb_l1: 0.0,
+    bb_l2: 0.0,
+    sigma_n: 0,
+    sigma_mean: 0.0,
+    sigma_m2: 0.0,
+    k: 50.0,
+    d: 50.0,
+    j: 50.0,
+    m: 50.0,
+    kdj_h: bar.high,
+    kdj_h_idx: idx,
+    kdj_l: bar.low,
+    kdj_l_idx: idx,
+    yin_leaf_cma: 0.0,
+    yang_leaf_cma: 0.0,
+    signal: "",
+  )
+}
+
+/// **Fold a source bar into the one already open.** The bucket keeps its first
+/// open, grows its high and low, takes the latest close, and adds the volume.
+/// Nothing about the indicators changes here — they are computed once the bucket
+/// closes, on the final bar.
+pub fn fold_sourcebar(working: DataBar, bar: SourceBar) -> DataBar {
+  DataBar(
+    ..working,
+    date: bar.date,
+    high: float.max(working.high, bar.high),
+    low: float.min(working.low, bar.low),
+    close: bar.close,
+    volume: working.volume + bar.volume,
   )
 }
