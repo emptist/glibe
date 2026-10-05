@@ -6,7 +6,7 @@ import gleam/int
 import gleam/list
 import gleam/result
 import glibe/databar
-import glibe/indicator_settings.{SmaForBbm(..), type TimeframeSettings}
+import glibe/indicator_settings.{type SmaForBbm, type TimeframeSettings}
 
 // ———— Welford recurrence types & state ———————————————————————————————
 
@@ -110,9 +110,9 @@ pub fn bollinger(
   let bb_u3 = bb_m +. spread
   let bb_u2 = bb_m +. spread *. 0.618
   let bb_u1 = bb_m +. spread *. 0.382
-  let bb_l1 = max(bb_m -. spread *. 0.382, 0.001)
-  let bb_l2 = max(bb_m -. spread *. 0.618, 0.0001)
-  let bb_l3 = max(bb_m -. spread, 0.00001)
+  let bb_l1 = float.max(bb_m -. spread *. 0.382, 0.0)
+  let bb_l2 = float.max(bb_m -. spread *. 0.618, 0.0)
+  let bb_l3 = float.max(bb_m -. spread, 0.0)
 
   databar.DataBar(
     ..databar,
@@ -132,28 +132,21 @@ pub fn bollinger(
 /// Select which SMA is the Bollinger centre
 pub fn select_bbm(databar: databar.DataBar, which: SmaForBbm) -> Float {
   case which {
-    SmaForBbmTiny -> databar.sma_tiny
-    SmaForBbmSmall -> databar.sma_small
-    SmaForBbmMedium -> databar.sma_medium
-    SmaForBbmLarge -> databar.sma_large
-    SmaForBbmHuge -> databar.sma_huge
+    indicator_settings.SmaForBbmTiny -> databar.sma_tiny
+    indicator_settings.SmaForBbmSmall -> databar.sma_small
+    indicator_settings.SmaForBbmMedium -> databar.sma_medium
+    indicator_settings.SmaForBbmLarge -> databar.sma_large
+    indicator_settings.SmaForBbmHuge -> databar.sma_huge
   }
 }
 
 /// Window size for Bollinger = window size of the selected SMA
 pub fn bb_window_size(settings: TimeframeSettings) -> Int {
   case settings.sma_for_bbm {
-    SmaForBbmTiny -> settings.sma_tiny_window_size
-    SmaForBbmSmall -> settings.sma_small_window_size
-    SmaForBbmMedium -> settings.sma_medium_window_size
-    SmaForBbmLarge -> settings.sma_large_window_size
-    SmaForBbmHuge -> settings.sma_huge_window_size
-  }
-}
-
-fn max(a: Float, b: Float) -> Float {
-  case a >. b {
-    True -> a
-    False -> b
+    indicator_settings.SmaForBbmTiny -> settings.sma_tiny_window_size
+    indicator_settings.SmaForBbmSmall -> settings.sma_small_window_size
+    indicator_settings.SmaForBbmMedium -> settings.sma_medium_window_size
+    indicator_settings.SmaForBbmLarge -> settings.sma_large_window_size
+    indicator_settings.SmaForBbmHuge -> settings.sma_huge_window_size
   }
 }
