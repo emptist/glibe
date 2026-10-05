@@ -1,10 +1,20 @@
-// Leaf detection module — YinLeaf/YangLeaf types and streaming detection
-// bar.idx is the bar's global position (0 = oldest settled bar)
+// The leaves — the two twins every bar belongs to, grown one bar at a time as
+// a fresh value each bar. A leaf judges on the `sma_tiny` series, NOT the raw
+// `high`/`low`: a yin leaf dies on a new HIGH `sma_tiny` and corners on a new
+// LOW; a yang leaf mirrors it.
 //
-// Leaves store DataBar references, not integer indices.  Values are read
-// directly from the stored bar (O(1)) rather than traversing databar_list (O(n)).
+// **A leaf names bars; it carries no copy of their values.** Three bars: where
+// it starts, where it ends, and where it corners. Every value the leaf is
+// judged on is a field of one of those bars, read in O(1).
+//
+// **A leaf that has not ended has no `end_bar`.** *"a structure doesn't have an
+// `end_bar` unless it is ended"* [user 2026-10-03]. A growing leaf's end is not
+// a stored thing — it is the working bar, which is why `data_leaf_size` is told
+// which bar that is. The alternative is a sentinel: a bar of zeros standing in
+// for "nothing has happened yet", and a sentinel is a number that lies.
 
 import gleam/int
+import gleam/list
 import gleam/option.{type Option, None, Some}
 import glibe/databar.{type DataBar}
 
@@ -12,11 +22,9 @@ import glibe/databar.{type DataBar}
 // Public Types
 // ============================================================================
 
-/// Fractal leaf — bar references, no separate index fields.
-/// bar.idx gives the global position; sma_tiny and other values read directly.
 pub type DataLeaf {
-  YinLeaf(start_bar: DataBar, end_bar: DataBar, corner_bar: DataBar)
-  YangLeaf(start_bar: DataBar, end_bar: DataBar, corner_bar: DataBar)
+  YinLeaf(start_bar: DataBar, end_bar: Option(DataBar), corner_bar: DataBar)
+  YangLeaf(start_bar: DataBar, end_bar: Option(DataBar), corner_bar: DataBar)
 }
 
 // ============================================================================
@@ -25,200 +33,155 @@ pub type DataLeaf {
 
 pub fn leaf_start_bar(leaf: DataLeaf) -> DataBar {
   case leaf {
-    YinLeaf(s, _, _) -> s
-    YangLeaf(s, _, _) -> s
+    YinLeaf(start_bar:, ..) -> start_bar
+    YangLeaf(start_bar:, ..) -> start_bar
   }
 }
 
-pub fn leaf_end_bar(leaf: DataLeaf) -> DataBar {
+/// **The bar the leaf last belonged to — and only a settled leaf has one.**
+pub fn leaf_end_bar(leaf: DataLeaf) -> Option(DataBar) {
   case leaf {
-    YinLeaf(_, e, _) -> e
-    YangLeaf(_, e, _) -> e
+    YinLeaf(end_bar:, ..) -> end_bar
+    YangLeaf(end_bar:, ..) -> end_bar
   }
 }
 
+/// The one extreme that moves: the new low for a yin leaf, the new high for a
+/// yang one. A leaf born this bar has `corner_bar` == `start_bar`.
 pub fn leaf_corner_bar(leaf: DataLeaf) -> DataBar {
   case leaf {
-    YinLeaf(_, _, c) -> c
-    YangLeaf(_, _, c) -> c
+    YinLeaf(corner_bar:, ..) -> corner_bar
+    YangLeaf(corner_bar:, ..) -> corner_bar
   }
 }
 
-/// Size of leaf = end_bar.idx - start_bar.idx + 1
-pub fn data_leaf_size(leaf: DataLeaf) -> Int {
-  leaf_end_bar(leaf).idx - leaf_start_bar(leaf).idx + 1
+/// **How many bars the leaf spans** — a cardinality, both ends inclusive, so a
+/// one-bar leaf has size 1. A growing leaf names no end, so the bar in hand
+/// closes it: *"when you need the length of a growing thing, you use its
+/// `start_bar.idx` and the `working_databar.idx`"* [user 2026-10-03].
+pub fn data_leaf_size(leaf: DataLeaf, databar: DataBar) -> Int {
+  case leaf_end_bar(leaf) {
+    Some(end) -> end.idx - leaf_start_bar(leaf).idx + 1
+    None -> databar.idx - leaf_start_bar(leaf).idx + 1
+  }
 }
 
-pub fn mk_yin_leaf(start: DataBar, end: DataBar, corner: DataBar) -> DataLeaf {
-  YinLeaf(start_bar: start, end_bar: end, corner_bar: corner)
+/// **The leaf's depth** — corner to top, as a share of that top, so a
+/// 700-dollar asset's leaf can be put next to a 60,000-dollar one's. Which end
+/// is the top follows from the death rule and not from a test: a yin leaf dies
+/// on the first bar above its start, so while it lives nothing in it is higher
+/// — the top of a yin leaf is its `start_bar`, and its corner is the low.
+pub fn leaf_depth(leaf: DataLeaf) -> Float {
+  case leaf {
+    YinLeaf(start_bar:, corner_bar:, ..) ->
+      { start_bar.sma_tiny -. corner_bar.sma_tiny } /. start_bar.sma_tiny
+    YangLeaf(start_bar:, corner_bar:, ..) ->
+      { corner_bar.sma_tiny -. start_bar.sma_tiny } /. corner_bar.sma_tiny
+  }
 }
 
-pub fn mk_yang_leaf(start: DataBar, end: DataBar, corner: DataBar) -> DataLeaf {
-  YangLeaf(start_bar: start, end_bar: end, corner_bar: corner)
+/// A leaf born on `bar` — start and corner on that bar, no end yet.
+pub fn init_yin_leaf(bar: DataBar) -> DataLeaf {
+  YinLeaf(start_bar: bar, end_bar: None, corner_bar: bar)
 }
 
-/// Initialize growing yin leaf — all three positions at the given bar.
-pub fn init_yin_leaf(b: DataBar) -> DataLeaf {
-  YinLeaf(start_bar: b, end_bar: b, corner_bar: b)
-}
-
-/// Initialize growing yang leaf — all three positions at the given bar.
-pub fn init_yang_leaf(b: DataBar) -> DataLeaf {
-  YangLeaf(start_bar: b, end_bar: b, corner_bar: b)
+pub fn init_yang_leaf(bar: DataBar) -> DataLeaf {
+  YangLeaf(start_bar: bar, end_bar: None, corner_bar: bar)
 }
 
 // ============================================================================
-// CMA helper
+// Growth — one bar at a time
 // ============================================================================
 
-fn compute_cma(prev_cma: Float, sma_tiny: Float, count: Int) -> Float {
-  { prev_cma *. int.to_float(count) +. sma_tiny } /. int.to_float(count + 1)
-}
-
-// ============================================================================
-// Streaming Leaf Detection
-// ============================================================================
-
-/// Update growing yin leaf with the current (post-indicator) bar.
-/// Returns #(Option(completed_leaf), updated_growing_leaf, cma_for_this_bar).
+/// **Grow the yin leaf over `databar`.** Returns `#(settled, growing)`;
+/// `settled` is `Some` only on the bar the leaf dies.
 ///
-/// Yin leaf threshold: sma_tiny rises above the leaf's start_bar.sma_tiny.
-pub fn update_yin_leaf(
-  growing: DataLeaf,
-  current_bar: DataBar,
-) -> #(Option(DataLeaf), DataLeaf, Float) {
-  let is_new_leaf = leaf_start_bar(growing).idx == current_bar.idx
-
-  case is_new_leaf {
-    True -> {
-      // First bar of this leaf — complete the previous leaf (end = idx - 1 is
-      // already set on the old growing leaf) and open a new one.
-      let completed =
-        YinLeaf(
-          start_bar: leaf_start_bar(growing),
-          end_bar: leaf_end_bar(growing),
-          corner_bar: leaf_corner_bar(growing),
-        )
-      #(Some(completed), init_yin_leaf(current_bar), current_bar.sma_tiny)
-    }
-    False -> {
-      let start_sma = leaf_start_bar(growing).sma_tiny
-      let threshold_crossed = current_bar.sma_tiny >. start_sma
-
-      case threshold_crossed {
-        True -> {
-          // New yin leaf born — current bar is the killing bar
-          let completed =
-            YinLeaf(
-              start_bar: leaf_start_bar(growing),
-              end_bar: leaf_end_bar(growing),
-              corner_bar: leaf_corner_bar(growing),
-            )
-          #(Some(completed), init_yin_leaf(current_bar), current_bar.sma_tiny)
-        }
-        False -> {
-          // Leaf continues
-          let bars_in_leaf =
-            current_bar.idx - leaf_start_bar(growing).idx
-          let prev_cma = case list_first_cma_yin(growing) {
-            Some(c) -> c
-            None -> current_bar.sma_tiny
-          }
-          let cma = compute_cma(prev_cma, current_bar.sma_tiny, bars_in_leaf)
-          let corner_sma = leaf_corner_bar(growing).sma_tiny
-          case current_bar.sma_tiny <. corner_sma {
-            True ->
-              #(
-                None,
-                YinLeaf(
-                  start_bar: leaf_start_bar(growing),
-                  end_bar: current_bar,
-                  corner_bar: current_bar,
-                ),
-                cma,
-              )
-            False ->
-              #(
-                None,
-                YinLeaf(
-                  start_bar: leaf_start_bar(growing),
-                  end_bar: current_bar,
-                  corner_bar: leaf_corner_bar(growing),
-                ),
-                cma,
-              )
-          }
-        }
-      }
-    }
-  }
-}
-
-/// Update growing yang leaf with the current (post-indicator) bar.
-/// Returns #(Option(completed_leaf), updated_growing_leaf, cma_for_this_bar).
+/// **The death threshold is the leaf's own start value**, and that is a law,
+/// not an optimisation: the leaf dies on the first bar above the highest of its
+/// bars, so a bar that would raise that highest kills the leaf instead of
+/// joining it — the highest of a living yin leaf is always the `sma_tiny` of
+/// its `start_bar`. That value is read off a bar the leaf already holds; no
+/// list is walked.
 ///
-/// Yang leaf threshold: sma_tiny falls below the leaf's start_bar.sma_tiny.
-pub fn update_yang_leaf(
-  growing: DataLeaf,
-  current_bar: DataBar,
-) -> #(Option(DataLeaf), DataLeaf, Float) {
-  let start_sma = leaf_start_bar(growing).sma_tiny
-  let is_new_leaf = current_bar.sma_tiny <. start_sma
-
-  case is_new_leaf {
-    True -> {
-      let completed =
-        YangLeaf(
-          start_bar: leaf_start_bar(growing),
-          end_bar: leaf_end_bar(growing),
-          corner_bar: leaf_corner_bar(growing),
+/// **`last_bar` is named, not derived.** The killing bar belongs to the
+/// newborn, so the settled leaf ends one bar before the bar that killed it. The
+/// caller has that bar in hand.
+pub fn next_yin_leaf(
+  databar: DataBar,
+  leaf: DataLeaf,
+  last_bar: DataBar,
+) -> #(Option(DataLeaf), DataLeaf) {
+  case databar.sma_tiny >. leaf_start_bar(leaf).sma_tiny {
+    True -> #(
+      Some(YinLeaf(leaf_start_bar(leaf), Some(last_bar), leaf_corner_bar(leaf))),
+      init_yin_leaf(databar),
+    )
+    False ->
+      case databar.sma_tiny <. leaf_corner_bar(leaf).sma_tiny {
+        True -> #(None, YinLeaf(leaf_start_bar(leaf), None, databar))
+        False -> #(
+          None,
+          YinLeaf(leaf_start_bar(leaf), None, leaf_corner_bar(leaf)),
         )
-      #(Some(completed), init_yang_leaf(current_bar), current_bar.sma_tiny)
-    }
-    False -> {
-      let bars_in_leaf = current_bar.idx - leaf_start_bar(growing).idx
-      let prev_cma = case list_first_cma_yang(growing) {
-        Some(c) -> c
-        None -> current_bar.sma_tiny
       }
-      let cma = compute_cma(prev_cma, current_bar.sma_tiny, bars_in_leaf)
-      let corner_sma = leaf_corner_bar(growing).sma_tiny
-      case current_bar.sma_tiny >. corner_sma {
-        True ->
-          #(
-            None,
-            YangLeaf(
-              start_bar: leaf_start_bar(growing),
-              end_bar: current_bar,
-              corner_bar: current_bar,
-            ),
-            cma,
-          )
-        False ->
-          #(
-            None,
-            YangLeaf(
-              start_bar: leaf_start_bar(growing),
-              end_bar: current_bar,
-              corner_bar: leaf_corner_bar(growing),
-            ),
-            cma,
-          )
+  }
+}
+
+/// The mirror of `next_yin_leaf` — a yang leaf dies on a new LOW `sma_tiny`
+/// and corners on a new HIGH.
+pub fn next_yang_leaf(
+  databar: DataBar,
+  leaf: DataLeaf,
+  last_bar: DataBar,
+) -> #(Option(DataLeaf), DataLeaf) {
+  case databar.sma_tiny <. leaf_start_bar(leaf).sma_tiny {
+    True -> #(
+      Some(YangLeaf(leaf_start_bar(leaf), Some(last_bar), leaf_corner_bar(leaf))),
+      init_yang_leaf(databar),
+    )
+    False ->
+      case databar.sma_tiny >. leaf_corner_bar(leaf).sma_tiny {
+        True -> #(None, YangLeaf(leaf_start_bar(leaf), None, databar))
+        False -> #(
+          None,
+          YangLeaf(leaf_start_bar(leaf), None, leaf_corner_bar(leaf)),
+        )
       }
-    }
   }
 }
 
 // ============================================================================
-// CMA helpers — read the previous bar's CMA from the growing leaf's end_bar
+// The leaf CMA
 // ============================================================================
 
-/// Previous yin_leaf_cma is stored on the previous end_bar.
-fn list_first_cma_yin(growing: DataLeaf) -> Option(Float) {
-  Some(leaf_end_bar(growing).yin_leaf_cma)
-}
-
-/// Previous yang_leaf_cma is stored on the previous end_bar.
-fn list_first_cma_yang(growing: DataLeaf) -> Option(Float) {
-  Some(leaf_end_bar(growing).yang_leaf_cma)
+/// **The running mean of `sma_tiny` over the leaf's own bars.**
+///
+/// It averages the ma, not the price — *"CMA 当然同样是选定均线的均值呀"* [user
+/// 2026-09-15]: feeding it `close` is mimo's error. It is the forward
+/// recurrence `(cma_old × N_old + raw) / (N_old + 1)` with
+/// `N_old = databar.idx − start_bar.idx`, so it costs one step instead of a
+/// walk over every bar the leaf has lived.
+///
+/// A leaf born this bar has no settled bars of its own, so its cma is that
+/// bar's own value — never `0.0`.
+pub fn leaf_cma(
+  databar: DataBar,
+  databar_list: List(DataBar),
+  leaf: DataLeaf,
+) -> Float {
+  let start_idx = leaf_start_bar(leaf).idx
+  let raw = databar.sma_tiny
+  case start_idx == databar.idx {
+    True -> raw
+    False -> {
+      let assert Ok(previous) = list.first(databar_list)
+      let held = int.to_float(databar.idx - start_idx)
+      case leaf {
+        YinLeaf(_, _, _) ->
+          { previous.yin_leaf_cma *. held +. raw } /. { held +. 1.0 }
+        YangLeaf(_, _, _) ->
+          { previous.yang_leaf_cma *. held +. raw } /. { held +. 1.0 }
+      }
+    }
+  }
 }
