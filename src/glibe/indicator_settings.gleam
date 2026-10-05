@@ -24,7 +24,6 @@ pub type TimeframeSettings {
     sma_huge_window_size: Int,
     window_kdj_size: Int,
     kdj_k_period: Int,
-    kdj_d_period: Int,
     kdj_m_period: Int,
     bb_multiplier: Float,
     sma_for_bbm: SmaForBbm,
