@@ -1,10 +1,10 @@
 // SMA series — incremental means over databar_list (newest-first)
 // Plan 31-01
 
+import gleam/int
 import gleam/list
 import gleam/result
-import gleam/int
-import glibe/databar as databar
+import glibe/databar
 import glibe/indicator_settings.{type TimeframeSettings}
 
 pub type SmaSeries {
@@ -16,7 +16,12 @@ pub type SmaSeries {
 }
 
 /// SMA — three cases by list length (plan 31-01)
-pub fn sma(working: databar.DataBar, databar_list: List(databar.DataBar), settings: TimeframeSettings, name: SmaSeries) -> databar.DataBar {
+pub fn sma(
+  working: databar.DataBar,
+  databar_list: List(databar.DataBar),
+  settings: TimeframeSettings,
+  name: SmaSeries,
+) -> databar.DataBar {
   let size = size_of(settings, name)
   let len = list.length(databar_list)
 
@@ -26,22 +31,31 @@ pub fn sma(working: databar.DataBar, databar_list: List(databar.DataBar), settin
   // 3. len >= size: window full -> incremental with leaving bar
   let mean = case len == 0 {
     True -> working.close
-    False -> case len < size {
-      True -> {
-        // true mean: (held * previous_sma + close) / (held + 1)
-        let previous = list.first(databar_list) |> result.unwrap(working)
-        let held = int.to_float(len)
-        { held *. sma_of(previous, name) +. working.close } /. { held +. 1.0 }
+    False ->
+      case len < size {
+        True -> {
+          // true mean: (held * previous_sma + close) / (held + 1)
+          let previous = list.first(databar_list) |> result.unwrap(working)
+          let held = int.to_float(len)
+          { held *. sma_of(previous, name) +. working.close } /. { held +. 1.0 }
+        }
+        False -> {
+          // window full: (size * previous_sma + close - leaving.close) / size
+          // leaving bar is at index size - 1 (newest-first list)
+          let previous = list.first(databar_list) |> result.unwrap(working)
+          let leaving =
+            list.drop(databar_list, size - 1)
+            |> list.first
+            |> result.unwrap(working)
+          {
+            int.to_float(size)
+            *. sma_of(previous, name)
+            +. working.close
+            -. leaving.close
+          }
+          /. int.to_float(size)
+        }
       }
-      False -> {
-        // window full: (size * previous_sma + close - leaving.close) / size
-        // leaving bar is at index size - 1 (newest-first list)
-        let previous = list.first(databar_list) |> result.unwrap(working)
-        let leaving = list.drop(databar_list, size - 1) |> list.first |> result.unwrap(working)
-        { int.to_float(size) *. sma_of(previous, name)
-          +. working.close -. leaving.close } /. int.to_float(size)
-      }
-    }
   }
 
   // TODO: bias calculation for this SMA series (enable when needed)
@@ -65,7 +79,11 @@ fn sma_of(databar: databar.DataBar, name: SmaSeries) -> Float {
   }
 }
 
-fn set_sma_of(databar: databar.DataBar, name: SmaSeries, value: Float) -> databar.DataBar {
+fn set_sma_of(
+  databar: databar.DataBar,
+  name: SmaSeries,
+  value: Float,
+) -> databar.DataBar {
   case name {
     SmaSeriesTiny -> databar.DataBar(..databar, sma_tiny: value)
     SmaSeriesSmall -> databar.DataBar(..databar, sma_small: value)

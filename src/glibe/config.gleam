@@ -1,8 +1,7 @@
 /// Configuration for the entire trading system
 /// Single source of truth - no JSON needed, Gleam IS the config
-
 import gleam/list
-import gleam/option.{type Option, Some, None}
+import gleam/option.{type Option, None, Some}
 
 // ============================================================================
 // Config Types (structure only, types imported from their modules)
@@ -15,15 +14,18 @@ pub type AppConfig {
     assets: List(#(String, asset.Asset)),
     markets: List(#(String, market.Market)),
     symbols: List(#(String, symbol.Symbol)),
-    timeframe_settings: List(#(String, indicator_settings.TimeframeSettings))
+    timeframe_settings: List(#(String, indicator_settings.TimeframeSettings)),
   )
 }
 
-import glibe/api/exchange
 import glibe/api/asset.{asset_class_from_string}
+import glibe/api/exchange
 import glibe/api/market
+import glibe/api/rules.{
+  auction_type_from_string, circuit_breaker_from_string,
+  settlement_type_from_string, trading_hours_from_string,
+}
 import glibe/api/symbol
-import glibe/api/rules.{trading_hours_from_string, settlement_type_from_string, auction_type_from_string, circuit_breaker_from_string}
 import glibe/indicator_settings
 
 // ============================================================================
@@ -43,8 +45,8 @@ pub fn default_config() -> AppConfig {
           base_url: Some("https://testnet.binance.vision"),
           ws_url: Some("wss://stream.testnet.binance.vision"),
           gateway_host: None,
-          gateway_port: None
-        )
+          gateway_port: None,
+        ),
       ),
       #(
         "ib",
@@ -55,8 +57,8 @@ pub fn default_config() -> AppConfig {
           base_url: None,
           ws_url: None,
           gateway_host: Some("127.0.0.1"),
-          gateway_port: Some(5001)
-        )
+          gateway_port: Some(5001),
+        ),
       ),
       #(
         "futu",
@@ -67,20 +69,83 @@ pub fn default_config() -> AppConfig {
           base_url: Some("https://openapi.futunn.com"),
           ws_url: None,
           gateway_host: Some("127.0.0.1"),
-          gateway_port: Some(11111)
-        )
-      )
+          gateway_port: Some(11_111),
+        ),
+      ),
     ],
     assets: [
-      #("BTC", asset.Asset(id: "BTC", name: "Bitcoin", class: asset_class_from_string("Crypto"))),
-      #("ETH", asset.Asset(id: "ETH", name: "Ethereum", class: asset_class_from_string("Crypto"))),
-      #("SPY", asset.Asset(id: "SPY", name: "SPDR S&P 500 ETF Trust", class: asset_class_from_string("ETF"))),
-      #("AAPL", asset.Asset(id: "AAPL", name: "Apple Inc.", class: asset_class_from_string("Equity"))),
-      #("TSLA", asset.Asset(id: "TSLA", name: "Tesla Inc.", class: asset_class_from_string("BStock"))),
-      #("USD", asset.Asset(id: "USD", name: "US Dollar", class: asset_class_from_string("Currency"))),
-      #("USDT", asset.Asset(id: "USDT", name: "Tether", class: asset_class_from_string("Crypto"))),
-      #("CNY", asset.Asset(id: "CNY", name: "Chinese Yuan", class: asset_class_from_string("Currency"))),
-      #("HKD", asset.Asset(id: "HKD", name: "Hong Kong Dollar", class: asset_class_from_string("Currency")))
+      #(
+        "BTC",
+        asset.Asset(
+          id: "BTC",
+          name: "Bitcoin",
+          class: asset_class_from_string("Crypto"),
+        ),
+      ),
+      #(
+        "ETH",
+        asset.Asset(
+          id: "ETH",
+          name: "Ethereum",
+          class: asset_class_from_string("Crypto"),
+        ),
+      ),
+      #(
+        "SPY",
+        asset.Asset(
+          id: "SPY",
+          name: "SPDR S&P 500 ETF Trust",
+          class: asset_class_from_string("ETF"),
+        ),
+      ),
+      #(
+        "AAPL",
+        asset.Asset(
+          id: "AAPL",
+          name: "Apple Inc.",
+          class: asset_class_from_string("Equity"),
+        ),
+      ),
+      #(
+        "TSLA",
+        asset.Asset(
+          id: "TSLA",
+          name: "Tesla Inc.",
+          class: asset_class_from_string("BStock"),
+        ),
+      ),
+      #(
+        "USD",
+        asset.Asset(
+          id: "USD",
+          name: "US Dollar",
+          class: asset_class_from_string("Currency"),
+        ),
+      ),
+      #(
+        "USDT",
+        asset.Asset(
+          id: "USDT",
+          name: "Tether",
+          class: asset_class_from_string("Crypto"),
+        ),
+      ),
+      #(
+        "CNY",
+        asset.Asset(
+          id: "CNY",
+          name: "Chinese Yuan",
+          class: asset_class_from_string("Currency"),
+        ),
+      ),
+      #(
+        "HKD",
+        asset.Asset(
+          id: "HKD",
+          name: "Hong Kong Dollar",
+          class: asset_class_from_string("Currency"),
+        ),
+      ),
     ],
     markets: [
       #(
@@ -93,8 +158,8 @@ pub fn default_config() -> AppConfig {
             fees: rules.FeeSchedule(
               maker_bps: 1,
               taker_bps: 1,
-              min_commission_usd: 0.10,
-              platform_fee_bps: 0
+              min_commission_usd: 0.1,
+              platform_fee_bps: 0,
             ),
             data_limits: rules.DataRequestLimits(
               max_bars_per_request: [#("D1", 1000), #("H1", 1000), #("H4", 500)],
@@ -103,7 +168,7 @@ pub fn default_config() -> AppConfig {
               rate_limit_req_per_min: 1200,
               max_concurrent_requests: 5,
               requires_pagination: False,
-              supports_streaming: True
+              supports_streaming: True,
             ),
             order_types: ["Market", "Limit", "StopLimit", "StopMarket"],
             leverage_limits: [#("spot", 1), #("margin", 10), #("futures", 125)],
@@ -119,9 +184,9 @@ pub fn default_config() -> AppConfig {
             corporate_actions: "standard",
             dividend_handling: "none",
             withholding_tax: None,
-            convert_hours: None
-          )
-        )
+            convert_hours: None,
+          ),
+        ),
       ),
       #(
         "binance_bstock",
@@ -134,7 +199,7 @@ pub fn default_config() -> AppConfig {
               maker_bps: 10,
               taker_bps: 10,
               min_commission_usd: 0.01,
-              platform_fee_bps: 0
+              platform_fee_bps: 0,
             ),
             data_limits: rules.DataRequestLimits(
               max_bars_per_request: [#("D1", 1000), #("H1", 1000)],
@@ -143,7 +208,7 @@ pub fn default_config() -> AppConfig {
               rate_limit_req_per_min: 1200,
               max_concurrent_requests: 5,
               requires_pagination: False,
-              supports_streaming: True
+              supports_streaming: True,
             ),
             order_types: ["Market", "Limit"],
             leverage_limits: [#("spot", 1)],
@@ -158,10 +223,10 @@ pub fn default_config() -> AppConfig {
             circuit_breaker: None,
             corporate_actions: "bstock",
             dividend_handling: "multiplier_rebase",
-            withholding_tax: Some(0.30),
-            convert_hours: Some("US_RTH")
-          )
-        )
+            withholding_tax: Some(0.3),
+            convert_hours: Some("US_RTH"),
+          ),
+        ),
       ),
       #(
         "ib_equity",
@@ -169,12 +234,14 @@ pub fn default_config() -> AppConfig {
           exchange: "ib",
           asset_class: asset_class_from_string("Equity"),
           rules: rules.MarketRules(
-            trading_hours: trading_hours_from_string("RTH;09:30;16:00;America/New_York"),
+            trading_hours: trading_hours_from_string(
+              "RTH;09:30;16:00;America/New_York",
+            ),
             fees: rules.FeeSchedule(
               maker_bps: 0,
               taker_bps: 5,
-              min_commission_usd: 1.00,
-              platform_fee_bps: 0
+              min_commission_usd: 1.0,
+              platform_fee_bps: 0,
             ),
             data_limits: rules.DataRequestLimits(
               max_bars_per_request: [#("D1", 2520), #("H1", 5000)],
@@ -183,9 +250,15 @@ pub fn default_config() -> AppConfig {
               rate_limit_req_per_min: 3000,
               max_concurrent_requests: 5,
               requires_pagination: True,
-              supports_streaming: False
+              supports_streaming: False,
             ),
-            order_types: ["Market", "Limit", "Stop", "StopLimit", "TrailingStop"],
+            order_types: [
+              "Market",
+              "Limit",
+              "Stop",
+              "StopLimit",
+              "TrailingStop",
+            ],
             leverage_limits: [#("cash", 1), #("margin", 4)],
             settlement: settlement_type_from_string("TPlus2"),
             min_order_size: 1.0,
@@ -195,13 +268,15 @@ pub fn default_config() -> AppConfig {
             short_selling_allowed: True,
             auction_mechanism: Some(auction_type_from_string("Both")),
             margin_model: [#("initial", 0.5), #("maintenance", 0.25)],
-            circuit_breaker: Some(circuit_breaker_from_string("CircuitBreaker;0.07;300;15")),
+            circuit_breaker: Some(circuit_breaker_from_string(
+              "CircuitBreaker;0.07;300;15",
+            )),
             corporate_actions: "standard",
             dividend_handling: "cash",
-            withholding_tax: Some(0.30),
-            convert_hours: None
-          )
-        )
+            withholding_tax: Some(0.3),
+            convert_hours: None,
+          ),
+        ),
       ),
       #(
         "futu_hk_equity",
@@ -209,12 +284,14 @@ pub fn default_config() -> AppConfig {
           exchange: "futu",
           asset_class: asset_class_from_string("Equity"),
           rules: rules.MarketRules(
-            trading_hours: trading_hours_from_string("Custom;09:30,12:00,Asia/Hong_Kong|13:00,16:00,Asia/Hong_Kong"),
+            trading_hours: trading_hours_from_string(
+              "Custom;09:30,12:00,Asia/Hong_Kong|13:00,16:00,Asia/Hong_Kong",
+            ),
             fees: rules.FeeSchedule(
               maker_bps: 0,
               taker_bps: 8,
-              min_commission_usd: 2.00,
-              platform_fee_bps: 3
+              min_commission_usd: 2.0,
+              platform_fee_bps: 3,
             ),
             data_limits: rules.DataRequestLimits(
               max_bars_per_request: [#("D1", 1260), #("H1", 2000)],
@@ -223,7 +300,7 @@ pub fn default_config() -> AppConfig {
               rate_limit_req_per_min: 100,
               max_concurrent_requests: 5,
               requires_pagination: False,
-              supports_streaming: True
+              supports_streaming: True,
             ),
             order_types: ["Market", "Limit", "Stop", "StopLimit"],
             leverage_limits: [#("cash", 1), #("margin", 5)],
@@ -231,17 +308,22 @@ pub fn default_config() -> AppConfig {
             min_order_size: 1.0,
             price_precision: 3,
             lot_size: 100.0,
-            price_limits: Some(rules.PriceLimits(max_up_pct: 0.10, max_down_pct: 0.10)),
+            price_limits: Some(rules.PriceLimits(
+              max_up_pct: 0.1,
+              max_down_pct: 0.1,
+            )),
             short_selling_allowed: False,
             auction_mechanism: Some(auction_type_from_string("Both")),
             margin_model: [#("initial", 0.5), #("maintenance", 0.3)],
-            circuit_breaker: Some(circuit_breaker_from_string("CircuitBreaker;0.10;60;30")),
+            circuit_breaker: Some(circuit_breaker_from_string(
+              "CircuitBreaker;0.10;60;30",
+            )),
             corporate_actions: "standard",
             dividend_handling: "cash",
-            withholding_tax: Some(0.00),
-            convert_hours: None
-          )
-        )
+            withholding_tax: Some(0.0),
+            convert_hours: None,
+          ),
+        ),
       ),
       #(
         "futu_us_equity",
@@ -249,12 +331,14 @@ pub fn default_config() -> AppConfig {
           exchange: "futu",
           asset_class: asset_class_from_string("Equity"),
           rules: rules.MarketRules(
-            trading_hours: trading_hours_from_string("RTH;09:30;16:00;America/New_York"),
+            trading_hours: trading_hours_from_string(
+              "RTH;09:30;16:00;America/New_York",
+            ),
             fees: rules.FeeSchedule(
               maker_bps: 0,
               taker_bps: 4,
               min_commission_usd: 0.99,
-              platform_fee_bps: 3
+              platform_fee_bps: 3,
             ),
             data_limits: rules.DataRequestLimits(
               max_bars_per_request: [#("D1", 2000), #("H1", 5000)],
@@ -263,7 +347,7 @@ pub fn default_config() -> AppConfig {
               rate_limit_req_per_min: 100,
               max_concurrent_requests: 5,
               requires_pagination: False,
-              supports_streaming: True
+              supports_streaming: True,
             ),
             order_types: ["Market", "Limit", "Stop", "StopLimit"],
             leverage_limits: [#("cash", 1), #("margin", 4)],
@@ -275,13 +359,15 @@ pub fn default_config() -> AppConfig {
             short_selling_allowed: True,
             auction_mechanism: Some(auction_type_from_string("Both")),
             margin_model: [#("initial", 0.5), #("maintenance", 0.25)],
-            circuit_breaker: Some(circuit_breaker_from_string("CircuitBreaker;0.07;300;15")),
+            circuit_breaker: Some(circuit_breaker_from_string(
+              "CircuitBreaker;0.07;300;15",
+            )),
             corporate_actions: "standard",
             dividend_handling: "cash",
-            withholding_tax: Some(0.30),
-            convert_hours: None
-          )
-        )
+            withholding_tax: Some(0.3),
+            convert_hours: None,
+          ),
+        ),
       ),
       #(
         "futu_futures",
@@ -293,8 +379,8 @@ pub fn default_config() -> AppConfig {
             fees: rules.FeeSchedule(
               maker_bps: 2,
               taker_bps: 2,
-              min_commission_usd: 2.00,
-              platform_fee_bps: 0
+              min_commission_usd: 2.0,
+              platform_fee_bps: 0,
             ),
             data_limits: rules.DataRequestLimits(
               max_bars_per_request: [#("D1", 1000), #("H1", 5000)],
@@ -303,7 +389,7 @@ pub fn default_config() -> AppConfig {
               rate_limit_req_per_min: 100,
               max_concurrent_requests: 5,
               requires_pagination: False,
-              supports_streaming: True
+              supports_streaming: True,
             ),
             order_types: ["Market", "Limit", "Stop", "StopLimit"],
             leverage_limits: [#("futures", 20)],
@@ -319,9 +405,9 @@ pub fn default_config() -> AppConfig {
             corporate_actions: "standard",
             dividend_handling: "none",
             withholding_tax: None,
-            convert_hours: None
-          )
-        )
+            convert_hours: None,
+          ),
+        ),
       ),
       #(
         "futu_forex",
@@ -333,8 +419,8 @@ pub fn default_config() -> AppConfig {
             fees: rules.FeeSchedule(
               maker_bps: 1,
               taker_bps: 1,
-              min_commission_usd: 0.00,
-              platform_fee_bps: 0
+              min_commission_usd: 0.0,
+              platform_fee_bps: 0,
             ),
             data_limits: rules.DataRequestLimits(
               max_bars_per_request: [#("D1", 2000), #("H1", 5000)],
@@ -343,7 +429,7 @@ pub fn default_config() -> AppConfig {
               rate_limit_req_per_min: 100,
               max_concurrent_requests: 5,
               requires_pagination: False,
-              supports_streaming: True
+              supports_streaming: True,
             ),
             order_types: ["Market", "Limit", "Stop", "StopLimit"],
             leverage_limits: [#("forex", 50)],
@@ -359,10 +445,10 @@ pub fn default_config() -> AppConfig {
             corporate_actions: "standard",
             dividend_handling: "none",
             withholding_tax: None,
-            convert_hours: None
-          )
-        )
-      )
+            convert_hours: None,
+          ),
+        ),
+      ),
     ],
     symbols: [
       #(
@@ -371,12 +457,20 @@ pub fn default_config() -> AppConfig {
           market_id: "binance_spot_crypto",
           asset_id: "BTC",
           market_symbol: "BTCUSDT",
-          base_asset: asset.AssetRef(id: "BTC", name: "Bitcoin", class: asset_class_from_string("Crypto")),
-          quote_asset: asset.AssetRef(id: "USDT", name: "Tether", class: asset_class_from_string("Crypto")),
+          base_asset: asset.AssetRef(
+            id: "BTC",
+            name: "Bitcoin",
+            class: asset_class_from_string("Crypto"),
+          ),
+          quote_asset: asset.AssetRef(
+            id: "USDT",
+            name: "Tether",
+            class: asset_class_from_string("Crypto"),
+          ),
           available_brokers: ["binance"],
           available_data_providers: ["binance"],
-          primary_execution_venue: "binance"
-        )
+          primary_execution_venue: "binance",
+        ),
       ),
       #(
         "SPY",
@@ -384,12 +478,20 @@ pub fn default_config() -> AppConfig {
           market_id: "ib_equity",
           asset_id: "SPY",
           market_symbol: "SPY",
-          base_asset: asset.AssetRef(id: "SPY", name: "SPDR S&P 500 ETF Trust", class: asset_class_from_string("ETF")),
-          quote_asset: asset.AssetRef(id: "USD", name: "US Dollar", class: asset_class_from_string("Currency")),
+          base_asset: asset.AssetRef(
+            id: "SPY",
+            name: "SPDR S&P 500 ETF Trust",
+            class: asset_class_from_string("ETF"),
+          ),
+          quote_asset: asset.AssetRef(
+            id: "USD",
+            name: "US Dollar",
+            class: asset_class_from_string("Currency"),
+          ),
           available_brokers: ["ib", "futu"],
           available_data_providers: ["ib", "futu", "polygon"],
-          primary_execution_venue: "ib"
-        )
+          primary_execution_venue: "ib",
+        ),
       ),
       #(
         "SPY_FUTU",
@@ -397,13 +499,21 @@ pub fn default_config() -> AppConfig {
           market_id: "futu_us_equity",
           asset_id: "SPY",
           market_symbol: "SPY",
-          base_asset: asset.AssetRef(id: "SPY", name: "SPDR S&P 500 ETF Trust", class: asset_class_from_string("ETF")),
-          quote_asset: asset.AssetRef(id: "USD", name: "US Dollar", class: asset_class_from_string("Currency")),
+          base_asset: asset.AssetRef(
+            id: "SPY",
+            name: "SPDR S&P 500 ETF Trust",
+            class: asset_class_from_string("ETF"),
+          ),
+          quote_asset: asset.AssetRef(
+            id: "USD",
+            name: "US Dollar",
+            class: asset_class_from_string("Currency"),
+          ),
           available_brokers: ["futu"],
           available_data_providers: ["futu"],
-          primary_execution_venue: "futu"
-        )
-      )
+          primary_execution_venue: "futu",
+        ),
+      ),
     ],
     timeframe_settings: [
       #(
@@ -420,8 +530,8 @@ pub fn default_config() -> AppConfig {
           window_kdj_size: 7,
           bb_multiplier: 1.99,
           sma_for_bbm: indicator_settings.SmaForBbmMedium,
-          branch_exit_leaf_size: 40
-        )
+          branch_exit_leaf_size: 40,
+        ),
       ),
       #(
         "BTCUSDT_D1",
@@ -437,8 +547,8 @@ pub fn default_config() -> AppConfig {
           window_kdj_size: 7,
           bb_multiplier: 1.99,
           sma_for_bbm: indicator_settings.SmaForBbmMedium,
-          branch_exit_leaf_size: 40
-        )
+          branch_exit_leaf_size: 40,
+        ),
       ),
       #(
         "SPY_H1",
@@ -454,8 +564,8 @@ pub fn default_config() -> AppConfig {
           window_kdj_size: 7,
           bb_multiplier: 1.99,
           sma_for_bbm: indicator_settings.SmaForBbmMedium,
-          branch_exit_leaf_size: 40
-        )
+          branch_exit_leaf_size: 40,
+        ),
       ),
       #(
         "SPY_D1",
@@ -471,10 +581,10 @@ pub fn default_config() -> AppConfig {
           window_kdj_size: 7,
           bb_multiplier: 1.99,
           sma_for_bbm: indicator_settings.SmaForBbmMedium,
-          branch_exit_leaf_size: 40
-        )
-      )
-    ]
+          branch_exit_leaf_size: 40,
+        ),
+      ),
+    ],
   )
 }
 
@@ -482,57 +592,76 @@ pub fn default_config() -> AppConfig {
 // Accessor Functions
 // ============================================================================
 
-pub fn get_exchange(config: AppConfig, id: String) -> Option(exchange.Exchange) {
-  case list.find(config.exchanges, fn(pair) {
-    let #(k, _) = pair
-    k == id
-  }) {
+pub fn get_exchange(
+  config: AppConfig,
+  id: String,
+) -> Option(exchange.Exchange) {
+  case
+    list.find(config.exchanges, fn(pair) {
+      let #(k, _) = pair
+      k == id
+    })
+  {
     Ok(pair) -> Some(pair.1)
     Error(_) -> None
   }
 }
 
 pub fn get_asset(config: AppConfig, id: String) -> Option(asset.Asset) {
-  case list.find(config.assets, fn(pair) {
-    let #(k, _) = pair
-    k == id
-  }) {
+  case
+    list.find(config.assets, fn(pair) {
+      let #(k, _) = pair
+      k == id
+    })
+  {
     Ok(pair) -> Some(pair.1)
     Error(_) -> None
   }
 }
 
 pub fn get_market(config: AppConfig, id: String) -> Option(market.Market) {
-  case list.find(config.markets, fn(pair) {
-    let #(k, _) = pair
-    k == id
-  }) {
+  case
+    list.find(config.markets, fn(pair) {
+      let #(k, _) = pair
+      k == id
+    })
+  {
     Ok(pair) -> Some(pair.1)
     Error(_) -> None
   }
 }
 
 pub fn get_symbol(config: AppConfig, id: String) -> Option(symbol.Symbol) {
-  case list.find(config.symbols, fn(pair) {
-    let #(k, _) = pair
-    k == id
-  }) {
+  case
+    list.find(config.symbols, fn(pair) {
+      let #(k, _) = pair
+      k == id
+    })
+  {
     Ok(pair) -> Some(pair.1)
     Error(_) -> None
   }
 }
 
-pub fn config_get_tfs(config: AppConfig, id: String) -> Option(indicator_settings.TimeframeSettings) {
-  case list.find(config.timeframe_settings, fn(pair) {
-    let #(k, _) = pair
-    k == id
-  }) {
+pub fn config_get_tfs(
+  config: AppConfig,
+  id: String,
+) -> Option(indicator_settings.TimeframeSettings) {
+  case
+    list.find(config.timeframe_settings, fn(pair) {
+      let #(k, _) = pair
+      k == id
+    })
+  {
     Ok(pair) -> Some(pair.1)
     Error(_) -> None
   }
 }
 
-pub fn get_market_rules(config: AppConfig, market_id: String) -> Option(rules.MarketRules) {
+pub fn get_market_rules(
+  config: AppConfig,
+  market_id: String,
+) -> Option(rules.MarketRules) {
   get_market(config, market_id) |> option.map(fn(m) { m.rules })
 }
 

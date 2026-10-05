@@ -1,5 +1,4 @@
 /// Market rules and trading parameters
-
 import gleam/float
 import gleam/int
 import gleam/list
@@ -12,29 +11,35 @@ pub type FeeSchedule {
     maker_bps: Int,
     taker_bps: Int,
     min_commission_usd: Float,
-    platform_fee_bps: Int
+    platform_fee_bps: Int,
   )
 }
 
 /// Data request limits per market
 pub type DataRequestLimits {
   DataRequestLimits(
-    max_bars_per_request: List(#(String, Int)),   // per interval
-    max_history_days: List(#(String, Int)),       // per interval
+    max_bars_per_request: List(#(String, Int)),
+    // per interval
+    max_history_days: List(#(String, Int)),
+    // per interval
     rate_limit_req_per_sec: Int,
     rate_limit_req_per_min: Int,
     max_concurrent_requests: Int,
     requires_pagination: Bool,
-    supports_streaming: Bool
+    supports_streaming: Bool,
   )
 }
 
 /// Trading hours specification
 pub type TradingHours {
-  TwentyFourSeven          // Crypto, BStock
-  TwentyFourFive           // Forex 24/5
-  RTH(open: String, close: String, timezone: String)  // "09:30", "16:00", "America/New_York"
-  Custom(List(Session))    // China 2-session, HK 2-session
+  TwentyFourSeven
+  // Crypto, BStock
+  TwentyFourFive
+  // Forex 24/5
+  RTH(open: String, close: String, timezone: String)
+  // "09:30", "16:00", "America/New_York"
+  Custom(List(Session))
+  // China 2-session, HK 2-session
 }
 
 /// Session within a trading day
@@ -75,14 +80,18 @@ pub fn trading_hours_from_string(s: String) -> TradingHours {
   case string.split(s, ";") {
     ["TwentyFourSeven"] -> TwentyFourSeven
     ["TwentyFourFive"] -> TwentyFourFive
-    ["RTH", open, close, timezone] -> RTH(open: open, close: close, timezone: timezone)
+    ["RTH", open, close, timezone] ->
+      RTH(open: open, close: close, timezone: timezone)
     ["Custom", sessions_str] ->
-      Custom(list.map(string.split(sessions_str, "|"), fn(sess) {
-        case string.split(sess, ",") {
-          [open, close, timezone] -> Session(open: open, close: close, timezone: timezone)
-          _ -> panic as "Invalid session format"
-        }
-      }))
+      Custom(
+        list.map(string.split(sessions_str, "|"), fn(sess) {
+          case string.split(sess, ",") {
+            [open, close, timezone] ->
+              Session(open: open, close: close, timezone: timezone)
+            _ -> panic as "Invalid session format"
+          }
+        }),
+      )
     _ -> panic as "Unknown TradingHours format"
   }
 }
@@ -125,7 +134,11 @@ pub fn circuit_breaker_from_string(s: String) -> CircuitBreaker {
         Ok(v) -> v
         Error(_) -> panic as "Invalid halt_minutes"
       }
-      CircuitBreaker(threshold_pct: threshold_pct, window_seconds: window_seconds, halt_minutes: halt_minutes)
+      CircuitBreaker(
+        threshold_pct: threshold_pct,
+        window_seconds: window_seconds,
+        halt_minutes: halt_minutes,
+      )
     }
     _ -> panic as "Invalid CircuitBreaker format"
   }
@@ -149,8 +162,9 @@ pub type MarketRules {
     margin_model: List(#(String, Float)),
     circuit_breaker: Option(CircuitBreaker),
     corporate_actions: String,
-    dividend_handling: String,        // "cash", "multiplier_rebase", "none"
+    dividend_handling: String,
+    // "cash", "multiplier_rebase", "none"
     withholding_tax: Option(Float),
-    convert_hours: Option(String)
+    convert_hours: Option(String),
   )
 }

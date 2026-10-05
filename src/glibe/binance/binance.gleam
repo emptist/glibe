@@ -1,7 +1,7 @@
-import gleam/httpc
 import gleam/http/request
-import gleam/result
+import gleam/httpc
 import gleam/int
+import gleam/result
 import glibe/api/interval.{type Interval}
 import glibe/api/sourcebar.{type SourceBar}
 import glibe/binance/kline.{decode_klines, interval_to_binance_string}
@@ -11,11 +11,15 @@ pub type BinanceError {
   JsonError
 }
 
-fn get(path: String, query: List(#(String, String))) -> Result(String, BinanceError) {
-  let req = request.new()
-  |> request.set_host("testnet.binance.vision")
-  |> request.set_path(path)
-  |> request.set_query(query)
+fn get(
+  path: String,
+  query: List(#(String, String)),
+) -> Result(String, BinanceError) {
+  let req =
+    request.new()
+    |> request.set_host("testnet.binance.vision")
+    |> request.set_path(path)
+    |> request.set_query(query)
   case httpc.send(req) {
     Ok(resp) ->
       case resp.status {
@@ -26,14 +30,20 @@ fn get(path: String, query: List(#(String, String))) -> Result(String, BinanceEr
   }
 }
 
-pub fn fetch_klines(symbol: String, interval: Interval, limit: Int) -> Result(List(SourceBar), BinanceError) {
+pub fn fetch_klines(
+  symbol: String,
+  interval: Interval,
+  limit: Int,
+) -> Result(List(SourceBar), BinanceError) {
   let interval_str = interval_to_binance_string(interval)
   get("/api/v3/klines", [
     #("symbol", symbol),
     #("interval", interval_str),
     #("limit", int.to_string(limit)),
   ])
-  |> result.try(fn(raw) { decode_klines(raw) |> result.map_error(fn(_) { JsonError }) })
+  |> result.try(fn(raw) {
+    decode_klines(raw) |> result.map_error(fn(_) { JsonError })
+  })
 }
 
 pub fn fetch_ticker(symbol: String) -> Result(String, BinanceError) {
