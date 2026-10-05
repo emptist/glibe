@@ -5,9 +5,9 @@
 import gleam/list
 import gleam/float
 import gleam/int
-import gleam/result
 import glibe/databar
 import glibe/indicator_settings.{type TimeframeSettings}
+import glibe/sma
 
 /// KDJ — amortised-constant LLV/HHV over window, incremental SMA for K/D/M
 pub fn kdj(
@@ -46,29 +46,33 @@ pub fn kdj(
   // K, D and J are written onto the bar before M, because M reads this bar's
   // freshly computed `k` (plan 31-04 §4).
   let working =
-    databar.DataBar(..databar, k:, d:, j:, highest:, h_idx:, lowest:, l_idx:)
+    databar.DataBar(
+      ..databar,
+      k:,
+      d:,
+      j:,
+      kdj_h: highest,
+      kdj_h_idx: h_idx,
+      kdj_l: lowest,
+      kdj_l_idx: l_idx,
+    )
 
   // --- M: the plain mean of the last `kdj_m_period` K values, carried as `m` by
   // the general `sma` recurrence over `k` — add the arriving `k`, subtract the
   // one that left. No `mean_of` of an array (UC-64). The previous bar's `m` is
   // the carried mean; the window is the bar in hand plus the `kdj_m_period - 1`
   // before it, exactly as the sma ladder.
-  let working =
-    sma.sma(
-      working,
-      databar_list,
-      settings.kdj_m_period,
-      fn(b) { b.k },
-      fn(b) { b.m },
-      fn(b, v) { databar.DataBar(..b, m: v) },
-    )
-
-  databar.DataBar(
-    ..working,
-    highest: highest,
-    h_idx: h_idx,
-    lowest: lowest,
-    l_idx: l_idx,
+  // --- M: the plain mean of the last `kdj_m_period` K values, carried as `m`.
+  // The same incremental recurrence as the SMA ladder, over `k` instead of
+  // `close`: add the arriving `k`, subtract the one that left, no array mean
+  // (UC-64). `working` already carries k/h/l from above, so it is returned as is.
+  sma.incremental_mean(
+    working,
+    databar_list,
+    settings.kdj_m_period,
+    fn(b) { b.m },
+    fn(b) { b.k },
+    fn(b, v) { databar.DataBar(..b, m: v) },
   )
 }
 
