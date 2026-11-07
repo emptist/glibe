@@ -20,6 +20,12 @@ The tour is the authoritative syntax/semantics reference; the Kodikra guide is
 a learning roadmap (its `.gleam → .erl → erlc` diagram describes the old
 pipeline). Both are discussed in [`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md).
 
+**Web-layer references under evaluation — none adopted, no dependency added:**
+[Wisp](https://gleam-wisp.github.io/wisp/), [Lustre](https://hexdocs.pm/lustre/),
+[Mist](https://hexdocs.pm/mist/). See `DEVELOPER_GUIDE.md` and
+`REVIEW_ROUND5.md` §10. `apps/glibe_web` (Phoenix) is an unowned AI choice and
+open decision Q8, not part of the Gleam engine.
+
 ## Status
 
 | Component | Status | Notes |

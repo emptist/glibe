@@ -19,6 +19,33 @@ loudly when it is broken.
    `build/`; module code goes straight to `.beam`. When the two disagree, the
    tour wins.
 
+## Web layer — references for evaluation (**none adopted**)
+
+The owner has **not** chosen a web framework, and has not yet read or used
+Wisp. `apps/glibe_web` is a Phoenix/Elixir app an AI picked, not a design of
+his (see `REVIEW_ROUND5.md` §10). These three links are reference material for
+the day Q8 is decided — **not** a commitment and **not** a dependency:
+
+1. **Wisp — A practical web framework for Gleam** —
+   <https://gleam-wisp.github.io/wisp/>
+   The *request edge*: a handler is `fn(Request) -> Response`, middleware is
+   composed with `use`, routing is pattern matching. It runs on the Mist HTTP
+   server and the BEAM. It is **not** an HTTP server and **not** a UI framework.
+   API docs: <https://hexdocs.pm/wisp/>, source/guides:
+   <https://github.com/gleam-wisp/wisp>.
+2. **Lustre** — <https://hexdocs.pm/lustre/>
+   The *UI*: typed HTML as Gleam functions and MVU over a `Model` custom type.
+   Server components are `gleam/otp/actor`s with `lustre.supervised` /
+   `lustre.factory`. It is **not** a router and has **no built-in PubSub**.
+3. **Mist** — <https://hexdocs.pm/mist/>
+   The *server*: pure-Gleam BEAM HTTP with `mist.websocket`,
+   `mist.server_sent_events` and chunked responses.
+
+Lustre's own full-stack guide uses **Wisp + Mist** with a third `shared/`
+Gleam package for the types both halves use:
+<https://hexdocs.pm/lustre/guide/06-full-stack-applications.html>.
+That is the type-driven shape worth considering; the decision is still his.
+
 ## The words
 
 > **"BEAM is great. Let's build our success on it!"** — emptist, 2026-11-07
