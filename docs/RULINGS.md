@@ -252,3 +252,24 @@ owner 另给一次明确例外、否则只有 SVG 路线合规」。例外现在
 `probe.mjs`，其中 `import { createChart as create_chart } from
 "lightweight-charts"`，`src/` 下零手写 `.mjs`；只有 external 指向
 `./xxx.mjs` 时才需要手写文件。见 `docs/REVIEW_ROUND5.md` §13.8。
+
+**成本口径与「生成 mjs」的准确含义（owner 2026-11-07 补充，属 R16 同一范围）：**
+
+> *"因为可能是0成本（额外成本），因为不管你用什么语言，用绘图库都是要写一点
+> 配置的。这部分不是额外成本。"*
+> *"你说的探针证实我的第一点，希望你说的是，写gleam代码，编译形成应用JS库绘图
+> 所需的那个mjs是可以做到的，而不是别的意思。"*
+
+series 定义、图表选项、`DataBar → bar` 映射、一根 settled bar 的更新，是**用任何
+语言、任何绘图库都要写的固有工作**，不是采用 JS 图表库带来的额外成本；额外成本
+只有「手写外来源码」这一项，在这条路线是 **0**。「那个 mjs」= 浏览器加载的
+**应用模块**，由 Gleam 源码经 `gleam build` 编译生成
+（`build/dev/javascript/<pkg>/<module>.mjs`），不是人手写的；库本身来自 npm
+（§1.28 law 2），根项目仍是纯 erlang（R15），带 `target = "javascript"` 的是
+独立的 `client/` 包。owner 对 Lustre 的读法：*"它确实是有一部分是js target，
+其他部分是 BEAR/erlang target，这方面做的很好"*（BEAR 即 BEAM，原话照录）——
+这是两个运行时的分工，不是与「pure erlang target is the future」冲突。
+完整探针与边界见 `docs/REVIEW_ROUND5.md` §13.9：`chart.addSeries` /
+`series.update` 是对象方法而非模块级导出，点号 external 在编译期被拒
+（`Invalid JavaScript function`），所以真正落地可能仍需 2–5 行转发模块——
+**已在 R16 允许范围内**，且它不是「那个应用 mjs」。
