@@ -16,9 +16,14 @@ owner's rulings and the good code from glib directly. See
 2. **The Complete Gleam Guide: From Zero to Expert** —
    <https://www.kodikra.com/2026/03/the-complete-gleam-guide-from-zero-to.html>
 
+3. **Gleam v1.19.0 — "Gleam doesn't compile to Erlang source anymore"** —
+   <https://gleam.run/news/gleam-doesnt-compile-to-erlang-source-anymore/>
+
 The tour is the authoritative syntax/semantics reference; the Kodikra guide is
-a learning roadmap (its `.gleam → .erl → erlc` diagram describes the old
-pipeline). Both are discussed in [`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md).
+a learning roadmap (its `.gleam → .erl → erlc` diagram is the **pre-1.19.0**
+pipeline); the v1.19.0 note is the version fact: modules now compile to Erlang
+abstract forms (`.abstr`), not Erlang source. All three are discussed in
+[`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md).
 
 **Web-layer references under evaluation — none adopted, no dependency added:**
 [Wisp](https://gleam-wisp.github.io/wisp/), [Lustre](https://hexdocs.pm/lustre/),

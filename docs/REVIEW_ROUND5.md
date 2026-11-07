@@ -126,12 +126,19 @@ target and JavaScript an additional one**. Its compilation-flow diagram
 `.gleam → generated .erl → erlc → .beam` describes the old pipeline and
 contradicts the owner's §1.28.
 
-**Measured locally on 1.19.2:** `build/dev/erlang/glibe/_gleam_artefacts/`
-holds exactly **one** `.erl` — `glibe@@main.erl`, the generated runner stub —
-while module code goes straight to `.beam`. So the owner's ruling is right in
-substance: **no Erlang source is written, generated or read by a human.** The
-literal "连编译都不编译成 source code" is a fair description of module
-compilation, with that one runner stub as the exception.
+**Measured locally on 1.19.2 (corrected 2026-11-07, §11):** the official
+v1.19.0 note (2026-10-05) reads *"Previously Gleam generated Erlang source
+code, now it generates Erlang abstract forms."* A clean `gleam new` probe on
+1.19.2 produces one `.abstr` per module plus `.beam`, and **no `.erl` per
+module**. It still writes exactly one `@@main.erl` — the `gleam run` runner
+stub; deleting it and rebuilding makes 1.19.2 write it again, so it is
+**current, not a leftover from a former compiler**. Round 5's phrase "module
+code goes straight to `.beam`" was wrong: the path is `.gleam → .abstr`
+(Erlang abstract forms) → the Erlang compiler's back half → `.beam`. Other
+`.erl` under `build/` ship with Hex dependencies (handwritten package FFI, or
+`compile-package` output for rebar3/mix consumers). **Conclusion unchanged and
+now better grounded:** no Erlang source is written, generated or read by a
+human in this project; `src/` is Gleam only.
 
 ---
 
@@ -399,3 +406,125 @@ Q8 now has a concrete *"port"* shape: retire `apps/glibe_web`, keep the
 chart's **behaviour** as UC-56/57/60 ruled it, and rebuild the view in Gleam
 on Mist + Wisp + Lustre. *"Retire with no chart"* is the other option. Both
 still need his word.
+
+---
+
+## 11. Addendum, 2026-11-07 — four follow-up questions, measured
+
+### 11.1 `lpil` is Louis Pilfold, the author of Gleam
+
+**Yes.** The handle is `lpil` (lower-case **L**, not `Ipil`), short for
+**Louis Pilfold**, who created Gleam and still leads it. Evidence, all
+first-party: the v1.19.0 release post on `gleam.run` is by Louis Pilfold;
+Gleam's own `feed.xml` names him with `https://github.com/lpil`; Hex lists
+`lpil` as Wisp's publisher; the repo is `gleam-wisp/wisp` (formerly
+`lpil/wisp`); the sponsor link is `github.com/sponsors/lpil`. In the Changelog
+interview he describes Wisp himself: *"So we've got Wisp, which is a nice
+framework … more of the sort of core of your backend application."*
+
+So Wisp is not a third party's guess at Gleam idiom — its "no confusing magic,
+regular Gleam programming" philosophy is the language author's own. **But the
+rest of the stack is not his:** Lustre is Hayleigh Thompson's, Mist's Hex
+publisher is `rawhat`, and Giacomo Cavalieri rewrote the 1.19 Erlang code
+generator. All three share `gleam_http`'s types, which is why they compose.
+
+### 11.2 A Lustre app is live by default; static is one opt-in mode
+
+**Yes — live, not static.** Three distinct Lustre modes:
+
+| mode | live? | where state lives |
+|---|---|---|
+| `lustre.simple` / `lustre.application` (MVU) | **live** — every message runs `update` and re-renders | browser |
+| server component | **live** — DOM patches stream over WebSocket / SSE / polling | **BEAM actor** (`gleam/otp`, `lustre.supervised` / `lustre.factory`) |
+| `element.to_string` / `to_document_string` (SSR) | static — one HTML string | none |
+
+On a **pure Erlang target** the live path is **server components**, not
+"compile Gleam to JS and run it in the browser". That is the direct answer to
+the worry behind Q3: live view does not require a JS target.
+
+glib's chart is already live by the owner's ruling: `priv/index.html:287`
+opens `new EventSource('/events')`, `:768` handles `chart_data`, and
+`appendBar` (`:658`) does one `series.update` per bar — never `setData`
+(`:644`, `:1038`), which is UC-56 / UC-60. So the behaviour is not a framework
+feature to be re-invented.
+
+**One honest complication.** "The chart lib from glib" is not a library you
+import into Lustre: it is `priv/lightweight-charts.js` (198 KB minified,
+TradingView v5.2.1, **vendored**) plus `priv/index.html` — **1,047 lines of
+hand-written JS** containing the SSE handling, tabs, symbol switching and
+markers. Porting that file is importing the debt R14 forbids. And Lustre has
+**no `phx-hook` equivalent** (its own LiveView cheatsheet says DOM access goes
+through `effect.after_paint`), so an imperative canvas chart needs a bridge.
+The clean options are: draw the candles with Lustre's SVG DSL in Gleam (zero
+JS, live via server-component patches), or wrap the vendored chart as a custom
+element with a generated bridge. "Simple" is achievable — but not by carrying
+`index.html` across.
+
+### 11.3 IB historic data needs no JS target; the condition to drop IB does not fire
+
+The owner ruled (R15): *"We will only use ib api to get historic data for
+stocks(ETFs), so if this will cause JS target dependence, I would rather give
+up ib entirely."*
+
+**Measured: no JS dependence.** IB's **Client Portal Web API** is plain HTTPS
+REST on a local gateway:
+`GET https://localhost:5000/v1/api/iserver/marketdata/history?conid=&period=&bar=`
+returning JSON `data: [{o,c,h,l,v,t}]` with epoch-ms timestamps. glibe already
+depends on `gleam_httpc` (bindings to Erlang's `httpc`, Erlang target only) and
+`gleam_json`, and `binance/binance.gleam:23` already calls `httpc.send`. A
+historic-bar client is one request + one decoder — no FFI, no `.mjs`, no JS
+target, no handwritten Erlang.
+
+Where the JS dependence actually lives is **glib's** `ib_ffi.mjs`, which
+imports `@stoqey/ib` — the **TWS socket API**, a different product serving
+live quotes/orders/accounts, all outside the owner's stated scope. glibe's
+retired `ibkr.gleam.disabled` used `@external(erlang, "Elixir.Glibe.Ibkr",
+...)` — an Elixir module, not JS, and already retired.
+
+**Two real frictions, neither a JS dependence:** the gateway uses a
+self-signed certificate (OTP 29 verifies TLS by default; `gleam_httpc` has
+`verify_tls(False)` but that disables verification and must not be the
+default — a CA or an explicit decision is needed), and the Web API requires an
+authenticated SSO session with keepalive. Both are HTTP/session work.
+
+`scripts/no_foreign_source.sh` now fails on any `@external(javascript, ...)`
+under `src/` and on `target = "javascript"` in `gleam.toml`, so the priority
+is enforced rather than promised.
+
+### 11.4 The `.erl` correction: right in substance, not a stale artefact
+
+The owner's point: *"the only .erl you still see may be the product of former
+gleam version, in new version, it's said no erl is produced anymore."*
+
+**The substance is right, and Round 5's wording was wrong.** Gleam **v1.19.0**
+(2026-10-05) is titled *"Gleam doesn't compile to Erlang source anymore"*:
+> *"Previously Gleam generated Erlang source code, now it generates Erlang
+> abstract forms."*
+
+Those forms (`.abstr`, Erlang's external-term encoded parse tree) are loaded
+by `compile:forms`, skipping the Erlang compiler's front half. So module
+compilation is `.gleam → .abstr → compiler back half → .beam`. Round 5 said
+"module code goes straight to `.beam`"; that was inaccurate, and the Kodikra
+diagram `.gleam → .erl → erlc → .beam` is now confirmed as **the pre-1.19.0
+pipeline**, not a vague "old" one.
+
+**But that one `@@main.erl` is not a leftover.** Clean probe on 1.19.2
+(`gleam new /tmp/erl_probe`, build, delete the file, rebuild): 1.19.2 wrote it
+again at 14:46 today. It is the `gleam run` runner stub, generated by the
+current compiler — the official post simply does not list it as an exception.
+A fresh project produced 25 `.abstr`, 30 `.beam`, **zero `.erl` per module**,
+and exactly one `@@main.erl`.
+
+Other `.erl` in `build/` are not our compiler output either: Hex packages ship
+generated `.erl` sources for rebar3/mix consumers (epoch-stamped `1970-01-01`,
+straight out of the tarball), some packages ship handwritten Erlang FFI
+(`gleeunit_ffi.erl`), and glibe retains a stale `build/dev/javascript/` tree
+from an earlier JS-target experiment (build cache, not source). The
+`gleam compile-package` command also still emits `.erl` for downstream build
+tools — that regression was fixed before 1.19.0 shipped (issue #6281 / PR
+#6291).
+
+**Net:** "no Erlang source is produced anymore" is true of **module
+compilation on the normal build path**, which is what the owner's §1.28 means.
+It is not literally true of every file under `build/`. `src/` remains Gleam
+only, and no Erlang source here is written, read, or maintained by a human.

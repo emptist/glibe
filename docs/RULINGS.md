@@ -167,13 +167,54 @@ dead 4-constructor `SmaSeries` duplicate in `indicator_settings.gleam` is gone.
 ### R14 — *"No handwritten erlangs or even worse JS source files"* — user, 2026-11-07
 
 Also *"target erlang 无需手写任何erlang代码，无需ffi，ffi是JS专属的"* and
-*"如果手写就说明你错了"* (2026-11-01, glib §1.28). On 1.19.2 the only
-generated `.erl` is the `@@main` runner stub inside `build/`; module code goes
-straight to `.beam`. `@external` calls existing BEAM modules — it is not a
-licence to write a foreign module (Gleam Language Tour, *Externals*).
+*"如果手写就说明你错了"* (2026-11-01, glib §1.28). Since **v1.19.0**
+(2026-10-05) Gleam modules compile to **Erlang abstract forms** (`.abstr`),
+then `.beam` — no `.erl` per module. The one `@@main.erl` inside `build/` is
+the `gleam run` runner stub, still written by 1.19.2 (delete-and-rebuild
+proved it, 2026-11-07), not compiled module code and not a stale artefact.
+`@external` calls existing BEAM modules — it is not a licence to write a
+foreign module (Gleam Language Tour, *Externals*).
 
 **Landed in:** `scripts/no_foreign_source.sh` (registered in `guards.sh --all`
 and CI), the retirement of the orphan `src/glibe/ib/ibkr.ex` (zero callers,
 12 build warnings, undeclared `ibkr_api` dep), and the CI pin 1.19.2 / OTP 29.
 **Scope:** `src/` — the engine. `apps/glibe_web` (Phoenix/Elixir + JS) is
 **not** covered and is an open owner decision (Q8, `REVIEW_ROUND5.md` §7).
+
+---
+
+### R15 — IB is scoped to historic data for stocks/ETFs; no JS target dependence — user, 2026-11-07
+
+> *"We will only use ib api to get historic data for stocks(ETFs), so if this
+> will cause JS target dependence, I would rather give up ib entirely"*
+> — emptist, 2026-11-07.
+
+Two things are ruled here. **Scope:** IB is a **historical bar source for
+stocks and ETFs only** — not live quotes, not orders, not accounts, not the
+TWS socket API. **Priority:** the pure Erlang target outranks the broker. If
+IB cannot be reached without `@external(javascript, ...)` or a
+`target = "javascript"` build, **IB is dropped**, not the target.
+
+**Measured 2026-11-07: the condition does not fire.** IB's Client Portal Web
+API is plain HTTPS + JSON on localhost:
+`GET https://localhost:5000/v1/api/iserver/marketdata/history?conid=&period=&bar=`
+(returns `data: [{o,c,h,l,v,t}]`, epoch-ms timestamps). `gleam_httpc` is
+already a dependency and already used by `binance/binance.gleam:23`; it is a
+binding to Erlang's `httpc` and needs **no FFI, no `.mjs`, no JS target**.
+`gleam_json` decodes the response. So historic IB data is reachable in pure
+Gleam on BEAM. The JS-only IB path in glib is `ib_ffi.mjs` importing
+`@stoqey/ib` — that is the **TWS socket API**, a different product chosen by
+an AI, and it is outside this ruling's scope.
+
+**Two honest frictions, neither a JS dependence:** the local gateway uses a
+self-signed certificate (OTP 29 verifies TLS by default, so a CA or an
+explicit verification decision is needed — `gleam_httpc.verify_tls(False)`
+works but disables verification and must not be the default), and the gateway
+requires an authenticated SSO session. Both are HTTP/session concerns.
+
+**Landed in:** `scripts/no_foreign_source.sh` now also fails on any
+`@external(javascript, ...)` under `src/` and on a `target = "javascript"`
+declaration in `gleam.toml`. The priority is a mechanism, not a promise.
+`src/` currently has **zero** `@external` in compiled code; the twelve
+`@external(erlang, "Elixir.Glibe.Ibkr", ...)` in `ibkr.gleam.disabled` are a
+retired design record, not source.

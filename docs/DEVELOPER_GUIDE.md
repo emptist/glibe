@@ -14,10 +14,26 @@ loudly when it is broken.
    <https://www.kodikra.com/2026/03/the-complete-gleam-guide-from-zero-to.html>
    A **learning roadmap**, not a language spec. Good for the BEAM/OTP mental
    model and the chapter order; generic "v1.x", and its compilation-flow
-   diagram (`.gleam → .erl → erlc → .beam`) describes the old pipeline. On
-   Gleam 1.19.2 the only generated `.erl` is the `@@main` runner stub inside
-   `build/`; module code goes straight to `.beam`. When the two disagree, the
-   tour wins.
+   diagram (`.gleam → .erl → erlc → .beam`) describes the pipeline **before
+   1.19.0**. When the two disagree, the tour wins.
+3. **Gleam v1.19.0 — "Gleam doesn't compile to Erlang source anymore"** —
+   <https://gleam.run/news/gleam-doesnt-compile-to-erlang-source-anymore/>
+   The authoritative version note (2026-10-05, by Louis Pilfold). Quote:
+   *"Previously Gleam generated Erlang source code, now it generates Erlang
+   abstract forms."* A version fact, not a language reference.
+
+### Measured on 1.19.2 (clean probe, 2026-11-07)
+
+A brand-new `gleam new` project built on 1.19.2 produces `.abstr` files
+(Erlang abstract forms) for every module and `.beam` for every module —
+**no `.erl` per module**. It still writes **one** `@@main.erl`: the
+`gleam run` runner stub. Deleting it and rebuilding makes 1.19.2 write it
+again, so it is **current**, not a leftover from an older compiler. Other
+`.erl` files under `build/` come from dependencies (handwritten FFI inside
+Hex packages, or `gleam compile-package` output for rebar3/mix users), not
+from glibe's modules and not from a human here. Module compilation goes
+`.gleam → .abstr → Erlang compiler back half → .beam` — *not* "straight to
+`.beam`" as an earlier round of this guide claimed.
 
 ## Web layer — references for evaluation (**none adopted**)
 
@@ -31,8 +47,13 @@ the day Q8 is decided — **not** a commitment and **not** a dependency:
    The *request edge*: a handler is `fn(Request) -> Response`, middleware is
    composed with `use`, routing is pattern matching. It runs on the Mist HTTP
    server and the BEAM. It is **not** an HTTP server and **not** a UI framework.
-   API docs: <https://hexdocs.pm/wisp/>, source/guides:
-   <https://github.com/gleam-wisp/wisp>.
+   **The handle is `lpil` (lower-case L), Louis Pilfold — the creator of
+   Gleam himself.** So Wisp is not a third-party guess at Gleam idiom; it is
+   written by the person who defined the language. Hex publisher `lpil`, repo
+   `gleam-wisp/wisp` (formerly `lpil/wisp`), sponsor `github.com/sponsors/lpil`.
+   Lustre is by Hayleigh Thompson, Mist by rawhat — different authors, one
+   shared set of `gleam_http` types. API docs: <https://hexdocs.pm/wisp/>,
+   source/guides: <https://github.com/gleam-wisp/wisp>.
 2. **Lustre** — <https://hexdocs.pm/lustre/>
    The *UI*: typed HTML as Gleam functions and MVU over a `Model` custom type.
    Server components are `gleam/otp/actor`s with `lustre.supervised` /
@@ -98,11 +119,19 @@ type alone and qualify constructors (`indicator_settings.SmaForBbmTiny`).
 
 A function may have **both** an `@external(erlang, ...)` implementation **and**
 a Gleam body. If the current target has an external, it is used; otherwise the
-Gleam body is used. So a JS-only IB boundary can keep
-`@external(javascript, ...)` and give the Erlang target a plain Gleam fallback
-— no handwritten Erlang file, no stub `.erl`. `@external` is for calling
-*existing* BEAM modules (`"calendar"`, `"lists"`), never for writing a foreign
-module of your own.
+Gleam body is used. That is the mechanism by which glib could keep a JS-only
+boundary and give the Erlang target a plain Gleam fallback — no handwritten
+Erlang file, no stub `.erl`. `@external` is for calling *existing* BEAM
+modules (`"calendar"`, `"lists"`), never for writing a foreign module of your
+own.
+
+**glibe deliberately does not use this escape.** R15 (user, 2026-11-07)
+scopes IB to historic stock/ETF data and rules that a JS target dependence is
+grounds to drop IB entirely; `scripts/no_foreign_source.sh` fails on any
+`@external(javascript, ...)` under `src/`. The mechanism is real, but on a
+pure Erlang target the right answer is to **not need it**: IB historic data
+is plain HTTPS + JSON reachable with `gleam_httpc` and `gleam_json`, both
+already dependencies. See `RULINGS.md` R15 and `REVIEW_ROUND5.md` §11.3.
 
 ## Stop waiting on glib
 
