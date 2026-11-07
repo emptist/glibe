@@ -16,6 +16,7 @@ import gleam/list
 import gleam/string
 import glibe/databar.{type DataBar}
 import glibe/timeframe.{type Timeframe}
+import glibe/trading/signal
 
 /// Header and rows, in the order the columns are written.
 pub fn to_csv(timeframe: Timeframe) -> String {
@@ -83,7 +84,7 @@ fn row(bar: DataBar) -> String {
       f(bar.m),
       f(bar.yin_leaf_cma),
       f(bar.yang_leaf_cma),
-      bar.signal,
+      signal.to_string(bar.signal),
     ],
     ",",
   )

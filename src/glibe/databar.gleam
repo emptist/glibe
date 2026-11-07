@@ -8,24 +8,24 @@
 /// is a lie the reader cannot tell from a zero.
 import gleam/float
 import glibe/api/sourcebar.{type SourceBar}
+import glibe/trading/signal.{type Signal, NoSignal}
 
 pub type DataBar {
   DataBar(
-    idx: Int,    // global position in databar_list (0 = oldest settled bar)
+    idx: Int,
+    // global position in databar_list (0 = oldest settled bar)
     date: String,
     open: Float,
     high: Float,
     low: Float,
     close: Float,
     volume: Int,
-
     // SMA series
     sma_tiny: Float,
     sma_small: Float,
     sma_medium: Float,
     sma_large: Float,
     sma_huge: Float,
-
     // Bollinger Bands
     bb_m: Float,
     bb_u3: Float,
@@ -34,14 +34,12 @@ pub type DataBar {
     bb_u1: Float,
     bb_l1: Float,
     bb_l2: Float,
-
     // Welford σ recurrence carried on the bar (plan 31-02 §3); read by
     // bollinger.sigma/1 and extended O(1) by the next bar. Added to complete
     // the Welford port, which referenced them but never declared them.
     sigma_n: Int,
     sigma_mean: Float,
     sigma_m2: Float,
-
     // KDJ oscillator
     k: Float,
     d: Float,
@@ -52,13 +50,11 @@ pub type DataBar {
     kdj_h_idx: Int,
     kdj_l: Float,
     kdj_l_idx: Int,
-
     // Leaf CMA — running mean of sma_tiny over the leaf the bar sits in
     yin_leaf_cma: Float,
     yang_leaf_cma: Float,
-
-    // Strategy signal
-    signal: String,
+    // Strategy signal — a closed set, so a type (RULINGS.md R13)
+    signal: Signal,
   )
 }
 
@@ -99,7 +95,7 @@ pub fn of_sourcebar(bar: SourceBar, idx: Int) -> DataBar {
     kdj_l_idx: idx,
     yin_leaf_cma: 0.0,
     yang_leaf_cma: 0.0,
-    signal: "",
+    signal: NoSignal,
   )
 }
 

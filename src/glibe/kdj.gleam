@@ -2,9 +2,9 @@
 // (plan 31-04, UC-64). Each bar caches its window's extremes (highest/lowest + idx);
 // the next bar only rescans when the leaving bar was the cached extreme.
 
-import gleam/list
 import gleam/float
 import gleam/int
+import gleam/list
 import glibe/databar
 import glibe/indicator_settings.{type TimeframeSettings}
 import glibe/sma
@@ -23,22 +23,20 @@ pub fn kdj(
   // cached idx and only rescans when the leaving bar was that extreme.
   let #(highest, h_idx, lowest, l_idx) =
     rsv_extrema(databar, databar_list, settings)
-  let rsv =
-    case highest -. lowest <=. 0.0001 {
-      // A flat window is not an error — RSV is the conventional neutral 50, the
-      // defined value of an undefined quotient (idib), not an invented default.
-      True -> 50.0
-      False -> { databar.close -. lowest } /. { highest -. lowest } *. 100.0
-    }
+  let rsv = case highest -. lowest <=. 0.0001 {
+    // A flat window is not an error — RSV is the conventional neutral 50, the
+    // defined value of an undefined quotient (idib), not an invented default.
+    True -> 50.0
+    False -> { databar.close -. lowest } /. { highest -. lowest } *. 100.0
+  }
 
   // --- K and D: one alpha, seeded at the neutral 50 (plan 31-04 §3). idib wins
   // over ibOptions: D is smoothed with the same alpha as K, not a separate 1/2.
   let alpha = 1.0 /. int.to_float(settings.kdj_k_period)
-  let #(previous_k, previous_d) =
-    case list.first(databar_list) {
-      Ok(bar) -> #(bar.k, bar.d)
-      Error(_) -> #(50.0, 50.0)
-    }
+  let #(previous_k, previous_d) = case list.first(databar_list) {
+    Ok(bar) -> #(bar.k, bar.d)
+    Error(_) -> #(50.0, 50.0)
+  }
   let k = { 1.0 -. alpha } *. previous_k +. alpha *. rsv
   let d = { 1.0 -. alpha } *. previous_d +. alpha *. k
   let j = 3.0 *. k -. 2.0 *. d
@@ -77,38 +75,49 @@ pub fn kdj(
 }
 
 /// The cached highest/lowest of the window ending at `working`, and the idx of
-/// the bar carrying each. Amortised-constant: if the bar leaving the window
-/// (`working.idx - kdj_window_size`) was not the cached extreme, the cached
-/// extreme is still in the window and only the new bar is folded in; if it was,
-/// the window is rescanned once (UC-64, plan 31-04 §2).
+/// the bar carrying each. Amortised-constant: if the bar leaving the window was
+/// not the cached extreme, the cached extreme is still in the window and only
+/// the new bar is folded in; if it was, the window is rescanned once (UC-64,
+/// plan 31-04 §2).
+///
+/// **The leaving bar is found by POSITION, not by `idx - w`.** A gap in the
+/// feed (a holiday, a missing bar) makes `idx` non-consecutive, and `idx - w`
+/// then names a bar that never existed — the cached extreme would never be
+/// recognised as leaving and the window would silently keep a stale extreme.
+/// The window is `w` bars ending at `working`: `w - 1` settled bars, so the
+/// one leaving is at list index `w - 1` (newest-first).
 fn rsv_extrema(
   working: databar.DataBar,
   databar_list: List(databar.DataBar),
   settings: TimeframeSettings,
 ) -> #(Float, Int, Float, Int) {
-  let w = settings.window_kdj_size
-  let #(prev_h, prev_h_idx, prev_l, prev_l_idx) =
-    case list.first(databar_list) {
-      Ok(b) -> #(b.kdj_h, b.kdj_h_idx, b.kdj_l, b.kdj_l_idx)
-      Error(_) -> #(working.high, working.idx, working.low, working.idx)
-    }
-  let leaving_idx = working.idx - w
-  case leaving_idx == prev_h_idx || leaving_idx == prev_l_idx {
+  let w = settings.kdj_window_size
+  let #(prev_h, prev_h_idx, prev_l, prev_l_idx) = case
+    list.first(databar_list)
+  {
+    Ok(b) -> #(b.kdj_h, b.kdj_h_idx, b.kdj_l, b.kdj_l_idx)
+    Error(_) -> #(working.high, working.idx, working.low, working.idx)
+  }
+  let must_rescan = case list.drop(databar_list, w - 1) |> list.first {
+    // Window not full yet — nothing leaves, the cached extreme is still in.
+    Error(_) -> False
+    Ok(leaving_bar) ->
+      leaving_bar.idx == prev_h_idx || leaving_bar.idx == prev_l_idx
+  }
+  case must_rescan {
     // The leaving bar was an extreme — rescan the window once (this bar plus the
     // `w - 1` settled bars that belong to it).
     True -> batch_window(working, databar_list, w)
     // The cached extreme is still in the window: fold in only the new bar.
     False -> {
-      let h_idx =
-        case working.high >. prev_h {
-          True -> working.idx
-          False -> prev_h_idx
-        }
-      let l_idx =
-        case working.low <. prev_l {
-          True -> working.idx
-          False -> prev_l_idx
-        }
+      let h_idx = case working.high >. prev_h {
+        True -> working.idx
+        False -> prev_h_idx
+      }
+      let l_idx = case working.low <. prev_l {
+        True -> working.idx
+        False -> prev_l_idx
+      }
       #(
         float.max(prev_h, working.high),
         h_idx,
@@ -140,12 +149,7 @@ fn batch_window(
         True -> b.idx
         False -> acc.3
       }
-      #(
-        float.max(acc.0, b.high),
-        h_idx,
-        float.min(acc.2, b.low),
-        l_idx,
-      )
+      #(float.max(acc.0, b.high), h_idx, float.min(acc.2, b.low), l_idx)
     },
   )
 }

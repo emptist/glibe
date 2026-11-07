@@ -15,18 +15,22 @@
 // Trading the `YinBranch` too would be a **second** manual strategy — shorting
 // the down-leg — which is what that sentence rules out.
 //
-// The AI attempts are deliberately absent: that work is being built in glib
-// right now and is ported when it settles.
+// The AI attempts are deliberately absent. They are NOT waiting on glib:
+// glib's owner ordered them deleted from that tree in 2026-09 ("delete them
+// ALL"), and no `ai_s1` / `learn` / `boost` / `knn` codebase exists there to
+// port. glibe does not wait for a feature the reference project removed.
+import glibe/trading/signal.{type Signal, Buy, NoSignal, Sell}
 
-/// **The word the bar carries, on the bar that carries it.**
+/// **The word the bar carries, on the bar that carries it.** It is a `Signal`,
+/// not a String: the three cases are the whole closed set (RULINGS.md R13).
 ///
 /// The two cases cannot collide: recognising a `YangBranch` as dead births the
 /// opposite polarity, never another yang. A bar with neither is simply a bar
-/// with no signal, and an empty string says that — it is not a third signal.
-pub fn manual_signal(recognised_yang: Bool, exited_yang: Bool) -> String {
+/// with no signal — `NoSignal` is not a third verdict.
+pub fn manual_signal(recognised_yang: Bool, exited_yang: Bool) -> Signal {
   case recognised_yang, exited_yang {
-    True, _ -> "buy"
-    _, True -> "sell"
-    _, _ -> ""
+    True, _ -> Buy
+    _, True -> Sell
+    _, _ -> NoSignal
   }
 }

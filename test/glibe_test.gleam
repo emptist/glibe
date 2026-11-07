@@ -11,6 +11,8 @@ import glibe/indicator
 import glibe/indicator_settings
 import glibe/kdj
 import glibe/sma
+import glibe/trading/signal.{Buy, NoSignal, Sell}
+import glibe/trading/strategy
 
 pub fn main() {
   gleeunit.main()
@@ -56,7 +58,7 @@ fn bar(close: Float) -> databar.DataBar {
     kdj_l_idx: 0,
     yin_leaf_cma: 0.0,
     yang_leaf_cma: 0.0,
-    signal: "",
+    signal: NoSignal,
   )
 }
 
@@ -81,7 +83,7 @@ fn settings() -> indicator_settings.TimeframeSettings {
     sma_medium_window_size: 30,
     sma_large_window_size: 60,
     sma_huge_window_size: 504,
-    window_kdj_size: 7,
+    kdj_window_size: 7,
     kdj_k_period: 3,
     kdj_m_period: 10,
     bb_multiplier: 2.0,
@@ -421,5 +423,135 @@ pub fn sourcebar_rejects_high_below_low_test() {
   case bad {
     Error(_) -> Nil
     Ok(_) -> panic as "a high-below-low bar was accepted"
+  }
+}
+
+// ============================================================================
+// Round 5 — the owner's rulings adopted from glib, each with a mechanism
+// ============================================================================
+
+/// R12 — ONE tiny positive floor, on the lower edge, BEFORE interpolation.
+/// Alternating 100 / 0.01 closes give a centre near 50 with σ near 50, so the
+/// raw lower edge is negative. Three independent `max(..., 0.0)` clamps (the
+/// old code) collapse the staff onto zero; the ruled construction keeps all
+/// three lower lines positive, distinct, and ordered.
+pub fn bollinger_one_tiny_positive_floor_before_interpolation_test() {
+  let s = settings()
+  let closes = [
+    100.0, 0.01, 100.0, 0.01, 100.0, 0.01, 100.0, 0.01, 100.0, 0.01, 100.0, 0.01,
+    100.0, 0.01, 100.0, 0.01, 100.0, 0.01, 100.0, 0.01,
+  ]
+  let #(_, final_bar) =
+    list.fold(closes, #([], bar(100.0)), fn(acc, close) {
+      let #(history, _) = acc
+      let result = indicator.run(bar(close), history, s)
+      #([result, ..history], result)
+    })
+  case
+    final_bar.bb_l3 >. 0.0
+    && approx(final_bar.bb_l3, final_bar.bb_m *. 0.000001)
+    && final_bar.bb_l2 >. final_bar.bb_l3
+    && final_bar.bb_l1 >. final_bar.bb_l2
+    && final_bar.bb_l1 <=. final_bar.bb_m
+  {
+    True -> Nil
+    False ->
+      panic as "the lower edge floor must be one tiny positive applied before interpolation"
+  }
+}
+
+/// R13 — the signal is a closed set, therefore a type, not a String.
+/// Pattern matching is the proof: a fourth spelling cannot be constructed.
+pub fn signal_is_a_closed_type_test() {
+  let buy = strategy.manual_signal(True, False)
+  let sell = strategy.manual_signal(False, True)
+  let none = strategy.manual_signal(False, False)
+  case buy, sell, none {
+    Buy, Sell, NoSignal -> Nil
+    _, _, _ -> panic as "manual_signal returned a case outside the closed set"
+  }
+  case
+    signal.to_string(buy) == "buy"
+    && signal.to_string(sell) == "sell"
+    && signal.to_string(none) == ""
+  {
+    True -> Nil
+    False -> panic as "the wire spelling must be the only String in the system"
+  }
+}
+
+/// The KDJ cached extreme is retired by POSITION, not by `idx - w`. A gap in
+/// the feed (a holiday, a dropped bar) makes indices non-consecutive; the old
+/// arithmetic then names a bar that never existed and the stale extreme is
+/// carried forever. Here the leaving bar has idx 10 while `working.idx - w`
+/// is 101 — the two cannot be confused.
+pub fn kdj_gapped_indices_retire_the_cached_extreme_test() {
+  let s = settings()
+  // Seven settled bars, newest-first. The oldest (idx 10) is the cached high
+  // extreme and is the bar leaving the window on this step.
+  let settled = [
+    databar.DataBar(
+      ..bar_ohlc(100.0, 100.0, 100.0, 100.0),
+      idx: 107,
+      kdj_h: 200.0,
+      kdj_h_idx: 10,
+      kdj_l: 100.0,
+      kdj_l_idx: 107,
+    ),
+    databar.DataBar(
+      ..bar(100.0),
+      idx: 106,
+      kdj_h: 200.0,
+      kdj_h_idx: 10,
+      kdj_l: 100.0,
+      kdj_l_idx: 106,
+    ),
+    databar.DataBar(
+      ..bar(100.0),
+      idx: 105,
+      kdj_h: 200.0,
+      kdj_h_idx: 10,
+      kdj_l: 100.0,
+      kdj_l_idx: 105,
+    ),
+    databar.DataBar(
+      ..bar(100.0),
+      idx: 104,
+      kdj_h: 200.0,
+      kdj_h_idx: 10,
+      kdj_l: 100.0,
+      kdj_l_idx: 104,
+    ),
+    databar.DataBar(
+      ..bar(100.0),
+      idx: 103,
+      kdj_h: 200.0,
+      kdj_h_idx: 10,
+      kdj_l: 100.0,
+      kdj_l_idx: 103,
+    ),
+    databar.DataBar(
+      ..bar(100.0),
+      idx: 102,
+      kdj_h: 200.0,
+      kdj_h_idx: 10,
+      kdj_l: 100.0,
+      kdj_l_idx: 102,
+    ),
+    databar.DataBar(
+      ..bar_ohlc(200.0, 200.0, 200.0, 200.0),
+      idx: 10,
+      kdj_h: 200.0,
+      kdj_h_idx: 10,
+      kdj_l: 200.0,
+      kdj_l_idx: 10,
+    ),
+  ]
+  let working =
+    databar.DataBar(..bar_ohlc(100.0, 101.0, 100.0, 100.5), idx: 108)
+  let result = kdj.kdj(working, settled, s)
+  case approx(result.kdj_h, 101.0) {
+    True -> Nil
+    False -> panic as "a gapped feed kept a cached extreme that left the window"
   }
 }
