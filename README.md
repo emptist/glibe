@@ -25,25 +25,25 @@ pipeline); the v1.19.0 note is the version fact: modules now compile to Erlang
 abstract forms (`.abstr`), not Erlang source. All three are discussed in
 [`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md).
 
-**Web-layer references under evaluation — none adopted, no dependency added:**
-[Wisp](https://gleam-wisp.github.io/wisp/), [Lustre](https://hexdocs.pm/lustre/),
-[Mist](https://hexdocs.pm/mist/). See `DEVELOPER_GUIDE.md` and
-`REVIEW_ROUND5.md` §10. `apps/glibe_web` (Phoenix) is an unowned AI choice and
-an open owner decision — port this app to pure Gleam or retire it
-(`docs/REVIEW_ROUND5.md` §10, `docs/RULINGS.md` R14/R16) — not part of the
-Gleam engine.
+**Web layer — two packages, two targets:** the root `glibe` package stays on the
+Erlang target. `webclient/` is a **separate Gleam package** with its own
+`gleam.toml` declaring `target = "javascript"`; its Gleam source compiles to
+`.mjs` with `gleam build`. A hand-written `.mjs` is allowed only inside that
+folder. The old Phoenix app is kept in `deprecated/glibe_web/` for comparison
+and is not in use. Wisp / Lustre / Mist remain **references only — none adopted,
+no dependency added** (`docs/RULINGS.md` R18).
 
 ## Status
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| **Target** | ✅ `erlang` | pure BEAM; no JS target, no handwritten `.mjs`/`.erl`/`.ex` under `src/` |
+| **Target** | ✅ `erlang` | root package pure BEAM; no handwritten `.mjs`/`.erl`/`.ex` under `src/`. The separate `webclient/` package is the only JavaScript target, declared in its own `gleam.toml` |
 | **Binance REST** | ✅ Working | testnet.binance.vision (works from China), `gleam_httpc` |
 | **Stream Processing** | ✅ Core Complete | SMA×5, Bollinger, KDJ, Leaf, Branch, Timeframe pipeline |
 | **Tests** | ✅ Passing | **26 tests** — indicators, api, ingest boundary, and three Round-5 invariant tests; assertions use bool `assert` / `let assert` with messages, not `panic` |
 | **Build** | ✅ Green | gleam **1.19.2** / OTP **29**: 0 errors, 0 warnings |
 | **IB Client Portal** | ⚠️ Retired | The handwritten Elixir `ibkr.ex` wrapper had **zero callers** and an undeclared `ibkr_api` dep; it produced 12 build warnings. Removed under *"No handwritten erlangs"*. The FFI contract survives as `ibkr.gleam.disabled` (a design record, not compiled). |
-| **Visualization** | ⚠️ Debt | **The chart library is settled (R17: use the JS chart, generated `.mjs` preferred).** `apps/glibe_web` is a Phoenix/Elixir + JS app, outside the `src/` guard; the web-layer framework and its fate are still an open owner decision (`docs/REVIEW_ROUND5.md` §10, `docs/RULINGS.md` R14/R16/R17). The Gleam core does not broadcast. |
+| **Visualization** | ✅ Settled | **JS chart library (R17)**, generated `.mjs` preferred; hand-written `.mjs` only inside `webclient/` (R16). The client exists so a human can spot anomalies by eye, read trends from charts, inspect tabulated fractal data, and see order issue/fill points (R18). `deprecated/glibe_web` is a Phoenix comparison piece, not the implementation. The web-layer framework is still an open owner decision; the Gleam core does not broadcast. |
 | **Guards** | ✅ Added | `scripts/guards.sh --all` — build, test, format, `no_timeframe_mixture`, `no_foreign_source`, plus `test_guards.sh` (7 fixture-based negative tests, no source mutation); also runs in CI |
 
 ## Quick Start
@@ -59,9 +59,11 @@ gleam test
 # plus fixture-based negative tests for the guards)
 sh scripts/guards.sh --all
 
-# Optional, and currently DEBT: the Phoenix/Elixir visualisation
-# (owner decision pending; see docs/REVIEW_ROUND5.md section 10, docs/RULINGS.md)
-cd apps/glibe_web && mix phx.server
+# Build the separate JavaScript-target web client (emits .mjs)
+cd webclient && gleam build && cd ..
+
+# Reference only — the retired Phoenix app, kept for comparison
+cd deprecated/glibe_web && mix phx.server
 ```
 
 ## Architecture
@@ -125,10 +127,12 @@ src/
 │   ├── export/
 │   │   └── csv.gleam             # CSV export, one row per accepted bar
 │   └── config.gleam              # AppConfig + default_config (single source of truth)
-├── apps/glibe_web/               # Phoenix LiveView visualization
+├── webclient/                    # separate JS-target Gleam package (own gleam.toml)
+│   └── src/webclient.gleam       # → build/dev/javascript/webclient/webclient.mjs
+├── deprecated/glibe_web/         # Phoenix LiveView, kept for comparison only
 │   ├── lib/glibe_web/live/chart_live.ex
 │   ├── lib/glibe_web/data_generator.ex
-│   └── assets/js/chart_hook.js   # Lightweight Charts hook
+│   └── assets/js/chart_hook.js
 └── test/
     └── glibe_test.gleam          # 23 tests
 ```
@@ -327,26 +331,30 @@ Dependency graph (no cycles):
 api, databar → sma, kdj, bollinger → indicator → leaf → branch → engine → timeframe
 ```
 
-### Visualization (Phoenix LiveView)
+### Visualization (webclient)
 
 ```
-cd apps/glibe_web
-mix phx.server
-# http://localhost:4000
+cd webclient
+gleam build          # emits build/dev/javascript/webclient/webclient.mjs
 ```
 
-Real-time BTCUSDT 1h chart with:
-- Candlesticks + SMA Tiny (blue) / SMA Medium (orange)
-- Yin leaves (green ▲) / Yang leaves (red ▼)
-- Yin/Yang branch markers (circles with entry/exit info)
-- Updates every 2 seconds via Phoenix PubSub
+**Why there is a web front end at all (R18):** a human needs to see the output,
+not read logs — to spot anomalies and logic errors by eye, read price trends
+from charts to form trading ideas, inspect non-graphical but tabulated
+fractal-structure data, research market behaviour and new manual strategies,
+and see where an order was issued and where it was filled. A Gleam GUI would be
+harder to build.
 
 ## Visualization
 
-The web app (`apps/glibe_web`, Phoenix LiveView + Lightweight Charts) renders the
-engine's output. **The Gleam core does not broadcast** — `broadcast_chart` was
-removed; nothing in `src/glibe` sends bars over SSE. The web app obtains bars from
-the engine and draws candlesticks with indicator overlays.
+`deprecated/glibe_web` (Phoenix LiveView + Lightweight Charts) is kept **for
+comparison only**, not as the implementation. Its BTCUSDT 1h candlesticks,
+SMA overlays, yin/yang leaf and branch markers and 2-second PubSub updates
+document one earlier shape of the view; do not read it as the current design.
+
+**The Gleam core does not broadcast** — `broadcast_chart` was removed; nothing
+in `src/glibe` sends bars over SSE. The active client is the separate
+`webclient/` package.
 
 The engine's one exporter is `export/csv.gleam` (`to_csv`), which writes one row
 per accepted bar, oldest first — for checking the engine against something that is

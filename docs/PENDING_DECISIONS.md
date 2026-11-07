@@ -19,7 +19,7 @@
 
 | 条目 | 分区 | 状态 |
 |---|---|---|
-| web 层形状 / apps/glibe_web 去留 | 需要你裁决 | **未决**（图表库已定） |
+| web 层形状 / apps/glibe_web 去留 | 已裁定 | **R18，已生效**：Phoenix 移入 `deprecated/` 备考；`webclient/` 独立 JS-target package。仅 web 层框架仍未裁定 |
 | JS 图表库 / 生成 mjs 优先 | 已裁定 | **R17，已生效** |
 | 手写 `.mjs` 的可接受范围 | 已裁定 | **R16，范围限定，已生效**（R17 的兜底） |
 | SVG 图表真实数据试验 | 已定，不需裁决 | 推迟，等 databar processing 其余部分 |
@@ -31,7 +31,7 @@
 
 ## 需要你裁决
 
-### 1. web 层形状 / apps/glibe_web 去留
+### 1. web 层形状 / apps/glibe_web 去留 — **已裁定，见 R18**（背景保留供对照）
 
 **图表库已经定了，不需要再看（R17，2026-11-07）：** *"我们是开发应用的，不是
 开发框架，所以能用js chart，成本不高的话，还是用。"* 实测额外成本为 **0 行手写
@@ -41,10 +41,11 @@ LightweightCharts 是唯一实测对象）；客户端代码优先写成 Gleam �
 小范围兜底）。**自己写 SVG 图表引擎不再是默认路线**——那是做图表框架，不是做
 应用。原文与执行结论在 `docs/RULINGS.md` R17。
 
-**现在还要你决定的一句话：** web 层用什么形状——退役 `apps/glibe_web`、用纯
-Gleam 重建 view；还是干脆不要 web 层；还是维持现状（第三个选项是违规主体，
-不推荐）。具体框架（Mist / Wisp / Lustre）、是否引入独立 `client/` 包，都随
-这句话一起决定。**Lustre / Wisp 仍然不是你的裁定。**
+**已裁定（R18，2026-11-07）：** web 前端需要；Phoenix app 不删除、移动到
+`deprecated/glibe_web/` 备考；`webclient/` 作为独立 JS-target package 放在
+`src/` 之外，Gleam 源码编译成 `.mjs`，手写 `.mjs` 仅限该目录内。以下背景
+保留作技术抉择时的对照，**不再是待裁决项**。
+**仍待裁定：web 层框架（Mist / Wisp / Lustre）——Lustre / Wisp 仍不是你的裁定。**
 
 **背景（不用去别处查）：**
 - `apps/glibe_web` 是 **23 个文件**的 Phoenix/Elixir + JS 应用
@@ -259,7 +260,8 @@ LightweightCharts 本身就是 JS 库；Gleam 没有 WASM 后端。**不采用�
   仍有效，R15 根项目仍是纯 erlang。
 - **障碍必须写出来**：`docs/REVIEW_ROUND5.md` §13.10；已确认
   `gleam build` 不解析 npm 依赖，构建绿 ≠ 能跑。
-- **仍未裁定**：web 层框架、`apps/glibe_web` 去留、是否引入独立 `client/` 包。
+- **仍未裁定**：web 层框架（Mist / Wisp / Lustre）。`apps/glibe_web` 去留与
+  独立 `client/` 包两项已由 **R18** 裁定关闭。
   原文与执行结论在 `docs/RULINGS.md` R17。
 
 ---

@@ -38,8 +38,10 @@ from glibe's modules and not from a human here. Module compilation goes
 ## Web layer — references for evaluation (**none adopted**)
 
 The owner has **not** chosen a web framework, and has not yet read or used
-Wisp. `apps/glibe_web` is a Phoenix/Elixir app an AI picked, not a design of
-his (see `REVIEW_ROUND5.md` §10). These three links are reference material for
+Wisp. The Phoenix/Elixir app an AI picked now lives in `deprecated/glibe_web/`
+— kept for comparison, not in use (see `REVIEW_ROUND5.md` §10 and
+`docs/RULINGS.md` R18). The active client is the separate JS-target package
+`webclient/`. These three links are reference material for
 the day the owner decides the web layer (`REVIEW_ROUND5.md` §10) —
 **not** a commitment and **not** a dependency:
 

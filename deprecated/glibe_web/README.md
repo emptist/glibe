@@ -5,7 +5,7 @@ Real-time visualization for glibe stream processing using Phoenix LiveView + Lig
 ## Setup
 
 ```bash
-cd apps/glibe_web
+cd deprecated/glibe_web
 mix deps.get
 mix assets.setup
 mix phx.server

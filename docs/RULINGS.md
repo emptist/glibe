@@ -315,3 +315,42 @@ series 定义、图表选项、`DataBar → bar` 映射、一根 settled bar 的
 不依赖JS那只能走WASM路线了，这要看elixir有没有尝试这个，gleam那么小的
 community，要做这事得自己动手，太麻烦了或许。"* 查证结果与他「有时间再研究」
 的判断一致，记在 `docs/REVIEW_ROUND5.md` §15。**不采用、不排期、不替他决定。**
+
+---
+
+## R18 — web 前端的形状（2026-11-07 owner 裁定）
+
+**owner 原话：** *"web前端是需要的，原因是要比写一个Gleam GUI容易（？）
+web前端用来让人类通过肉眼观察发现程序输出结果的异常，发现逻辑错误，用来让
+人类根据图掌握行情趋势，形成交易思路，用来观察非图形但是表格化的分形结构
+重要数据，研究行情特征和新手工策略，还能看到交易指令发出点，交易指令成交
+点等等。原来的Phoenix应用还是阵痛不用，但是不要一下子删除，要用来对照
+方便你比较抉择一些技术决定。所以先移动到"过时"目录备考；另外web 客户端
+确实应该放在一个单独的folder不要放在src里面，仿照Lustre的结构。这样可以
+解决局部需要JS target问题（编译你用gleam写的源代码生成mjs而已，如果这样做
+实在麻烦，就手写mjs，但是仅仅出现在那个webclient目录里面）"*
+
+**裁定：**
+
+1. **web 前端需要**，不是可选装饰：让人用肉眼发现输出异常与逻辑错误、从图
+   读趋势形成交易思路、看表格化的分形结构重要数据、研究行情特征与新手工
+   策略、看交易指令发出点与成交点。理由：比写一个 Gleam GUI 容易。
+2. `apps/glibe_web`（Phoenix）**不删除、暂不使用**，移到
+   `deprecated/glibe_web/` 备考，只在比较技术决定时作对照。
+3. web 客户端放在**独立 folder** `webclient/`，**不进 `src/`**，仿照 Lustre
+   的 client / server 分工：它有自己的 `gleam.toml`，
+   `target = "javascript"`，是一个独立 package。根 `glibe` 仍是
+   `target = "erlang"` 的纯 Gleam 引擎。
+4. 局部 JS target 问题由**两个 package 各自的 target 声明**解决：边界由构建
+   工具表达，不靠 sh 去 grep 文件扩展名。
+5. 客户端优先写 Gleam 源码、由 `gleam build` 生成 `.mjs`（R17）；手写
+   `.mjs` 只在生成确实麻烦时兜底，且**只允许出现在 `webclient/` 内**（R16）。
+
+**已实测：** `webclient/gleam.toml` + `webclient/src/webclient.gleam` 经
+`gleam build` 生成 `build/dev/javascript/webclient/webclient.mjs`，零手写
+JS；根项目 `scripts/guards.sh --all` 全绿（26 tests、7 fixture cases）。
+
+**R17 结尾"仍未裁定"的三项里，后两项由此关闭**：`apps/glibe_web` 去留、
+是否引入独立 client 包。**web 层框架（Mist / Wisp / Lustre）仍未裁定**，
+不替 owner 采用。历史评审文档中的 `apps/glibe_web` 路径记录的是当时的树，
+不是当前路径；当前路径以本条为准。
