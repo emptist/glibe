@@ -1,0 +1,15 @@
+name = "webclient"
+version = "1.0.0"
+target = "javascript"
+
+# The root `glibe` package stays on the Erlang target. This package is a
+# separate Gleam package: its Gleam source compiles to .mjs under
+# webclient/build/dev/javascript/. If generating a needed .mjs proves
+# impractical, a hand-written .mjs is permitted HERE AND ONLY HERE.
+# The root src/ stays Gleam-only, Erlang-target, no FFI.
+
+[dependencies]
+gleam_stdlib = ">= 1.0.0 and < 2.0.0"
+
+[javascript]
+runtime = "node"
