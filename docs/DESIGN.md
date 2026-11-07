@@ -73,7 +73,7 @@ bar, because only a bar is broadcast, drawn and accepted. That word is a
 | **target** | `javascript` (dual-target only planned) | **`erlang`, pure** | *"BEAM is great"* — glibe is the future |
 | **foreign source in `src/`** | 14 handwritten `.mjs` | **0 compiled** | *"No handwritten erlangs or even worse JS source files"* |
 | **runtime** | one JS process | **BEAM** | one actor per instrument, supervised — Stage F, unstarted |
-| **dashboard** | handwritten JS + FFI | Phoenix/Elixir + JS in `apps/` | **debt, not a virtue** — owner's decision Q8 |
+| **dashboard** | handwritten JS + FFI | Phoenix/Elixir + JS in `apps/` | **unowned AI choice** (`5e91f44`), debt — Q8 + `REVIEW_ROUND5.md` §10. The *chart* is the owner's (UC-56/57/60); the framework is not |
 | KDJ window | `w` | **`w`** | same; idib `kdjPeriod = 7` |
 | σ window | includes bar in hand | **includes it** | same |
 | lower-band floor | `1e-6·bb_m`, one floor, before interpolation | **same** | owner §1.13/§1.14 (R12) |

@@ -32,13 +32,26 @@ Still unstarted:
   another language — UC-56 says one engine);
 - `no_minute_trading.sh`, the ruling as a guard.
 
-### Q8 — `apps/glibe_web` (owner's decision, 2026-11-07)
+### Q8 — `apps/glibe_web` (owner's decision, still open)
 
 A tracked Phoenix/Elixir + JS app (23 files, `chart_live.ex`,
 `data_generator.ex`, `assets/js/chart_hook.js`). It is the largest remaining
 violation of *"No handwritten erlangs or even worse JS source files"*.
-`scripts/no_foreign_source.sh` guards `src/` only. **Decide:** port the live
-view to a pure-Gleam BEAM path, or retire the app. Not silently forgiven.
+`scripts/no_foreign_source.sh` guards `src/` only.
+
+**Found 2026-11-07 (`REVIEW_ROUND5.md` §10):** the *framework* was an AI's
+choice (`5e91f44`, 2026-09-24) — no ruling of his names Phoenix. The *chart*
+is his (UC-56/57/60). So the two options are now concrete:
+
+- **Port:** retire `apps/`, keep the ruled chart behaviour (one stream, one
+  bar at a time, event from `working_databar_archived`), rebuild the view in
+  Gleam on **Mist** (HTTP/WS/SSE) + **Wisp** (request edge) + **Lustre**
+  (typed UI, OTP-supervised server components) with a `shared/` Gleam types
+  package. References in `DEVELOPER_GUIDE.md`, none adopted.
+- **Retire:** no web layer at all.
+
+Neither is decided. Lustre and Wisp are **not** owner rulings; he has not read
+or used Wisp yet. Not silently forgiven.
 
 ### Q9 — typed identity keys (design)
 
