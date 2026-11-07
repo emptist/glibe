@@ -718,3 +718,45 @@ in this repo** (a hand-written `.mjs` in the tree would itself be the §1.28
 violation). They were **not compiled, not run in a browser, and not exercised
 with real data**; no SVG equivalent was built, so there is no Gleam line count
 for that route. Q11's real-data trial remains deferred, and Q8 remains his.
+
+### 13.7 The owner's reading, checked against the line counts
+
+[user 2026-11-07]: *"To me, it seems the chart only wants a bar from you to
+update the view, and other part are just definitions, mapping model to view.
+So there should not be coplex things to make by hand."* — **his reading, not a
+ruling.**
+
+**Confirmed by splitting the two prototypes:**
+
+| category | `emit.mjs` (73) | `element.mjs` (99) |
+|---|---|---|
+| definitions + chart setup (15 series specs, `createChart` options, panes) | 47 | 44 |
+| crosshair tooltip | 7 | 6 |
+| **per-bar update `paint(bar)`** | **9** | **9** |
+| wiring / lifecycle / class scaffolding | 2 | 26 |
+| comments + blank | 8 | 14 |
+
+Imperative control-flow lines: **6** in `emit.mjs`, **10** in `element.mjs` —
+mostly `for` loops over the series tables and the one `if` de-dup guard. There
+is no algorithm, no state machine, no second engine. `paint` is one
+`candle.update` plus one loop of fourteen `series.update` calls, i.e. literally
+UC-56's one-bar-at-a-time rule. So **65–85 was a line count, not a complexity
+claim**; §13.3 calling it a "cost" without this split was misleading. The
+owner's point stands: the dynamic half is one bar; the rest is declarative
+mapping from the model to the view.
+
+What still matters is **who writes those declarative lines, and in which
+language**. §1.28 forbids hand-written foreign source on the Erlang target
+however trivial it is. The SVG route has the same definitions and the same
+`DataBar → view` mapping, but as typed Gleam values (`DataBar -> Element(msg)`),
+compiler-checked and **0 lines of hand-written JS**; that is also exactly the
+UC-57 shape — the view is a pure function of the model, not the model's work.
+
+**§1.28 law 4 says "find the library"; that was checked.** Hex has
+`lightweight_charts` v0.1.1 (*"TradingView Lightweight Charts for Phoenix
+LiveView"* — Elixir) and server-side SVG packages (`contex`, `ggity`, `plotto`,
+`lantern_ui`), but **no Gleam/Lustre package wrapping the JS chart lib** was
+found. Reaching for the Phoenix one would keep precisely the `apps/glibe_web`
+debt §10 recorded. The library that already exists for the pure-Gleam route is
+Lustre's own `lustre/element/svg`. **No adoption is decided here — Q8 stays
+open.**
