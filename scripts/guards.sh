@@ -27,6 +27,7 @@ case "$1" in
     run_guard compiles.sh
     run_guard no_timeframe_mixture.sh
     run_guard no_foreign_source.sh
+    run_guard test_guards.sh
     ;;
   *)
     run_guard "$1"
