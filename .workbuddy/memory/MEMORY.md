@@ -52,6 +52,16 @@ generic "gate", "price gate", "risk gate", "ladder"/"Rung". Owner words:
 - **R13** closed sets are types (`trading/signal.gleam`). One set, one home.
 - **R14** `src/` is Gleam only; guard + CI. `apps/glibe_web` (Phoenix/Elixir +
   JS) is outside the guard and is an open owner decision (Q8).
+- **R15** IB = historic data for stocks/ETFs only; if it forces JS-target
+  dependence, drop IB. Guard also fails on `@external(javascript, …)` and
+  `target = "javascript"` in `gleam.toml`.
+
+## Claim discipline (owner, 2026-11-07)
+- *"Needs no JS library"* is a **dependency** claim, never a **capability**
+  claim. `REVIEW_ROUND5.md` §12 corrects the Lustre/SVG overclaim.
+- A UI/chart comparison must be tried on **real data** before being called
+  equivalent — and only after the rest of databar processing is done (Q11).
+  Do not attempt it early; Q8 (adopt Lustre/Wisp?) stays the owner's call.
 
 ## Toolchain / workflow
 - `gleam`, `erl`, `elixir` live in `/opt/homebrew/bin`; WorkBuddy's shell lacks
