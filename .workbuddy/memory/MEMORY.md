@@ -78,18 +78,30 @@ generic "gate", "price gate", "risk gate", "ladder"/"Rung". Owner words:
   **no other document may reference it** — it is cleared and replaced after
   each decision, so reverse links would dangle. `docs/QUESTIONS.md` is now only
   a stable withdrawn-items record.
-- **Generated `.mjs` is not hand-written JS** (owner's point, probed on 1.19.2):
-  `@external(javascript, "lightweight-charts", "createChart")` → generated
-  `probe.mjs` contains `import { createChart … } from "lightweight-charts"`,
-  zero hand-written `.mjs` in `src/`. Three kinds: compiler output, package-
-  shipped, and `./xxx.mjs` FFI (only the last is ours). Needs a separate
-  `client/` package with `target = "javascript"`; glib's vendored file is an
-  IIFE, not ESM. `@external` binds functions/types, **not constants** in 1.19.2
-  (`pub const` probe failed with `expected "="`). See `REVIEW_ROUND5.md` §13.8.
+- **The precise "generated mjs" claim** (owner's insistence, 2026-11-07):
+  *"写gleam代码，编译形成应用JS库绘图所需的那个mjs是可以做到的"* — YES, the
+  **application module** (15 series specs, options, `DataBar → bar` mapping,
+  one-bar `paint`) is written in Gleam and emitted by `gleam build` as
+  `build/dev/javascript/<pkg>/<module>.mjs`; nobody writes that file. Fuller
+  probe: `gleam_json` v3.1.0 + `src/probe/chart.gleam` → 154-line `chart.mjs`
+  with `export function specs/chart_options/setup/paint`, zero `.mjs` in `src/`.
+  `json.object` = `Object.fromEntries` (package-shipped FFI). Three kinds of
+  `.mjs`: compiler output, package-shipped, our `./xxx.mjs` FFI (only the last
+  is hand-written). Boundaries: library itself is npm ESM; root stays pure
+  erlang; a separate `client/` JS-target package is Lustre's deliberate two-
+  runtime split (**not** a tension with "pure erlang target"); `chart.addSeries`
+  / `series.update` are instance methods, so a 2–5 line forwarder may be needed
+  (R16 permits it); dotted `@external` names fail at compile time. See
+  `REVIEW_ROUND5.md` §13.8/§13.9.
 
 ## Claim discipline (owner, 2026-11-07)
 - *"Needs no JS library"* is a **dependency** claim, never a **capability**
   claim. `REVIEW_ROUND5.md` §12 corrects the Lustre/SVG overclaim.
+- **Extra cost = hand-written foreign source only** (owner 2026-11-07):
+  *"不管你用什么语言，用绘图库都是要写一点配置的。这部分不是额外成本"* —
+  series/option definitions and the per-bar update mapping are inherent work in
+  any language, not overhead of adopting the JS chart lib. Never present the
+  65–85-line bridge count as a "cost" against the generated/SVG routes.
 - A UI/chart comparison must be tried on **real data** before being called
   equivalent — and only after the rest of databar processing is done (the
   deferred real-data trial, `REVIEW_ROUND5.md` §12). Do not attempt it early;
