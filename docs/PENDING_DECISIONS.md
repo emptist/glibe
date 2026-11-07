@@ -61,7 +61,14 @@
 
 **采用 JS 图表库的成本（2026-11-07 实测，`docs/REVIEW_ROUND5.md` §13）：**
 
-| 路线 | 手写 JS/mjs | 说明 |
+**先把「成本」口径说清楚（你的 2026-11-07 原话）：** *"因为可能是0成本（额外
+成本），因为不管你用什么语言，用绘图库都是要写一点配置的。这部分不是额外成本。"*
+下表第二列只量**手写外来源码**这一个维度。series 定义、图表选项、
+`DataBar → bar` 映射、一根 settled bar 的更新，是任何语言用任何绘图库都要写的
+固有工作，在生成路线里是 Gleam 工作，**不是采用 JS 库带来的额外成本**；真正的
+额外成本只有「手写外来源码」这一项，生成路线是 **0**。
+
+| 路线 | 手写外来源码行（唯一额外成本） | 说明 |
 |---|---|---|
 | 整页照搬 glib `priv/index.html` | **760 行** | 该文件共 1,047 行，其中 196 行 CSS + HTML + 一个外链 script 标签；真正内联 JS 是 `:286-1045` 的 760 行。等于把 R14 债务搬进来 |
 | 保留 TradingView 库、页面逻辑改用 Gleam 重写 | **65–85 行** | 两个实测 bridge 原型；补齐七字段双 tooltip 约 +20–25 行。**已由 R16 允许** |
@@ -71,6 +78,8 @@
 - 65–85 行里，**每根 bar 的更新只有 9 行**（一次 `candle.update` + 14 次
   `series.update`，即 UC-56），其余是 15 条 series 的定义、图表选项、tooltip
   和接线；命令式控制流仅 6–10 行。没有算法、没有状态机、没有第二个引擎。
+  **按上面的口径，这些是配置与映射，不是额外成本；`docs/REVIEW_ROUND5.md`
+  §13.3 把「65–85」当成本列出来的读法已改正。**
 - 你对这一点的判断（2026-11-07）：*"the chart only wants a bar from you to
   update the view, and other part are just definitions, mapping model to view.
   So there should not be coplex things to make by hand."* —— 已按行数验证成立。
@@ -86,30 +95,64 @@
   跑过、未用真实数据验证。
 
 **「生成 mjs」这条路（你的 2026-11-07 提法，已实测，见
-`docs/REVIEW_ROUND5.md` §13.8）：**
+`docs/REVIEW_ROUND5.md` §13.8 / §13.9）：**
 > *"如果可以通过 gleam 源代码产生那个所需的mjs，不一样是不需要手写js吗？"*
+> *"你说的探针证实我的第一点，希望你说的是，写gleam代码，编译形成应用JS库
+> 绘图所需的那个mjs是可以做到的，而不是别的意思。"*
 
-**是。** 三种 `.mjs` 此前被混为一谈：编译器从 Gleam 源码生成的（不是手写）、
-包自带的（§1.28 law 2：不是我们的）、以及 `@external(javascript, "./xxx.mjs")`
-指向的（才是我们手写的 FFI）。探针 `gleam 1.19.2` + `target = "javascript"`，
-源码只写
-`@external(javascript, "lightweight-charts", "createChart") pub fn ...`，
-`gleam build` 退出 0，生成的 `probe.mjs` 里是
-`import { createChart as create_chart } from "lightweight-charts"`，
-**`src/` 下零手写 `.mjs`**。绑定已存在的包不是 FFI。
+**是，正是这个意思，不是别的意思。**「那个 mjs」= 浏览器加载的**应用模块**
+（图表设置、15 条 series 定义、选项、`DataBar → bar` 映射、一根 settled bar
+的更新）：它**由 Gleam 源码经 `gleam build` 编译生成**，路径是
+`build/dev/javascript/<包名>/<模块>.mjs`，没有人手写这个文件。库本身来自
+npm（§1.28 law 2：包作者的代码，不是我们的）。此前三种 `.mjs` 被混为一谈：
+编译器生成的、包自带的、以及 `@external(..., "./xxx.mjs")` 指向的（才是我们
+手写的 FFI）。上一条探针只证明了 `@external` 会生成一行 `import`；下面这个
+完整探针证明了**整个应用模块本体**也是生成的。
 
-条件与边界（实测，不假设）：
-- 生成的 `.mjs` 只在 **javascript-target** 项目出现；glibe 根项目是纯
-  `erlang`（`.abstr` / `.beam`）。所以这条路线需要一个独立的 `client/` 包，
-  自带 `gleam.toml` 里 `target = "javascript"` —— 正是 Lustre 官方
-  full-stack guide 的形状（`docs/REVIEW_ROUND5.md` §13.5）。根 R15 guard
-  看不到那个独立包。**这与「pure erlang target is the future」有张力，
-  随本条一起决定，不单独替你列新问题。**
-- `@external` 在 1.19.2 只能绑**函数与类型**，不能绑模块常量：官方 Tour
-  只列 external functions/types，探针里
-  `@external(..., "LineSeries") pub const ...` 直接解析失败（`expected "="`）。
-  所以 `LineSeries` / `CandlestickSeries` / `LineStyle` 这类常量，要么用包里
-  现成的函数式 API，要么一个一行转发模块——而后者已在 R16 允许范围内。
+**完整探针（`gleam 1.19.2`，2026-11-07）：** `/tmp/gleam_js_probe/probe`，
+`target = "javascript"`，`gleam_json` v3.1.0，一个 `src/probe/chart.gleam`
+写 15 条 `SeriesSpec`、`chart_options()`、`series_options()`、`bar_json()`、
+`setup(container)`、`paint(series, bar)`，加三条
+`@external(javascript, "lightweight-charts", …)`。`gleam build` 退出 0，
+生成的 `chart.mjs` 共 **154 行**，含
+`import { createChart as create_chart, … } from "lightweight-charts"` 以及
+`export function specs() / chart_options() / setup() / paint()`；
+`find src -name '*.mjs'` 为**空**。`gleam/json` 的 `object()` 就是
+`Object.fromEntries(entries)`（`gleam_json_ffi.mjs`，包自带），所以图表选项
+是从类型化 Gleam 值构造的原生 JS 对象，不需要我们写 FFI。§13.3 那 65–85 行
+因此是**编译器输出**，不是需要维护的源码。
+
+**「不是别的意思」的边界（实测，不假设）：**
+- 库文件不是生成的：`lightweight-charts` ESM 来自 npm；`gleam_json_ffi.mjs`
+  和 `lustre-server-component.min.mjs` 是包自带的。**不是零个 `.mjs` 文件，
+  是零个我们手写的 `.mjs`。**
+- 根项目不变：glibe 引擎仍是纯 `erlang`（R15，`.abstr` / `.beam`）。生成模块
+  属于独立的 `client/` 包（`gleam.toml` 里 `target = "javascript"`）——**这
+  正是 Lustre 的两个运行时分工**：Erlang/BEAM 一侧 Wisp + Mist + server
+  components，JS-target 一侧 client SPA（`docs/REVIEW_ROUND5.md` §13.5）。
+  你的读法（2026-11-07）：*"Lustre 文档我一段时间以前读过（现在可能更新了）
+  它确实是有一部分是js target，其他部分是 BEAR/erlang target，这方面做的
+  很好。"*（BEAR 即 BEAM，原话照录。）**这是设计得好的分工，不是与「pure
+  erlang target is the future」有张力**；此前「有张力」的措辞撤回。是否要加
+  这个 client 半边，仍随本条一起由你决定，不单独替你列新问题。
+- glib 现在 vendored 的 `lightweight-charts.js` 是 197,922 字节 / 7 行的
+  standalone IIFE（`window.LightweightCharts`），**不是 ESM**，不能 `import`；
+  走这条路要换成 npm 的 ESM 发行版（依赖/资产变化，不是手写 JS）。
+- **唯一可能需要手写的一小块：** `@external` 只绑**模块级函数导出**。v5 的
+  `createChart` 是独立导出函数，但 `chart.addSeries(…)` 与 `series.update(…)`
+  是 `IChartApi` / `ISeriesApi` 上的**实例方法**（glib `priv/index.html:372`
+  与 `:691-705` 就是这么用的）；带点号的
+  `@external(..., "chart.addSeries")` 编译期直接报
+  `Invalid JavaScript function`。所以真正落地要么找函数式 API 的包装包，要么
+  写一个 2–5 行转发模块。**后者已在 R16 允许范围内**，而且它不是「那个应用
+  mjs」——应用模块仍然是生成的。探针里 `addSeries` / `updateSeries` 两个绑定
+  是占位名，不是已核实的 npm 导出，此处不冒充可用。
+- `@external` 在 1.19.2 只能绑**函数与类型**，不能绑模块常量（官方 Tour；
+  `@external(..., "LineSeries") pub const ...` 探针解析失败 `expected "="`）。
+  `CandlestickSeries` / `LineSeries` / `LineStyle` 之类同样落在上面那一小块
+  转发里，已在 R16 范围内。
+- **没有做：** 未建图表、未进浏览器、未跑真实数据；这是编译器事实，不是 UI
+  能力结论。
 
 **port 的具体形状（尚未采用，等你一句话）：** 退役 `apps/`，保留 UC-56/57/60
 裁定的图表行为，用 **Mist**（HTTP/WS/SSE）+ **Wisp**（请求层）+ **Lustre**
@@ -117,7 +160,7 @@
 这三个链接在 `docs/DEVELOPER_GUIDE.md` 里只是**评估用参考，均未采用**；你也没
 读过、没用过 Wisp。Lustre/Wisp **不是你的裁定**。
 
-**相关文件：** `docs/REVIEW_ROUND5.md` §10 / §12 / §13 / §13.8、
+**相关文件：** `docs/REVIEW_ROUND5.md` §10 / §12 / §13 / §13.8 / §13.9、
 `docs/RULINGS.md` R14 / R15 / R16、`docs/DEVELOPER_GUIDE.md`、
 `docs/DESIGN.md` 的 dashboard 行、`apps/glibe_web/`。
 
