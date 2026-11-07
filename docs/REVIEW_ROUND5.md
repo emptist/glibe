@@ -394,7 +394,10 @@ this round's `Signal` custom type, one layer up.
   (`lustre-server-component.mjs`, ~10 kB vs LiveView's ~50 kB client runtime);
   neither is hand-written project source. The ruling forbids *hand-written*
   foreign code, not the browser's instruction set. A candlestick chart drawn
-  with Lustre's SVG DSL would need no JS charting library at all.
+  with Lustre's SVG DSL would need no JS charting library at all — **that is a
+  claim about dependency, not capability**. Feature parity with the JS chart is
+  not implied; §12 corrects this and records the real-data trial the owner
+  asked for.
 - Lustre's own LiveView cheatsheet names the real gaps: no built-in PubSub
   (the engine publishes an event / `Subject` instead), manual routing, and no
   `phx-hook` — DOM access goes through `effect.after_paint`.
@@ -458,7 +461,8 @@ through `effect.after_paint`), so an imperative canvas chart needs a bridge.
 The clean options are: draw the candles with Lustre's SVG DSL in Gleam (zero
 JS, live via server-component patches), or wrap the vendored chart as a custom
 element with a generated bridge. "Simple" is achievable — but not by carrying
-`index.html` across.
+`index.html` across. **§12 qualifies "simple": it names the ruled chart
+behaviour, not the library's full feature set.**
 
 ### 11.3 IB historic data needs no JS target; the condition to drop IB does not fire
 
@@ -528,3 +532,79 @@ tools — that regression was fixed before 1.19.0 shipped (issue #6281 / PR
 compilation on the normal build path**, which is what the owner's §1.28 means.
 It is not literally true of every file under `build/`. `src/` remains Gleam
 only, and no Erlang source here is written, read, or maintained by a human.
+
+---
+
+## 12. Addendum, 2026-11-07 — "no JS charting library" is not "as powerful"
+
+The owner's challenge [user 2026-11-07]: *"Does this means it will be as
+powerful as the JS chart? Needs a try with actual data later, when other
+parts(other parts of whole databar processing) is done."*
+
+**No.** §10.3's sentence was about a **dependency**, not a capability.
+Lustre's SVG DSL is a typed way to emit `<svg>` elements from Gleam; it is a
+drawing primitive, **not a charting engine**. It removes the vendored 198 KB
+`lightweight-charts.js` and the 1,047-line hand-written `priv/index.html`, but
+it inherits nothing that library did. §11.2's *"Simple is achievable"* applied
+to the **ruled chart behaviour** (UC-56/57/60), not to the library's whole
+feature set. §10.3 and §11.2 are corrected in place above.
+
+### 12.1 What the JS chart actually supplies (measured, `glib/priv/index.html`)
+
+| capability | where |
+|---|---|
+| canvas renderer; `autoSize`, price-scale `autoScale` + `scaleMargins`, time scale with `timeVisible` / `rightOffset` / `fitContent`, pan & zoom, grid, dashed/dotted strokes | `:344-370`, `:412-476`, `:519`, `:739`, `:978` |
+| **15 series per symbol**: 1 candlestick + 10 lines in pane 0 (`sma_tiny`, `yin/yang_leaf_cma`, `bb_m`, six bands), K/D/M/J in a **second pane** with one shared time scale and one crosshair | `:372-517` |
+| `subscribeCrosshairMove` tooltip looking up the on-screen `DataBar` by time, printing seven engine fields | `:524-550` |
+| per-symbol tabs and switching, `lastPainted` de-dup, SSE, branch table | `:300-319`, `:658-731` |
+| `series.update(oneBar)` per settled bar, never `setData`; drawn bars survive a halt | `:639-741` — **UC-56/57/60, the owner's** |
+
+So the comparison is not "one candlestick vs one candlestick". It is a
+15-series, two-pane, interactive canvas chart with its own scales.
+
+### 12.2 What an SVG-in-Gleam version must build itself
+
+price↔pixel and time↔index mapping, visible-range/windowing, axis ticks and
+labels, auto-scaling on new extremes, crosshair hit-testing and tooltip,
+pan/zoom event handlers, multi-pane x-axis sync, stroke styles, and a DOM node
+budget. **None of that is in Lustre.** A canvas library redraws one bitmap and
+stays usable at 10k+ bars; SVG is *O(n)* DOM nodes per bar, so full history
+needs windowing. That node count and the per-bar patch latency are exactly the
+numbers a real-data trial has to measure.
+
+The sharpest cost is the **crosshair**. On the pure Erlang target a live
+Lustre app is a **server component** (§11.2): model state lives in a BEAM
+actor, so a mouse-move-driven tooltip would need a round trip per event unless
+a generated client bundle or a custom element handles it locally. R15's guard
+(`scripts/no_foreign_source.sh`) forbids `target = "javascript"` in
+`gleam.toml` and `@external(javascript, ...)` under `src/`. The ruling forbids
+*hand-written* foreign source, not generated client code — but this is a real
+design cost, not a free win.
+
+### 12.3 The axis where SVG is stronger — and it is not feature count
+
+- **Typed series.** A `DataBar` field the engine does not compute cannot be
+  drawn. `priv/index.html:389-394` needs a hand-written comment to stop itself
+  plotting a non-existent `inner_yin_leaf_cma` as a constant `0.0`; in Gleam
+  the compiler refuses the field.
+- **View as a pure function of the model.** UC-57 (sharpened 2026-10-06) and
+  the 2026-10-22 ruling say the chart changes only when the model changes; an
+  SVG tree built from `databar_list` has no clock and no state of its own.
+- **`element.to_string` SSR.** The chart is a string that can be asserted in a
+  test, exported or diffed — no browser, no canvas pixel buffer.
+
+**Verdict:** for the **ruled** chart (fixed 15 series, one bar per settled bar,
+bounded window) parity on behaviour is plausible with a bounded amount of
+Gleam, and architecture/testability is better. Parity with LightweightCharts
+as a **general charting library** is not claimed; it would have to be built
+feature by feature. That distinction was missing from §10.3 and §11.2.
+
+### 12.4 Deferred, not attempted
+
+His timing is recorded as written: **no chart trial now**. It waits on the rest
+of databar processing — the full `sourcebar_gate → databar_processing →
+indicator / leaves / branches / strategy / runtime-test → accept` path, a
+replay CLI over real klines producing a real `databar_list` (Q6), and the UC-57
+event path to a view. Recorded as **Q11** in `QUESTIONS.md`. **Q8 stays open**:
+whether to adopt Lustre/Wisp at all is still his decision, and nothing in this
+section adopts them.

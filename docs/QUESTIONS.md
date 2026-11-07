@@ -67,3 +67,22 @@ strings like `"BTCUSDT_H1"`. The owner's phase-55 principle says identity is a
 closed set is `MIN1 MIN3 MIN15 MIN30 H1 H4 D1 W1 MO1`. Adding `MIN3`/`H4`
 needs codec rows and bucket-end rules. Type-level, so it must be a type change,
 not a string branch.
+
+### Q11 — is an SVG-DSL chart as powerful as the JS chart? (deferred measurement)
+
+His question [user 2026-11-07]: *"Does this means it will be as powerful as the
+JS chart? Needs a try with actual data later, when other parts(other parts of
+whole databar processing) is done."*
+
+**Not a decision, and not attempted now.** `REVIEW_ROUND5.md` §12 corrects the
+overclaim in §10.3/§11.2: *"no JS charting library"* meant no vendored or
+hand-written JS, **not** feature parity. The trial is gated on the rest of
+databar processing being done: the full `sourcebar_gate → databar_processing →
+… → accept` path, a replay CLI over real klines producing a real
+`databar_list` (Q6), and the UC-57 event path to a view.
+
+What the trial must **measure, not assume**: the 15 series' values against
+`export/csv.gleam`; DOM node count and patch latency per settled bar at the
+real bar count; crosshair/tooltip responsiveness on the pure Erlang target;
+and whether a bounded window is needed at all. Q8 (adopt Lustre/Wisp, or
+retire the web layer) remains his call — this question does not answer it.
