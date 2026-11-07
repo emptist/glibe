@@ -354,3 +354,63 @@ JS；根项目 `scripts/guards.sh --all` 全绿（26 tests、7 fixture cases）�
 是否引入独立 client 包。**web 层框架（Mist / Wisp / Lustre）仍未裁定**，
 不替 owner 采用。历史评审文档中的 `apps/glibe_web` 路径记录的是当时的树，
 不是当前路径；当前路径以本条为准。
+
+---
+
+## R19 — 文档先行是代码里的文档；单元测试先于实现（2026-11-07 owner 裁定）
+
+**owner 原话（节录，逐字）：** *"文档先行，目前不完全，仅仅是文本现行，其实
+文档包含在代码中的文档"*、*"先定一个一个模块（就是一个gleam文件），一个
+模块中先定义一个非常简单的 type 若干空的 fn 但是写完成文档，`////` for
+module, and `///` for type or function, `//` for others, so gleam docs tools
+will generate documents for you"*、*"fn empty_for_now(...) {todo as "I will
+add code here according to function docs above"} builds with no error"*、
+*"And this way you make unit tests first, and fill in functional code later,
+cycling it over and over until all your intended works are all done and built
+green"*、*"code files go without referencing to .planning plans, and documents
+only live in docs folder while code modules may go the other way and without
+anybody noticing it"*。
+
+**裁定：**
+
+1. **文档先行 ≠ 先写 `docs/` 文本。** 文档必须落在代码文件里：`////` 写模块，
+   `///` 写紧随其后的 type / function，`//` 只是普通注释，`gleam docs` 看不见。
+   `///` 就是该函数的规格；测试断言这个规格，函数体交付这个规格。
+2. **一个模块的固定顺序**：`////` 模块文档（**点名它所实现的 `.planning`
+   计划条目**）→ type → `///` + 带完整类型标注的签名 → `todo as "..."`
+   空函数体 → **单元测试** → 每次填一个函数体并编译 → 循环到全绿。
+3. **计划与代码必须有链接。** 只存在于 `.planning/` 或 `docs/`、代码文件里
+   不引用它的计划是玩具；代码会往另一个方向走而没人发现。链接写在 `////`
+   里，因此随编译产物一起存在。
+4. **TDD 用 Gleam 自己的设施**：`assert` / `let assert` / `todo`，不用往源码
+   里塞故意写坏的代码做负面测试（R16 之前的清理已如此）。
+
+**实测（Gleam 1.19.2 / OTP 29，2026-11-07，独立探针包）：**
+
+| 阶段 | 结果 |
+|---|---|
+| `////` + type + `///` + 签名 + 两个 `todo as` 体 | `gleam build` **0 errors**、**4 warnings**（2 个 `Todo found` + 2 个未使用参数）；`gleam build --warnings-as-errors` **exit 1** |
+| 先写 `test/<pkg>_test.gleam`，`assert` 断言 `///` 承诺 | `gleam test` **RED**：`0 passed, 2 failures`，每个失败打印 `todo src/...:行号` 与 `info:` 里的消息 |
+| 填完函数体 | `gleam build --warnings-as-errors` **0**、`gleam test` **0**（`2 passed`）、`gleam format --check` **0**、0 warnings |
+| `gleam docs build` | `////` 段落与每个 `///` 渲染进 HTML；`build/dev/docs/<pkg>/package-interface.json` 以 `"documentation"` 字符串数组保存它们 |
+
+**由此得到的两条机制，不是新 sh 守卫：**
+
+- `--warnings-as-errors` 是**绿灯阶段**的门槛，红灯阶段必然失败；不要为了让
+  它变绿而删掉骨架里的 `todo`。
+- `gleam docs build` 生成的 `package-interface.json` 是**编译器的产物**，把
+  `////` 里的计划引用变成机器可读数据。哪个模块没有 `////`，直接由这个文件
+  看出来，不需要再写一个 grep 守卫去描述约定。
+
+**当前差距（测量，不是猜测）：** glibe `src/` 下 23 个模块，
+`package-interface.json` 显示 **23 个模块的 `documentation` 全为空数组**，
+代码里对 `.planning` 的引用 **0 处**，`test/` 只有 1 个测试文件。对照
+`glib`：`src/` 39 个模块里只有 1 个有 `////`，`///` 共 1507 行、
+24 个测试文件，但代码里对 `.planning` 的引用同样是 **0 处**——文档与测试
+都存在，却没有和计划连起来，也没有写在函数体之前。R19 正是补这两处。
+
+**执行边界：** 这条裁定定的是工作方式，**不是改代码的许可**。`src/` 本次
+**未改动**；`docs/RULINGS.md`、开发指南、`gleam-language` skill 的工作流与
+浓缩核心已按此更新。第一个完整的文档先行 / TDD 循环落在下一件真正开工的
+模块上。可运行的红→绿样例在
+`~/.workbuddy/skills/gleam-language/docs-first-probe/`。

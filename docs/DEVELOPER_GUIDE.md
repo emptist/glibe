@@ -181,3 +181,30 @@ fixture tree under `/tmp`, seven fixtures are built (two clean controls, a
 declarer), and each guard's exit code and failure message are asserted. The
 real `src/` is **never modified, not even briefly**. It is wired into
 `sh scripts/guards.sh --all` and therefore into CI.
+
+## Documentation-first / TDD (R19, 2026-11-07)
+
+Documentation-first is **not** "write `docs/` text first". The documentation
+lives in the code file: `////` for the module, `///` for the next type or
+function, `//` for ordinary comments. `////` names the `.planning` plan item
+the module implements — a plan with no link from a code file is a toy, and the
+code can drift without anybody noticing.
+
+Fixed order for one module: `////` + plan link → types → `///` + fully annotated
+signatures → `todo as "..."` bodies → **unit tests** → fill one body → compile →
+repeat until green. The `///` comment is the specification; the test asserts it;
+the body delivers it. `todo` bodies compile with 0 errors but emit warnings, so
+`gleam build --warnings-as-errors` is the GREEN-phase gate, not a RED-phase
+requirement. `gleam docs build` renders `////` and `///` into HTML and into
+`package-interface.json` — the compiler's own, machine-readable check that a
+module has module docs. No new shell guard is needed.
+
+Measured on a standalone probe (Gleam 1.19.2): skeleton `0 errors / 4 warnings`,
+`gleam test` RED with `0 passed, 2 failures`, filled module `0 warnings` and
+`2 passed`. The runnable example is at
+`~/.workbuddy/skills/gleam-language/docs-first-probe/`.
+
+**Current gap, measured:** `build/dev/docs/glibe/package-interface.json` shows
+all **23** `src/` modules with an empty `documentation` array, and **0**
+`.planning` references in code. R19 sets the rule; `src/` was not edited by the
+ruling itself.
