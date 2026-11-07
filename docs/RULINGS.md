@@ -144,7 +144,8 @@ A `0.0` clamp is not a positive number and collapses the staff. Source: glib
 **Landed in:** `src/glibe/bollinger.gleam` (`band_floor_ratio`, classic edges →
 one floor → four convex-combination inner lines) and
 `bollinger_one_tiny_positive_floor_before_interpolation_test`. This retires
-glibe's Q3, which had misquoted the ruling as "no floor".
+the withdrawn *floor under the lower bands* item in `docs/QUESTIONS.md`,
+which had misquoted the ruling as "no floor".
 
 ---
 
@@ -179,7 +180,7 @@ foreign module (Gleam Language Tour, *Externals*).
 and CI), the retirement of the orphan `src/glibe/ib/ibkr.ex` (zero callers,
 12 build warnings, undeclared `ibkr_api` dep), and the CI pin 1.19.2 / OTP 29.
 **Scope:** `src/` — the engine. `apps/glibe_web` (Phoenix/Elixir + JS) is
-**not** covered and is an open owner decision (Q8, `REVIEW_ROUND5.md` §7).
+**not** covered and is an open owner decision (open owner decision; `REVIEW_ROUND5.md` §7, and R16 below for the JS scope).
 
 ---
 
@@ -218,3 +219,36 @@ declaration in `gleam.toml`. The priority is a mechanism, not a promise.
 `src/` currently has **zero** `@external` in compiled code; the twelve
 `@external(erlang, "Elixir.Glibe.Ibkr", ...)` in `ibkr.gleam.disabled` are a
 retired design record, not source.
+
+---
+
+## R16 — 手写 JS 在「页面设置 + 数据更新」小范围内可以接受（2026-11-07）
+
+> *"如果仅限于页面设置和更新数据的这一个小范围，手写js的风险是严格掌控的，
+> 可以接受。"* [user 2026-11-07]
+
+**这是 owner 的明确例外，范围按原话限定，不扩大。** 覆盖的只有两件事：
+(a) 页面/图表的**设置**（series 定义、pane、坐标与样式选项等声明性内容）；
+(b) 一根 settled bar 到达时的**数据更新**（UC-56 的一次 `series.update`）。
+不覆盖 SSE、tab / symbol 切换、业务计算、第二个引擎，也不覆盖任何其他
+手写 JS 的用途。
+
+**与 §1.28 / R15 的关系。** glib `docs/RULINGS.md` §1.28 说 erlang target 上
+手写 `.mjs` 是「走错了」的信号、law 4 是 *"Never write the file"*；R16 是
+owner 本人对**这一小范围**给出的例外，不是推翻 §1.28：超出上述两件事，
+§1.28 仍然有效。R15 的机制也仍然有效——根 `src/` 下禁止
+`@external(javascript, ...)`、根 `gleam.toml` 禁止 `target = "javascript"`；
+R16 谈的是**手写 JS 文件的可接受范围**，不是编译目标，两者不冲突。
+`scripts/no_foreign_source.sh` 只守 `src/`，比这两条裁定都窄；过 guard
+不等于合规，也不等于违规，最终以 owner 的范围为准。
+
+**撤销的结论：** `docs/REVIEW_ROUND5.md` §13.4 曾写「采用 JS 图表库需要
+owner 另给一次明确例外、否则只有 SVG 路线合规」。例外现在已给出，该句的
+前提消失；§13.4 已改正为按 R16 的范围执行。
+
+**引发的第二个事实（owner 2026-11-07 提法，已实测）：** 若所需 `.mjs` 是
+**Gleam 源码编译生成**的，或 `@external` 绑定的是**已存在的** npm 包，则
+根本不存在「手写 JS」。探针（`gleam 1.19.2`，`target = "javascript"`）生成
+`probe.mjs`，其中 `import { createChart as create_chart } from
+"lightweight-charts"`，`src/` 下零手写 `.mjs`；只有 external 指向
+`./xxx.mjs` 时才需要手写文件。见 `docs/REVIEW_ROUND5.md` §13.8。
