@@ -8,6 +8,12 @@ import gleam/result
 import glibe/databar
 import glibe/indicator_settings.{type SmaForBbm, type TimeframeSettings}
 
+/// The ONE lower-band floor: a fraction of the centre, not a fixed price.
+/// A fraction is scale-free — it cannot invert `l3 ≤ l2 ≤ l1 ≤ m` at $60,000
+/// or at $0.069 alike. Settled 2026-11-02 in glib (`DESIGN.md` §14.4c),
+/// measured over 180,788 real windows. `0.001` was seib's `fixTo: 3`.
+const band_floor_ratio: Float = 0.000001
+
 // ———— Welford recurrence types & state ———————————————————————————————
 
 /// Running state for the Welford online variance recurrence.
@@ -17,7 +23,9 @@ pub type SigmaState {
 }
 
 /// Initial state: n = 0, mean = 0, m2 = 0
-pub fn sigma_init() -> SigmaState { SigmaState(0, 0.0, 0.0) }
+pub fn sigma_init() -> SigmaState {
+  SigmaState(0, 0.0, 0.0)
+}
 
 /// Add a new close value to the Welford state.
 fn sigma_add(s: SigmaState, x: Float) -> SigmaState {
@@ -40,7 +48,6 @@ fn sigma_remove(s: SigmaState, x: Float) -> SigmaState {
 }
 
 /// ———— σ: standard deviation over the selected SMA's window ———————————————
-
 /// σ — the standard deviation of closes over **the very window `bb_m` is the
 /// mean of**: the bar in hand plus the `size - 1` bars that came before it
 /// (plan 31-02 §3). Uses the Welford moving-window recurrence so each bar
@@ -64,34 +71,30 @@ pub fn sigma(
   settings: TimeframeSettings,
 ) -> #(Float, SigmaState) {
   let size = bb_window_size(settings)
-  let prev =
-    case list.first(databar_list) {
-      Ok(b) -> SigmaState(b.sigma_n, b.sigma_mean, b.sigma_m2)
-      Error(_) -> sigma_init()
-    }
+  let prev = case list.first(databar_list) {
+    Ok(b) -> SigmaState(b.sigma_n, b.sigma_mean, b.sigma_m2)
+    Error(_) -> sigma_init()
+  }
   let added = sigma_add(prev, working.close)
-  let state =
-    case prev.n >= size {
-      True -> {
-        let leaving =
-          case list.drop(databar_list, size - 1) |> list.first {
-            Ok(b) -> b.close
-            Error(_) -> working.close
-          }
-        sigma_remove(added, leaving)
+  let state = case prev.n >= size {
+    True -> {
+      let leaving = case list.drop(databar_list, size - 1) |> list.first {
+        Ok(b) -> b.close
+        Error(_) -> working.close
       }
-      False -> added
+      sigma_remove(added, leaving)
     }
-  let sigma =
-    case state.n {
-      0 -> 0.0
-      _ -> float.power(state.m2 /. int.to_float(state.n), 0.5) |> result.unwrap(0.0)
-    }
+    False -> added
+  }
+  let sigma = case state.n {
+    0 -> 0.0
+    _ ->
+      float.power(state.m2 /. int.to_float(state.n), 0.5) |> result.unwrap(0.0)
+  }
   #(sigma, state)
 }
 
 /// ———— Bollinger band construction ———————————————————————————————
-
 /// Bollinger — uses selected SMA as centre, Fibonacci ratios 0.382 / 0.618
 /// Returns updated databar; timeframe update handled by caller
 pub fn bollinger(
@@ -105,14 +108,25 @@ pub fn bollinger(
   // σ via Welford online recurrence (no batch window needed)
   let #(sigma, state) = sigma(databar, databar_list, settings)
 
-  // Build bands at Fibonacci ratios: 0.382, 0.618, 1.0
+  // Classic bands first, ONE floor on the lower edge, THEN the four inner
+  // lines (RULINGS.md R12 — the 2026-10-14 §1.13/§1.14 rulings). Flooring
+  // each lower line last needs three floors, and three floors can disagree:
+  // seib's graded values put the outer band above the middle one. A floor of
+  // 0.0 is worse still — it is not the "artificially tiny positive number"
+  // the ruling asks for, and it collapses the staff onto zero.
   let spread = settings.bb_multiplier *. sigma
   let bb_u3 = bb_m +. spread
-  let bb_u2 = bb_m +. spread *. 0.618
-  let bb_u1 = bb_m +. spread *. 0.382
-  let bb_l1 = float.max(bb_m -. spread *. 0.382, 0.0)
-  let bb_l2 = float.max(bb_m -. spread *. 0.618, 0.0)
-  let bb_l3 = float.max(bb_m -. spread, 0.0)
+  let raw_l3 = bb_m -. spread
+  let bb_l3 = case raw_l3 <=. 0.0 {
+    True -> bb_m *. band_floor_ratio
+    False -> raw_l3
+  }
+  // Convex combinations: weights sum to 1, so a positive edge and a positive
+  // centre make `l3 ≤ l2 ≤ l1 ≤ m` structural, not hoped for.
+  let bb_u2 = 0.618 *. bb_u3 +. 0.382 *. bb_m
+  let bb_u1 = 0.382 *. bb_u3 +. 0.618 *. bb_m
+  let bb_l1 = 0.382 *. bb_l3 +. 0.618 *. bb_m
+  let bb_l2 = 0.618 *. bb_l3 +. 0.382 *. bb_m
 
   databar.DataBar(
     ..databar,
