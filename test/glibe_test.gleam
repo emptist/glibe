@@ -18,6 +18,12 @@ pub fn main() {
   gleeunit.main()
 }
 
+// Assertion style (Gleam Language Tour, Advanced features): bool `assert` is
+// designed for test conditions, `let assert` for partial patterns that must
+// match, and `panic` is "should almost never be used" — it is not a test
+// assertion. `todo` emits a compile warning, so it never appears in this tree
+// (the build requires 0 warnings). Both assertion forms carry `as "message"`.
+
 // ============================================================================
 // Test helpers
 // ============================================================================
@@ -99,44 +105,33 @@ fn approx(a: Float, b: Float) -> Bool {
 
 pub fn asset_class_from_string_crypto_test() {
   let result = asset.asset_class_from_string("Crypto")
-  case result {
-    asset.Crypto -> Nil
-    _ -> panic as "Expected Crypto"
-  }
+  let assert asset.Crypto = result as "Expected Crypto"
 }
 
 pub fn asset_class_from_string_equity_test() {
   let result = asset.asset_class_from_string("Equity")
-  case result {
-    asset.Equity -> Nil
-    _ -> panic as "Expected Equity"
-  }
+  let assert asset.Equity = result as "Expected Equity"
 }
 
 pub fn trading_hours_twenty_four_seven_test() {
   let result = rules.trading_hours_from_string("TwentyFourSeven")
-  case result {
-    rules.TwentyFourSeven -> Nil
-    _ -> panic as "Expected TwentyFourSeven"
-  }
+  let assert rules.TwentyFourSeven = result as "Expected TwentyFourSeven"
 }
 
 pub fn trading_hours_twenty_four_five_test() {
   let result = rules.trading_hours_from_string("TwentyFourFive")
-  case result {
-    rules.TwentyFourFive -> Nil
-    _ -> panic as "Expected TwentyFourFive"
-  }
+  let assert rules.TwentyFourFive = result as "Expected TwentyFourFive"
 }
 
 pub fn trading_hours_rth_test() {
   let result =
     rules.trading_hours_from_string("RTH;09:30;16:00;America/New_York")
-  case result {
-    rules.RTH(open: "09:30", close: "16:00", timezone: "America/New_York") ->
-      Nil
-    _ -> panic as "Expected RTH"
-  }
+  let assert rules.RTH(
+    open: "09:30",
+    close: "16:00",
+    timezone: "America/New_York",
+  ) = result
+    as "Expected RTH"
 }
 
 pub fn trading_hours_custom_test() {
@@ -144,51 +139,33 @@ pub fn trading_hours_custom_test() {
     rules.trading_hours_from_string(
       "Custom;09:30,12:00,Asia/Hong_Kong|13:00,16:00,Asia/Hong_Kong",
     )
-  case result {
-    rules.Custom(sessions) -> {
-      case list.length(sessions) == 2 {
-        True -> Nil
-        False -> panic as "Expected 2 sessions"
-      }
-    }
-    _ -> panic as "Expected Custom"
-  }
+  let assert rules.Custom(sessions) = result as "Expected Custom"
+  assert list.length(sessions) == 2 as "Expected 2 sessions"
 }
 
 pub fn settlement_type_instant_test() {
   let result = rules.settlement_type_from_string("Instant")
-  case result {
-    rules.Instant -> Nil
-    _ -> panic as "Expected Instant"
-  }
+  let assert rules.Instant = result as "Expected Instant"
 }
 
 pub fn settlement_type_tplus2_test() {
   let result = rules.settlement_type_from_string("TPlus2")
-  case result {
-    rules.TPlus2 -> Nil
-    _ -> panic as "Expected TPlus2"
-  }
+  let assert rules.TPlus2 = result as "Expected TPlus2"
 }
 
 pub fn auction_type_both_test() {
   let result = rules.auction_type_from_string("Both")
-  case result {
-    rules.Both -> Nil
-    _ -> panic as "Expected Both"
-  }
+  let assert rules.Both = result as "Expected Both"
 }
 
 pub fn circuit_breaker_test() {
   let result = rules.circuit_breaker_from_string("CircuitBreaker;0.07;300;15")
-  case result {
-    rules.CircuitBreaker(
-      threshold_pct: 0.07,
-      window_seconds: 300,
-      halt_minutes: 15,
-    ) -> Nil
-    _ -> panic as "Expected CircuitBreaker"
-  }
+  let assert rules.CircuitBreaker(
+    threshold_pct: 0.07,
+    window_seconds: 300,
+    halt_minutes: 15,
+  ) = result
+    as "Expected CircuitBreaker"
 }
 
 pub fn asset_class_all_values_test() {
@@ -227,10 +204,7 @@ pub fn trading_hours_all_formats_test() {
 /// Regression test for the circuit-breaker delimiter bug (colon vs semicolon).
 pub fn default_config_does_not_panic_test() {
   let cfg = config.default_config()
-  case cfg.version == 1 {
-    True -> Nil
-    False -> panic as "Expected version 1"
-  }
+  assert cfg.version == 1 as "Expected version 1"
 }
 
 // ============================================================================
@@ -241,10 +215,8 @@ pub fn default_config_does_not_panic_test() {
 pub fn sma_bar_zero_equals_close_test() {
   let working = bar(100.0)
   let result = sma.sma(working, [], settings(), sma.SmaSeriesTiny)
-  case approx(result.sma_tiny, 100.0) {
-    True -> Nil
-    False -> panic as "sma_tiny on bar 0 should equal close"
-  }
+  assert approx(result.sma_tiny, 100.0)
+    as "sma_tiny on bar 0 should equal close"
 }
 
 /// Case 2: warm-up — 1 settled bar, window size 7.
@@ -254,10 +226,8 @@ pub fn sma_warmup_true_mean_test() {
   let prev = databar.DataBar(..bar(100.0), sma_tiny: 100.0)
   let working = bar(110.0)
   let result = sma.sma(working, [prev], settings(), sma.SmaSeriesTiny)
-  case approx(result.sma_tiny, 105.0) {
-    True -> Nil
-    False -> panic as "sma_tiny during warm-up should be true mean"
-  }
+  assert approx(result.sma_tiny, 105.0)
+    as "sma_tiny during warm-up should be true mean"
 }
 
 /// Case 3: full window — 7 settled bars, new close shifts the window.
@@ -267,10 +237,8 @@ pub fn sma_full_window_incremental_test() {
   let settled = list.repeat(databar.DataBar(..bar(100.0), sma_tiny: 100.0), 7)
   let working = bar(107.0)
   let result = sma.sma(working, settled, settings(), sma.SmaSeriesTiny)
-  case approx(result.sma_tiny, 101.0) {
-    True -> Nil
-    False -> panic as "sma_tiny with full window should use incremental formula"
-  }
+  assert approx(result.sma_tiny, 101.0)
+    as "sma_tiny with full window should use incremental formula"
 }
 
 // ============================================================================
@@ -282,15 +250,12 @@ pub fn kdj_flat_market_stays_at_fifty_test() {
   let flat = list.repeat(bar(100.0), 7)
   let working = bar(100.0)
   let result = kdj.kdj(working, flat, settings())
-  case
+  let flat =
     approx(result.k, 50.0)
     && approx(result.d, 50.0)
     && approx(result.j, 50.0)
     && approx(result.m, 50.0)
-  {
-    True -> Nil
-    False -> panic as "KDJ should stay at 50 in a flat market"
-  }
+  assert flat as "KDJ should stay at 50 in a flat market"
 }
 
 /// Rising market: 7 settled bars climbing from 90→96, new bar at 100.
@@ -305,10 +270,7 @@ pub fn kdj_rising_market_k_above_fifty_test() {
   // Current bar: close=100, low=99, high=101
   let working = bar_ohlc(100.0, 101.0, 99.0, 100.0)
   let result = kdj.kdj(working, settled, settings())
-  case result.k >. 50.0 {
-    True -> Nil
-    False -> panic as "K should be above 50 in a rising market"
-  }
+  assert result.k >. 50.0 as "K should be above 50 in a rising market"
 }
 
 // ============================================================================
@@ -344,10 +306,8 @@ pub fn bollinger_band_ordering_law_test() {
         False -> bad + 1
       })
     })
-  case violations == 0 {
-    True -> Nil
-    False -> panic as "Bollinger band ordering violated on at least one bar"
-  }
+  assert violations == 0
+    as "Bollinger band ordering violated on at least one bar"
 }
 
 // ============================================================================
@@ -369,10 +329,8 @@ pub fn sourcebar_epoch_ms_normalizes_test() {
       volume: 10,
     )
   let normalized = sourcebar.normalize_date(raw)
-  case normalized.date == "2024-01-15 09:00:00" {
-    True -> Nil
-    False -> panic as "epoch-ms was not normalised to ISO-8601"
-  }
+  assert normalized.date == "2024-01-15 09:00:00"
+    as "epoch-ms was not normalised to ISO-8601"
 }
 
 /// A date that already reads as a date passes through untouched — the boundary
@@ -388,24 +346,18 @@ pub fn sourcebar_iso_date_passes_through_test() {
       volume: 10,
     )
   let normalized = sourcebar.normalize_date(raw)
-  case normalized.date == "2024-01-15 09:30:00" {
-    True -> Nil
-    False -> panic as "an already-ISO date was altered"
-  }
+  assert normalized.date == "2024-01-15 09:30:00"
+    as "an already-ISO date was altered"
 }
 
 /// The bucket test now closes an hourly bar on the minute the boundary hands
 /// over: an hourly bar ends on minute `00`, so a source bar at `:00` closes the
 /// bucket and one at `:30` does not. This is the bug, proved.
 pub fn interval_h1_bucket_closes_on_hour_test() {
-  case interval.bucket_ends(interval.H1, "2024-01-15 09:00:00") {
-    True ->
-      case interval.bucket_ends(interval.H1, "2024-01-15 09:30:00") {
-        False -> Nil
-        True -> panic as "an H1 bar should not close on minute 30"
-      }
-    False -> panic as "an H1 bar must close on minute 00"
-  }
+  assert interval.bucket_ends(interval.H1, "2024-01-15 09:00:00")
+    as "an H1 bar must close on minute 00"
+  assert interval.bucket_ends(interval.H1, "2024-01-15 09:30:00") == False
+    as "an H1 bar should not close on minute 30"
 }
 
 /// A bar whose own numbers disagree is rejected, with the reason, and nothing
@@ -420,10 +372,7 @@ pub fn sourcebar_rejects_high_below_low_test() {
       close: 100.5,
       volume: 10,
     ))
-  case bad {
-    Error(_) -> Nil
-    Ok(_) -> panic as "a high-below-low bar was accepted"
-  }
+  let assert Error(_) = bad as "a high-below-low bar was accepted"
 }
 
 // ============================================================================
@@ -447,17 +396,14 @@ pub fn bollinger_one_tiny_positive_floor_before_interpolation_test() {
       let result = indicator.run(bar(close), history, s)
       #([result, ..history], result)
     })
-  case
+  let ruled =
     final_bar.bb_l3 >. 0.0
     && approx(final_bar.bb_l3, final_bar.bb_m *. 0.000001)
     && final_bar.bb_l2 >. final_bar.bb_l3
     && final_bar.bb_l1 >. final_bar.bb_l2
     && final_bar.bb_l1 <=. final_bar.bb_m
-  {
-    True -> Nil
-    False ->
-      panic as "the lower edge floor must be one tiny positive applied before interpolation"
-  }
+  assert ruled
+    as "the lower edge floor must be one tiny positive applied before interpolation"
 }
 
 /// R13 — the signal is a closed set, therefore a type, not a String.
@@ -466,18 +412,13 @@ pub fn signal_is_a_closed_type_test() {
   let buy = strategy.manual_signal(True, False)
   let sell = strategy.manual_signal(False, True)
   let none = strategy.manual_signal(False, False)
-  case buy, sell, none {
-    Buy, Sell, NoSignal -> Nil
-    _, _, _ -> panic as "manual_signal returned a case outside the closed set"
-  }
-  case
+  let assert #(Buy, Sell, NoSignal) = #(buy, sell, none)
+    as "manual_signal returned a case outside the closed set"
+  let wire =
     signal.to_string(buy) == "buy"
     && signal.to_string(sell) == "sell"
     && signal.to_string(none) == ""
-  {
-    True -> Nil
-    False -> panic as "the wire spelling must be the only String in the system"
-  }
+  assert wire as "the wire spelling must be the only String in the system"
 }
 
 /// The KDJ cached extreme is retired by POSITION, not by `idx - w`. A gap in
@@ -550,8 +491,6 @@ pub fn kdj_gapped_indices_retire_the_cached_extreme_test() {
   let working =
     databar.DataBar(..bar_ohlc(100.0, 101.0, 100.0, 100.5), idx: 108)
   let result = kdj.kdj(working, settled, s)
-  case approx(result.kdj_h, 101.0) {
-    True -> Nil
-    False -> panic as "a gapped feed kept a cached extreme that left the window"
-  }
+  assert approx(result.kdj_h, 101.0)
+    as "a gapped feed kept a cached extreme that left the window"
 }
