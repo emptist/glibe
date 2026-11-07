@@ -55,6 +55,11 @@ generic "gate", "price gate", "risk gate", "ladder"/"Rung". Owner words:
 - **R15** IB = historic data for stocks/ETFs only; if it forces JS-target
   dependence, drop IB. Guard also fails on `@external(javascript, …)` and
   `target = "javascript"` in `gleam.toml`.
+- **glib §1.28 (owner, 2026-11-01)** *"目的就是不让你手写 mjs …
+  如果手写就说明你错了"*: hand-written `.mjs`/FFI on the Erlang target is the
+  **error signal**, not a line cost to budget. Package-shipped FFI is not ours.
+  So the JS chart lib in Lustre needs an explicit exception; `REVIEW_ROUND5.md`
+  §13 measures 65–85 hand-written lines for the bridge vs 0 for SVG.
 
 ## Claim discipline (owner, 2026-11-07)
 - *"Needs no JS library"* is a **dependency** claim, never a **capability**
