@@ -40,11 +40,11 @@ Gleam engine.
 | **Target** | ✅ `erlang` | pure BEAM; no JS target, no handwritten `.mjs`/`.erl`/`.ex` under `src/` |
 | **Binance REST** | ✅ Working | testnet.binance.vision (works from China), `gleam_httpc` |
 | **Stream Processing** | ✅ Core Complete | SMA×5, Bollinger, KDJ, Leaf, Branch, Timeframe pipeline |
-| **Tests** | ✅ Passing | **26 tests** — indicators, api, ingest boundary, and three Round-5 invariant tests |
+| **Tests** | ✅ Passing | **26 tests** — indicators, api, ingest boundary, and three Round-5 invariant tests; assertions use bool `assert` / `let assert` with messages, not `panic` |
 | **Build** | ✅ Green | gleam **1.19.2** / OTP **29**: 0 errors, 0 warnings |
 | **IB Client Portal** | ⚠️ Retired | The handwritten Elixir `ibkr.ex` wrapper had **zero callers** and an undeclared `ibkr_api` dep; it produced 12 build warnings. Removed under *"No handwritten erlangs"*. The FFI contract survives as `ibkr.gleam.disabled` (a design record, not compiled). |
-| **Visualization** | ⚠️ Debt | `apps/glibe_web` is a Phoenix/Elixir + JS app. It is **outside** the `src/` guard and is an open owner decision (`docs/REVIEW_ROUND5.md` §10, `docs/RULINGS.md` R14/R16). The Gleam core does not broadcast. |
-| **Guards** | ✅ Added | `scripts/guards.sh --all` — build, test, format, `no_timeframe_mixture`, `no_foreign_source`; also runs in CI |
+| **Visualization** | ⚠️ Debt | **The chart library is settled (R17: use the JS chart, generated `.mjs` preferred).** `apps/glibe_web` is a Phoenix/Elixir + JS app, outside the `src/` guard; the web-layer framework and its fate are still an open owner decision (`docs/REVIEW_ROUND5.md` §10, `docs/RULINGS.md` R14/R16/R17). The Gleam core does not broadcast. |
+| **Guards** | ✅ Added | `scripts/guards.sh --all` — build, test, format, `no_timeframe_mixture`, `no_foreign_source`, plus `test_guards.sh` (7 fixture-based negative tests, no source mutation); also runs in CI |
 
 ## Quick Start
 
@@ -55,7 +55,8 @@ gleam build
 # Run tests
 gleam test
 
-# Run every guard (build, test, format, module purity, no foreign source)
+# Run every guard (build, test, format, module purity, no foreign source,
+# plus fixture-based negative tests for the guards)
 sh scripts/guards.sh --all
 
 # Optional, and currently DEBT: the Phoenix/Elixir visualisation

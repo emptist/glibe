@@ -68,6 +68,14 @@ Gleam package for the types both halves use:
 <https://hexdocs.pm/lustre/guide/06-full-stack-applications.html>.
 That is the type-driven shape worth considering; the decision is still his.
 
+**WASM is a research question, not a framework choice.** The owner asked
+whether Elixir has tried WebAssembly. It has: Software Mansion's Popcorn 1.0
+(2026-10-27) runs the full OTP/BEAM compiled to WASM in the browser with
+unmodified Elixir code —
+<https://swmansion.com/blog/popcorn-1-0-moving-from-atom-vm-to-otp-beam>.
+Gleam has no WASM backend, and browser DOM/canvas still goes through JS APIs.
+Recorded as research only in `REVIEW_ROUND5.md` §15; **nothing adopted**.
+
 ## The words
 
 > **"BEAM is great. Let's build our success on it!"** — emptist, 2026-11-07
@@ -142,3 +150,32 @@ AI layer was deliberately deleted by the owner. **glibe does not wait for a
 feature the reference project removed.** The authority order is:
 **the owner's current statement > the Idris spec > legacy code > inference.**
 See `REVIEW_ROUND5.md` §1 and §7.
+
+
+## Testing: assertions and guard fixtures
+
+The Gleam Language Tour's *Advanced features* section defines four
+deliberately-failing constructs. Their use here is deliberately narrow:
+
+| construct | official guidance | glibe (measured, 2026-11-07) |
+|---|---|---|
+| bool `assert expr as "msg"` | *"designed to be used in test code"*; almost never in applications or libraries | **15** primary assertions in `test/glibe_test.gleam` |
+| `let assert Pattern = value as "msg"` | partial pattern; *"should be used sparingly, and likely not at all in libraries"* | **12** in tests for shape checks; **6** in `src/` for invariants that must hold (`engine`, `branch`, `leaf`) |
+| `panic as "msg"` | *"This keyword should almost never be used!"* — in a library it signals a design that could improve | **0 as a test assertion**; **10 remain in `src/` string codecs** (`api/rules.gleam`, `api/asset.gleam`, `binance/kline.gleam`) — a design observation, not changed without a plan |
+| `todo as "msg"` | marks unimplemented code; emits a **compiler warning**, crashes if run | **0 in the tree**. Probe: `gleam build --warnings-as-errors` fails with `error: 1 warning generated` on a single `todo`. With a 0-warning build requirement, `todo` is self-enforcing |
+
+Before this change, `test/glibe_test.gleam` used
+`case Bool { True -> Nil, False -> panic as "..." }` in nearly every test. It
+now uses `assert` / `let assert` with `as "message"`: same **26 tests**, same
+behaviour, fewer lines, clearer failures.
+
+**No more "entrapment-style" negative tests.** The old way to prove a guard
+worked was to write deliberately broken code into `src/`, watch the guard go
+red, then remove it — fragile, manual, and a maintenance cost.
+`scripts/test_guards.sh` replaces it: the guards are copied into a throwaway
+fixture tree under `/tmp`, seven fixtures are built (two clean controls, a
+`.mjs` under `src/`, an `@external(javascript, ...)`, a javascript target in
+`gleam.toml`, an extra function in `timeframe.gleam`, and a second `Timeframe`
+declarer), and each guard's exit code and failure message are asserted. The
+real `src/` is **never modified, not even briefly**. It is wired into
+`sh scripts/guards.sh --all` and therefore into CI.
