@@ -53,6 +53,14 @@ is his (UC-56/57/60). So the two options are now concrete:
 Neither is decided. Lustre and Wisp are **not** owner rulings; he has not read
 or used Wisp yet. Not silently forgiven.
 
+**Cost measured 2026-11-07 (`REVIEW_ROUND5.md` §13):** keeping the vendored
+TradingView lib needs **65–85 lines of hand-written `.mjs`** (two measured
+bridge shapes), the Lustre SVG route needs **0**. But glib `RULINGS.md` §1.28
+says hand-written `.mjs` on the Erlang target **is the error signal** —
+*"如果手写就说明你错了"*. So the JS-lib route needs an explicit exception from
+him, not just a line budget. The guard `no_foreign_source.sh` covers `src/`
+only and is narrower than that ruling.
+
 ### Q9 — typed identity keys (design)
 
 `config.gleam` keys timeframes as `List(#(String, TimeframeSettings))` with
