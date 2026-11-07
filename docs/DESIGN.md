@@ -53,12 +53,15 @@ sourcebar_gate  →  databar_processing
   hourly timeframe never closed a bar on Binance data because `"1705309200000"`
   matched no minute field.
 
-## The bar carries measurements, and nothing else
+## The bar carries measurements, and one derived word
 
-`DataBar` has 26 fields, every one written by a module. Fifteen that nothing
-wrote were deleted — a `bias`, four crossovers and counters, four `inner_*_cma`
-levels this engine does not compute, and six boolean verdicts. A verdict belongs
-to whoever decides (R10); the manual one lives in `trading/strategy.gleam`.
+`DataBar` has **33 fields** (measured 2026-11-07), every one written by a
+module. Fifteen that nothing wrote were deleted — a `bias`, four crossovers and
+counters, four `inner_*_cma` levels this engine does not compute, and six
+boolean verdicts. A verdict belongs to whoever decides (R10): the manual one is
+**derived** in `trading/strategy.gleam` and its **one word** is written on the
+bar, because only a bar is broadcast, drawn and accepted. That word is a
+`Signal`, not a `String` (R13) — three constructors, exhaustively checked.
 
 ## Deviations from glib, and why
 
@@ -67,18 +70,27 @@ to whoever decides (R10); the manual one lives in `trading/strategy.gleam`.
 | module purity | argued, partly done | enforced by script | R7 |
 | end bars | `Option` (ruling landed) | `Option` (same ruling) | R1 — both agree |
 | unwritten bar fields | 0 | 0 (deleted 15) | R10 |
-| **runtime** | one JS process | **BEAM** | one actor per instrument, supervised — glibe passes glib (Stage F) |
-| **broker reach** | paper only | IBKR + Binance modules | real connectivity |
-| **dashboard** | hand-written JS + FFI | Phoenix / LiveView | the live view |
-| KDJ window | `w` | `w + 1` | diverges — pending Stage D5 |
-| σ window | includes bar in hand | excludes it | diverges — pending Stage D6 |
-| lower-band floor | none (ruling) | `0.001` clamp | contradicts ruling — pending Stage D7 |
+| **target** | `javascript` (dual-target only planned) | **`erlang`, pure** | *"BEAM is great"* — glibe is the future |
+| **foreign source in `src/`** | 14 handwritten `.mjs` | **0 compiled** | *"No handwritten erlangs or even worse JS source files"* |
+| **runtime** | one JS process | **BEAM** | one actor per instrument, supervised — Stage F, unstarted |
+| **dashboard** | handwritten JS + FFI | Phoenix/Elixir + JS in `apps/` | **debt, not a virtue** — owner's decision Q8 |
+| KDJ window | `w` | **`w`** | same; idib `kdjPeriod = 7` |
+| σ window | includes bar in hand | **includes it** | same |
+| lower-band floor | `1e-6·bb_m`, one floor, before interpolation | **same** | owner §1.13/§1.14 (R12) |
+| signal | `SignalType` custom type | **`Signal` custom type** | R13 — *"Gleam is a typed language"* |
 
-The last three are acknowledged lags, not choices. They are Stage D, next.
+**The three former "lags" (KDJ window, σ, floor) are closed.** They were
+stale claims in this document, not states of the code. The one real imported
+mistake — seib's three graded lower-band clamps — is fixed to the owner's
+ruled order (R12). See `REVIEW_ROUND5.md` §5–§6.
 
 ## What glibe does not do yet
 
-- The AI strategy (Q7) — ported when glib settles.
-- Stage F — the BEAM concurrency, the replay CLI, the `DataGenerator` removal, the
-  minute-trading guard.
-- Stage D — the four numeric corrections above.
+- **Stage F** — BEAM actors, the replay CLI, `DataGenerator` retirement, the
+  minute-trading guard (Q6). This is the work, and it waits on nothing.
+- **Q8/Q9/Q10** — the `apps/glibe_web` decision, typed identity keys in
+  `config.gleam`, and the `Interval` closed set 7 → 9. Plans first
+  (*"计划和文档先行"*, 2026-10-28).
+- **The AI strategy** — deliberately absent. glib's AI layer was deleted by
+  the owner; there is nothing to port. **glibe does not wait for a feature the
+  reference project removed** (`REVIEW_ROUND5.md` §1).

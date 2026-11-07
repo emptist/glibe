@@ -1,19 +1,37 @@
 # glibe
 
-Erlang/Elixir-target trading library with Interactive Brokers and Binance API support.
+**A pure-Erlang-target Gleam trading engine.** *"glibe is the future, pure
+erlang target is the future."* / *"BEAM is great. Let's build our success on
+it!"* — emptist, 2026-11-07.
 
-Port of `glib` (JavaScript-target) to BEAM with Interactive Brokers TWS/Client Portal and Binance REST API integration.
+It began as a BEAM port of `glib` (JavaScript-target). It is no longer waiting
+on glib: glib's unbuilt roadmap is not a dependency, and glibe takes the
+owner's rulings and the good code from glib directly. See
+[`docs/REVIEW_ROUND5.md`](docs/REVIEW_ROUND5.md) and
+[`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md).
+
+## Gleam language references
+
+1. **The Gleam Language Tour — Everything!** — <https://tour.gleam.run/everything/>
+2. **The Complete Gleam Guide: From Zero to Expert** —
+   <https://www.kodikra.com/2026/03/the-complete-gleam-guide-from-zero-to.html>
+
+The tour is the authoritative syntax/semantics reference; the Kodikra guide is
+a learning roadmap (its `.gleam → .erl → erlc` diagram describes the old
+pipeline). Both are discussed in [`docs/DEVELOPER_GUIDE.md`](docs/DEVELOPER_GUIDE.md).
 
 ## Status
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| **IB Client Portal** | ✅ Working | Elixir `ibkr_api` + Finch (proper HTTP/SSL) |
+| **Target** | ✅ `erlang` | pure BEAM; no JS target, no handwritten `.mjs`/`.erl`/`.ex` under `src/` |
 | **Binance REST** | ✅ Working | testnet.binance.vision (works from China), `gleam_httpc` |
-| **Stream Processing** | ✅ Core Complete | Phase 3: SMA×5, Bollinger, KDJ, Leaf, Branch, Timeframe pipeline |
-| **Tests** | ✅ Passing | 23 tests (indicators, api, ingest boundary) |
-| **Visualization** | ⚠️ Web app | Phoenix + Lightweight Charts real-time streaming. The Gleam core does **not** broadcast — `broadcast_chart` was removed; the web app renders from indicator output |
-| **Guards** | ✅ Added | `scripts/guards.sh --all` — build, test, format, and `no_timeframe_mixture` |
+| **Stream Processing** | ✅ Core Complete | SMA×5, Bollinger, KDJ, Leaf, Branch, Timeframe pipeline |
+| **Tests** | ✅ Passing | **26 tests** — indicators, api, ingest boundary, and three Round-5 invariant tests |
+| **Build** | ✅ Green | gleam **1.19.2** / OTP **29**: 0 errors, 0 warnings |
+| **IB Client Portal** | ⚠️ Retired | The handwritten Elixir `ibkr.ex` wrapper had **zero callers** and an undeclared `ibkr_api` dep; it produced 12 build warnings. Removed under *"No handwritten erlangs"*. The FFI contract survives as `ibkr.gleam.disabled` (a design record, not compiled). |
+| **Visualization** | ⚠️ Debt | `apps/glibe_web` is a Phoenix/Elixir + JS app. It is **outside** the `src/` guard and is an open owner decision (QUESTIONS.md Q8). The Gleam core does not broadcast. |
+| **Guards** | ✅ Added | `scripts/guards.sh --all` — build, test, format, `no_timeframe_mixture`, `no_foreign_source`; also runs in CI |
 
 ## Quick Start
 
@@ -24,10 +42,12 @@ gleam build
 # Run tests
 gleam test
 
-# Start Phoenix visualization (real-time streaming)
-cd apps/glibe_web
-mix phx.server
-# Open http://localhost:4000
+# Run every guard (build, test, format, module purity, no foreign source)
+sh scripts/guards.sh --all
+
+# Optional, and currently DEBT: the Phoenix/Elixir visualisation
+# (see QUESTIONS.md Q8 — it is not part of the Gleam engine)
+cd apps/glibe_web && mix phx.server
 ```
 
 ## Architecture
@@ -39,8 +59,8 @@ mix phx.server
 └─────────────────┬───────────────────────┘
                   │ calls
 ┌─────────────────▼───────────────────────┐
-│      API Wrappers (Gleam + Elixir)      │
-│   IB (ibkr.gleam)  |  Binance (binance) │
+│      API Wrappers (Gleam only)          │
+│   Binance (binance/) | IB — retired     │
 └─────────────────┬───────────────────────┘
                   │ HTTP/WS
 ┌─────────────────▼───────────────────────┐
@@ -54,8 +74,9 @@ mix phx.server
 
 - **SourceBar vs DataBar**: Raw API data (`SourceBar`) vs computed bars (`DataBar`) — per DESIGN.md §2
 - **testnet.binance.vision**: Default Binance endpoint (works from China without VPN)
-- **Pure Gleam HTTP**: `gleam_httpc` for Binance, `ibkr_api` + Finch for IB (no curl shell-outs)
-- **Target**: Erlang (`target = "erlang"` in gleam.toml)
+- **Pure Gleam HTTP**: `gleam_httpc` for Binance; no Elixir/FFI HTTP wrapper (no curl shell-outs)
+- **Target**: Erlang (`target = "erlang"` in gleam.toml) — **no JavaScript target**
+- **Types**: closed sets are custom types, never `String` (`trading/signal.gleam`, `api/interval.gleam`); one type, one module
 - **Config as Code**: Single `config.gleam` — type-safe, no JSON
 
 ## Project Structure
@@ -75,12 +96,12 @@ src/
 │   │   ├── types.gleam           # legacy SourceBar/Interval (superseded by api/ — see DESIGN.md)
 │   │   ├── kline.gleam           # Binance kline → SourceBar
 │   │   └── binance.gleam         # Binance public API (gleam_httpc)
-│   ├── sma.gleam                 # SMA series (Tiny/Small/Medium/Large/Huge) — 5 rungs
+│   ├── sma.gleam                 # SMA series (Tiny/Small/Medium/Large/Huge) — five windows
 │   ├── kdj.gleam                 # KDJ oscillator (LLV/HHV + SMA for K/D/M)
 │   ├── bollinger.gleam           # Bollinger Bands (SMA centre, σ, Fibonacci ratios)
 │   ├── indicator.gleam           # Pipeline: SMA×5 → KDJ → Bollinger
 │   ├── indicator_settings.gleam  # TimeframeSettings, SmaForBbm
-│   ├── databar.gleam             # DataBar — born from SourceBar, folded; 26 measured fields
+│   ├── databar.gleam             # DataBar — born from SourceBar, folded; 33 fields
 │   ├── leaf.gleam                # DataLeaf — grown one bar at a time + CMA
 │   ├── branch.gleam              # DataBranch — grown one bar at a time, rides a leaf
 │   ├── timeframe.gleam           # Timeframe record + new (state only — see RULINGS.md R7)
@@ -255,6 +276,10 @@ Branch detection runs after Leaf detection, using completed leaf lists.
    Analogy: like a good doctor who DIAGNOSES issues earlier, not PREDICTS disease in healthy patients.
    扁鹊也只是早起诊断，不是预测蔡桓公将要生病。
 
+   **Note (Round 5):** this describes a future design, not running code. The AI
+   layer is deliberately absent — the owner ordered glib's AI modules deleted,
+   so there is nothing to port and nothing to wait for.
+
 ### Config (Single Source of Truth)
 
 `config.gleam` — type-safe, no JSON. Uses string-based parsing for enum variants:
@@ -271,7 +296,7 @@ circuit_breaker_from_string("CircuitBreaker;0.07;300;15")
 | Module | Responsibility |
 |--------|----------------|
 | `api/` | Core types: Asset, Market, Symbol, Rules, Exchange — and the ingest boundary (`sourcebar.validate`, `normalize_date`) |
-| `sma.gleam` | SMA series (Tiny/Small/Medium/Large/Huge) — 5 rungs |
+| `sma.gleam` | SMA series (Tiny/Small/Medium/Large/Huge) — five windows |
 | `kdj.gleam` | KDJ oscillator (LLV/HHV batch + SMA for K/D/M) |
 | `bollinger.gleam` | Bollinger Bands (selected SMA centre, σ via Welford online recurrence, Fibonacci ratios) |
 | `indicator.gleam` | Pipeline composition: SMA×5 → KDJ → Bollinger |
@@ -314,26 +339,11 @@ per accepted bar, oldest first — for checking the engine against something tha
 not the engine (TradingView, a spreadsheet, another implementation). An exporter is
 not part of the engine (RULINGS.md R7).
 
-### Quick Start
-
-```bash
-# Build Gleam core
-gleam build
-
-# Run tests
-gleam test
-
-# Start Phoenix visualization (real-time streaming with chart)
-cd apps/glibe_web
-mix phx.server
-# Open http://localhost:4000
-```
-
 ## Roadmap
 
-See `.planning/ROADMAP.md` for detailed phases:
-
-See `.planning/ROADMAP.md` for detailed phases:
+See `.planning/ROADMAP.md` for detailed phases, and
+[`docs/QUESTIONS.md`](docs/QUESTIONS.md) for the current open items (the old
+Stage D items were withdrawn in Round 5 — they were already fixed).
 - Phase 1: Stream Processing Core ✅
 - Phase 2: Binance Live Feed Integration (next)
 - Phase 3: Tests & Verification
@@ -369,6 +379,23 @@ See `.planning/ROADMAP.md` for detailed phases:
    31-02 §3 (2026-10-01). eliminates window cache, avoids catastrophic cancellation
    (DESIGN.md §14.6), and carries σ forward bar-to-bar on `DataBar`. sigma_n /
    sigma_mean / sigma_m2 fields added to `DataBar`.
+
+## Recent Fixes (2026-11-07 — Round 5)
+
+1. **Band floor follows the owner's ruling** — one `1e-6·bb_m` positive floor on
+   the lower edge **before** interpolation, not three clamps. `QUESTIONS.md` Q3
+   had misquoted the ruling as "no floor" (RULINGS.md R12).
+2. **`Signal` is a custom type, not a `String`** — `trading/signal.gleam`
+   (`Buy | Sell | NoSignal`), the wire spelling only in `export/csv.gleam` (R13).
+3. **One closed set, one home** — deleted the dead 4-constructor `SmaSeries`
+   duplicate; renamed `window_kdj_size` → `kdj_window_size`.
+4. **KDJ survives a gapped feed** — the leaving extreme is found by list
+   position, not `idx - w`.
+5. **`src/` is Gleam only** — retired the orphan `ibkr.ex`; added
+   `scripts/no_foreign_source.sh`, wired into guards and CI; CI now pins
+   gleam 1.19.2 / OTP 29 (R14).
+6. **Documents re-measured** — `docs/REVIEW_ROUND5.md`,
+   `docs/DEVELOPER_GUIDE.md`, and updated `STATE / DESIGN / QUESTIONS / RULINGS`.
 
 ## License
 

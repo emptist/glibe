@@ -127,3 +127,53 @@ manual strategy is needed for now; trading the opposite polarity too would be a
 
 **Landed in:** `engine.gleam:203` `strategy` — `manual_enter` on recognition,
 `manual_exit` on the recognised-as-dead bar; the word written is the `YangBranch`'s.
+
+---
+
+### R12 — *"当下轨小于等于0时，给他一个人为的极小的正数"* / *"修正步骤应该在插值之前完成"* — user, 2026-10-14 (settled 2026-11-02)
+
+**One** artificially tiny **positive** number, a fraction of `bb_m`
+(`1e-6`), applied to the **lower edge before interpolation**. The reason is
+arithmetic, not defence: downstream division must proceed. Flooring the three
+lower lines *after* interpolation needs three floors, and three floors can
+disagree — glib measured `bb_l3 = 0.00001 > bb_l2 = 0.0000047` on real data.
+A `0.0` clamp is not a positive number and collapses the staff. Source: glib
+`RULINGS.md` §1.13 `:496`, §1.14 `:525`, `DESIGN.md` §14.4c;
+`src/glib/bollinger.gleam:199-225`.
+
+**Landed in:** `src/glibe/bollinger.gleam` (`band_floor_ratio`, classic edges →
+one floor → four convex-combination inner lines) and
+`bollinger_one_tiny_positive_floor_before_interpolation_test`. This retires
+glibe's Q3, which had misquoted the ruling as "no floor".
+
+---
+
+### R13 — *"Gleam is a typed language, don't you know?"* — user, 2026-10-12
+
+A **closed set held as a `String` can only be described, and prose is what
+nothing checks.** The signal is a custom type with exactly the cases that can
+be produced; the String spelling exists only as the boundary codec. Source:
+glib `RULINGS.md` §1.11 `:265`; also *"必须用type解决"* (2026-11-03) and
+*"Use types everytime a type is needed in nature"* (2026-11-07).
+
+**Landed in:** `src/glibe/trading/signal.gleam`
+(`pub type Signal { Buy Sell NoSignal }` + `to_string`),
+`databar.gleam` (`signal: Signal`), `trading/strategy.gleam`,
+`export/csv.gleam`, `signal_is_a_closed_type_test`. One set, one home: the
+dead 4-constructor `SmaSeries` duplicate in `indicator_settings.gleam` is gone.
+
+---
+
+### R14 — *"No handwritten erlangs or even worse JS source files"* — user, 2026-11-07
+
+Also *"target erlang 无需手写任何erlang代码，无需ffi，ffi是JS专属的"* and
+*"如果手写就说明你错了"* (2026-11-01, glib §1.28). On 1.19.2 the only
+generated `.erl` is the `@@main` runner stub inside `build/`; module code goes
+straight to `.beam`. `@external` calls existing BEAM modules — it is not a
+licence to write a foreign module (Gleam Language Tour, *Externals*).
+
+**Landed in:** `scripts/no_foreign_source.sh` (registered in `guards.sh --all`
+and CI), the retirement of the orphan `src/glibe/ib/ibkr.ex` (zero callers,
+12 build warnings, undeclared `ibkr_api` dep), and the CI pin 1.19.2 / OTP 29.
+**Scope:** `src/` — the engine. `apps/glibe_web` (Phoenix/Elixir + JS) is
+**not** covered and is an open owner decision (Q8, `REVIEW_ROUND5.md` §7).
