@@ -23,7 +23,8 @@
 | JS 图表库 / 生成 mjs 优先 | 已裁定 | **R17，已生效** |
 | 手写 `.mjs` 的可接受范围 | 已裁定 | **R16，范围限定，已生效**（R17 的兜底） |
 | SVG 图表真实数据试验 | 已定，不需裁决 | 推迟，等 databar processing 其余部分 |
-| config.gleam 类型化 identity keys | 设计待定 | 未决，计划先行 |
+| config.gleam 类型化 identity keys | 已裁定方向 | **R20，部分生效**：所有权链 `Desk → Broker → Instrument → Interval` 已在 `src/glibe/desk.gleam` 落地为 shell；`config.gleam` 两张 String 表的**实际迁移仍未决**，另立计划 |
+| Symbol = Instrument 命名冲突 / 是否需要 InstrumentId | 命名待裁决 | **未决**，R20 明确不擅自改名、不擅自统一 |
 | Interval 闭集 7 → 9 | 设计待定 | 未决，类型变更 |
 | BEAM Stage F | 待做，不需裁决 | 未开始 |
 
@@ -295,13 +296,49 @@ whole databar processing) is done."*
 
 ## 设计待定（计划先行，暂不需要拍板）
 
-### 4. config.gleam 类型化 identity keys
+### 4. config.gleam 类型化 identity keys — **方向已裁定（R20），迁移仍待计划**
 
 `config.gleam` 现在用 `List(#(String, TimeframeSettings))`，键是
 `"BTCUSDT_H1"` 这样的复合字符串。你的 phase-55 原则是：identity 是**类型化的
 Dict key**，不是字段、也不是拼出来的字符串。改成 `Symbol` + `Interval` 作键是
 架构变更。你的规则 *"计划和文档先行，任何时候都没有例外"*（2026-10-28）：
 先有计划再动类型。
+
+**2026-11-07 已裁定（你的原话）：** *"Type relations tell you those are Must
+to have, otherwise your list of Timeframe for different intervals, and your
+list of Instruments for Instrument will don't know where to live"*。
+`docs/REVIEW_ROUND5.md` 里「不引入 `Desk` / `Broker` / `Account` 空壳」那一条
+**就此撤销（仅限这一条）**：在 Gleam 里 `Dict(BrokerId, Broker)` 这样的字段
+本身就是编译期消费者，类型关系就是 caller，空壳显得空是因为关系还没写出来。
+
+**已落地：** `.planning/phases/04-domain-cleanup/04-01-PLAN.md` →
+`src/glibe/desk.gleam` + `test/desk_test.gleam`。链条是
+`Desk(Dict(BrokerId, Broker))` → `Broker(Dict(Symbol, Instrument),
+Dict(AccountId, Account))` → `Instrument(Dict(Interval, TimeframeSettings),
+Dict(Interval, Timeframe))`。名称定为 **`Desk`** 而非 `Deck`：trading desk 是
+那张盯行情的台子，`Deck` 在金融语境里是 pitch deck / 演示稿；且 `Desk` 是
+`glib/src/glib/desk.gleam` 里已经存在的确切名字（**example 级印证，不是依据**）。
+另外查到一处实存拼写漂移：`glib/.planning/HANDOFF-2026-11-03.md:111` 的 owner
+引文写 `Deck`，同文件 `:114` 的 AI 转述写成 `Desk`；**引文原样保留，没有替
+owner 改写**，也没有拿它当改名依据。若你其实想要的是那个 UI 屏幕，它属于
+`webclient/` 的 view，朴素的名字是 `Dashboard`，仍不是 `Deck`。
+这是第一个完整的文档先行 / TDD 循环：骨架 `gleam build` 0 errors / 49 warnings，
+`gleam test` RED `26 passed / 10 failures`，填体后 `36 passed, no failures`、
+0 warnings、guards 全绿；`gleam docs build` 的 `package-interface.json` 里
+`glibe/desk` 有 32 行模块文档且含计划路径。全文见 `docs/RULINGS.md` R20。
+
+**仍未决、需要你拍板的只剩两件：**
+1. **什么时候、以什么形状把 `config.gleam` 的 `symbols` 与
+   `timeframe_settings` 两张表搬进这条链**（`:13-17`、`:518`、`:632`、`:647`）。
+   本次**没有改 `config.gleam`**，表与 `list.find` 原样保留。
+2. **命名冲突**：`src/glibe/api/symbol.gleam:1` 写着 "Symbol = Instrument"，
+   而新增的 `Instrument` 是「被拥有的值」、`Symbol` 是「key」。两者是同义词
+   还是两个概念，是命名裁决；按「不擅自改名」本次不动。是否再引入专门的
+   `InstrumentId` 也随这句话一起决定。
+
+**此外明确未做**：`src/glibe/timeframe.gleam` 的 `Timeframe` 仍自带
+`symbol` / `interval` 字段，key 与 value 可能不一致；让它 keyless 是单独的
+类型变更，已记为 design debt，本次未动。
 
 ### 5. Interval 闭集 7 → 9
 

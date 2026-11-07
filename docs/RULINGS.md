@@ -414,3 +414,108 @@ anybody noticing it"*。
 浓缩核心已按此更新。第一个完整的文档先行 / TDD 循环落在下一件真正开工的
 模块上。可运行的红→绿样例在
 `~/.workbuddy/skills/gleam-language/docs-first-probe/`。
+**该循环已在 R20 落到 `src/glibe/desk.gleam`，实测数字见下。**
+
+---
+
+## R20 — 所有权链是 must-have；`Desk` 定名；第一个文档先行 / TDD 循环落地（2026-11-07 owner 裁定）
+
+**owner 原话（逐字节）：** *"注意你其他文档决定不引入 glib的几个types/modules
+包括 Desk/Broker/Account 等等 （REVIEW_ROUND5.md)"*；*"1. Desk or Deck which
+is better here meaning a dashboard"*；*"2. Type relations tell you those are
+Must to have, otherwise your list of Timeframe for different intervals, and
+your list of Instruments for Instrument will don't know where to live"*；
+*"3. Documents first, means you can have almost empty shells but with full
+documentation and the types are sufficient and will be built without error,
+and you can write your tests before actual coding"*。
+
+### 1. 推翻 `docs/REVIEW_ROUND5.md` 的排除项（仅限这一条）
+
+该文 §1 表格（`:37`）写的是 *"`Desk`, `Broker` exist as keyless shells with
+**zero production callers**"*，**Do NOT adopt** 一节（`:282`）据此排除了
+*"`Desk` / `Broker` / `Account` empty shells"*。**这个理由不成立**：在 Gleam 里
+`Desk(brokers: Dict(BrokerId, Broker))` 这样的字段本身就是**编译期消费者**——
+type relation 就是 caller。空壳之所以显得空，是因为**关系还没被写出来**，
+不是因为关系不该存在。所以：**`Desk` / `Broker` / `Account`（连同
+`Instrument`）是 must-have，不是可选装饰。** 该节其余排除项
+（`SignalBundle` / `evaluate_bar`、hy4 的类型名、`String` 化的
+symbol/interval/action/check、14 个手写 `.mjs`）**继续有效，本条不推翻**。
+
+**同一层关系，owner 在 2026-11-03 已经说过一次**
+（`glib/.planning/HANDOFF-2026-11-03.md:111`，一条带时间戳的 owner 引文）：
+*"在你没弄清楚你自己设计的 Deck then Broker then Instrument then Timeframe
+的关系之前，你所设计出来的大堆复杂东西，不过是为了解决interval的窘境，
+不可能有用。"* **来源与层级：** 这是**录在 glib 文档里的 owner 引文**，只作
+印证、**不是规范、不是依据**；本条裁定的依据是上面本轮 owner 原话。它说明
+「四类型所有权关系」本来就是先于 interval 问题的那一层，与本轮 point 2 是
+同一件事——**不是新要求，是被排除项挡住的旧要求**。
+
+**证据（glibe 当前代码，不是类比）：** `src/glibe/config.gleam:13-17` 是一组
+平行的 `List(#(String, …))`；`:518` 的键是 `"BTCUSDT_H1"` 这种把
+instrument 与 interval 两个事实压进一个 `String` 的复合键；`:632` 与
+`:647` 各有一个 `list.find` 靠字符串相等查表。**这两张表没有 type 上的
+owner**，正是 owner 说的 "will don't know where to live"。
+
+### 2. 定名：`Desk`，不是 `Deck`
+
+1. **域语义**：trading desk / dealing desk 正是「一个交易员盯着行情、管理
+   broker、account、instrument」的那个单位，也就是 dashboard 所指的那张台子。
+   `Deck` 在金融语境里是 **pitch deck / slide deck**（给投资人的演示稿），
+   或一副牌、船的甲板；用它命名行情台会主动误导。
+2. **精确名，以及一个实存的拼写漂移**：`glib/src/glib/desk.gleam` 已定义
+   `pub type Desk`，`docs/REVIEW_ROUND5.md` 也一直写 `Desk`。**但 `Deck` 并非
+   不存在**：`glib/.planning/HANDOFF-2026-11-03.md:111` 那条 owner 引文写的是
+   *"Deck then Broker then Instrument then Timeframe"*，而同一文件 `:114` 的
+   AI 转述紧接着改写成 `Desk → Broker → Instrument → Timeframe`。**在本次记录
+   之前，两仓代码与文档里唯一的 `Deck` 就是这条引文**（此处是为说明该拼写才
+   再次写下这个词）——是一次真实的拼写漂移，不是我编出来的对照。
+   按「不擅自改名、用代码里的确切名字」，本次采用**代码里已存在的 `Desk`**；
+   那条引文**原样保留，不替 owner 改写，也不拿它当改名依据**。
+   **来源与层级**：`glib/src/glib/desk.gleam` 只是 **example**（一个已存在的
+   实例，**不是规范、不是依据**）；本条裁定的依据是上面 owner 本轮原话。
+   它的首行注释写着 `Desk ─▶ Broker ─▶ Instrument ─▶ Timeframe ─▶ DataBar`，
+   仅作印证。owner 本轮同时写了 "Desk/Broker/Account" 与 "Desk or Deck"，
+   说明他自己也在核对这一处拼写——上面的取舍是对他这句提问的回答，不是替他
+   改掉旧引文。
+3. **模型与视图分开**（这是 "meaning a dashboard" 的关键）：dashboard 是
+   `webclient/` 里的 **view**，`Desk` 是引擎 `src/` 里 **model 的根节点**。
+   引擎里的一个 type 不可能是屏幕；把这个 type 叫 `Deck` 来指屏幕会把两者
+   混成一个东西。若只需给 UI 起名字，朴素的词是 `Dashboard`，也不是 `Deck`。
+
+### 3. 第一个真正的文档先行 / TDD 循环（实测，非计划）
+
+计划：`.planning/phases/04-domain-cleanup/04-01-PLAN.md`（先写，代码 `////`
+里点名它）。新模块 `src/glibe/desk.gleam` 的顺序严格按 R19：
+`////`（含计划路径）→ 7 个 type → 18 个带完整标注的签名 + `///` →
+`todo as "…"` 体 → `test/desk_test.gleam`（10 个 `assert` / `let assert`）→
+填体 → 绿灯。**没有改任何已有 `src/` 文件。**
+
+| 阶段 | 实测（Gleam 1.19.2 / OTP 29） |
+|---|---|
+| 骨架 `gleam build` | **exit 0，0 errors，49 warnings** = 18 `Todo found` + 29 `Unused function argument` + 2 `Unused private constructor`（后两类是 type 还没被构造出来的连带结果，R19 小探针里没有） |
+| 骨架 `--warnings-as-errors` | **exit 1**（红灯阶段的正常表现，是绿灯门槛） |
+| 测试先于函数体 `gleam test` | **exit 1，26 passed / 10 failures**，10 个新测试全部被发现，每个打印 `todo src/glibe/desk.gleam:行号` 与该 `todo` 的 `info:` 消息 |
+| 填完 18 个函数体 | `build --warnings-as-errors` **0 / 0 warnings**；`gleam test` **0，36 passed, no failures**；`gleam format --check` **0** |
+| `gleam docs build` | `package-interface.json`：24 个模块中 **23 个 `documentation` 仍为空**（历史欠账照实留着）；`glibe/desk` 有 **32 行模块文档、25 个带文档的条目**，且计划路径在 JSON 里可检索 |
+| `sh scripts/guards.sh --all` | **exit 0**（build、36 tests、format、7 个 fixture 用例） |
+
+**类型关系落点：** `Desk(brokers: Dict(BrokerId, Broker))` →
+`Broker(instruments: Dict(Symbol, Instrument), accounts: Dict(AccountId, Account))`
+→ `Instrument(settings: Dict(Interval, TimeframeSettings),
+timeframes: Dict(Interval, Timeframe))`。identity 是 key，不是字段；
+`BrokerId` / `AccountId` 是 `opaque`；查找失败是 5 个变体的
+`LookupError`，不是 `Error(String)`。于是 `config.gleam` 那两张表**现在有
+了 typed 目的地**，虽然表本身尚未搬迁。
+
+### 4. 明确未决、未做的事（不装作已完成）
+
+- **`config.gleam` 未迁移**：两张 `List(#(String, …))` 及其 `list.find` 原样
+  保留。搬迁是架构变更，另立计划，不在本条。
+- **`Timeframe` 仍自带 `symbol` / `interval` 字段**，所以 key 与 value 可能
+  不一致；让它 keyless 是单独的类型变更（`docs/REVIEW_ROUND5.md` 已记为
+  design debt）。本条没有动 `src/glibe/timeframe.gleam`。
+- **`src/glibe/api/symbol.gleam:1` 写着 "Symbol = Instrument"**，与新增的
+  `Instrument` 值类型构成命名冲突。**不擅自改名、不擅自统一**，记为待裁决。
+  当前用 `Symbol` 作 `Dict` 的 key；是否需要专门的 `InstrumentId` 也未决。
+- `Interval` 闭集 7 → 9、web 层框架（Mist / Wisp / Lustre）仍未裁定。
+- 没有新增任何 sh 守卫；防漂移靠编译器自己的 `package-interface.json`。
