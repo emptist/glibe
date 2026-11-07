@@ -1,0 +1,59 @@
+# MEMORY — glibe project conventions (curated)
+
+## Authority (do not invert)
+**The owner's current statement > the Idris spec > legacy code > my inference.**
+glib's `docs/` are mostly **hy4's AI prose**, not the owner's record. Owner
+words appear as dated `[user …]` quotes, `{<UC: …>}` annotations and Chinese
+verbatim quotes in `glib/docs/RULINGS.md`. hy4-invented vocabulary is banned:
+generic "gate", "price gate", "risk gate", "ladder"/"Rung". Owner words:
+`sourcebar_gate` (the only gate), **price checker**, **risk manager**.
+
+## Direction (owner, 2026-11-07)
+- *"glibe is the future, pure erlang target is the future."*
+- *"BEAM is great. Let's build our success on it!"*
+- *"No handwritten erlangs or even worse JS source files, keep the system clean
+  and beautiful!"* → `scripts/no_foreign_source.sh` guards `src/`.
+- *"Use types everytime a type is needed in nature, let gleam make your thinking
+  correct and coding reliable!"* → closed sets are custom types, not `String`.
+- **glibe stops waiting on glib.** Many features required in glib never landed
+  in its `src/`; the AI layer was deleted by the owner. glibe takes the owner's
+  rulings + glib's good code directly. Never cite an unbuilt glib roadmap as a
+  dependency.
+
+## Language facts (Gleam 1.19.2, verified)
+- Import: `import mod.{type T}` / `import mod.{type T, CtorA, CtorB}`.
+  **There is no `T(..)` constructor-import form** — it was never Gleam syntax,
+  not a version change. Qualifying constructors (`mod.CtorA`) is also valid.
+- A function may have BOTH `@external(erlang/js, …)` and a Gleam body; the
+  Gleam body is the fallback for targets without an external. This is why no
+  handwritten `.erl` is ever needed for a dual-target port.
+- 1.19.2 emits exactly one `.erl` (`@@main` runner stub, inside `build/`);
+  module code goes straight to `.beam`. No Erlang source is read or written by
+  a human.
+- References: <https://tour.gleam.run/everything/> (authoritative),
+  <https://www.kodikra.com/2026/03/the-complete-gleam-guide-from-zero-to.html>
+  (learning roadmap, its compilation-flow diagram is stale).
+
+## Rulings with mechanisms
+- **R12** lower-band floor = ONE `1e-6·bb_m` positive floor on the outer edge
+  **before** interpolation (owner 2026-10-14, settled 2026-11-02). Three graded
+  floors or a `0.0` clamp are wrong. `QUESTIONS.md` Q3 used to misquote this as
+  "no floor" — do not repeat that error.
+- **R13** closed sets are types (`trading/signal.gleam`). One set, one home.
+- **R14** `src/` is Gleam only; guard + CI. `apps/glibe_web` (Phoenix/Elixir +
+  JS) is outside the guard and is an open owner decision (Q8).
+
+## Toolchain / workflow
+- `gleam`, `erl`, `elixir` live in `/opt/homebrew/bin`; WorkBuddy's shell lacks
+  it — always `export PATH="/opt/homebrew/bin:$PATH"`.
+- macOS BSD `grep` breaks on `\|` alternation and `\b`; use the Grep tool or
+  Python. Never trust `cmd | tail` to preserve exit codes — capture with
+  `> log 2>&1; echo "EXIT=$?"`.
+- Green = `gleam build` (0 errors/0 warnings) + `gleam test` + `gleam format
+  --check src test` + `sh scripts/guards.sh --all`. **Build/test before
+  committing**; one logical concern per commit; do not push unless asked.
+- Never `rm -rf build` (owner denied a bulk delete).
+
+## Git state note
+The push attempted 2026-10-05 was interrupted and never landed;
+`origin/fix-types` stayed at `4c2e280` while local advanced.
