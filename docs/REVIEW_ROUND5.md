@@ -680,7 +680,13 @@ symbol switching, the branch table, chart title, date→epoch conversion, CSS,
 and most of the de-dup logic. That is the bulk of glib's 760 lines — it becomes
 **Gleam work, not JS work**. Nothing disappears; only the language changes.
 
-### 13.3 Three-way cost
+### 13.3 Hand-written foreign source — the only extra-cost dimension
+
+This column counts **hand-written foreign source lines only**. It is not a
+measure of work: series definitions, chart options and the per-bar update
+mapping are inherent to using *any* charting library in *any* language, and in
+the generated route they are Gleam work (§13.9). Read it as the one dimension
+§1.28 forbids, not as "65–85 lines of overhead".
 
 | route | hand-written JS/mjs lines | other costs |
 |---|---|---|
@@ -721,7 +727,9 @@ separate projects**: `client/gleam.toml` declares
 uses Wisp + Mist, and `shared/` holds the types. §10.2 presented it as a
 pure-Erlang-target recipe; it is not. §11.2's separate claim still stands:
 **server components** are Erlang-target only and need no JS-target Gleam
-package. Two different Lustre shapes — do not conflate them.
+package. Two different Lustre shapes — do not conflate them. The owner's
+reading (2026-11-07) is that this split between a JS target and a BEAM/Erlang
+target is deliberate and done well, not a defect; §13.9 records it.
 
 ### 13.6 What was and was not measured
 
@@ -755,9 +763,10 @@ mostly `for` loops over the series tables and the one `if` de-dup guard. There
 is no algorithm, no state machine, no second engine. `paint` is one
 `candle.update` plus one loop of fourteen `series.update` calls, i.e. literally
 UC-56's one-bar-at-a-time rule. So **65–85 was a line count, not a complexity
-claim**; §13.3 calling it a "cost" without this split was misleading. The
-owner's point stands: the dynamic half is one bar; the rest is declarative
-mapping from the model to the view.
+claim**; §13.3 calling it a "cost" without this split was misleading. §13.9
+goes further: the owner rules those declarative lines **inherent configuration,
+not extra cost at all**. The owner's point stands: the dynamic half is one bar;
+the rest is declarative mapping from the model to the view.
 
 What still matters is **who writes those declarative lines, and in which
 language**. §1.28 forbids hand-written foreign source on the Erlang target
@@ -833,3 +842,86 @@ an existing library"*.
 **Correction:** §13.3's table counted *hand-written* lines only; the
 generated-mjs route is now its fourth row with **0**. §13.4's *"needs an
 explicit exception from him"* is withdrawn — the exception **is** R16.
+
+### 13.9 What "the generated `.mjs`" means — and what counts as cost
+
+[user 2026-11-07]: *"Lustre 文档我一段时间以前读过（现在可能更新了）它确实是
+有一部分是js target，其他部分是 BEAR/erlang target，这方面做的很好。这也是我
+问成本的原因，因为可能是0成本（额外成本），因为不管你用什么语言，用绘图库都
+是要写一点配置的。这部分不是额外成本。"* ("BEAR" = BEAM, quoted verbatim.)
+
+And: *"你说的探针证实我的第一点，希望你说的是，写gleam代码，编译形成应用JS库
+绘图所需的那个mjs是可以做到的，而不是别的意思。"*
+
+**Yes — that is exactly the meaning, and the earlier probe showed only the
+binding line.** Restated precisely: the **application module** the browser
+needs — chart setup, the 15 series definitions, options, the `DataBar → bar`
+mapping and the one-bar update — is **written in Gleam source** and **emitted by
+`gleam build`** as `build/dev/javascript/<pkg>/<module>.mjs`. No human writes
+that file. §13.8's one-line probe proved only that `@external` produces an
+`import` from the npm package; the fuller probe below proves the body.
+
+**Fuller probe (`gleam 1.19.2`, 2026-11-07).** `/tmp/gleam_js_probe/probe`,
+`target = "javascript"`, `gleam_json` v3.1.0, one module
+`src/probe/chart.gleam`: 15 `SeriesSpec` records, `chart_options()`,
+`series_options()`, `bar_json()`, `setup(container)`, `paint(series, bar)`,
+plus three `@external(javascript, "lightweight-charts", …)` declarations.
+`gleam build` exit 0; generated `build/dev/javascript/probe/probe/chart.mjs`
+is **154 lines** and contains:
+
+```js
+import { createChart as create_chart, addSeries as add_series,
+         updateSeries as update_series } from "lightweight-charts";
+export function specs() { … }            // 15 series, lines 61–79
+export function chart_options() { … }   // lines 81–110
+export function setup(container) { … }  // lines 142–149
+export function paint(series, b) { … }  // lines 151–154
+```
+
+`find src -name '*.mjs'` → **empty**. `gleam/json`'s `object()` is
+`Object.fromEntries(entries)` (in `gleam_json_ffi.mjs`, package-shipped), so
+chart options are native JS objects built from typed Gleam values — no FFI of
+ours. The 65–85 lines of §13.3 are therefore **compiler output**, not source
+anyone maintains.
+
+**Cost, as the owner defines it.** Those 65–85 lines of setup and mapping are
+**not an extra cost**: any charting library in any language needs series
+definitions, axis/scale options and a per-bar update mapping. That work is
+inherent to drawing a chart, and in the generated route it is Gleam work. The
+only *extra* cost is **hand-written foreign source** — the file §1.28 forbids —
+and on the generated route that is **0**. §13.3 measures exactly that one
+dimension; §13.7's complaint about calling it "cost" is now resolved in full,
+not merely split by category.
+
+**What this does NOT mean** (so the claim cannot be stretched):
+
+- It does **not** mean the chart library is generated. `lightweight-charts` ESM
+  comes from npm; §1.28 law 2 calls that the package author's code, not ours.
+- It does **not** mean zero `.mjs` files exist anywhere. `gleam_json_ffi.mjs`
+  and `lustre-server-component.min.mjs` are package-shipped, not hand-written
+  by us. **Zero** counts *our* hand-written files.
+- It does **not** mean the root project becomes a JavaScript target. glibe's
+  engine stays pure `erlang` (R15). The generated module lives in a separate
+  `client/` package — exactly the Lustre split the owner describes above and
+  the current full-stack guide shows (§13.5): an Erlang/BEAM server half with
+  Wisp + Mist and server components, and a JS-target client half. **That is a
+  deliberate division of the two runtimes, not a tension with "pure erlang
+  target is the future."** The earlier note "有张力" (a tension) is withdrawn.
+  Whether to add such a client half at all is still his decision.
+- It does **not** mean the whole library API binds with zero adapter.
+
+**The one real boundary, measured.** `@external` binds **module-level function
+exports**. In `lightweight-charts` v5 typings, `createChart` is a standalone
+`export declare function`, but `chart.addSeries(…)` and `series.update(…)` are
+**methods on `IChartApi` / `ISeriesApi`**, not module exports (glib's
+`priv/index.html:372` and `:691-705` use them as methods). A probe with a
+dotted name `@external(javascript, "lightweight-charts", "chart.addSeries")`
+fails to compile: *"Invalid JavaScript function … the function name
+`chart.addSeries` is not valid"*. The fuller probe's `addSeries` /
+`updateSeries` bindings are therefore **placeholders**, not verified npm
+exports; a real implementation needs either a function-first wrapper package or
+a tiny forwarder (`chart.addSeries(...)`, `series.update(...)`). R16 permits
+that forwarder — page setup and bar update, nothing more. So: **the application
+`.mjs` is generated; the only possibly hand-written JS is a 2–5 line adapter,
+already inside R16's scope.** No chart was built, no browser was run, no real
+data was used — this is a compiler fact, not a UI capability claim.
