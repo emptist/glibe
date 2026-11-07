@@ -14,10 +14,12 @@ jobs:
       - uses: actions/checkout@v6
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: "28"
-          gleam-version: "1.16.0"
+          otp-version: "29"
+          gleam-version: "1.19.2"
           rebar3-version: "3"
           # elixir-version: "1"
       - run: gleam deps download
       - run: gleam test
       - run: gleam format --check src test
+      # A ruling without a mechanism is decoration: the guards run in CI too.
+      - run: sh scripts/guards.sh --all
