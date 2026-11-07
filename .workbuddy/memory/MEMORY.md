@@ -27,12 +27,22 @@ generic "gate", "price gate", "risk gate", "ladder"/"Rung". Owner words:
 - A function may have BOTH `@external(erlang/js, …)` and a Gleam body; the
   Gleam body is the fallback for targets without an external. This is why no
   handwritten `.erl` is ever needed for a dual-target port.
-- 1.19.2 emits exactly one `.erl` (`@@main` runner stub, inside `build/`);
-  module code goes straight to `.beam`. No Erlang source is read or written by
-  a human.
+- **v1.19.0 (2026-10-05) stopped generating Erlang source for modules.**
+  Official: <https://gleam.run/news/gleam-doesnt-compile-to-erlang-source-anymore/>
+  — *"Previously Gleam generated Erlang source code, now it generates Erlang
+  abstract forms."* Path is `.gleam → .abstr → Erlang compiler back half →
+  .beam`, NOT "straight to .beam" (that earlier claim here was wrong).
+  Fresh-project probe on 1.19.2: 25 `.abstr`, 30 `.beam`, **0 `.erl` per
+  module**, exactly one `@@main.erl` (`gleam run` runner stub) — delete and
+  rebuild regenerates it, so it is **current, not a stale artefact**. Other
+  `.erl` under `build/` = Hex-package-shipped sources (epoch 1970, for
+  rebar3/mix), package FFI, or stale `build/dev/javascript/` cache.
+- `lpil` = **Louis Pilfold, creator of Gleam**, and Wisp's author. Mist =
+  `rawhat`, Lustre = Hayleigh Thompson. Wisp v2.2.2, BEAM/Erlang target.
 - References: <https://tour.gleam.run/everything/> (authoritative),
   <https://www.kodikra.com/2026/03/the-complete-gleam-guide-from-zero-to.html>
-  (learning roadmap, its compilation-flow diagram is stale).
+  (learning roadmap; its `.gleam → .erl → erlc` diagram is the pre-1.19.0
+  pipeline), <https://gleam-wisp.github.io/wisp/> (Wisp, evaluation only).
 
 ## Rulings with mechanisms
 - **R12** lower-band floor = ONE `1e-6·bb_m` positive floor on the outer edge
