@@ -29,7 +29,9 @@ abstract forms (`.abstr`), not Erlang source. All three are discussed in
 [Wisp](https://gleam-wisp.github.io/wisp/), [Lustre](https://hexdocs.pm/lustre/),
 [Mist](https://hexdocs.pm/mist/). See `DEVELOPER_GUIDE.md` and
 `REVIEW_ROUND5.md` §10. `apps/glibe_web` (Phoenix) is an unowned AI choice and
-open decision Q8, not part of the Gleam engine.
+an open owner decision — port this app to pure Gleam or retire it
+(`docs/REVIEW_ROUND5.md` §10, `docs/RULINGS.md` R14/R16) — not part of the
+Gleam engine.
 
 ## Status
 
@@ -41,7 +43,7 @@ open decision Q8, not part of the Gleam engine.
 | **Tests** | ✅ Passing | **26 tests** — indicators, api, ingest boundary, and three Round-5 invariant tests |
 | **Build** | ✅ Green | gleam **1.19.2** / OTP **29**: 0 errors, 0 warnings |
 | **IB Client Portal** | ⚠️ Retired | The handwritten Elixir `ibkr.ex` wrapper had **zero callers** and an undeclared `ibkr_api` dep; it produced 12 build warnings. Removed under *"No handwritten erlangs"*. The FFI contract survives as `ibkr.gleam.disabled` (a design record, not compiled). |
-| **Visualization** | ⚠️ Debt | `apps/glibe_web` is a Phoenix/Elixir + JS app. It is **outside** the `src/` guard and is an open owner decision (QUESTIONS.md Q8). The Gleam core does not broadcast. |
+| **Visualization** | ⚠️ Debt | `apps/glibe_web` is a Phoenix/Elixir + JS app. It is **outside** the `src/` guard and is an open owner decision (`docs/REVIEW_ROUND5.md` §10, `docs/RULINGS.md` R14/R16). The Gleam core does not broadcast. |
 | **Guards** | ✅ Added | `scripts/guards.sh --all` — build, test, format, `no_timeframe_mixture`, `no_foreign_source`; also runs in CI |
 
 ## Quick Start
@@ -57,7 +59,7 @@ gleam test
 sh scripts/guards.sh --all
 
 # Optional, and currently DEBT: the Phoenix/Elixir visualisation
-# (see QUESTIONS.md Q8 — it is not part of the Gleam engine)
+# (owner decision pending; see docs/REVIEW_ROUND5.md section 10, docs/RULINGS.md)
 cd apps/glibe_web && mix phx.server
 ```
 
@@ -352,9 +354,10 @@ not part of the engine (RULINGS.md R7).
 
 ## Roadmap
 
-See `.planning/ROADMAP.md` for detailed phases, and
-[`docs/QUESTIONS.md`](docs/QUESTIONS.md) for the current open items (the old
-Stage D items were withdrawn in Round 5 — they were already fixed).
+See `.planning/ROADMAP.md` for detailed phases. The rulings and measurements
+behind the remaining decisions are in [`docs/RULINGS.md`](docs/RULINGS.md) and
+[`docs/REVIEW_ROUND5.md`](docs/REVIEW_ROUND5.md); withdrawn Stage D items are
+recorded in [`docs/QUESTIONS.md`](docs/QUESTIONS.md).
 - Phase 1: Stream Processing Core ✅
 - Phase 2: Binance Live Feed Integration (next)
 - Phase 3: Tests & Verification
@@ -394,8 +397,9 @@ Stage D items were withdrawn in Round 5 — they were already fixed).
 ## Recent Fixes (2026-11-07 — Round 5)
 
 1. **Band floor follows the owner's ruling** — one `1e-6·bb_m` positive floor on
-   the lower edge **before** interpolation, not three clamps. `QUESTIONS.md` Q3
-   had misquoted the ruling as "no floor" (RULINGS.md R12).
+   the lower edge **before** interpolation, not three clamps. The withdrawn
+   *floor under the lower bands* item in `docs/QUESTIONS.md` had misquoted the
+   ruling as "no floor" (RULINGS.md R12).
 2. **`Signal` is a custom type, not a `String`** — `trading/signal.gleam`
    (`Buy | Sell | NoSignal`), the wire spelling only in `export/csv.gleam` (R13).
 3. **One closed set, one home** — deleted the dead 4-constructor `SmaSeries`

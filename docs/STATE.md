@@ -43,7 +43,7 @@ gleam 1.16.0 / OTP 28. The download could not be fetched (no network in the
 sandbox), so the pinned-version build is unverified. The guards scripts default
 `GLEAM` to `/opt/homebrew/bin/gleam` for the same reason.
 
-**Lagging glib on this day (open, see `QUESTIONS.md`):**
+**Lagging glib on this day (since withdrawn — see the withdrawn records in `docs/QUESTIONS.md`):**
 KDJ window is `w+1` (glib `w`); D uses alpha ½ (glib's is dead); σ excludes the
 bar in hand; lower bands still clamped; `kdj_d_period` still a field;
 `window_kdj_size` not yet renamed to `kdj_window_size`. These are Stage D, next.

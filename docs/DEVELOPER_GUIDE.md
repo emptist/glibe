@@ -40,7 +40,8 @@ from glibe's modules and not from a human here. Module compilation goes
 The owner has **not** chosen a web framework, and has not yet read or used
 Wisp. `apps/glibe_web` is a Phoenix/Elixir app an AI picked, not a design of
 his (see `REVIEW_ROUND5.md` §10). These three links are reference material for
-the day Q8 is decided — **not** a commitment and **not** a dependency:
+the day the owner decides the web layer (`REVIEW_ROUND5.md` §10) —
+**not** a commitment and **not** a dependency:
 
 1. **Wisp — A practical web framework for Gleam** —
    <https://gleam-wisp.github.io/wisp/>

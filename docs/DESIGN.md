@@ -2,8 +2,9 @@
 
 glibe is the BEAM port of glib's two-chain self-nesting yin-yang fractal. This
 document is glibe's own design — what it keeps from glib, what it changes, and
-why. For the rulings that bind it see `RULINGS.md`; for open questions see
-`QUESTIONS.md`.
+why. For the rulings that bind it see `RULINGS.md`; for the measurements
+behind the remaining decisions see `REVIEW_ROUND5.md` (withdrawn items remain
+in `QUESTIONS.md`).
 
 ## The one idea
 
@@ -73,7 +74,7 @@ bar, because only a bar is broadcast, drawn and accepted. That word is a
 | **target** | `javascript` (dual-target only planned) | **`erlang`, pure** | *"BEAM is great"* — glibe is the future |
 | **foreign source in `src/`** | 14 handwritten `.mjs` | **0 compiled** | *"No handwritten erlangs or even worse JS source files"* |
 | **runtime** | one JS process | **BEAM** | one actor per instrument, supervised — Stage F, unstarted |
-| **dashboard** | handwritten JS + FFI | Phoenix/Elixir + JS in `apps/` | **unowned AI choice** (`5e91f44`), debt — Q8 + `REVIEW_ROUND5.md` §10. The *chart* is the owner's (UC-56/57/60); the framework is not |
+| **dashboard** | handwritten JS + FFI | Phoenix/Elixir + JS in `apps/` | **unowned AI choice** (`5e91f44`), debt — owner decision pending; `REVIEW_ROUND5.md` §10, `RULINGS.md` R14/R16. The *chart* is the owner's (UC-56/57/60); the framework is not |
 | KDJ window | `w` | **`w`** | same; idib `kdjPeriod = 7` |
 | σ window | includes bar in hand | **includes it** | same |
 | lower-band floor | `1e-6·bb_m`, one floor, before interpolation | **same** | owner §1.13/§1.14 (R12) |
@@ -87,9 +88,10 @@ ruled order (R12). See `REVIEW_ROUND5.md` §5–§6.
 ## What glibe does not do yet
 
 - **Stage F** — BEAM actors, the replay CLI, `DataGenerator` retirement, the
-  minute-trading guard (Q6). This is the work, and it waits on nothing.
-- **Q8/Q9/Q10** — the `apps/glibe_web` decision, typed identity keys in
-  `config.gleam`, and the `Interval` closed set 7 → 9. Plans first
+  minute-trading guard (Stage F, `REVIEW_ROUND5.md` §1). This is the work,
+  and it waits on nothing.
+- **Three open design points** — the web-layer decision, typed identity
+  keys in `config.gleam`, and the `Interval` closed set 7 → 9. Plans first
   (*"计划和文档先行"*, 2026-10-28).
 - **The AI strategy** — deliberately absent. glib's AI layer was deleted by
   the owner; there is nothing to port. **glibe does not wait for a feature the
