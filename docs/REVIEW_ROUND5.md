@@ -925,3 +925,108 @@ that forwarder — page setup and bar update, nothing more. So: **the applicatio
 `.mjs` is generated; the only possibly hand-written JS is a 2–5 line adapter,
 already inside R16's scope.** No chart was built, no browser was run, no real
 data was used — this is a compiler fact, not a UI capability claim.
+
+### 13.10 Obstacles on the generated-mjs route (measured, as requested)
+
+[user 2026-11-07]: *"尽量用Gleam编译的mjs取代手写这件事，以前做其他项目时
+尝试过，是可行的。如果遇到障碍可以写出来。"* and *"你在这里测试失败有可能是
+缺少那个chart库本身。"*
+
+**The second remark is correct and is now reproduced end to end.** The probe
+project has no `node_modules/lightweight-charts`; `gleam build` still exits
+**0** because the compiler emits a bare `import` and never resolves npm
+packages. Running the generated module under Node gives:
+
+```
+IMPORT_FAIL ERR_MODULE_NOT_FOUND Cannot find package 'lightweight-charts'
+```
+
+After `npm install --no-save lightweight-charts@5.0.0` (exit 0), importing the
+same generated module gives:
+
+```
+IMPORT_FAIL  The requested module 'lightweight-charts'
+             does not provide an export named 'addSeries'
+```
+
+That second error is **the missing-library check passing, not a new failure**:
+it proves §13.9's `addSeries` / `updateSeries` bindings were placeholders.
+`Object.keys(await import("lightweight-charts"))` on v5.0.0 is (sorted):
+`AreaSeries`, `BarSeries`, `BaselineSeries`, `CandlestickSeries`, `ColorType`,
+`CrosshairMode`, `HistogramSeries`, `LastPriceAnimationMode`, `LineSeries`,
+`LineStyle`, `LineType`, `MismatchDirection`, `PriceLineSource`,
+`PriceScaleMode`, `TickMarkType`, `TrackingModeExitMode`, `createChart`,
+`createChartEx`, `createImageWatermark`, `createOptionsChart`,
+`createSeriesMarkers`, `createTextWatermark`, `createUpDownMarkers`,
+`createYieldCurveChart`, `customSeriesDefaultOptions`,
+`defaultHorzScaleBehavior`, `isBusinessDay`, `isUTCTimestamp`, `version`.
+**No `addSeries`, no `updateSeries`.**
+
+| # | obstacle (measured) | workaround | status |
+|---|---|---|---|
+| 1 | Gleam does not resolve npm deps; a green build guarantees nothing about runtime | declare the npm package; add an explicit import/runtime check in CI | **open**, not yet wired into glibe |
+| 2 | `chart.addSeries(…)` / `series.update(…)` are methods on `IChartApi` / `ISeriesApi`, not module exports; dotted `@external` names fail at compile time | 2–5 line forwarder (R16) or a function-first wrapper package | **open**, inside R16's scope |
+| 3 | exported *values* (`LineSeries`, `CandlestickSeries`, `LineStyle`…) cannot be bound by `@external` in 1.19.2 (`pub const` probe → `expected "="`) | same forwarder | **open**, inside R16's scope |
+| 4 | glib's vendored file is a 197,922-byte / 7-line standalone IIFE setting `window.LightweightCharts`, not ESM | use the npm ESM build | asset/dependency change, not handwritten JS |
+| 5 | generated `.mjs` needs a javascript-target `client/` package; the root is pure `erlang` (R15) | separate package, Lustre's deliberate two-runtime split (§13.5/§13.9) | owner's web-layer decision |
+| 6 | no browser, no DOM, no canvas, no real data has been exercised | deferred real-data trial (§12) | deferred |
+
+**None is a blocker to the shape**: the application module is generated; the
+only possibly hand-written JS is the small adapter, already permitted by R16.
+
+**psipi (owner's recollection).** *"以前的项目我记得是 psipi，因为要用本地的
+一个数据库，需要相关的mjs文件，大概是这样。"* No `psipi` directory was found
+under `/Users/jk`, and historical-conversation lookup returned nothing. It is
+therefore recorded as **example-level, unverified evidence only** — a precedent
+that generated `.mjs` can replace hand-written JS, not a specification for
+glibe and not a justification for any decision here.
+
+### 14 What glib costs besides the chart library
+
+[user 2026-11-07]: *"你看下glib除了用那个库，还有其他成本吗？"*
+
+Measured on the current glib tree:
+
+| item | size | is it a cost of the chart library? |
+|---|---|---|
+| `priv/lightweight-charts.js` | 197,922 B / 7 lines, standalone IIFE | the library itself, vendored |
+| `priv/index.html:7` | the **only** `<script src>` tag | **no** CDN, no bundler, no second JS library on the page |
+| inline `<script>` `:286-1045` | 760 lines (703 nonblank, ~484 code) | **no** — page logic: SSE/EventSource, tabs, symbol switching, 15 series setup, 7-field crosshair tooltip, `lastPainted` de-dup, date→epoch |
+| `<style>` `:8-203` | 196 lines CSS | **no** — presentation |
+| 14 hand-written `.mjs` under glib `src/` | e.g. `web/server_ffi.mjs` **434 lines** (Node `http`/`fs`/`path`/`child_process`), `web/state_ffi.mjs` **74 lines** (shared mutable state) | **no** — cost of the **javascript target**, not of the chart |
+| `tzif` + `zones` in glib `gleam.toml` | 2 packages | **no** — JS target has no `/usr/share/zoneinfo`, so the IANA DB ships as packages |
+| `@stoqey/ib` in glib `package.json` | 1 npm dep | **no** — TWS socket API; R15 replaces IB with HTTPS REST on BEAM, so it should not appear in glibe |
+
+**Net:** the chart library brings **no other runtime JS dependency** — one
+script tag, one vendored file, no CDN, no bundler. Everything else is either
+app work that becomes Gleam work (§13.2) or the price of the JS target that
+glibe's pure-Erlang engine does not pay. So R17's "成本不高" is supported by
+measurement: **the extra cost is 0 hand-written foreign source** on the
+generated route.
+
+### 15 WASM — research only, no decision
+
+[user 2026-11-07]: *"如果我们有时间去研究，那么想要完全不依赖JS那只能走WASM
+路线了，这要看elixir有没有尝试这个，gleam那么小的community，要做这事得自己
+动手，太麻烦了或许。"*
+
+**Elixir has tried it, and shipped.** Software Mansion's **Popcorn 1.0**
+(2026-10-27) runs the full OTP/BEAM compiled to WASM in the browser with
+unmodified Elixir code, replacing AtomVM: a **730 KB** Wasm binary plus
+**~2.5 MB** of standard-library beams, **~200 ms** boot, Web Workers for VM
+isolation, `Popcorn.Fetch` (a Req adapter on browser `fetch()`), and
+`Popcorn.JS.run/3` for JS interop.
+<https://swmansion.com/blog/popcorn-1-0-moving-from-atom-vm-to-otp-beam>
+
+**It does not remove JS from the browser half.** The same post calls
+communication with JS *"an important part of Popcorn"*; DOM/canvas access and
+calling JS libraries still go through browser JS APIs. A chart needs canvas or
+SVG DOM, and `lightweight-charts` is itself a JS library. WASM would remove
+**hand-written application JS**, not the browser's JS surface.
+
+**For Gleam:** there is no WASM backend. Gleam on the Erlang target emits BEAM
+bytecode, which in principle could run inside a BEAM-in-WASM runtime, but that
+is unverified and would be work in the Elixir/OTP ecosystem, not a small Gleam
+package — exactly the "得自己动手，太麻烦" he anticipated. With R17 adopting
+the JS chart library, WASM is not on the path for the chart. **Research only:
+not adopted, not scheduled, not a decision.**
