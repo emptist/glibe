@@ -214,3 +214,16 @@
 3. **Config.gleam** — Single source of truth with string-based variant parsing
 4. **AssetClass/TradingHours/etc. parsing** — String-based parsers for config
 5. **Phoenix app** — LiveView + Lightweight Charts compiles clean
+
+---
+
+## 2026-11-07 addendum — Phase 04-01 (typed ownership chain)
+
+Added `.planning/phases/04-domain-cleanup/04-01-PLAN.md` and its SUMMARY.
+R20 rules that `Desk` / `Broker` / `Account` / `Instrument` are must-have because
+`config.gleam`'s `symbols` and `timeframe_settings` lists need typed owners;
+`REVIEW_ROUND5.md`'s exclusion of those shells is reversed for this chain only.
+The plan lands `src/glibe/desk.gleam` as the first documentation-first / TDD
+module with a `////` link to the plan. **`config.gleam` itself is unchanged** —
+migrating its two String-keyed tables is a separate plan and an owner decision.
+Name: `Desk`, not `Deck`. See `docs/RULINGS.md` R20.
