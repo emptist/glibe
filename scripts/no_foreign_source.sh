@@ -13,9 +13,14 @@
 # A .mjs/.js under src/ means someone escaped Gleam again. This guard is the
 # mechanism that makes the ruling fail loudly instead of decaying into prose.
 #
-# Scope: src/ — the engine. `apps/glibe_web` is a separate Phoenix app and is
-# tracked as debt in docs/REVIEW_ROUND5.md; it is a decision for the owner,
-# not something this guard silently forgives.
+# Scope: the root src/ — the Erlang-target engine. `deprecated/glibe_web` is
+# the old Phoenix app, kept for comparison and not part of this build.
+#
+# The JavaScript-target client is a SEPARATE package in `webclient/`, with its
+# own gleam.toml declaring `target = "javascript"`. Gleam source there compiles
+# to .mjs; a hand-written .mjs is allowed only inside that folder. The target
+# boundary is declared by the two packages themselves, so this guard only has
+# to keep the engine's src/ clean — it does not police the client's layout.
 # `*.disabled` files are retired design records, not compiled source.
 #
 # R15 [user 2026-11-07]: IB is scoped to historic data for stocks/ETFs, and
