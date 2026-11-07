@@ -273,3 +273,45 @@ series 定义、图表选项、`DataBar → bar` 映射、一根 settled bar 的
 `series.update` 是对象方法而非模块级导出，点号 external 在编译期被拒
 （`Invalid JavaScript function`），所以真正落地可能仍需 2–5 行转发模块——
 **已在 R16 允许范围内**，且它不是「那个应用 mjs」。
+
+---
+
+## R17 — 应用不是框架：采用 JS 图表库，优先用编译器生成的 mjs（2026-11-07）
+
+> *"我们是开发应用的，不是开发框架，所以能用js chart，成本不高的话，还是用。"*
+> [user 2026-11-07]
+>
+> *"尽量用Gleam编译的mjs取代手写这件事，以前做其他项目时尝试过，是可行的。
+> 如果遇到障碍可以写出来。"* [user 2026-11-07]
+
+**这是 owner 的决定。两个限定词按原话保留，不扩大也不缩小：**
+
+- **"成本不高的话"** 是条件。实测（`docs/REVIEW_ROUND5.md` §13.9 / §14）：
+  series 定义、图表选项、`DataBar → bar` 映射、一根 settled bar 的更新，是
+  任何语言用任何绘图库都固有的配置工作，**不是额外成本**；生成 mjs 路线的
+  「手写外来源码」是 **0 行**。条件成立。
+- **"尽量"** 是优先序，不是绝对禁令。生成 mjs 优先；R16 的小范围例外仍是
+  实例方法/常量那一小块转发模块的兜底；§1.28 在范围外仍有效；R15 根项目
+  仍是纯 erlang。
+
+**由此得到的执行结论（以下不是 owner 原话，是按上面两句推出来的）：**
+
+1. 图表组件**采用 JS 图表库**——glib 正在用的 TradingView LightweightCharts
+   是唯一实测对象。Lustre SVG DSL 自己画 K 线不再是默认路线：那是做图表
+   引擎，属于「开发框架」，不是「开发应用」。§12 的能力比较作为事实保留，
+   不再作为默认方案。
+2. 客户端代码优先写成 **Gleam 源码，经 `gleam build` 编译成 `.mjs`**；手写
+   `.mjs` 只在 R16 范围内兜底。
+3. **障碍必须写出来**（`docs/REVIEW_ROUND5.md` §13.10）。已实测的一条正是
+   owner 提醒的：*"你在这里测试失败有可能是缺少那个chart库本身"* ——
+   `gleam build` 不解析 npm 依赖，**构建绿 ≠ 能跑**；缺
+   `lightweight-charts` 时 `node` 报 `ERR_MODULE_NOT_FOUND`，装上后探针里的
+   占位绑定报 `does not provide an export named 'addSeries'`。
+4. **仍未裁定**：web 层框架（是否用 Mist / Wisp / Lustre）、`apps/glibe_web`
+   是否退役、是否引入独立 `client/` 包。本条只定图表库与代码生成方式，
+   不替 owner 决定 web 层。
+
+**WASM 是 owner 的设想，不是裁定：** *"如果我们有时间去研究，那么想要完全
+不依赖JS那只能走WASM路线了，这要看elixir有没有尝试这个，gleam那么小的
+community，要做这事得自己动手，太麻烦了或许。"* 查证结果与他「有时间再研究」
+的判断一致，记在 `docs/REVIEW_ROUND5.md` §15。**不采用、不排期、不替他决定。**
