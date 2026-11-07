@@ -6,6 +6,19 @@ loudly when it is broken.
 
 ## Gleam language references
 
+0. **[`gleam-thinking-core-to-memory.md`](gleam-thinking-core-to-memory.md)** —
+   **the thinking core, in this repo, tracked by git.** 315 lines holding the
+   whole language: type-first reflex, compiler guarantees, conventions and
+   anti-patterns, targets, externals, toolchain, and the docs-first/TDD cycle
+   (§14). **Load it IN FULL before any Gleam judgement**, in every client —
+   VSCode, Trae, or any other editor/agent. Memory and the user-level skill
+   directory are not git-managed, so this file is the durable, portable copy:
+   it is a byte-for-byte mirror of
+   `~/.workbuddy/skills/gleam-language/references/gleam-core.md`, and that
+   skill copy is the source of truth. Verify the mirror with
+   `cmp ~/.workbuddy/skills/gleam-language/references/gleam-core.md docs/gleam-thinking-core-to-memory.md`;
+   edit the skill copy first, then re-copy — never edit the mirror alone.
+
 1. **The Gleam Language Tour — Everything!** — <https://tour.gleam.run/everything/>
    The authoritative single-page reference: modules and imports, custom types
    and records, `case`/exhaustiveness, `Result`/`Option`, `use`, opaque types,

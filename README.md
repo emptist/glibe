@@ -12,6 +12,16 @@ owner's rulings and the good code from glib directly. See
 
 ## Gleam language references
 
+0. **[`docs/gleam-thinking-core-to-memory.md`](docs/gleam-thinking-core-to-memory.md)**
+   — **the Gleam thinking core, preserved in git.** The whole language
+   condensed to 315 lines: the type-first reflex, compiler guarantees,
+   conventions/anti-patterns, targets, externals, toolchain, docs-first/TDD.
+   **Every client — VSCode, Trae, any editor or agent — should include this file
+   IN FULL in its context before any Gleam work.** It is a byte-for-byte copy of
+   the user-level `gleam-language` skill core, which lives outside git; the
+   skill copy is the source of truth. Keep the two identical with
+   `cmp ~/.workbuddy/skills/gleam-language/references/gleam-core.md docs/gleam-thinking-core-to-memory.md`.
+
 1. **The Gleam Language Tour — Everything!** — <https://tour.gleam.run/everything/>
 2. **The Complete Gleam Guide: From Zero to Expert** —
    <https://www.kodikra.com/2026/03/the-complete-gleam-guide-from-zero-to.html>
