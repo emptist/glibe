@@ -19,8 +19,9 @@
 
 | 条目 | 分区 | 状态 |
 |---|---|---|
-| apps/glibe_web 去留 | 需要你裁决 | **未决** |
-| 手写 `.mjs` 的可接受范围 | 已裁定 | **R16，范围限定，已生效** |
+| web 层形状 / apps/glibe_web 去留 | 需要你裁决 | **未决**（图表库已定） |
+| JS 图表库 / 生成 mjs 优先 | 已裁定 | **R17，已生效** |
+| 手写 `.mjs` 的可接受范围 | 已裁定 | **R16，范围限定，已生效**（R17 的兜底） |
 | SVG 图表真实数据试验 | 已定，不需裁决 | 推迟，等 databar processing 其余部分 |
 | config.gleam 类型化 identity keys | 设计待定 | 未决，计划先行 |
 | Interval 闭集 7 → 9 | 设计待定 | 未决，类型变更 |
@@ -30,10 +31,20 @@
 
 ## 需要你裁决
 
-### 1. apps/glibe_web 去留
+### 1. web 层形状 / apps/glibe_web 去留
 
-**要你决定的一句话：** 把 `apps/glibe_web` 退役、用纯 Gleam 重建 view；还是
-干脆不要 web 层。（维持现状是第三个选项，但它是违规主体，不推荐。）
+**图表库已经定了，不需要再看（R17，2026-11-07）：** *"我们是开发应用的，不是
+开发框架，所以能用js chart，成本不高的话，还是用。"* 实测额外成本为 **0 行手写
+外来源码**，条件成立 → **采用 JS 图表库**（glib 在用的 TradingView
+LightweightCharts 是唯一实测对象）；客户端代码优先写成 Gleam 源码、由
+`gleam build` 编译成 `.mjs`（*"尽量用Gleam编译的mjs取代手写这件事"*，R16 只作
+小范围兜底）。**自己写 SVG 图表引擎不再是默认路线**——那是做图表框架，不是做
+应用。原文与执行结论在 `docs/RULINGS.md` R17。
+
+**现在还要你决定的一句话：** web 层用什么形状——退役 `apps/glibe_web`、用纯
+Gleam 重建 view；还是干脆不要 web 层；还是维持现状（第三个选项是违规主体，
+不推荐）。具体框架（Mist / Wisp / Lustre）、是否引入独立 `client/` 包，都随
+这句话一起决定。**Lustre / Wisp 仍然不是你的裁定。**
 
 **背景（不用去别处查）：**
 - `apps/glibe_web` 是 **23 个文件**的 Phoenix/Elixir + JS 应用
@@ -100,7 +111,8 @@
 > *"你说的探针证实我的第一点，希望你说的是，写gleam代码，编译形成应用JS库
 > 绘图所需的那个mjs是可以做到的，而不是别的意思。"*
 
-**是，正是这个意思，不是别的意思。**「那个 mjs」= 浏览器加载的**应用模块**
+**是，正是这个意思，不是别的意思；R17 已把它定为优先做法。**「那个 mjs」=
+浏览器加载的**应用模块**
 （图表设置、15 条 series 定义、选项、`DataBar → bar` 映射、一根 settled bar
 的更新）：它**由 Gleam 源码经 `gleam build` 编译生成**，路径是
 `build/dev/javascript/<包名>/<模块>.mjs`，没有人手写这个文件。库本身来自
@@ -154,15 +166,66 @@ npm（§1.28 law 2：包作者的代码，不是我们的）。此前三种 `.mj
 - **没有做：** 未建图表、未进浏览器、未跑真实数据；这是编译器事实，不是 UI
   能力结论。
 
+**glib 除了那个库，还有别的成本吗？（你的问题，已量）**
+- `priv/index.html:7` 是**唯一**一个 `<script src>`，指向 vendored
+  `lightweight-charts.js`（197,922 字节 / 7 行 IIFE）。**没有 CDN、没有打包器、
+  没有第二个 JS 库**。图表本身不带来别的运行时依赖。
+- 其余是页面工作：`:8-203` 196 行 CSS；`:286-1045` 760 行内联 JS（703 非空、
+  ~484 代码行），内容是 SSE/EventSource、tab 与 symbol 切换、15 条 series 设置、
+  crosshair 七字段 tooltip、`lastPainted` 去重、日期转 epoch —— 在生成路线里
+  变成 Gleam 工作，按你定的口径**不是额外成本**。
+- **属于 javascript target、不属于图表库的成本**：glib `src/` 下 **14 个手写
+  `.mjs`**，其中 `web/server_ffi.mjs` 434 行（Node `http`/`fs`/`path`/
+  `child_process` 手写服务器）、`web/state_ffi.mjs` 74 行（共享可变状态）；
+  `gleam.toml` 的 `tzif` + `zones` 因为 JS target 没有 `/usr/share/zoneinfo`；
+  `package.json` 的 `@stoqey/ib` 是 TWS socket API，与图表无关（R15 已改走
+  BEAM 上的 HTTPS REST）。**glibe 纯 erlang 引擎不付这些成本。**
+- **净结论：** 图表库没有别的依赖成本；额外成本是 0 行手写外来源码。
+  详见 `docs/REVIEW_ROUND5.md` §14。
+
+**生成 mjs 路线的障碍（你要求「如果遇到障碍可以写出来」，全部实测）：**
+- **你提醒的那条完全正确：** *"你在这里测试失败有可能是缺少那个chart库本身。"*
+  `gleam build` 退出 0 时**不解析 npm 依赖**；探针没有
+  `node_modules/lightweight-charts`，`node` 导入生成的 `chart.mjs` 报
+  `ERR_MODULE_NOT_FOUND`。`npm install --no-save lightweight-charts@5.0.0`
+  之后导入又报
+  `The requested module 'lightweight-charts' does not provide an export named
+  'addSeries'` —— 这证明探针里两个绑定是占位名。
+- v5 真实导出（实测 `Object.keys`）：`createChart`、`createChartEx`、
+  `createSeriesMarkers`、`LineSeries`、`CandlestickSeries`、`LineStyle`、
+  `ColorType`、`CrosshairMode`、`version` 等；**没有 `addSeries` /
+  `updateSeries`**，它们是实例方法。点号 external 编译期被拒
+  （`Invalid JavaScript function`）。
+- 所以落地唯一要手写的是 **2–5 行转发模块**（R16 范围内），应用 mjs 仍是
+  生成的；另外要换 npm ESM 版（glib vendored 的是 IIFE），以及一个独立
+  `client/` 包（根项目仍是纯 erlang，R15）。**构建绿 ≠ 能跑，以后要加运行时
+  导入检查。** 完整表在 `docs/REVIEW_ROUND5.md` §13.10。
+
+**WASM（你的设想，不是裁定）：** *"如果我们有时间去研究，那么想要完全不依赖
+JS那只能走WASM路线了，这要看elixir有没有尝试这个，gleam那么小的community，
+要做这事得自己动手，太麻烦了或许。"* 查证：Elixir **确实试过并且发布了**——
+Software Mansion 的 Popcorn 1.0（2026-10-27）把完整 OTP/BEAM 编译成 WASM 跑在
+浏览器里，未改动的 Elixir 代码、730 KB WASM + ~2.5 MB 标准库、~200 ms 启动、
+Web Workers、`Popcorn.Fetch`、`JS.run/3`。但 Popcorn 自己说与 JS 通信「是
+Popcorn 的重要部分」：DOM/canvas 和调用 JS 库仍走浏览器 JS API，而
+LightweightCharts 本身就是 JS 库；Gleam 没有 WASM 后端。**不采用、不排期**；
+有了 R17，图表这条路也用不上 WASM。详见 `docs/REVIEW_ROUND5.md` §15。
+
+**psipi（你的记忆，未核实）：** 本机 `/Users/jk` 下按名字没找到 `psipi` 目录，
+历史会话检索也没有记录。**只按 example-level 线索记录**：你记得以前的项目
+试过用 Gleam 编译的 mjs 取代手写 JS、「大概是为了本地一个数据库」。它不是
+本项目规范，也没拿来当任何决定的依据；找到目录后再补证据。
+（`docs/REVIEW_ROUND5.md` §13.10）
+
 **port 的具体形状（尚未采用，等你一句话）：** 退役 `apps/`，保留 UC-56/57/60
 裁定的图表行为，用 **Mist**（HTTP/WS/SSE）+ **Wisp**（请求层）+ **Lustre**
 （类型化 UI、OTP 监督的 server components）重建，加一个 `shared/` Gleam 类型包。
 这三个链接在 `docs/DEVELOPER_GUIDE.md` 里只是**评估用参考，均未采用**；你也没
 读过、没用过 Wisp。Lustre/Wisp **不是你的裁定**。
 
-**相关文件：** `docs/REVIEW_ROUND5.md` §10 / §12 / §13 / §13.8 / §13.9、
-`docs/RULINGS.md` R14 / R15 / R16、`docs/DEVELOPER_GUIDE.md`、
-`docs/DESIGN.md` 的 dashboard 行、`apps/glibe_web/`。
+**相关文件：** `docs/REVIEW_ROUND5.md` §10 / §12 / §13 / §13.8 / §13.9 /
+§13.10 / §14 / §15、`docs/RULINGS.md` R14 / R15 / R16 / R17、
+`docs/DEVELOPER_GUIDE.md`、`docs/DESIGN.md` 的 dashboard 行、`apps/glibe_web/`。
 
 ---
 
@@ -183,6 +246,21 @@ npm（§1.28 law 2：包作者的代码，不是我们的）。此前三种 `.mj
 - **因此撤销**：`docs/REVIEW_ROUND5.md` §13.4 曾写「采用 JS 图表库还需要你
   另给一次明确例外、否则只有 SVG 路线合规」。例外已经给出，§13.4 已改正。
 - 原文落在 `docs/RULINGS.md` R16。
+
+### 2a. 采用 JS 图表库、生成 mjs 优先 — R17 已生效
+
+> *"我们是开发应用的，不是开发框架，所以能用js chart，成本不高的话，还是用。"*
+> *"尽量用Gleam编译的mjs取代手写这件事，以前做其他项目时尝试过，是可行的。
+> 如果遇到障碍可以写出来。"* [user 2026-11-07]
+
+- **采用 JS 图表库**；SVG 自绘不再是默认路线（做图表引擎 = 开发框架）。
+- **优先 Gleam 源码 → 编译器生成 `.mjs`**；手写 `.mjs` 只在 R16 的小范围里
+  兜底（实例方法/常量转发）。`"尽量"` 是优先序，不是绝对禁令；§1.28 在范围外
+  仍有效，R15 根项目仍是纯 erlang。
+- **障碍必须写出来**：`docs/REVIEW_ROUND5.md` §13.10；已确认
+  `gleam build` 不解析 npm 依赖，构建绿 ≠ 能跑。
+- **仍未裁定**：web 层框架、`apps/glibe_web` 去留、是否引入独立 `client/` 包。
+  原文与执行结论在 `docs/RULINGS.md` R17。
 
 ---
 
@@ -207,6 +285,9 @@ whole databar processing) is done."*
   必须做有界窗口（SVG 是每 bar O(n) 节点，canvas 是一张位图）。
 - **本次没有做：** 未建 SVG 版本，故没有 Gleam 行数可比；原型未编译、未跑浏览器、
   未用真实数据。这条不是裁决项，只是时间与测量清单。
+- **R17 之后的状态：** SVG 自绘不再是默认实现路线（我们是做应用，不是做
+  图表框架）；但「与 JS 图表做真实数据能力比较」仍按你的时机推迟，测量结果
+  仍有用（节点数、patch 延迟、是否要窗口化）。
 
 ---
 
