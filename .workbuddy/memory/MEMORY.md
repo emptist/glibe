@@ -66,6 +66,28 @@ generic "gate", "price gate", "risk gate", "ladder"/"Rung". Owner words:
   business logic, second engine. §1.28 still holds outside it; R15 guard
   unchanged. Withdraws "needs another explicit exception / SVG is the only
   compliant shape" from `REVIEW_ROUND5.md` §13.4.
+- **R17 (owner, 2026-11-07)** *"我们是开发应用的，不是开发框架，所以能用js
+  chart，成本不高的话，还是用"* + *"尽量用Gleam编译的mjs取代手写这件事 …
+  如果遇到障碍可以写出来"*: **JS chart library adopted in principle** (cost
+  measured 0 extra hand-written foreign source); generated `.mjs` preferred,
+  R16 is the small-scope fallback, `"尽量"` is a preference not a ban. SVG
+  self-drawn chart is no longer the default (that would be building a
+  framework). **Still undecided**: web-layer framework, `apps/glibe_web` fate,
+  separate `client/` package. Obstacles in `REVIEW_ROUND5.md` §13.10.
+- **Gleam does NOT resolve npm deps**: `gleam build` exits 0 with a bare
+  `import` and no package installed; Node then throws `ERR_MODULE_NOT_FOUND`.
+  After installing `lightweight-charts@5.0.0`, the probe's placeholder
+  `addSeries`/`updateSeries` bindings fail (`does not provide an export named
+  'addSeries'`). Real exports have `createChart`, `LineSeries`,
+  `createSeriesMarkers`, enums — no instance methods. **A green build is not a
+  runnable app**; add a runtime import check when this route is built.
+- **WASM (owner musing, NOT a decision)**: Elixir *has* tried it — Popcorn 1.0
+  (2026-10-27) runs full OTP/BEAM in WASM in the browser, unmodified Elixir,
+  730 KB + ~2.5 MB stdlib, ~200 ms boot, Web Workers, `JS.run/3`. Gleam has no
+  WASM backend; DOM/canvas still needs JS. `REVIEW_ROUND5.md` §15. Not adopted.
+- **psipi is unverified**: no directory found under `/Users/jk`, no past-chat
+  record. Owner recalls generated `.mjs` replacing handwritten JS for a local
+  DB. **Example-level evidence only**, never a spec or justification.
 
 ## Documentation conventions (owner, 2026-11-07)
 - **No bare `Qn` labels.** They read like "Question N" but also meant numbered
@@ -95,6 +117,18 @@ generic "gate", "price gate", "risk gate", "ladder"/"Rung". Owner words:
   `REVIEW_ROUND5.md` §13.8/§13.9.
 
 ## Claim discipline (owner, 2026-11-07)
+- **No "entrapment-style" negative tests.** Never prove a guard works by
+  planting deliberately broken code in `src/` and removing it. Use
+  `scripts/test_guards.sh`: throwaway `/tmp` fixture trees, 7 cases, assert
+  exit codes + messages; real source untouched. Wired into `guards.sh --all`.
+- **Test assertions are `assert` (bool, `as "msg"`) and `let assert` (partial
+  pattern), not `case Bool { True -> Nil, False -> panic }`.** Tour: bool
+  `assert` is for tests; `panic` "should almost never be used"; `let assert`
+  sparingly, not in libraries; `todo` emits a compile warning (so
+  `--warnings-as-errors` makes unfinished code fail loudly). Current tree:
+  test 15 bool / 12 let / 0 panic / 0 todo; `src/` 10 panic (string codecs,
+  design observation) / 6 let assert / 0 todo. `gleam build` requires 0
+  warnings, so never plant a `todo` as a probe.
 - *"Needs no JS library"* is a **dependency** claim, never a **capability**
   claim. `REVIEW_ROUND5.md` §12 corrects the Lustre/SVG overclaim.
 - **Extra cost = hand-written foreign source only** (owner 2026-11-07):
