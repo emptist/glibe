@@ -47,26 +47,53 @@ generic "gate", "price gate", "risk gate", "ladder"/"Rung". Owner words:
 ## Rulings with mechanisms
 - **R12** lower-band floor = ONE `1e-6·bb_m` positive floor on the outer edge
   **before** interpolation (owner 2026-10-14, settled 2026-11-02). Three graded
-  floors or a `0.0` clamp are wrong. `QUESTIONS.md` Q3 used to misquote this as
+  floors or a `0.0` clamp are wrong. The withdrawn *floor under the lower
+  bands* item in `docs/QUESTIONS.md` used to misquote this as
   "no floor" — do not repeat that error.
 - **R13** closed sets are types (`trading/signal.gleam`). One set, one home.
 - **R14** `src/` is Gleam only; guard + CI. `apps/glibe_web` (Phoenix/Elixir +
-  JS) is outside the guard and is an open owner decision (Q8).
+  JS) is outside the guard and is an open owner decision; see
+  `REVIEW_ROUND5.md` §10 and `RULINGS.md` R14/R16.
 - **R15** IB = historic data for stocks/ETFs only; if it forces JS-target
   dependence, drop IB. Guard also fails on `@external(javascript, …)` and
   `target = "javascript"` in `gleam.toml`.
 - **glib §1.28 (owner, 2026-11-01)** *"目的就是不让你手写 mjs …
   如果手写就说明你错了"*: hand-written `.mjs`/FFI on the Erlang target is the
   **error signal**, not a line cost to budget. Package-shipped FFI is not ours.
-  So the JS chart lib in Lustre needs an explicit exception; `REVIEW_ROUND5.md`
-  §13 measures 65–85 hand-written lines for the bridge vs 0 for SVG.
+- **R16 (owner, 2026-11-07)** *"如果仅限于页面设置和更新数据的这一个小范围，
+  手写js的风险是严格掌控的，可以接受"*: **scoped exception already given** —
+  page/chart setup + one settled-bar update only. Not SSE, tabs, symbol switch,
+  business logic, second engine. §1.28 still holds outside it; R15 guard
+  unchanged. Withdraws "needs another explicit exception / SVG is the only
+  compliant shape" from `REVIEW_ROUND5.md` §13.4.
+
+## Documentation conventions (owner, 2026-11-07)
+- **No bare `Qn` labels.** They read like "Question N" but also meant numbered
+  questions in a chat message; one label pointed at two things (§11.2 cited it
+  for live-view/JS-target while the third item in QUESTIONS.md was the band
+  floor). Cite **full file path + section title**, never a bare number.
+- **Pending decisions live in ONE temporary document**
+  (`docs/PENDING_DECISIONS.md`), self-contained with all decision context; owner
+  reads only that file. It is **one-way**: it may copy from other docs, but
+  **no other document may reference it** — it is cleared and replaced after
+  each decision, so reverse links would dangle. `docs/QUESTIONS.md` is now only
+  a stable withdrawn-items record.
+- **Generated `.mjs` is not hand-written JS** (owner's point, probed on 1.19.2):
+  `@external(javascript, "lightweight-charts", "createChart")` → generated
+  `probe.mjs` contains `import { createChart … } from "lightweight-charts"`,
+  zero hand-written `.mjs` in `src/`. Three kinds: compiler output, package-
+  shipped, and `./xxx.mjs` FFI (only the last is ours). Needs a separate
+  `client/` package with `target = "javascript"`; glib's vendored file is an
+  IIFE, not ESM. `@external` binds functions/types, **not constants** in 1.19.2
+  (`pub const` probe failed with `expected "="`). See `REVIEW_ROUND5.md` §13.8.
 
 ## Claim discipline (owner, 2026-11-07)
 - *"Needs no JS library"* is a **dependency** claim, never a **capability**
   claim. `REVIEW_ROUND5.md` §12 corrects the Lustre/SVG overclaim.
 - A UI/chart comparison must be tried on **real data** before being called
-  equivalent — and only after the rest of databar processing is done (Q11).
-  Do not attempt it early; Q8 (adopt Lustre/Wisp?) stays the owner's call.
+  equivalent — and only after the rest of databar processing is done (the
+  deferred real-data trial, `REVIEW_ROUND5.md` §12). Do not attempt it early;
+  the web-layer decision stays the owner's call.
 
 ## Toolchain / workflow
 - `gleam`, `erl`, `elixir` live in `/opt/homebrew/bin`; WorkBuddy's shell lacks
