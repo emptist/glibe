@@ -310,6 +310,8 @@ series 定义、图表选项、`DataBar → bar` 映射、一根 settled bar 的
 4. **仍未裁定**：web 层框架（是否用 Mist / Wisp / Lustre）、`apps/glibe_web`
    是否退役、是否引入独立 `client/` 包。本条只定图表库与代码生成方式，
    不替 owner 决定 web 层。
+   **（2026-11-09 状态：后两项由 R18 关闭；第一项由 R24 关闭 —— 它不再是
+   owner 裁决项，改由 AI 写 demo 对比决定。此处保留 R17 当时的原文。）**
 
 **WASM 是 owner 的设想，不是裁定：** *"如果我们有时间去研究，那么想要完全
 不依赖JS那只能走WASM路线了，这要看elixir有没有尝试这个，gleam那么小的
@@ -354,6 +356,8 @@ JS；根项目 `scripts/guards.sh --all` 全绿（26 tests、7 fixture cases）�
 是否引入独立 client 包。**web 层框架（Mist / Wisp / Lustre）仍未裁定**，
 不替 owner 采用。历史评审文档中的 `apps/glibe_web` 路径记录的是当时的树，
 不是当前路径；当前路径以本条为准。
+**（2026-11-09 状态：这一项由 R24 关闭，不再是 owner 裁决项；改为 AI 写
+demo 对比测试决定。此处保留 R18 当时的原文。）**
 
 ---
 
@@ -520,6 +524,15 @@ timeframes: Dict(Interval, Timeframe))`。identity 是 key，不是字段；
 - `Interval` 闭集 7 → 9、web 层框架（Mist / Wisp / Lustre）仍未裁定。
 - 没有新增任何 sh 守卫；防漂移靠编译器自己的 `package-interface.json`。
 
+**2026-11-09 状态更新（R22 / R23 / R24 / R25，见下文）：本节上面四条
+「未决、未做」已全部关闭。** `Symbol` 不再是 `Instrument`（R22）；两张
+复合字符串表与第二本 settings 字典已删除，settings 成为 `Timeframe` 的
+字段，`Timeframe` 不再自带 `symbol` / `interval` / `market_type`（R23）；
+`Interval` 闭集已完成（R21）；web 层框架不再是 owner 裁决项，由 AI 写
+demo 对比决定（R24）；`TPlus1` / `TPlus2` 保持原名（R25）。`Timeframe`
+去掉自带 key 一事在 R23 里一并完成，不再是 design debt。落地实证见
+`.planning/phases/04-domain-cleanup/04-03-PLAN.md` 与 `04-03-SUMMARY.md`。
+
 ---
 
 ## R21 — 类型构造子必须写全名，禁止「一个字母 + 数字」的线路码（2026-11-08 owner 裁定）
@@ -579,10 +592,187 @@ codec / adapter（`to_string`、`from_string`、Binance 拼写函数、配置文
   当前命名。与 R18 对 `apps/glibe_web` 路径的处理同一条规矩。旧代码形态在
   04-02 计划里以「被替换的记录」形式引用一次。
 - **`TPlus1` / `TPlus2`（`api/rules.gleam`）未改名**：它们把行业标准术语
-  T+1 / T+2 拼了出来，不是线路码；已向 owner 标出，等他一句话。
-- **`config.gleam` 的 `"BTCUSDT_H1"` 复合字符串键仍在**：那是 R20
-  「明确未决、未做的事」里记为尚未拍板的数据迁移，不是构造子；本条不动。
+  T+1 / T+2 拼了出来，不是线路码。**R25（2026-11-09）已裁定保持原名，
+  本项关闭。**
+- **`config.gleam` 的 `"BTCUSDT_H1"` 复合字符串键**：R21 当时不动它，
+  因为那是尚未拍板的数据迁移，不是构造子。**R23（2026-11-09）已删除
+  该表及另一张 `symbols` 表**，此处保留的是 R21 当时的执行边界记录。
 
 **执行边界：** 本条定的是**命名**，不是配置表迁移的许可。R20
 「明确未决、未做的事」里的两项 owner 裁决（表的搬迁形状、
-`Symbol` / `Instrument` 命名冲突）仍然开着。
+`Symbol` / `Instrument` 命名冲突）由 **R22 / R23（2026-11-09）关闭**。
+
+---
+
+## R22 — 名字不是实体：`Symbol` 永不是 `Instrument`（2026-11-09 owner 裁定）
+
+**owner 原话（逐字）：**
+> *"Symbol never is Instrument, people may call you with different titles and
+> names they like, but you are you, how can a title and name be you? glib docs
+> have full discussion. glibe搞错了的东西，就是搞错了，就要彻底干净地纠正，
+> 没有绕圈子省事的办法，最终圈子越绕越大，还是要改正，不过是增加了改正的
+> 难度"* [user 2026-11-09]
+
+### 1. 错在哪一层
+
+`src/glibe/api/symbol.gleam:1` 和 `:4` 写着
+`Symbol = Instrument = Asset on specific Market (what you actually trade)`，
+并把 9 个描述交易品种的字段塞进 `Symbol`。这个等号把**名字**当成了**实体**：
+一个人可以被叫不同头衔，头衔不是这个人。这不是命名不精确，是分层错了。
+该句出自 glibe 早期 AI prose：`glib/docs/reference/RELATED_PROJECTS.md:81`
+引用过它；`glibe/session-ses_f35a.md:561` 的 AI 表格 "The instrument IS the
+symbol" 已在同文件 `:528` 被 owner 以 *"Shame."* 纠正。
+
+### 2. glib 中 owner 的原始论述（逐字，不是 AI 转述）
+
+- `glib/docs/reference/domain-hierarchy-2026-10-22.md:18-22`：
+  > *"有些经纪商提供contract类型例如ib，有些没有，但是Symbol必须都有，并且都
+  > 不太一样，比如雅虎、币安、富途牛牛、盈透对应同一个上海股票600000，可能
+  > 就有不同的 Symbol，比如有些600000，有些600000.sh, 有些600000.SH，这需要
+  > 我们glib自己定义一个标准 Symbol然后在各 APIProvider/Broker中定义一个自己
+  > 的格式，并各自定义一个到glib标准Symbol到切换函数"*
+- `glib/docs/RULINGS.md:385`（UC-47）：
+  > *"Market, Trading instruments(交易对象类型) then timeframe for each symbol
+  > (or contract in the ib api terms), are what types I can see. Others are just
+  > a list or a group of them but not neccessorilly being a type"*
+- `glib/docs/RULINGS.md:1100-1105`（§1.17）：
+  > *"symbol的方言标准化问题，其实是一个规则对照表 … glib标准 symbol 追随
+  > 各自的命名即可。也就是说目前不存在问题。"*
+- `glib/docs/reference/domain-hierarchy-2026-10-22.md:28-30`：
+  > *"所以timeframe必须是隶属于某个Instrument，Instrument必须隶属于某个
+  > Exchange … 又必须隶属于某个提供商"*
+
+同一个品种在不同提供商有不同拼写 → `Symbol` 是**被给的称呼**，`Instrument`
+是**实体本身**。glib 已落地的形状见 `glib/src/glib/domain/instrument.gleam:43-84`：
+`Symbol` 是按 provider 区分的构造子集合、`Instrument(market, timeframes)` 不存
+自己的 symbol；文件头那段 "BEING / given, not being" 是 **AI 代码注释**，不是
+owner 原话，此处只作为已落地形状的证据。
+
+### 3. 裁定
+
+- `Symbol` = 某个 broker / provider 用来称呼一个 `Instrument` 的拼写，是
+  `Broker.instruments` 的 **key**；它**不携带实体的任何内容**。`Instrument`
+  是被拥有的**值**，**不存储自己的名字**。两者是不同概念，不统一命名、
+  不设别名、不建 `InstrumentId` 中间层、不留兼容层。
+- 那句 `= Instrument =` 整句删除，连 deprecated 注释都不留。9 个字段全仓
+  检索确认**从未被任何模块读取**，一并删除，不迁移。
+- **不许绕圈子**：搞错了就整条改正，不写适配层、不保留旧表再补解析器。
+  「彻底」的验收标准见 R23 与 `.planning/phases/04-domain-cleanup/04-03-PLAN.md`。
+
+---
+
+## R23 — 彻底纠正：假类型、并行字典与向上指认的字段（2026-11-09 owner 裁定）
+
+**owner 原话（逐字）：**
+> *"你所举例，是不是glibe的？是不是在主要type缺位的情况下，AI自作聪明的省事
+> 办法，就是绕圈子，然后圈子越绕越大越糊涂？唯一解决办法就是彻底纠正，至于
+> Desk < Broker < Instrument < Timeframe 的隶属关系，非常清晰，glib文档中有我
+> 给ai的具体解释； TimeframeSettings这是什么type？现实中存在这个type吗？跟
+> Timeframe什么关系？又是在绕圈子？"* [user 2026-11-09]
+
+### 1. 逐问回答（不绕）
+
+**「你所举例是不是 glibe 的？」—— 是。** 我上一轮举的正是
+`src/glibe/config.gleam` 的两张表：`symbols: List(#(String, symbol.Symbol))`
+和 `timeframe_settings: List(#(String, indicator_settings.TimeframeSettings))`，
+后者的键是 `"BTCUSDT_H1"` 这种**一个 String 装两个事实**的复合串，读取靠
+`list.find`（`get_symbol` / `config_get_tfs`）。
+
+**「是不是主要 type 缺位时 AI 自作聪明的省事办法？」—— 是。** 因为
+`Desk ▸ Broker ▸ Instrument ▸ Timeframe` 这条链当时不存在，AI 用
+「字符串拼键 + 第二本字典 + 查找函数」代替了本该由类型关系表达的归属。
+`Instrument` 里除了 `timeframes: Dict(Interval, Timeframe)`，还平行地放着
+`settings: Dict(Interval, TimeframeSettings)`；`Timeframe` 不自带 settings，
+于是 `engine.databar_processing` 要外部再传一个 settings 参数。为了让
+`sourcebar_gate` 知道 interval，又让 `Timeframe` 自带 `interval`; 为了知道
+是谁，又自带 `symbol` 和 `market_type`。**每补一个绕行字段，就多一个需要
+同步的事实** —— 正是 owner 说的「圈子越绕越大越糊涂」。
+
+**「TimeframeSettings 是什么 type？现实中存在吗？」—— 不存在独立实体。**
+它是 `src/glibe/indicator_settings.gleam:15-29` 一个 12 字段的数字包（5 个
+SMA 窗口、KDJ 三个参数、`bb_multiplier`、`sma_for_bbm`、`branch_exit_leaf_size`）。
+owner 从未命名过它；`glib/.planning/phases/32-system-design/32-01-PLAN.md:223-225`
+里 AI 自己写着 *"Mine, awaiting his word: … a stand-in each"*。它不是领域里的
+东西，只是**一组参数值**。按 `glib/docs/RULINGS.md:188`：
+> *"除了我明确提到的那些 vars，不要瞎编瞎造不必要的变量"* [user 2026-09-20]
+
+**「跟 Timeframe 什么关系？又是在绕圈子？」—— 是。** 这包数字是**某个
+interval 的那台 Timeframe 跑起来用的参数**，一个 interval 一份，因此只能
+是 `Timeframe` 的一个字段，不是与 `Timeframe` 平行、另起一本字典的实体。
+glib 落地的正是这个形状：`glib/src/glib/timeframe.gleam:76-78`
+`Timeframe(settings: IntervalSettings, working_databar, databar_list, …)`；
+`glib/docs/DESIGN.md` §18.4 写明 *"the settings travel with the engine, the
+interval does not"*。glibe 造出第二本字典 + 复合串表 + 两个查找函数，是在
+绕圈子。
+
+### 2. 隶属关系的 owner 具体解释（逐字）
+
+- `glib/.planning/HANDOFF-2026-11-03.md:96`：
+  > *"即然你的左手不知道他是左手你也活的好好的，为什么instrument的timeframe
+  > 必须要知道他的interval？有这么愚蠢的设计吗？"* [user 2026-11-04]
+- `glib/.planning/HANDOFF-2026-11-03.md:226-227`（同文见
+  `glib/docs/DESIGN.md:3272-3276`）：
+  > *"I used 'list' for easy of expression, in fact they could use dictionary
+  > or any collections that are most fit to the requirements, for example,
+  > instrument with a dictionary of timeframes using interval as key"* [user 2026-11-04]
+- `glib/.planning/HANDOFF-2026-11-03.md:159`：
+  > *"记住类型的事情不要偷懒，必须用type解决，其他所有替代方案迟早都会变成
+  > 无用功，会被替换成type，别无选择。"* [user 2026-11-03]
+- `glib/docs/RULINGS.md:2273`：
+  > *"用type解决type问题，不是绕圈子费力不讨好"* [user 2026-10-26]
+
+即：`interval` 只在 **key** 里，`Timeframe` 不自带；`symbol` 只在
+`Broker.instruments` 的 **key** 里，`Timeframe` 不自带；settings 随 engine 走。
+「被拥有者不指认拥有者」这句是 AI prose，此处只按 owner 上面的原话执行。
+
+### 3. 裁定（验收标准，不留兼容层）
+
+- `Instrument` **只**持有 `timeframes: Dict(Interval, Timeframe)`。删除
+  `settings` 字典、`put_settings` / `get_settings`、`NoSuchSettings`。
+- `Timeframe` 持有 `settings`，删除 `symbol` / `interval` / `market_type`
+  三个向上指认的字段。`sourcebar_gate` 的 interval 由**选中这台 Timeframe
+  的调用方**传入（key 本来就在它手里）；`databar_processing` 不再另收
+  settings 参数。
+- `config.gleam` 的 `symbols` 与 `timeframe_settings` 两张表删除；归属直接
+  用类型值表达，不再有 `"BTCUSDT_H1"`、`list.find`、`get_symbol`、
+  `config_get_tfs`。
+- `indicator_settings.TimeframeSettings` 保留为**值**（参数包），但明确写进
+  模块文档：它不是实体、没有 id、没有自己的字典或配置表，唯一归宿是
+  `Timeframe.settings`。不改名、不新造名字 —— owner 没说过的名字就是发明。
+- 落地计划：`.planning/phases/04-domain-cleanup/04-03-PLAN.md`。
+
+---
+
+## R24 — web 层框架由 AI 写 demo 对比测试决定（2026-11-09 owner 裁定）
+
+**owner 原话（逐字）：**
+> *"web层架构当然是你通过写demo对比测试决定用哪一个呀，这个不可能由我决定
+> 的，我不会去尝试一个又一个框架，这事你的优势，测试速度快。"* [user 2026-11-09]
+
+- **这不是 owner 裁决项**，是我（AI）的工作：写最小可运行 demo、按可测指标
+  对比、给出结论。owner 不会逐个试框架，也不会替我选。
+- R17 / R18 留下的「web 层框架（Mist / Wisp / Lustre）仍未裁定」据此关闭，
+  **不再列入待裁决文档**。候选与实测指标见
+  `.planning/phases/04-domain-cleanup/04-03-PLAN.md` 的「后续工作」。
+- 边界不变：根 `src/` 仍是纯 erlang（R15），`webclient/` 是唯一 JS-target
+  package（R18），生成 `.mjs` 优先（R17）。demo 对比的结论**不等于**现在
+  采用某个框架；是否引入仍按 `docs/DESIGN.md` 的稳定文档落地。
+
+---
+
+## R25 — 专业公认术语不是「字母 + 数字」线路码（2026-11-09 owner 裁定）
+
+**owner 原话（逐字）：**
+> *"比如说CPU这个是不是一个不可接受的缩略语？不是，因他是专业的公认的，
+> 那么T+1这类的行业公认的表述，能不能接受呢？当然能呀，你非要说不能喝水，
+> 喝氢二氧一，那不是没事找事么，这个跟什么狗屁H4 M1什么的是一个性质吗？"*
+> [user 2026-11-09]
+
+- **判据是「是否为领域内公认术语」，不是「是否含数字」。** CPU、T+1、T+2
+  是专业公认表述，可以原样使用；`H4` / `M1` / `MIN15` 是交易所线路拼写，
+  不是术语，只能活在 codec / adapter。两者不是同一性质。
+- `api/rules.gleam` 的 `TPlus1` / `TPlus2` **保持原名**。R21 §3 里「已向
+  owner 标出，等他一句话」由此关闭，不再列为待裁决项，也不再追问。
+- R21 本身不因此放宽：构造子仍要写全名并带类型前缀；被禁的是**线路码当
+  类型名**，不是行业术语。`docs/gleam-thinking-core-to-memory.md` §5/§13
+  的 "No abbreviations" 按本条读。
