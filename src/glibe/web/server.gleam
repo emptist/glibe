@@ -18,6 +18,43 @@
 //// Written documentation-first: `////` module doc naming the plan, the closed
 //// `Route` set, `///` on every function, `todo as "…"` bodies, then the tests
 //// in `test/web_server_test.gleam`, and only then the bodies.
+////
+//// **Time shown to a human is local time (R30, 2026-11-09).** Owner words:
+//// *"在web 界面，应该采用本地时间显示日期时间，方便分析操作，因此必然涉及到时间转换和夏令时处理，你可以在相应的模块加上文档，方便实现"*
+//// Plan `.planning/phases/04-domain-cleanup/04-07-PLAN.md` owns the
+//// implementation. This module documents the display boundary only: it
+//// currently serves no bar timestamps at all — `/` shows the `Desk` chain and
+//// `/desk` returns its keys as JSON. This is the specification a future
+//// time-bearing view must satisfy, not a description of a built feature.
+////
+//// A standard bar's `timestamp` is `gleam_time.Timestamp`, an absolute
+//// instant in unix time (R27). Rendering it is a projection at the output
+//// edge: nothing upstream changes, `export/csv.gleam` keeps UTC RFC3339 for
+//// machine comparison, and `interval.bucket_ends` stays a UTC-aligned unix
+//// grid. No date `String`, wall-clock reading or local offset goes back into
+//// `SourceBar` / `DataBar` to make a column printable.
+////
+//// **R30 is the OUTPUT side; R29 is the INPUT side.** R29 turns an exchange's
+//// local session time into an instant in the provider / market adapter: US
+//// 09:30 open is HKT 22:30 in winter (EST) and 21:30 in summer (EDT), so one
+//// market clock maps to different unix times. R30 turns that one instant into
+//// the analyst's local wall clock. Both need an IANA time-zone rule, neither
+//// may use a fixed numeric offset or a hand-written DST table, and they must
+//// not be merged into one conversion.
+////
+//// A display zone is an IANA name (`Asia/Hong_Kong`, `America/New_York`),
+//// never a number. For the BEAM side R29 verified `tzif` 2.0.0 (+ `zones` or
+//// `tzif_loader`), whose `tzcalendar.to_time_and_zone` accepts a
+//// `gleam_time.Timestamp`; if rendering lands in the generated `.mjs` view
+//// (R17 / `webclient/`), use the browser runtime's IANA support. Which side
+//// renders, and where the viewer's zone comes from, are settled when a real
+//// consumer exists (R26) — no settings type is invented here. Market local
+//// time shown beside viewer local time is another projection of the SAME
+//// `Timestamp`, labelled with its own zone; never a second bar or field.
+////
+//// This round adds documentation only: no conversion code, no `tzif`
+//// dependency, no new type, no test. Tests and bodies belong to plan 04-07
+//// under R19, starting with both DST sides of one instant.
 
 import gleam/dict
 import gleam/erlang/process

@@ -35,6 +35,14 @@
 //// timeframe folded every bar into one growing bar forever. Converting at the
 //// boundary is the fix. Converting inside the bucket test would have been the
 //// same bug twice, and `interval.bucket_ends` now receives only a `Timestamp`.
+////
+//// **A display time zone changes nothing here (R30).** The web interface
+//// shows this instant in the analyst's local wall clock with IANA daylight
+//// saving rules, as specified in `src/glibe/web/server.gleam` and plan
+//// `.planning/phases/04-domain-cleanup/04-07-PLAN.md`. That is a projection
+//// at the output edge, not a second time value: no date `String`, no local
+//// offset field, no wall-clock reading type belongs on `SourceBar`, and
+//// `interval.bucket_ends` stays on the absolute unix grid.
 
 import gleam/dynamic/decode
 import gleam/int

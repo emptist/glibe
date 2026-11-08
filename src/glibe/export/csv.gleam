@@ -14,6 +14,16 @@
 //// export with six fewer columns, because the reader cannot tell the difference
 //// between "zero" and "never measured". The six columns are gone; when a bar can
 //// name the leaf it sits in, they come back as values.
+////
+//// **UTC here, local time in the web view (R30).** This exporter writes
+//// RFC3339 UTC on purpose: it is a machine-to-machine comparison artifact
+//// (TradingView, a spreadsheet), not a human analysis screen. The web
+//// interface shows the same absolute `Timestamp` in the analyst's local wall
+//// clock with an IANA zone rule including daylight saving — a DIFFERENT
+//// output edge, specified in `src/glibe/web/server.gleam` and owned by
+//// `.planning/phases/04-domain-cleanup/04-07-PLAN.md`. Do not localise this
+//// column, and do not let a display zone reach the standard bar or
+//// `interval.bucket_ends`.
 
 import gleam/float
 import gleam/int
