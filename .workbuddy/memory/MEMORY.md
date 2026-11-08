@@ -49,7 +49,8 @@ workaround that makes the next correction harder. R23 **`TimeframeSettings` is n
 block of one `Timeframe` (`Timeframe.settings`); no second dict, no composite
 `"BTCUSDT_H1"` key, no `list.find`; `Timeframe` never carries `symbol` /
 `interval` / `market_type` — interval is in the key. R24 web-layer framework
-choice is **the AI's demo comparison work, not an owner ruling**. R25 a
+choice is **the AI's demo comparison work, not an owner ruling**; adopted as
+Mist+Wisp in 04-05. R25 a
 recognised professional term (CPU, T+1/T+2) is **not** an abbreviation; keep
 `TPlus1`/`TPlus2`. Wire codes like `H4`/`M1` are still banned.
 R26 **only `Broker ▸ Instrument` is settled** (data-source argument); relations
@@ -73,9 +74,14 @@ have 0 consumers; `Instrument = Asset on Market` is AI prose, do not revive.
   plant broken code in real `src/`.
 - Web demos (04-04, R24): Mist+Wisp 72 lines/22 Hex vs +Lustre server
   component 124/23 vs bare Mist 82/14; all 0 hand-written JS, 0 npm, same
-  generated `webclient.mjs`. **Recommend A** (thin Wisp endpoints + generated
-  `.mjs` view), not adopted. Mist 6.0.3 = `mist.start` (Wisp doc example's
+  generated `webclient.mjs`. **A adopted (04-05)**: root `gleam.toml` has
+  `mist`+`wisp`; `src/glibe/web/server.gleam` serves the real `Desk` at `/`
+  (HTML table) and `/desk` (JSON), `gleam run -m glibe/web/server` on 8610;
+  54 tests green. Mist 6.0.3 = `mist.start` (Wisp doc example's
   `start_http` is stale); Lustre 5.7.1 `html.title(attrs, String)`.
+  `wisp/simulate.request(method, path)` builds a real Wisp Request for
+  handler tests; `wisp.Text(body)` is the response body constructor.
+  `gleam run -m <module>` runs a module's `main` without a root `main` slot.
 - *"Needs no JS library"* is a **dependency** claim, not a capability claim.
   Series/option definitions and per-bar mapping are inherent work, **not** extra
   cost. Real-data chart trial deferred until databar processing is complete.
@@ -89,6 +95,10 @@ have 0 consumers; `Instrument = Asset on Market` is AI prose, do not revive.
   section. One-way: it may copy from other docs, but **no other document may
   reference it** — verify repo-wide after any edit. `docs/QUESTIONS.md` =
   withdrawn items only.
+- **Owner 2026-11-09: "注意：.gitignore 及时更新，及时做提交".** Update ignore
+  rules BEFORE generating artifacts, and commit each logical step as it lands,
+  never in one batch at the end. `.gitignore` now uses a single `build/` rule
+  (any package, any depth) so a new probe needs no remembered edit.
 - Toolchain: `export PATH="/opt/homebrew/bin:$PATH"`. BSD `grep` unreliable —
   use the Grep tool or Python. Capture exit codes with `> log 2>&1; echo
   "EXIT=$?"`, never `cmd | tail`.
