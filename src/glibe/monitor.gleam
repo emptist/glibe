@@ -35,10 +35,13 @@
 //// and the replay CLI are Stage F (`docs/DESIGN.md:101,261`) and call this
 //// step. No `Market` / `Asset` / `Exchange` relation is invented here (R26).
 
+import gleam/option.{None, Some}
+import gleam/result
 import glibe/api/interval.{type Interval}
 import glibe/api/sourcebar.{type SourceBar, type SourceBarRejection}
 import glibe/api/symbol.{type Symbol}
 import glibe/desk.{type BrokerId, type Desk}
+import glibe/engine
 
 /// The address of ONE live `Timeframe` inside a `Desk`. Three typed keys in
 /// the order the ownership chain is walked — no composite `"BTCUSDT_H1"`
@@ -74,5 +77,28 @@ pub fn advance(
   desk: Desk,
   incoming: IncomingBar,
 ) -> Result(Desk, MonitorError) {
-  todo as "04-08: locate, gate, process a closed bucket, put back"
+  let address = incoming.address
+  use broker <- result.try(
+    desk.get_broker(desk, address.broker)
+    |> result.map_error(fn(error) { AddressNotMonitored(address, error) }),
+  )
+  use instrument <- result.try(
+    desk.get_instrument(broker, address.symbol)
+    |> result.map_error(fn(error) { AddressNotMonitored(address, error) }),
+  )
+  use timeframe <- result.try(
+    desk.get_timeframe(instrument, address.interval)
+    |> result.map_error(fn(error) { AddressNotMonitored(address, error) }),
+  )
+  use #(settled, gated) <- result.try(
+    engine.sourcebar_gate(timeframe, address.interval, incoming.bar)
+    |> result.map_error(fn(rejection) { BarRejected(address, rejection) }),
+  )
+  let advanced = case settled {
+    Some(bar) -> engine.databar_processing(gated, bar)
+    None -> gated
+  }
+  let instrument = desk.put_timeframe(instrument, address.interval, advanced)
+  let broker = desk.put_instrument(broker, address.symbol, instrument)
+  Ok(desk.put_broker(desk, address.broker, broker))
 }
