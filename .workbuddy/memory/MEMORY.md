@@ -43,6 +43,15 @@ order); dashboard = VIEW in `webclient/`. R21 **constructors named in full,
 prefixed by the type name** (`IntervalOneDay`); letter+digit wire codes as type
 constructors banned, wire spellings (`"1h"`) only in codec/adapter. Historical
 review/session docs keep old codes as records.
+R22 **`Symbol` is a name, never the `Instrument`**: a title cannot be the
+entity; wrong things are corrected cleanly — no alias, no compat layer, no
+workaround that makes the next correction harder. R23 **`TimeframeSettings` is not an entity**: it is the parameter
+block of one `Timeframe` (`Timeframe.settings`); no second dict, no composite
+`"BTCUSDT_H1"` key, no `list.find`; `Timeframe` never carries `symbol` /
+`interval` / `market_type` — interval is in the key. R24 web-layer framework
+choice is **the AI's demo comparison work, not an owner ruling**. R25 a
+recognised professional term (CPU, T+1/T+2) is **not** an abbreviation; keep
+`TPlus1`/`TPlus2`. Wire codes like `H4`/`M1` are still banned.
 
 ## Measured facts
 - Gleam 1.19.2: `import mod.{type T, Ctor}`; **no `T(..)` form**. A function may
