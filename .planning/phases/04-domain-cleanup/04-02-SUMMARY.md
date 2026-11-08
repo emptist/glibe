@@ -22,7 +22,7 @@
 ## Files Created / Changed
 - Created: `.planning/phases/04-domain-cleanup/04-02-PLAN.md`, this SUMMARY, `test/interval_test.gleam` (8 tests, written before bodies).
 - Changed: `src/glibe/api/interval.gleam`, `src/glibe/api/rules.gleam`, `src/glibe/config.gleam`, `src/glibe/binance/kline.gleam`, `test/glibe_test.gleam`, `test/desk_test.gleam`.
-- Docs: `docs/RULINGS.md` R21, `docs/PENDING_DECISIONS.md` §5 closed, `README.md`, `docs/DESIGN.md`, `.planning/ROADMAP.md`, `docs/gleam-thinking-core-to-memory.md`.
+- Docs: `docs/RULINGS.md` R21 (closes the Interval closed-set item), `README.md`, `docs/DESIGN.md`, `.planning/ROADMAP.md`, `docs/gleam-thinking-core-to-memory.md`.
 - Outside git: `gleam-language` skill core, workflows and the runnable `docs-first-probe` (rebuilt green: 2 passed, 0 warnings, format clean).
 
 ## Decisions Made

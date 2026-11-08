@@ -571,8 +571,8 @@ codec / adapter（`to_string`、`from_string`、Binance 拼写函数、配置文
   `docs/gleam-thinking-core-to-memory.md` §0 / §5 / §13，以及
   `gleam-language` skill 的工作流与可运行探针；两份核心用 `cmp` 保持一致。
 - **已改名：** `src/`、`test/` 全部构造子引用；`webclient/` 无引用；当前计划
-  `.planning/phases/04-domain-cleanup/04-02-PLAN.md`；临时待裁决文档里
-  「Interval 闭集」那一项；`README.md`、`docs/DESIGN.md`、
+  `.planning/phases/04-domain-cleanup/04-02-PLAN.md`；「Interval 闭集」那一项
+  的现行表述；`README.md`、`docs/DESIGN.md`、
   `.planning/ROADMAP.md` 中的现行表述。
 - **历史文档不改写**：`REVIEW_*.md`、`session-ses_*.md`、`.workbuddy/memory/`
   日志、已完成的旧 phase 计划里保留当时的短码，它们是**当时的记录**，不是
@@ -580,8 +580,9 @@ codec / adapter（`to_string`、`from_string`、Binance 拼写函数、配置文
   04-02 计划里以「被替换的记录」形式引用一次。
 - **`TPlus1` / `TPlus2`（`api/rules.gleam`）未改名**：它们把行业标准术语
   T+1 / T+2 拼了出来，不是线路码；已向 owner 标出，等他一句话。
-- **`config.gleam` 的 `"BTCUSDT_H1"` 复合字符串键仍在**：那是临时待裁决文档
-  里尚未拍板的数据迁移，不是构造子；本条不动。
+- **`config.gleam` 的 `"BTCUSDT_H1"` 复合字符串键仍在**：那是 R20
+  「明确未决、未做的事」里记为尚未拍板的数据迁移，不是构造子；本条不动。
 
-**执行边界：** 本条定的是**命名**，不是配置表迁移的许可。临时待裁决文档里的
-两项 owner 裁决（表的搬迁形状、`Symbol` / `Instrument` 命名冲突）仍然开着。
+**执行边界：** 本条定的是**命名**，不是配置表迁移的许可。R20
+「明确未决、未做的事」里的两项 owner 裁决（表的搬迁形状、
+`Symbol` / `Instrument` 命名冲突）仍然开着。

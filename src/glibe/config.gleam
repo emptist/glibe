@@ -7,8 +7,8 @@
 //// Per-interval data limits are `Dict(Interval, Int)` here. The old string
 //// key for a four-hour span, which the 7-variant type could not represent, is
 //// now a value of `Interval`. The `timeframe_settings` composite-string
-//// table (`"BTCUSDT_H1"`) is NOT migrated here: that is one of the two owner
-//// rulings still open in `docs/PENDING_DECISIONS.md` §4.
+//// table (`"BTCUSDT_H1"`) is NOT migrated here: the shape of that migration
+//// is one of the owner rulings recorded as open in `docs/RULINGS.md` R20.
 
 import gleam/dict
 import gleam/list
