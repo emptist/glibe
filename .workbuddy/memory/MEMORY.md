@@ -137,3 +137,18 @@ have 0 consumers; `Instrument = Asset on Market` is AI prose, do not revive.
 - **`////` 模块文档块被 `//` 行打断会截断 `package-interface.json` 里的文档**
   （04-06 曾输出半句话）。写完模块文档必须 `gleam docs build` 并查产物；
   两个包各自有 `package-interface.json`，都要查。
+
+## 04-08 (2026-11-09) — monitor address, not interval fan-out
+- 静态链早已支持 N 品种 × M 周期（`config.gleam` 里 6 个独立 Timeframe）。
+  真正缺的是**一根 bar 到达时没有地址**，以及 gate 路径用 `Error(String)`。
+- `monitor.gleam`：`TimeframeAddress(BrokerId, Symbol, Interval)`（interval 在
+  **地址**里，永不是 `Timeframe` 字段 — R23）、`IncomingBar(address, bar)`、
+  `MonitorError`（带地址 + 类型化下层原因）、纯函数
+  `advance(desk, incoming) -> Result(Desk, MonitorError)`。
+- **一根 bar 只推进一个 Timeframe，不向该品种所有周期扇出**：kline 流是按
+  interval 请求的。N×M 监控 = N×M 个带地址的 step；Stage F 的 actor 调它。
+  把一根 bar 扇出到所有周期是个诱人但错误的设计。
+- `SourceBarRejection` 闭集取代 validate/gate 的 `Error(String)`；
+  `fetch_klines` 收 `Symbol` 而非 `String`。不发明 provider↔broker 关系（R26）。
+- 64 tests green。**真实并发 / 订阅 / replay CLI 仍是 Stage F，未启动**；
+  这次只补类型结构，不是运行时。不是新 owner 裁定。
