@@ -21,6 +21,31 @@ of `timeframe.gleam` because the user asked; nothing stops them coming back.
 glibe has `scripts/no_timeframe_mixture.sh`, which fails the build if the mixture
 returns. (R7: a principle without a mechanism is decoration.)
 
+## The ownership chain (R22 / R23)
+
+A name is not the thing named. `Symbol` is the spelling a broker uses to name
+one instrument; it is the key in `Broker.instruments` and carries none of the
+instrument's facts. `Interval` is the key in `Instrument.timeframes`; a
+`Timeframe` never stores its own interval, its own symbol or a market tag.
+The caller that selected a `Timeframe` from that dictionary already holds the
+interval, which is why `engine.sourcebar_gate` receives it as an argument.
+
+```
+Desk(brokers: Dict(BrokerId, Broker))
+  └─ Broker(instruments: Dict(Symbol, Instrument), accounts: …)
+       └─ Instrument(timeframes: Dict(Interval, Timeframe))    ← ONE dictionary
+            └─ Timeframe(settings: TimeframeSettings, …state…)
+```
+
+`TimeframeSettings` is **not an entity**: a 12-number parameter block whose
+only home is `Timeframe.settings`. There used to be a second dictionary
+`Dict(Interval, TimeframeSettings)` on `Instrument`, a config table keyed by
+`"BTCUSDT_H1"`, two `list.find` accessors, and an extra `settings` argument on
+`databar_processing`. That was a circle standing in for the missing type
+relation; R23 deletes all of it. `AppConfig.desk` is now a typed `Desk` value.
+Full reasoning and the owner's verbatim words: `docs/RULINGS.md` R22 / R23;
+plan and measurements: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`.
+
 ## The pipeline
 
 The order is fixed and not a matter of taste:

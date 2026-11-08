@@ -4,6 +4,27 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
+## 2026-11-09 (R22–R25 / phase 04-03)
+
+| axis | value | how it was taken |
+|---|---|---|
+| build | **exit 0, 0 errors, 0 warnings** | `gleam build --warnings-as-errors` |
+| tests | **50 pass, 0 fail** | `gleam test` (was 44) |
+| format / guards | clean / **exit 0** | `gleam format --check src test`, `sh scripts/guards.sh --all` |
+| docs | **exit 0**; 6 touched modules carry the `04-03-PLAN` link; empty module docs **15 of 24** | `gleam docs build` + `package-interface.json` |
+| `Symbol` | an opaque **name** with a 2-function codec; no instrument fields | `src/glibe/api/symbol.gleam` (R22) |
+| ownership | `Desk ▸ Broker ▸ Instrument ▸ Interval ▸ Timeframe`, **one** dictionary on `Instrument` | `src/glibe/desk.gleam` (R23) |
+| `Timeframe` | carries `settings`; **no** `symbol` / `interval` / `market_type` | `src/glibe/timeframe.gleam` (R23) |
+| config | `AppConfig` holds a typed `Desk`; the two `List(#(String, …))` tables, `"BTCUSDT_H1"` and both `list.find` accessors are **gone** | `src/glibe/config.gleam` (R23) |
+| engine | `sourcebar_gate(tf, interval, bar)`; `databar_processing(tf, bar)` reads `tf.settings` | `src/glibe/engine.gleam` (R23) |
+| open owner rulings | **0** | `docs/RULINGS.md` R22–R25 closed all four |
+
+**Owner's direction this day:** a name is not the thing; wrong things are
+corrected cleanly, never worked around; type problems are solved with types.
+`Desk ▸ Broker ▸ Instrument ▸ Timeframe` is the shape, and the web-layer
+framework choice is the AI's demo work, not an owner ruling. Full text and
+verbatim quotes: `docs/RULINGS.md` R22–R25.
+
 ## 2026-11-07 (Round 5)
 
 | axis | value | how it was taken |

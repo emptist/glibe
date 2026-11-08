@@ -115,7 +115,7 @@ src/
 │   │   ├── exchange.gleam        # Exchange, MarketType
 │   │   ├── market.gleam          # Market = Exchange + AssetClass + Rules
 │   │   ├── rules.gleam           # MarketRules, TradingHours, SettlementType, parsers
-│   │   ├── symbol.gleam          # Symbol = Instrument on specific Market
+│   │   ├── symbol.gleam          # Symbol = a NAME, not the instrument (RULINGS.md R22)
 │   │   ├── sourcebar.gleam       # SourceBar + decode + validate + normalize_date (boundary)
 │   │   └── interval.gleam        # Interval + codec (to_string/from_string/all) + bucket_ends
 │   ├── binance/
@@ -126,11 +126,12 @@ src/
 │   ├── kdj.gleam                 # KDJ oscillator (LLV/HHV + SMA for K/D/M)
 │   ├── bollinger.gleam           # Bollinger Bands (SMA centre, σ, Fibonacci ratios)
 │   ├── indicator.gleam           # Pipeline: SMA×5 → KDJ → Bollinger
-│   ├── indicator_settings.gleam  # TimeframeSettings, SmaForBbm
+│   ├── indicator_settings.gleam  # TimeframeSettings (a value), SmaForBbm (RULINGS.md R23)
 │   ├── databar.gleam             # DataBar — born from SourceBar, folded; 33 fields
 │   ├── leaf.gleam                # DataLeaf — grown one bar at a time + CMA
 │   ├── branch.gleam              # DataBranch — grown one bar at a time, rides a leaf
-│   ├── timeframe.gleam           # Timeframe record + new (state only — see RULINGS.md R7)
+│   ├── timeframe.gleam           # Timeframe record + new — NO symbol/interval (RULINGS.md R23)
+│   ├── desk.gleam                # Desk ▸ Broker ▸ Instrument ▸ Interval ▸ Timeframe (R20/R23)
 │   ├── engine.gleam              # The pipeline: gate, processing, leaves, branches, accept
 │   ├── trading/
 │   │   └── strategy.gleam        # The manual verdict (manual_signal)
@@ -144,7 +145,10 @@ src/
 │   ├── lib/glibe_web/data_generator.ex
 │   └── assets/js/chart_hook.js
 └── test/
-    └── glibe_test.gleam          # 23 tests
+    ├── glibe_test.gleam          # engine / indicator / config invariants
+    ├── desk_test.gleam           # the ownership chain (R20, R23)
+    ├── interval_test.gleam       # the Interval closed set and its codec (R21)
+    └── symbol_test.gleam         # a name is not the thing named (R22)
 ```
 
 ## Testing
@@ -165,12 +169,14 @@ The `Timeframe` module (`src/glibe/timeframe.gleam`) implements the streaming da
 
 ```gleam
 // 1. Feed raw exchange data — validates + normalizes; only function that touches SourceBar
-sourcebar_gate(timeframe: Timeframe, sourcebar: SourceBar)
+//    The Interval is handed in by the caller that selected this Timeframe from
+//    Instrument.timeframes; the Timeframe itself never stores it (RULINGS.md R23).
+sourcebar_gate(timeframe: Timeframe, interval: Interval, sourcebar: SourceBar)
   -> Result(#(Option(DataBar), Timeframe), String)
 
-// 2. Process a completed bar — all computation happens here
-databar_processing(timeframe: Timeframe, databar: DataBar, settings: TimeframeSettings)
-  -> Timeframe
+// 2. Process a completed bar — all computation happens here.
+//    No settings argument: the engine reads timeframe.settings (RULINGS.md R23).
+databar_processing(timeframe: Timeframe, databar: DataBar) -> Timeframe
 ```
 
 `timeframe.gleam` holds the `Timeframe` record and `new` only; every step that
@@ -184,11 +190,13 @@ moves it lives in `engine.gleam` (RULINGS.md R7). The `Result` from
 
 ### `databar_processing` — The computation pipeline (holds NO arithmetic)
 ```gleam
-pub fn databar_processing(tf: Timeframe, db: DataBar, settings: TimeframeSettings) -> Timeframe {
+pub fn databar_processing(tf: Timeframe, db: DataBar) -> Timeframe {
+  let settings = tf.settings
   let db = indicator.run(db, tf.databar_list, settings)  // JOB 1: Indicators
-  let #(db, tf) = leaves(db, tf, settings)               // JOB 2: Leaf detection
-  let #(db, tf) = branches(db, tf, settings)             // JOB 3: Branch detection
-  accept(tf, db)                                         // JOB 4: Commit to history
+  let #(db, tf, yin_settled, yang_settled) = leaves(tf, db) // JOB 2: Leaves
+  let tf = branches(tf, db, yin_settled, yang_settled, settings.branch_exit_leaf_size)
+  let #(tf, db) = strategy(tf, db)                       // JOB 4: Manual verdict
+  accept(tf, db)                                         // JOB 5: Commit to history
 }
 ```
 
@@ -217,17 +225,17 @@ SourceBar → sourcebar_gate → working_databar (Option)
 ```gleam
 pub type Timeframe {
   Timeframe(
-    symbol: Symbol,              // Symbol type (not String)
-    interval: Interval,
-    market_type: MarketType,     // Stock | Crypto | BStock
+    settings: TimeframeSettings,       // the numbers THIS engine runs on (R23)
     working_databar: Option(DataBar),  // None after close until next source bar
     databar_list: List(DataBar),       // newest-first
+
+    // NO `symbol`, NO `interval`, NO `market_type`: the interval is the key in
+    // Instrument.timeframes and the symbol is the key in Broker.instruments.
+    // The owned value never names its owner (RULINGS.md R22 / R23).
 
     // Leaf state — Option: a leaf is born on a bar, so before any bar there is none
     growing_yin_leaf: Option(DataLeaf),
     growing_yang_leaf: Option(DataLeaf),
-    yin_leaf_list: List(DataLeaf),
-    yang_leaf_list: List(DataLeaf),
 
     // Branch state — Option: a branch exists only once a leaf settles (RULINGS.md R1)
     growing_yin_branch: Option(DataBranch),
@@ -246,9 +254,11 @@ pub type Timeframe {
 
 ### Architecture: Parallel Timeframes for Free
 
-Each `Timeframe` = one (symbol, interval, market_type), fully independent:
+Each `Timeframe` = one interval of one instrument, fully independent:
 - No shared state, no locks
-- Each has its own `TimeframeSettings` (per market: Stock vs Crypto have different calendars, hours, params)
+- Its identity is the pair of keys above it (`Symbol` in `Broker.instruments`,
+  `Interval` in `Instrument.timeframes`), not fields on the record (R22 / R23)
+- Each carries its own `TimeframeSettings` value in `settings`
 - Multiple instruments/intervals run simultaneously
 - Same pure functions process all timeframes
 

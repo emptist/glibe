@@ -37,6 +37,9 @@ Constructors are **named in full, prefixed by the type name**. Short exchange
 wire codes (a unit letter plus a digit) are abbreviations — banned as type
 constructors (owner R21; official "no abbreviations" anti-pattern). Wire
 spellings such as `"1h"` live ONLY in the codec/adapter, never in a constructor.
+A recognised professional term is NOT an abbreviation in this sense: `TPlus1`
+/ `TPlus2` (T+1 / T+2) and `CPU` stay as they are (owner R25). What is banned
+is an exchange wire code standing in for a type name.
 Adding a constructor makes every incomplete `case` a compile error. **The
 compiler does the remembering.** (Official "Make invalid states impossible";
 official anti-pattern: a catch-all `_` disables exactly that help.)
@@ -290,7 +293,8 @@ gleam lsp                           # from workspace root
   states impossible; replace `Bool` with custom types; sans-IO (a request
   builder + a response parser, not an injected HTTP function); builder pattern
   (opaque type forces validated construction).
-- Anti-patterns (never): abbreviations; fragmented modules; panicking in
+- Anti-patterns (never): abbreviations — but a professional term such as T+1
+  is not one (R25); fragmented modules; panicking in
   libraries; global namespace pollution; namespace trespassing; grouping by
   design pattern; check-then-assert; `Dynamic` with FFI; catch-all `_` as a
   final `case` clause; category-theory overuse ("Solve specific problems with
