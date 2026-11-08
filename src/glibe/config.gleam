@@ -13,9 +13,12 @@
 //// runs on is `Timeframe.settings`; there is no second dictionary.
 ////
 //// Per-interval data limits are `Dict(Interval, Int)` here (R21 / 04-02).
-//// The three remaining catalog tables (`exchanges` / `assets` / `markets`)
-//// still use `String` keys; typing those identities is a separate plan,
-//// recorded in the 04-03 plan's out-of-scope section.
+//// The three catalog tables (`exchanges` / `assets` / `markets`) stay as they
+//// are. They are NOT part of the `Desk` ownership chain and have no typed
+//// relation to `Instrument`. R26: only `Broker ▸ Instrument` is settled from
+//// the data-source argument; the other relations are deliberately left open,
+//// and types are added one at a time when a consumer actually needs one.
+//// See `docs/RULINGS.md` R26 and the 04-03 plan's out-of-scope section.
 
 import gleam/dict
 import gleam/list
