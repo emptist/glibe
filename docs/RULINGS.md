@@ -915,3 +915,44 @@ owner 原话（两条，逐字）：*"注意美国股票市场涉及夏令时以
   库的做法一致，也印证 R26：市场日历是有真实消费方的一层。Gleam 侧的对应
   物是 `tzif` 2.0.0（上一条），不是把 Python 代码搬过来。
 - 本轮不引入 `tzif`：`gleam.toml` 只多了 `gleam_time`（04-06）。
+
+---
+
+## R30 — web 界面用本地时间显示日期时间（2026-11-09 owner 指示）
+
+owner 原话（逐字）：*"在web 界面，应该采用本地时间显示日期时间，方便分析操作，因此必然涉及到时间转换和夏令时处理，你可以在相应的模块加上文档，方便实现"*
+
+- **标准层与显示层分开**：R27 定的是内部标准 `SourceBar.timestamp` =
+  `gleam_time.Timestamp`（绝对时刻 / unix time）；本条定的是**人眼在 web
+  界面上看到的日期时间**是本地时间。同一个绝对时刻在标准层只存一份，显示
+  层是它的一个投影。不得为了显示把标准类型改回日期字符串、墙钟读数或
+  带本地 offset 的字段；`interval.bucket_ends` 不随界面时区改变。
+- **两个方向不是同一个转换**：R29 是**输入侧 / 市场日历**（交易所本地时刻
+  09:30 → 绝对时刻，冬夏令时对应不同 unix time，归 provider / market
+  adapter）；本条是**输出侧 / 观察时区**（绝对时刻 → 分析者本地墙钟，归 web
+  view）。两者都在边界、都要 IANA 规则、都不得用固定 offset 或手写 DST 表，
+  但不得把市场开盘规则写进显示函数，也不得把显示时区当成市场时区。
+- owner 的换算例子同时说明两件事：美东 09:30 开盘在中国香港冬令时是
+  22:30、夏令时是 21:30 —— 既说明市场当地时刻对应的绝对时刻一年里差一小时
+  （R29），也说明任何「本地时间」只有指明 IANA 时区才有意义（本条）。
+- **「本地」的边界**：owner 说的是给分析操作看的本地时间，属**显示时区**，
+  不是 R29 的交易所 / 市场时区。市场当地时间可以作为另一个投影并列显示，
+  但两者都从同一个 `Timestamp` 出发、各自带明确的 IANA 时区名，不得因此
+  出现两个 bar 或两个时间字段。显示时区的取值来源（浏览器 / 工作站 / 用户
+  设置）由 04-07 在有真实消费方时按 R26 决定，本条不预先发明配置类型。
+- **库**：R29 已查证的 Gleam / BEAM 侧 IANA 方案是 `tzif` 2.0.0（+ `zones`
+  打包数据或 `tzif_loader` 读系统 zoneinfo），`tzcalendar.to_time_and_zone`
+  直接接受 `gleam_time.Timestamp`。显示若发生在 BEAM 服务端用它；若发生在
+  R17 的生成 `.mjs` / `webclient/`，用浏览器运行时的 IANA 时区能力。**在哪
+  一侧做由实现时按真实边界选定**，不由本条预先规定；绝不写常数 offset。
+- **本轮交付按 owner 指定只是文档**：在相应模块**加文档**方便实现，不实现
+  转换、不引入 `tzif`、不新增类型、不写测试、不改 `gleam.toml`。文档点名
+  `.planning/phases/04-domain-cleanup/04-07-PLAN.md`，由 `gleam docs build`
+  → `package-interface.json` 防漂移（R19）。实现是 04-07 的按序工作，**不是
+  待裁决项**。
+- **Landed in**：`src/glibe/web/server.gleam`（显示边主规格）、
+  `webclient/src/webclient.gleam`（浏览器 view 边界）、
+  `src/glibe/export/csv.gleam`（UTC 机器导出与本地显示的职责分工）、
+  `src/glibe/api/sourcebar.gleam`（绝对时刻不被显示需求改变）的 `////`
+  模块文档；`.planning/phases/04-domain-cleanup/04-07-PLAN.md`；
+  `docs/DESIGN.md`「web 显示边界与本地时间」。
