@@ -905,8 +905,13 @@ owner 原话（两条，逐字）：*"注意美国股票市场涉及夏令时以
   10:30 / 11:30…，且冬、夏令时对应不同 UTC 时刻。这属于**市场日历规则**，
   按 R26 等真正有消费方时单独立计划并引入 `tzif`；不得用常数 offset 假装
   解决，也不在这里预先发明 `Market` 类型。
-- `ibOptions` 的本机可见材料只有
-  `glib/docs/reference/ibOptions-system-model.html`（历史模型文档）；按
-  `timezone / DST / daylight / UTC / zoneinfo / New_York` 检索未检出转换
-  段落，具体做法不替 owner 断言。若该项目源码可用再逐条核对。
+- **`~/gits/hub/ibOptions` 的实例**（owner 指路后逐条核对）：
+  `tradingtime.py:24` 是 `eastern = pytz.timezone('US/Eastern')`；
+  `USTradingTime` 用 `datetime.now(self.eastern)` 取本地交易日，把 RTH 定为
+  美东 `time(9,30)`–`time(16,00)`，另有 ETH / OTH / 盘前时段；
+  `simple_auto_trading.py:132` 把 IB 服务器时间
+  `server_time.astimezone(eastern)` 折成美东再判断交易窗口。**DST 由
+  `pytz` 的 IANA 规则承担，代码里没有一个手写 offset 常数** —— 与本条要用
+  库的做法一致，也印证 R26：市场日历是有真实消费方的一层。Gleam 侧的对应
+  物是 `tzif` 2.0.0（上一条），不是把 Python 代码搬过来。
 - 本轮不引入 `tzif`：`gleam.toml` 只多了 `gleam_time`（04-06）。
