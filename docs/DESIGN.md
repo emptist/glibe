@@ -174,10 +174,23 @@ packages but more hand-written Gleam and no static/logging/crash-rescue
 middleware. Every option has the same browser asset and zero hand-written JS —
 **the framework choice changes only the server half**, not R17/R18.
 
-This is a recommendation, **not an adoption** (R24). Nothing was added to the
-root `gleam.toml` and the root `src/` was untouched. Demos are measurement
-apparatus: all three `gleam.toml` files are erlang-target, `webclient/` remains
-the product's only JavaScript-target package (R18).
+At the time of the measurement this was a recommendation, **not an adoption**
+(R24): nothing was added to the root `gleam.toml` and the root `src/` was
+untouched. Demos are measurement apparatus: all three `gleam.toml` files are
+erlang-target, `webclient/` remains the product's only JavaScript-target
+package (R18).
+
+**2026-11-09 adoption — phase 04-05.** The recommendation is now built. Root
+`gleam.toml` has `mist` + `wisp` (Hex only), and `src/glibe/web/server.gleam`
+serves the real `config.default_config().desk`: `GET /` is a server-rendered
+table, `GET /desk` is the same `Desk ▸ Broker ▸ Instrument ▸ Interval` chain as
+JSON, any other path is 404. A closed `Route` type, not a path `String`, names
+the endpoints. Run with `gleam run -m glibe/web/server` (port 8610) — the root
+library deliberately keeps no global `main` slot, so Stage F's replay CLI is
+still free. Real HTTP requests returned 200 / 200 / 404 with the configured
+`binance` / `futu` / `ib` brokers and `BTCUSDT` / `SPY` / `SPY_FUTU` names.
+No Lustre server components, no hand-written JS, no new browser asset. See
+`.planning/phases/04-domain-cleanup/04-05-PLAN.md` and its SUMMARY.
 
 Two compiler corrections the demos produced: Mist 6.0.3 exports `mist.start`,
 not the `mist.start_http` still shown in Wisp's own doc example; Lustre 5.7.1's
@@ -191,9 +204,10 @@ shipped both wrong.
   and it waits on nothing.
 - **The catalogue tables' identities and relations** — deliberately open
   under R26, not a pending owner ruling. They get types when a consumer
-  appears. The web-layer comparison is **done** (R24); recommendation A is
-  recorded above and adoption waits for a plan that actually builds the layer.
-  The `Interval` closed set is already 9 values (R21). Plans first
+  appears. The web-layer comparison (R24) and adoption (phase 04-05) are both
+  **done**; the thin endpoints exist, but the chart, streaming and SPA
+  interaction do not. The `Interval` closed set is already 9 values (R21).
+  Plans first
   (*"计划和文档先行"*, 2026-10-28).
 - **The AI strategy** — deliberately absent. glib's AI layer was deleted by
   the owner; there is nothing to port. **glibe does not wait for a feature the

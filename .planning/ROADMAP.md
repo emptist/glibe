@@ -283,4 +283,19 @@ proved one settled bar reached both the HTML view and the JSON endpoint; demo
 B's `/poll` returned a real Lustre `Mount` patch. Node imports the generated
 `webclient.mjs`. Recommendation A recorded in `docs/DESIGN.md`: thin Mist+Wisp
 data endpoints, view in the generated `.mjs`, no Lustre server components by
-default. **Not adopted** — root `gleam.toml` and `src/` untouched.
+default. **Not adopted at the time** — root `gleam.toml` and `src/` untouched.
+
+## Phase 04 Plan 05 — adopt R24 A (2026-11-09)
+
+Added `.planning/phases/04-domain-cleanup/04-05-PLAN.md`, its SUMMARY,
+`src/glibe/web/server.gleam` and `test/web_server_test.gleam`. Root
+`gleam.toml` gains `mist` + `wisp` (Hex only); no npm dep, no `target` change,
+no new package. A closed `Route` type names the endpoints; `GET /` renders the
+real configured `Desk` as an HTML table, `GET /desk` returns the same
+`Desk ▸ Broker ▸ Instrument ▸ Interval` chain as JSON. Run with
+`gleam run -m glibe/web/server` on port 8610 so the root library keeps no
+global `main` slot. Fourth measured docs-first/TDD cycle: RED 50 passed /
+4 `todo` failures, GREEN 54 passed / 0 warnings / guards 0; real HTTP
+200 / 200 / 404. `package-interface.json` carries the `04-05-PLAN` link.
+This adoption is AI work under R24, not a new owner ruling; owner items stay
+at zero. Chart, streaming and SPA interaction remain out of scope.

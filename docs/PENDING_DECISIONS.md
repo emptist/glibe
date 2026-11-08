@@ -88,6 +88,9 @@ owner 原话（逐字引用、`[user 日期]`、UC 编号）及全部论证在�
 
 - ~~web 层 demo 对比（R24）~~ 已完成；实测数字与结论在 `docs/DESIGN.md`、
   `.planning/phases/04-domain-cleanup/04-04-SUMMARY.md`、`probes/web-layer/`。
+- ~~依该结论采用 A（04-05）~~ 已完成；根包加入 `mist` / `wisp`，
+  `src/glibe/web/server.gleam` 服务真实 `Desk`。这是我按 R24 自己该做的决定，
+  细节在 `.planning/phases/04-domain-cleanup/04-05-SUMMARY.md`。
 - BEAM Stage F：受监督 `Timeframe` actor、真实 klines 的 replay CLI、退役
   `data_generator.ex`、`no_minute_trading.sh`。
 - 真实数据图表对比试验（时机见上面「不需要你决定」）。

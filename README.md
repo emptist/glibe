@@ -50,10 +50,10 @@ no dependency added** (`docs/RULINGS.md` R18).
 | **Target** | ✅ `erlang` | root package pure BEAM; no handwritten `.mjs`/`.erl`/`.ex` under `src/`. The separate `webclient/` package is the only JavaScript target, declared in its own `gleam.toml` |
 | **Binance REST** | ✅ Working | testnet.binance.vision (works from China), `gleam_httpc` |
 | **Stream Processing** | ✅ Core Complete | SMA×5, Bollinger, KDJ, Leaf, Branch, Timeframe pipeline |
-| **Tests** | ✅ Passing | **26 tests** — indicators, api, ingest boundary, and three Round-5 invariant tests; assertions use bool `assert` / `let assert` with messages, not `panic` |
+| **Tests** | ✅ Passing | **54 tests** — indicators, api, ingest boundary, the ownership chain, the `Interval` closed set, the web layer and three Round-5 invariant tests; assertions use bool `assert` / `let assert` with messages, not `panic` |
 | **Build** | ✅ Green | gleam **1.19.2** / OTP **29**: 0 errors, 0 warnings |
 | **IB Client Portal** | ⚠️ Retired | The handwritten Elixir `ibkr.ex` wrapper had **zero callers** and an undeclared `ibkr_api` dep; it produced 12 build warnings. Removed under *"No handwritten erlangs"*. The FFI contract survives as `ibkr.gleam.disabled` (a design record, not compiled). |
-| **Visualization** | ✅ Settled | **JS chart library (R17)**, generated `.mjs` preferred; hand-written `.mjs` only inside `webclient/` (R16). The client exists so a human can spot anomalies by eye, read trends from charts, inspect tabulated fractal data, and see order issue/fill points (R18). `deprecated/glibe_web` is a Phoenix comparison piece, not the implementation. The web-layer framework is still an open owner decision; the Gleam core does not broadcast. |
+| **Visualization** | ✅ Settled | **JS chart library (R17)**, generated `.mjs` preferred; hand-written `.mjs` only inside `webclient/` (R16). The client exists so a human can spot anomalies by eye, read trends from charts, inspect tabulated fractal data, and see order issue/fill points (R18). `deprecated/glibe_web` is a Phoenix comparison piece, not the implementation. The BEAM web layer is **Mist + Wisp**, chosen by three measured demos (R24) and adopted in phase 04-05: `GET /` renders the real `Desk` as a table, `GET /desk` returns it as JSON. No Lustre server components, no hand-written JS. |
 | **Guards** | ✅ Added | `scripts/guards.sh --all` — build, test, format, `no_timeframe_mixture`, `no_foreign_source`, plus `test_guards.sh` (7 fixture-based negative tests, no source mutation); also runs in CI |
 
 ## Quick Start
@@ -71,6 +71,10 @@ sh scripts/guards.sh --all
 
 # Build the separate JavaScript-target web client (emits .mjs)
 cd webclient && gleam build && cd ..
+
+# Start the BEAM web layer (Mist + Wisp) on port 8610.
+# / → HTML table of the configured Desk, /desk → the same chain as JSON.
+gleam run -m glibe/web/server
 
 # Reference only — the retired Phoenix app, kept for comparison
 cd deprecated/glibe_web && mix phx.server
@@ -137,6 +141,8 @@ src/
 │   │   └── strategy.gleam        # The manual verdict (manual_signal)
 │   ├── export/
 │   │   └── csv.gleam             # CSV export, one row per accepted bar
+│   ├── web/
+│   │   └── server.gleam          # Mist + Wisp endpoints; view of the real Desk (R24)
 │   └── config.gleam              # AppConfig + default_config (single source of truth)
 ├── webclient/                    # separate JS-target Gleam package (own gleam.toml)
 │   └── src/webclient.gleam       # → build/dev/javascript/webclient/webclient.mjs
@@ -148,7 +154,8 @@ src/
     ├── glibe_test.gleam          # engine / indicator / config invariants
     ├── desk_test.gleam           # the ownership chain (R20, R23)
     ├── interval_test.gleam       # the Interval closed set and its codec (R21)
-    └── symbol_test.gleam         # a name is not the thing named (R22)
+    ├── symbol_test.gleam         # a name is not the thing named (R22)
+    └── web_server_test.gleam     # routes, JSON, HTML view and real Wisp requests
 ```
 
 ## Testing

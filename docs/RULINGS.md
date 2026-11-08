@@ -761,8 +761,15 @@ interval does not"*。glibe 造出第二本字典 + 复合串表 + 两个查找�
   HTTP 请求、做 Node 导入检查；结论「推荐 A：Mist + Wisp 数据端点 + 生成的
   `.mjs` 视图，不采用 Lustre server components 作为默认」写进
   `docs/DESIGN.md`，全部实测数字在
-  `.planning/phases/04-domain-cleanup/04-04-SUMMARY.md`。根 `gleam.toml`
-  与根 `src/` 未改动，本条「结论不等于采用」的边界保持。
+  `.planning/phases/04-domain-cleanup/04-04-SUMMARY.md`。当时根 `gleam.toml`
+  与根 `src/` 未改动，「结论不等于采用」的边界保持。
+- **2026-11-09 后续（04-05）**：结论已被采用——这是我按本条自己该做的决定，
+  不是新的 owner 裁决。根包加入 `mist` / `wisp`，
+  `src/glibe/web/server.gleam` 用 `Route` 闭集服务真实 `Desk`（`/` HTML
+  表格、`/desk` JSON）；Lustre server components 未被采用。R15 / R17 / R18
+  的边界不变：根仍是 erlang target，`webclient/` 仍是唯一 JS-target 包，
+  浏览器侧仍是生成的 `.mjs`。计划与实测见
+  `.planning/phases/04-domain-cleanup/04-05-PLAN.md`、`docs/DESIGN.md`。
 
 ---
 

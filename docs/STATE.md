@@ -4,6 +4,18 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
+## 2026-11-09 (phase 04-05 — the product web layer, adopted)
+
+| axis | value | how it was taken |
+|---|---|---|
+| framework | **Mist 6.0.3 + Wisp 2.2.2** in the root `gleam.toml`; no Lustre server components, no npm deps | R24 demo conclusion adopted by `04-05-PLAN.md` |
+| new module | `src/glibe/web/server.gleam` — closed `Route` set, `desk_to_json`, `page`, `handle_request`, `main` | `gleam docs build` → `package-interface.json` carries `04-05-PLAN` |
+| data served | the REAL `config.default_config().desk`, not a demo fixture | `GET /desk` returned binance/BTCUSDT, futu/SPY_FUTU, ib/SPY, each `["1h","1d"]` |
+| HTTP | `GET /` 200 (371 B, `<table` + `BTCUSDT` + `futu`), `GET /desk` 200 (236 B valid JSON), `GET /nope` 404 | `gleam run -m glibe/web/server` on port 8610, real requests; port released afterwards |
+| GREEN | `gleam test` **54 passed / 0 failures**, `--warnings-as-errors` 0, `format --check` 0, `guards.sh --all` 0, `docs build` 0 | RED was 50 passed / 4 `todo` failures |
+| docs coverage | `glibe/web/server` documented; empty module docs 15 / 25 | `package-interface.json` |
+| owner rulings | **0** | adoption is AI work under R24, not a ruling |
+
 ## 2026-11-09 (R24 / phase 04-04 web demos)
 
 | axis | value | how it was taken |
