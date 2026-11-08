@@ -4,6 +4,34 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
+## 2026-11-09 (Gleam 天然并行研究 — DEFERRED，本日只记录状态)
+
+- owner 06:01 指出：Gleam 天然多线程、并行任务非常简单自然，不必把「受监督
+  actor / 订阅 / 行情流」当成复杂补救措施；要求查官网与 Wisp / Lustre 等著名代码。
+  owner 06:07 追加：**今天浅尝即止，明天免费 token 到手再继续，今天只把任务和
+  现有发现记下来**。owner 06:09 再纠正：*"你去看什么javascript target完全不对路，
+  我们是erlang 和 BEAM专属项目"* —— 本项研究范围收窄为 **Erlang / BEAM**，
+  JavaScript target / promise 的旁证已从记录中删除。
+- 本日**只做了查证与记录**：`https://gleam.run/` 首页 "multi-core actor based
+  concurrency system … millions of concurrent green threads" 与三行
+  `new_subject` / `spawn` / `receive` 示例；官方 v0.12 发布文「no need for an
+  `async/await` syntax or callbacks」「no special types such as futures or
+  promises」「don't have mutable state so locks and shared mutable state is not
+  an option」以及 actor / supervisor 的定位；本机
+  `build/packages/gleam_erlang/src/gleam/erlang/process.gleam:36,78,138,194,227`
+  与 `gleam_otp/actor.gleam:1-14`；Wisp `wisp.gleam` 0 处 `process.`；
+  glisten `:274,397,435,446`；Lustre `runtime/server/runtime.gleam:81-122`。
+  完整引文与 URL 在 `.planning/phases/04-domain-cleanup/04-09-PLAN.md` §2。
+- **发现我自己的两处错误**：① 上一轮答复说「`gleam_otp` 也没引入」是错的，
+  根 `gleam.toml` 早有 `gleam_otp = ">= 1.3.0 and < 2.0.0"` 直接依赖；
+  ② `docs/DESIGN.md` 04-08 段末 "no … `gleam_otp` dependency" 同错。
+  `:101` 表格与 04-08 段末把并发写成「Stage F 的受监督 actor」的框架也待复核。
+- **本日未改动**：`src/`、`gleam.toml`、`docs/DESIGN.md`、`docs/RULINGS.md`、
+  无 probe、无编译、无测试、无 R31。工作树只有记录类文件。
+- 明天按 `04-09-PLAN.md` §4 继续：编译实测 spawn + Subject → 诚实回答 N 份新
+  `Desk` 的合并/所有权 → 重写 Stage F 框架 → 纠正两处事实 → 验证与即时提交。
+  不是 owner 待裁决项，`docs/PENDING_DECISIONS.md` 决策区仍 0 项。
+
 ## 2026-11-09 (phase 04-08 — one addressed bar advances one timeframe)
 
 - Measured answer to "can the type structure monitor many instruments, each

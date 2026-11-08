@@ -343,3 +343,19 @@ exactly one `Timeframe`; no interval fan-out, no field on `SourceBar` or
 Sixth docs-first cycle: RED 58 passed / 6 `todo` failures, GREEN **64 passed**
 / 0 warnings / guards 0 / format 0 / docs 0; `package-interface.json` carries
 the `04-08-PLAN` link on all four touched modules. Not an owner ruling.
+
+
+## Phase 04 Plan 09 — Gleam 的天然并行（2026-11-09，DEFERRED，仅记录）
+
+Owner 指出：Gleam 天然并行、并行任务非常简单自然，不需要把「受监督 actor /
+订阅 / 行情流」当成一整套复杂补救机制；要求看官网与 Wisp / Lustre 等著名代码。
+**owner 06:07 指示今天浅尝即止，明天继续，今天只记录。**
+Owner 06:09 纠正研究范围：*"你去看什么javascript target完全不对路，我们是erlang
+和 BEAM专属项目"* —— 只看 Erlang / BEAM，不考察 JavaScript target。
+已查到的官网原文、v0.12 发布文、`gleam_erlang/process` 与 `gleam_otp/actor`
+的 API、Wisp（0 处 `process.`）/ Mist-glisten（每连接一进程 + 监督池）/
+Lustre（服务端 runtime 恰一个 actor + factory supervisor）的 file:line 证据，
+以及我自己的两处事实错误，全部写在
+`.planning/phases/04-domain-cleanup/04-09-PLAN.md`。
+**今天没有改代码、没有建 probe、没有加依赖、没有改既有结论。** 明天按该文件
+§4 继续。不是待裁决项。

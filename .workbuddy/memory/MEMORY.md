@@ -152,3 +152,27 @@ have 0 consumers; `Instrument = Asset on Market` is AI prose, do not revive.
   `fetch_klines` 收 `Symbol` 而非 `String`。不发明 provider↔broker 关系（R26）。
 - 64 tests green。**真实并发 / 订阅 / replay CLI 仍是 Stage F，未启动**；
   这次只补类型结构，不是运行时。不是新 owner 裁定。
+  ⚠️ 这句「Stage F = 受监督 actor」的框架已被 owner 2026-11-09 06:01 质疑，待
+  04-09 重写；且「gleam_otp 没引入」是错的（根 gleam.toml 早有直接依赖）。
+
+## 并发认知（2026-11-09，本日只记录，明天做）
+- Owner：Gleam 天然多线程，并行任务「非常简单啊非常自然」，不需要 actor 那些
+  复杂补救措施，因为值是严格 value、不共享内存。**06:09 纠正：*"你去看什么
+  javascript target完全不对路，我们是erlang 和 BEAM专属项目"*** —— 谈并发只在
+  Erlang / BEAM 语境，别拿 JS target / promise 当旁证或类比。
+- 官方证据：`gleam.run` 首页 "multi-core actor based concurrency system …
+  millions of concurrent green threads" + 三行 `new_subject` / `spawn` /
+  `receive`；v0.12 发布文「no need for an `async/await` syntax or callbacks」
+  「no special types such as futures or promises」「don't have mutable state so
+  locks and shared mutable state is not an option」「compiler can full type
+  check channels」。actor = 长生命周期状态 + 自动处理 OTP 系统消息的**薄封装**；
+  supervisor = 容错，不是并行机制。一次性并行任务只需 `process.spawn` +
+  类型化 `Subject`。
+- 本机实测：Wisp `wisp.gleam` 0 处 `process.`；glisten 每连接一进程 + 监督池
+  (`:274/397/435/446`)；Lustre 服务端 runtime 恰一个 actor
+  (`runtime/server/runtime.gleam:81-122`)。
+- **`gleam_otp` 早就是根 `gleam.toml` 的直接依赖**；我上一轮说「没引入」是错的，
+  `docs/DESIGN.md` 04-08 段末 "no … gleam_otp dependency" 同错。缺的是使用它。
+- owner 06:07：今天浅尝即止，明天免费 token 到手继续，今天只记录。接手点：
+  `.planning/phases/04-domain-cleanup/04-09-PLAN.md`（含明天 5 步）。本日 0 代码
+  改动、0 probe、0 依赖、0 R31。
