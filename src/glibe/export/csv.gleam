@@ -1,14 +1,19 @@
-// The CSV export — one row per accepted bar, oldest first, for checking the
-// engine against something that is not the engine (TradingView, a spreadsheet,
-// another implementation).
-//
-// **Every column is a field something computed.** The header used to promise
-// six leaf indices — start, end and corner for each polarity — and every row
-// wrote `0` in all six, with a comment in the code admitting the values were
-// not tracked. An export that prints a number nobody computed is worse than an
-// export with six fewer columns, because the reader cannot tell the difference
-// between "zero" and "never measured". The six columns are gone; when a bar can
-// name the leaf it sits in, they come back as values.
+//// The CSV export — one row per accepted bar, oldest first, for checking the
+//// engine against something that is not the engine (TradingView, a spreadsheet,
+//// another implementation).
+////
+//// Plan: `.planning/phases/04-domain-cleanup/04-06-PLAN.md`.
+//// Ruling: `docs/RULINGS.md` R27 (the standard bar time is unix time). The
+//// `Timestamp` is formatted to RFC3339 here, at the output edge, and nowhere
+//// else in the domain.
+////
+//// **Every column is a field something computed.** The header used to promise
+//// six leaf indices — start, end and corner for each polarity — and every row
+//// wrote `0` in all six, with a comment in the code admitting the values were
+//// not tracked. An export that prints a number nobody computed is worse than an
+//// export with six fewer columns, because the reader cannot tell the difference
+//// between "zero" and "never measured". The six columns are gone; when a bar can
+//// name the leaf it sits in, they come back as values.
 
 import gleam/float
 import gleam/int

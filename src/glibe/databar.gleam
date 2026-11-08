@@ -1,11 +1,18 @@
-/// The bar the streaming system works with — computed from SourceBar + indicators.
-/// Used by timeframe, SMA, KDJ, Bollinger, Leaf, Branch.
-///
-/// Every field here is a measurement something computed. A bar carries no
-/// verdict (those are derived in `trading/strategy`); it carries no leaf index
-/// it cannot name (those come back when a bar can name the leaf it sits in).
-/// Fields that no step ever wrote were removed — an uncomputed number printed
-/// is a lie the reader cannot tell from a zero.
+//// The bar the streaming system works with — computed from SourceBar + indicators.
+//// Used by timeframe, SMA, KDJ, Bollinger, Leaf, Branch.
+////
+//// Plan: `.planning/phases/04-domain-cleanup/04-06-PLAN.md`.
+//// Ruling: `docs/RULINGS.md` R27 (a bar's time is a unix-time `Timestamp`).
+////
+//// `timestamp` is an absolute instant, not a provider's date spelling. It is
+//// formatted only at the output edge (`export/csv.gleam`).
+////
+//// Every field here is a measurement something computed. A bar carries no
+//// verdict (those are derived in `trading/strategy`); it carries no leaf index
+//// it cannot name (those come back when a bar can name the leaf it sits in).
+//// Fields that no step ever wrote were removed — an uncomputed number printed
+//// is a lie the reader cannot tell from a zero.
+
 import gleam/float
 import gleam/time/timestamp.{type Timestamp}
 import glibe/api/sourcebar.{type SourceBar}

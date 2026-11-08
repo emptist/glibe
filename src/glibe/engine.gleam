@@ -1,8 +1,10 @@
 //// The engine — every step that moves a `Timeframe`, in the order they run.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`.
-//// Ruling: `docs/RULINGS.md` R23 (settings travel with the engine; the
-//// interval is in the key, not in the value), R19.
+//// Plans: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`,
+//// `.planning/phases/04-domain-cleanup/04-06-PLAN.md`.
+//// Rulings: `docs/RULINGS.md` R23 (settings travel with the engine; the
+//// interval is in the key, not in the value), R19, R27 (standard bar time is
+//// unix time), R28 (native provider bars standardise themselves).
 ////
 //// `sourcebar_gate` is given the `Interval` by the caller that selected this
 //// `Timeframe` from `Instrument.timeframes`. `databar_processing` reads
