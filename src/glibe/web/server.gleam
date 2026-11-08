@@ -45,19 +45,36 @@ pub type Route {
 /// Classify one request. Pure, so the whole routing table is a unit test and
 /// no fake `Request` has to be built to check it.
 pub fn route(method: Method, segments: List(String)) -> Route {
-  todo as "04-05: classify GET / and GET /desk exhaustively"
+  case method, segments {
+    Get, [] -> RouteDeskPage
+    Get, ["desk"] -> RouteDeskJson
+    _, _ -> RouteNotFound
+  }
 }
 
 /// The whole ownership chain as JSON, for the generated browser client.
 /// Keys become display strings only here, at the text boundary — every value
 /// upstream is a `BrokerId`, a `Symbol` or an `Interval`.
 pub fn desk_to_json(desk: Desk) -> String {
-  todo as "04-05: encode Desk > Broker > Instrument > Interval"
+  let brokers =
+    dict.to_list(desk.brokers)
+    |> list.map(fn(pair) { broker_to_json(pair.0, pair.1) })
+  json.to_string(
+    json.object([
+      #("brokers", json.preprocessed_array(brokers)),
+    ]),
+  )
 }
 
 /// One broker's JSON object.
 fn broker_to_json(id: desk.BrokerId, broker: desk.Broker) -> json.Json {
-  todo as "04-05: encode one broker and its instruments"
+  let instruments =
+    dict.to_list(broker.instruments)
+    |> list.map(fn(pair) { instrument_to_json(pair.0, pair.1) })
+  json.object([
+    #("id", json.string(desk.broker_id_to_string(id))),
+    #("instruments", json.preprocessed_array(instruments)),
+  ])
 }
 
 /// One instrument's JSON object: its `Symbol` name and its interval keys.
@@ -65,29 +82,73 @@ fn instrument_to_json(
   name: symbol.Symbol,
   instrument: desk.Instrument,
 ) -> json.Json {
-  todo as "04-05: encode one instrument and its intervals"
+  let intervals =
+    dict.to_list(instrument.timeframes)
+    |> list.map(fn(pair) { json.string(interval.to_string(pair.0)) })
+  json.object([
+    #("symbol", json.string(symbol.to_string(name))),
+    #("intervals", json.preprocessed_array(intervals)),
+  ])
 }
 
 /// A server-rendered table of the same chain, so a human can see the
 /// ownership structure without running any browser script.
 pub fn page(desk: Desk) -> String {
-  todo as "04-05: render the Desk as an HTML table"
+  let rows =
+    dict.to_list(desk.brokers)
+    |> list.map(fn(pair) { broker_rows(pair.0, pair.1) })
+    |> string.join(with: "")
+  "<!doctype html><html><head><meta charset=utf-8>"
+  <> "<title>glibe desk</title></head><body>"
+  <> "<h1>Desk</h1>"
+  <> "<table><thead><tr><th>broker</th><th>symbol</th><th>intervals</th>"
+  <> "</tr></thead><tbody>"
+  <> rows
+  <> "</tbody></table></body></html>"
 }
 
 /// One broker's rows: one row per instrument/interval pair.
 fn broker_rows(id: desk.BrokerId, broker: desk.Broker) -> String {
-  todo as "04-05: render one broker's rows"
+  let broker_name = desk.broker_id_to_string(id)
+  dict.to_list(broker.instruments)
+  |> list.map(fn(pair) {
+    let #(name, instrument) = pair
+    let intervals =
+      dict.to_list(instrument.timeframes)
+      |> list.map(fn(tf) { interval.to_string(tf.0) })
+      |> string.join(with: ", ")
+    "<tr><td>"
+    <> broker_name
+    <> "</td><td>"
+    <> symbol.to_string(name)
+    <> "</td><td>"
+    <> intervals
+    <> "</td></tr>"
+  })
+  |> string.join(with: "")
 }
 
 /// The Wisp request handler. It serves the configured `Desk`; it does not
 /// manufacture a view model of its own.
 pub fn handle_request(request: Request) -> Response {
-  todo as "04-05: dispatch the Route with Wisp responses"
+  let cfg = config.default_config()
+  case route(request.method, wisp.path_segments(request)) {
+    RouteDeskPage -> wisp.html_response(page(cfg.desk), 200)
+    RouteDeskJson -> wisp.json_response(desk_to_json(cfg.desk), 200)
+    RouteNotFound -> wisp.not_found()
+  }
 }
 
 /// Start Mist with the Wisp adapter on port 8610. Run with
 /// `gleam run -m glibe/web/server` so the root library keeps no global
 /// `main` slot for Stage F's replay CLI.
 pub fn main() -> Nil {
-  todo as "04-05: start Mist with the Wisp adapter"
+  let secret_key_base = wisp.random_string(64)
+  let assert Ok(_) =
+    handle_request
+    |> wisp_mist.handler(secret_key_base)
+    |> mist.new
+    |> mist.port(8610)
+    |> mist.start
+  process.sleep_forever()
 }
