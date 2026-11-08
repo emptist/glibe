@@ -859,3 +859,22 @@ owner 原话：*"这里存在设计问题了，glib我已经批评过很多次�
   时的 market 层表达（R26），不在这里预先发明。
 - 边界不变：`String` 只活在线格式与 CSV/HTML 输出；`parse_rfc3339`、
   `to_rfc3339` 这类转换只出现在 adapter 与输出边。
+
+## R28 — provider 原生 bar 各自保留、各自标准化（2026-11-09）
+
+owner 原话：*"binance的kline包含很多特殊字段，其他提供商不提供，比如ib不提供那些字段，所以他们两家的sourcebar绝对不同，要保留原生态，并且各自标准化"*
+
+- 标准 `SourceBar`（R27）是**内部标准**：不是任何 provider 的原生结构，
+  也不是所有 provider 字段的并集。它只放系统真正按统一语义消费的东西。
+- 每个 provider 定义自己的**原生 bar 类型**，线格式字段一个不丢：Binance
+  kline 的 `closeTime` / `quoteAssetVolume` / `numberOfTrades` /
+  `takerBuyBaseAssetVolume` / `takerBuyQuoteAssetVolume` / `ignore` 等，
+  IB 有 IB 自己的一套。这两家的 sourcebar **绝对不同**。
+- **各自标准化**：每个 provider 模块提供
+  `to_sourcebar(native) -> Result(SourceBar, ...)`，把 provider 的时间表示折
+  成 unix time（R27），并取出标准层需要的 OHLCV。转换只发生在这里。
+- 禁止：adapter 直接构造标准 `SourceBar` 而丢掉原生字段；把 provider 特有
+  字段塞进标准类型；用一种「通用 JSON bar」冒充所有 provider 的原生形状。
+- 关系：provider 差异归属 adapter（R26「从数据源看」、`Broker ▸ Instrument`），
+  标准层只有一份。`binance/kline.gleam` 的 `decode_klines` 返回原生
+  `List(Kline)`，`to_sourcebar` 是唯一的出口。
