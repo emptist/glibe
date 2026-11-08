@@ -878,3 +878,35 @@ owner 原话：*"binance的kline包含很多特殊字段，其他提供商不提
 - 关系：provider 差异归属 adapter（R26「从数据源看」、`Broker ▸ Instrument`），
   标准层只有一份。`binance/kline.gleam` 的 `decode_klines` 返回原生
   `List(Kline)`，`to_sourcebar` 是唯一的出口。
+- **原生命名也保留**（owner 2026-11-09 补充）：*"你看他原生的名字都不一样，binance称为kline，别人家可能成为bar，quote之类的形形色色"* ——
+  Binance 的类型就叫 `Kline`，别家叫 `bar` / `quote` 是它自己的词。不得为
+  了「统一」把 provider 原生类型改成通用名；统一只发生在标准层
+  `SourceBar`，而且标准层不吸收这些名字。
+
+## R29 — 夏令时与交易所时区：查 IANA 规则，不用固定 offset（2026-11-09）
+
+owner 原话（两条，逐字）：*"注意美国股票市场涉及夏令时以及交易所时间好像是美国东部还是西部时间，这个需要用对应的库进行转化，ibOptions 项目中有这类转化的例子，也是很简单的，Gleam能用的相应的库我相信BEAM世界都有"*；
+*"比如香港本地时间晚上22:30分，目前是美国时间早上9:30分，美国股市开盘，但是前一段时间，则是香港21:30分，对应美国9:30分"*
+
+- **换算核对**：美东 09:30 开盘。冬令时 EST（UTC−5）与中国香港 HKT
+  （UTC+8）差 13 小时 → 22:30；夏令时 EDT（UTC−4）差 12 小时 → 21:30。
+  **同一个市场开盘时刻，绝对 unix time 一年里差一小时**，所以固定 offset
+  必然错；反过来这正是 R27 要求标准层用 unix time 的理由。
+- **查证到的库**（2026-11-09）：Gleam 原生 **`tzif` 2.0.0**
+  （`hexdocs.pm/tzif/2.0.0`），配 `zones`（打包 IANA 数据，浏览器 / Docker /
+  Windows）或 `tzif_loader`（读系统 `/usr/share/zoneinfo`）；
+  `tzcalendar.to_time_and_zone(ts, "America/New_York", db)` 直接接受
+  `gleam_time.Timestamp`。BEAM 侧另有 Elixir `Timex` + `:tzdata`，但那需要
+  `@external`，不如 `tzif` 干净。**不自己写 DST 表，不加 sh 守卫。**
+- **归属**：转换在 provider / market adapter 的 `to_sourcebar` 一侧
+  （R27 / R28）；标准 `SourceBar` 与 `interval.bucket_ends` 不因此改变。
+- **显式债务**：`bucket_ends` 现在是 unix 秒整点网格（1h `% 3600`、4h
+  `% 14400`），只对 UTC 对齐的市场成立。美股 09:30 开盘，桶边界在美东
+  10:30 / 11:30…，且冬、夏令时对应不同 UTC 时刻。这属于**市场日历规则**，
+  按 R26 等真正有消费方时单独立计划并引入 `tzif`；不得用常数 offset 假装
+  解决，也不在这里预先发明 `Market` 类型。
+- `ibOptions` 的本机可见材料只有
+  `glib/docs/reference/ibOptions-system-model.html`（历史模型文档）；按
+  `timezone / DST / daylight / UTC / zoneinfo / New_York` 检索未检出转换
+  段落，具体做法不替 owner 断言。若该项目源码可用再逐条核对。
+- 本轮不引入 `tzif`：`gleam.toml` 只多了 `gleam_time`（04-06）。
