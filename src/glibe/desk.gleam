@@ -1,40 +1,41 @@
 //// The ownership root — where every instrument and every timeframe lives.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-01-PLAN.md`.
-//// Ruling: `docs/RULINGS.md` R20.
+//// Plan: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`.
+//// Ruling: `docs/RULINGS.md` R20 (the chain is must-have, `Desk` is the name),
+//// R22 (a name is not the thing), R23 (one dictionary, no stand-ins), R19.
 ////
 //// Ownership chain, top to bottom:
-////   Desk -> Broker -> Instrument -> Interval -> settings / state
+////   Desk -> Broker -> Instrument -> Interval -> Timeframe
 ////
-//// `config.gleam` currently holds two parallel lists keyed by composite
-//// strings such as `"BTCUSDT_H1"`:
-////   `symbols: List(#(String, symbol.Symbol))` and
-////   `timeframe_settings: List(#(String, indicator_settings.TimeframeSettings))`.
-//// One `String` carries TWO facts (which instrument, which interval), so the
-//// compiler cannot tell them apart and neither list has an owner. This module
-//// gives both facts their own type and their own key: `Symbol` in
-//// `Broker.instruments`, `Interval` in `Instrument.settings` and in
-//// `Instrument.timeframes`.
+//// `Symbol` is the key in `Broker.instruments`: the spelling a broker uses to
+//// NAME an instrument. It is not the instrument and carries none of its facts
+//// (R22). `Interval` is the key in `Instrument.timeframes`; a `Timeframe`
+//// never stores its own interval, its own symbol or a market tag (R23).
 ////
 //// Identity is a key, not a field: `Broker`, `Instrument` and `Account` never
-//// store their own id. `BrokerId`, `AccountId` and `Symbol` are the dict keys.
-//// The type relations ARE the consumers — a `Dict(BrokerId, Broker)` field is
-//// a compile-time use of `Broker`, so none of these values is orphaned.
+//// store their own id. The type relations ARE the consumers — a
+//// `Dict(BrokerId, Broker)` field is a compile-time use of `Broker`, so none of
+//// these values is orphaned.
 ////
-//// Open, deliberately not fixed here: `timeframe.gleam`'s `Timeframe` still
-//// carries its own `symbol` and `interval` fields, so a dict key and its value
-//// can disagree. Making that record keyless is a separate architectural change,
-//// already recorded in `docs/REVIEW_ROUND5.md` under "Still a design debt".
-//// `config.gleam` is NOT migrated in this plan — the home exists first.
+//// `Instrument` has exactly ONE collection. It used to hold a second one,
+//// `Dict(Interval, TimeframeSettings)`, beside the timeframes; `config.gleam`
+//// used to hold the same numbers under composite strings like
+//// `"BTCUSDT_H1"`. Both are deleted, not adapted. The numbers now travel with
+//// the engine as `Timeframe.settings`. `src/glibe/config.gleam` holds a `Desk`
+//// value directly, so there is no list of strings to look up.
+////
+//// Open, deliberately not fixed here: `Market` is not a level in this chain
+//// yet, so `Instrument` does not carry a `Market` field. glib's landed
+//// `Instrument(market, timeframes)` has one; adding it to glibe is a separate
+//// architectural change, recorded in the 04-03 plan's out-of-scope section.
 ////
 //// This module was written documentation-first: `////`, then types, then
-//// `///` + annotated signatures + `todo` bodies, then `test/desk_test.gleam`,
-//// and only then were the bodies filled. See R19 in `docs/RULINGS.md`.
+//// `///` + annotated signatures + `todo` bodies, then its tests, and only then
+//// were the bodies filled. See R19 in `docs/RULINGS.md`.
 
 import gleam/dict.{type Dict}
 import glibe/api/interval.{type Interval}
 import glibe/api/symbol.{type Symbol}
-import glibe/indicator_settings.{type TimeframeSettings}
 import glibe/timeframe.{type Timeframe}
 
 /// The identity of a broker. Opaque, so a `String` is not a `BrokerId`.
@@ -50,12 +51,13 @@ pub opaque type AccountId {
 }
 
 /// One lookup failed. One variant per business-domain failure, each carrying
-/// the key that was asked for — never `Error(String)`.
+/// the key that was asked for — never `Error(String)`. There is no
+/// `NoSuchSettings` any more: settings are a field of the `Timeframe`, not a
+/// second keyed collection (R23).
 pub type LookupError {
   NoSuchBroker(BrokerId)
   NoSuchAccount(AccountId)
   NoSuchInstrument(Symbol)
-  NoSuchSettings(Interval)
   NoSuchTimeframe(Interval)
 }
 
@@ -65,16 +67,12 @@ pub type Account {
   Account
 }
 
-/// One instrument: its per-interval settings and its per-interval state.
-/// The `Symbol` key in `Broker.instruments` is its identity, not a field.
-/// Two dicts, not one, because settings are configuration and timeframes are
-/// live state: they are populated at different times and have different
-/// lifetimes.
+/// One instrument: the thing that is traded, owned by one broker under one
+/// name. It stores its timeframes and nothing about its own identity — the
+/// `Symbol` key in `Broker.instruments` is its name, and the `Interval` key
+/// inside `timeframes` is each engine's interval. One dictionary, not two.
 pub type Instrument {
-  Instrument(
-    settings: Dict(Interval, TimeframeSettings),
-    timeframes: Dict(Interval, Timeframe),
-  )
+  Instrument(timeframes: Dict(Interval, Timeframe))
 }
 
 /// A broker owns the instruments it trades and the accounts it is responsible
@@ -129,9 +127,9 @@ pub fn new_broker() -> Broker {
   Broker(instruments: dict.new(), accounts: dict.new())
 }
 
-/// An empty `Instrument`: no settings and no timeframes for any interval.
+/// An empty `Instrument`: one collection, no timeframes for any interval.
 pub fn new_instrument() -> Instrument {
-  Instrument(settings: dict.new(), timeframes: dict.new())
+  Instrument(timeframes: dict.new())
 }
 
 /// A keyless `Account`. Its identity is supplied by the broker that holds it.
@@ -168,7 +166,7 @@ pub fn get_account(
   }
 }
 
-/// Put an instrument under its `Symbol`. Returns a NEW `Broker`.
+/// Put an instrument under the `Symbol` that NAMES it. Returns a NEW `Broker`.
 pub fn put_instrument(
   broker: Broker,
   symbol: Symbol,
@@ -191,39 +189,13 @@ pub fn get_instrument(
   }
 }
 
-/// Put the settings for ONE interval. Returns a NEW `Instrument`.
-pub fn put_settings(
-  instrument: Instrument,
-  interval: Interval,
-  settings: TimeframeSettings,
-) -> Instrument {
-  Instrument(
-    ..instrument,
-    settings: dict.insert(instrument.settings, interval, settings),
-  )
-}
-
-/// Read the settings for ONE interval, or `NoSuchSettings(interval)`.
-pub fn get_settings(
-  instrument: Instrument,
-  interval: Interval,
-) -> Result(TimeframeSettings, LookupError) {
-  case dict.get(instrument.settings, interval) {
-    Ok(settings) -> Ok(settings)
-    Error(Nil) -> Error(NoSuchSettings(interval))
-  }
-}
-
 /// Put the live state for ONE interval. Returns a NEW `Instrument`.
 pub fn put_timeframe(
   instrument: Instrument,
   interval: Interval,
   timeframe: Timeframe,
 ) -> Instrument {
-  Instrument(
-    ..instrument,
-    timeframes: dict.insert(instrument.timeframes, interval, timeframe),
-  )
+  Instrument(timeframes: dict.insert(instrument.timeframes, interval, timeframe))
 }
 
 /// Read the live state for ONE interval, or `NoSuchTimeframe(interval)`.

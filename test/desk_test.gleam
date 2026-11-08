@@ -1,32 +1,26 @@
 //// Tests for the ownership chain in `src/glibe/desk.gleam`.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-01-PLAN.md`.
-//// Written BEFORE the module's `todo` bodies were replaced (R19). Every
-//// assertion is a promise made by a `///` doc in that module.
+//// Plan: `.planning/phases/04-domain-cleanup/04-03-PLAN.md` (R22 / R23).
+//// Written BEFORE the module bodies were replaced (R19). Every assertion is a
+//// promise made by a `///` doc in that module.
+////
+//// R23 removed the second dictionary: an `Instrument` has ONE collection,
+//// `timeframes`, and each `Timeframe` carries its own settings. These tests
+//// pin that there is no `put_settings`, no `get_settings` and no
+//// `NoSuchSettings` left to call.
 
-import glibe/api/asset
-import glibe/api/exchange
 import glibe/api/interval
 import glibe/api/symbol
 import glibe/desk
 import glibe/indicator_settings
 import glibe/timeframe
 
-/// One instrument identity, built the way `config.gleam` spells it.
+/// A name, not a record describing the thing. R22.
 fn btc() -> symbol.Symbol {
-  symbol.Symbol(
-    market_id: "binance_spot_crypto",
-    asset_id: "BTC",
-    market_symbol: "BTCUSDT",
-    base_asset: asset.AssetRef(id: "BTC", name: "Bitcoin", class: asset.Crypto),
-    quote_asset: asset.AssetRef(id: "USDT", name: "Tether", class: asset.Crypto),
-    available_brokers: ["binance"],
-    available_data_providers: ["binance"],
-    primary_execution_venue: "binance",
-  )
+  symbol.from_string("BTCUSDT")
 }
 
-/// One per-interval settings value.
+/// One parameter block — a value, never an entity with its own dictionary.
 fn settings() -> indicator_settings.TimeframeSettings {
   indicator_settings.TimeframeSettings(
     sma_tiny_window_size: 7,
@@ -93,7 +87,7 @@ pub fn account_lives_under_its_broker_test() {
     as "an empty broker has no account"
 }
 
-/// An instrument lives under its broker, keyed by `Symbol`.
+/// An instrument lives under its broker, keyed by a `Symbol` that is ONLY a name.
 pub fn instrument_lives_under_its_broker_test() {
   let sym = btc()
   let broker =
@@ -108,41 +102,35 @@ pub fn instrument_lives_under_its_broker_test() {
   assert reported == sym as "the error carries the symbol that was asked for"
 }
 
-/// Settings are keyed by `Interval`, so `IntervalOneHour` and `IntervalOneDay` cannot be confused.
-pub fn settings_are_keyed_by_interval_test() {
+/// Settings travel WITH the engine: two intervals carry different numbers
+/// without any second dictionary on the `Instrument` (R23).
+pub fn settings_travel_with_the_engine_test() {
   let h1 = settings()
   let d1 = indicator_settings.TimeframeSettings(..h1, branch_exit_leaf_size: 41)
-  let instrument =
-    desk.new_instrument()
-    |> desk.put_settings(interval.IntervalOneHour, h1)
-    |> desk.put_settings(interval.IntervalOneDay, d1)
-  let assert Ok(got_h1) =
-    desk.get_settings(instrument, interval.IntervalOneHour)
-  let assert Ok(got_d1) = desk.get_settings(instrument, interval.IntervalOneDay)
-  assert got_h1 == h1 as "IntervalOneHour keeps its own settings"
-  assert got_d1 == d1 as "IntervalOneDay keeps its own settings"
-  let assert Error(desk.NoSuchSettings(missing)) =
-    desk.get_settings(instrument, interval.IntervalFifteenMinute)
-    as "an interval with nothing put has no settings"
-  assert missing == interval.IntervalFifteenMinute
-    as "the error names the interval asked for"
+  let hourly = timeframe.new(h1)
+  let daily = timeframe.new(d1)
+  assert hourly.settings == h1 as "the hourly engine owns its own settings"
+  assert daily.settings == d1 as "the daily engine owns its own settings"
+  assert hourly != daily as "one interval's engine is not another's"
 }
 
-/// Live state is keyed by `Interval` too — this is the list that had no home.
+/// Live state is keyed by `Interval` — the one and only collection on an
+/// `Instrument`. `Timeframe` no longer names its symbol or its interval.
 pub fn timeframes_are_keyed_by_interval_test() {
-  let h1 = timeframe.new(btc(), interval.IntervalOneHour, exchange.Crypto)
-  let d1 = timeframe.new(btc(), interval.IntervalOneDay, exchange.Crypto)
+  let h1 = timeframe.new(settings())
+  let d1 = timeframe.new(settings())
   let instrument =
     desk.new_instrument()
     |> desk.put_timeframe(interval.IntervalOneHour, h1)
-    |> desk.put_timeframe(interval.IntervalOneDay, d1)
+    |> desk.put_timeframe(interval.IntervalOneDay, h1)
   let assert Ok(got_h1) =
     desk.get_timeframe(instrument, interval.IntervalOneHour)
   let assert Ok(got_d1) =
     desk.get_timeframe(instrument, interval.IntervalOneDay)
   assert got_h1 == h1 as "IntervalOneHour keeps its own state"
-  assert got_d1 == d1 as "IntervalOneDay keeps its own state"
-  assert got_h1 != got_d1 as "one interval per key"
+  assert got_d1 == h1 as "IntervalOneDay keeps its own state"
+  assert got_d1 == d1
+    as "equal state is equal: the interval is in the key, not in the value"
   let assert Error(desk.NoSuchTimeframe(missing)) =
     desk.get_timeframe(instrument, interval.IntervalFifteenMinute)
     as "an interval with nothing put has no state"
@@ -153,9 +141,14 @@ pub fn timeframes_are_keyed_by_interval_test() {
 /// Insertion never mutates: this is why the type relations are safe to share.
 pub fn put_does_not_mutate_the_instrument_test() {
   let empty = desk.new_instrument()
-  let _ = desk.put_settings(empty, interval.IntervalOneHour, settings())
-  let assert Error(desk.NoSuchSettings(_)) =
-    desk.get_settings(empty, interval.IntervalOneHour)
+  let _ =
+    desk.put_timeframe(
+      empty,
+      interval.IntervalOneHour,
+      timeframe.new(settings()),
+    )
+  let assert Error(desk.NoSuchTimeframe(_)) =
+    desk.get_timeframe(empty, interval.IntervalOneHour)
     as "the original instrument is unchanged"
 }
 
@@ -163,10 +156,9 @@ pub fn put_does_not_mutate_the_instrument_test() {
 pub fn the_whole_chain_reaches_a_timeframe_test() {
   let bid = desk.broker_id("ib")
   let sym = btc()
-  let tf = timeframe.new(sym, interval.IntervalOneHour, exchange.Crypto)
+  let tf = timeframe.new(settings())
   let instrument =
     desk.new_instrument()
-    |> desk.put_settings(interval.IntervalOneHour, settings())
     |> desk.put_timeframe(interval.IntervalOneHour, tf)
   let broker = desk.put_instrument(desk.new_broker(), sym, instrument)
   let root = desk.put_broker(desk.new(), bid, broker)

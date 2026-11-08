@@ -1,16 +1,21 @@
 import gleam/float
 import gleam/list
+import gleam/option.{None, Some}
 import gleeunit
 import glibe/api/asset
 import glibe/api/interval
 import glibe/api/rules
 import glibe/api/sourcebar.{SourceBar}
+import glibe/api/symbol
 import glibe/config
 import glibe/databar
+import glibe/desk
+import glibe/engine
 import glibe/indicator
 import glibe/indicator_settings
 import glibe/kdj
 import glibe/sma
+import glibe/timeframe
 import glibe/trading/signal.{Buy, NoSignal, Sell}
 import glibe/trading/strategy
 
@@ -207,6 +212,24 @@ pub fn default_config_does_not_panic_test() {
   assert cfg.version == 1 as "Expected version 1"
 }
 
+/// R23: configuration expresses ownership with typed values. There is no
+/// `"BTCUSDT_H1"` composite string, no `config_get_tfs`, and no second
+/// settings dictionary — the numbers live on the `Timeframe` we reach through
+/// Desk -> Broker -> Instrument -> Interval.
+pub fn default_config_builds_a_typed_desk_test() {
+  let cfg = config.default_config()
+  let assert Ok(broker) = desk.get_broker(cfg.desk, desk.broker_id("binance"))
+    as "binance is a broker on the configured desk"
+  let assert Ok(instrument) =
+    desk.get_instrument(broker, symbol.from_string("BTCUSDT"))
+    as "BTCUSDT names an instrument under that broker"
+  let assert Ok(tf) = desk.get_timeframe(instrument, interval.IntervalOneHour)
+    as "the hourly timeframe is in the instrument's one dictionary"
+  assert tf.settings.sma_tiny_window_size == 7
+    as "the engine carries its own parameter block"
+  assert tf.databar_list == [] as "a configured timeframe starts with no bars"
+}
+
 // ============================================================================
 // SMA — three cases (plan 31-01)
 // ============================================================================
@@ -348,6 +371,31 @@ pub fn sourcebar_iso_date_passes_through_test() {
   let normalized = sourcebar.normalize_date(raw)
   assert normalized.date == "2024-01-15 09:30:00"
     as "an already-ISO date was altered"
+}
+
+/// R23: `interval` lives ONLY in the key, so the caller that selected the
+/// `Timeframe` hands it to the gate. One and the same `Timeframe` value closes
+/// at 09:00 under `IntervalOneHour` and does not under `IntervalFourHour`
+/// (09:00 is not on a four-hour boundary). Day/week/month buckets are
+/// deliberately not used here — they still end on every bar, a separate debt
+/// recorded in the 04-03 plan.
+pub fn the_gate_is_given_the_interval_by_the_caller_test() {
+  let raw =
+    SourceBar(
+      date: "2024-01-15 09:00:00",
+      open: 100.0,
+      high: 101.0,
+      low: 99.0,
+      close: 100.5,
+      volume: 10,
+    )
+  let tf = timeframe.new(settings())
+  let assert Ok(#(Some(_), _)) =
+    engine.sourcebar_gate(tf, interval.IntervalOneHour, raw)
+    as "an hourly bucket ends on minute 00"
+  let assert Ok(#(None, _)) =
+    engine.sourcebar_gate(tf, interval.IntervalFourHour, raw)
+    as "the same value under a four-hour key does not close at 09:00"
 }
 
 /// The bucket test now closes an hourly bar on the minute the boundary hands

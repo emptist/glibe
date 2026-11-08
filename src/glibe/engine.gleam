@@ -1,5 +1,16 @@
-// The engine — every step that moves a `Timeframe`, in the order they run.
+//// The engine — every step that moves a `Timeframe`, in the order they run.
+////
+//// Plan: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`.
+//// Ruling: `docs/RULINGS.md` R23 (settings travel with the engine; the
+//// interval is in the key, not in the value), R19.
+////
+//// `sourcebar_gate` is given the `Interval` by the caller that selected this
+//// `Timeframe` from `Instrument.timeframes`. `databar_processing` reads
+//// `timeframe.settings` instead of receiving a second argument. Neither
+//// function needs the `Timeframe` to name its owner (R22 / R23).
+
 //
+
 // **This module is the pipeline; `timeframe.gleam` is the state.** Keeping them
 // apart is what ends the argument glib is still having with itself about which
 // functions belong in `timeframe.gleam`: `leaf.gleam` and `branch.gleam` never
@@ -29,7 +40,6 @@ import glibe/api/sourcebar.{type SourceBar}
 import glibe/branch
 import glibe/databar.{type DataBar}
 import glibe/indicator
-import glibe/indicator_settings as indicators_settings
 import glibe/leaf
 import glibe/timeframe.{type Timeframe, Timeframe}
 import glibe/trading/strategy.{manual_signal}
@@ -53,6 +63,7 @@ import glibe/trading/strategy.{manual_signal}
 /// every indicator downstream is then measured on it.
 pub fn sourcebar_gate(
   timeframe: Timeframe,
+  interval: interval.Interval,
   sourcebar: SourceBar,
 ) -> Result(#(Option(DataBar), Timeframe), String) {
   use bar <- result.try(sourcebar.validate(sourcebar))
@@ -62,7 +73,7 @@ pub fn sourcebar_gate(
     None -> databar.of_sourcebar(bar, idx)
     Some(working) -> databar.fold_sourcebar(working, bar)
   }
-  case interval.bucket_ends(timeframe.interval, bar.date) {
+  case interval.bucket_ends(interval, bar.date) {
     True -> Ok(#(Some(in_hand), Timeframe(..timeframe, working_databar: None)))
     False -> Ok(#(None, Timeframe(..timeframe, working_databar: Some(in_hand))))
   }
@@ -74,11 +85,8 @@ pub fn sourcebar_gate(
 
 /// **One bar through the whole engine.** The bar handed in is the one the gate
 /// closed; what comes out is a `Timeframe` one bar longer.
-pub fn databar_processing(
-  timeframe: Timeframe,
-  databar: DataBar,
-  settings: indicators_settings.TimeframeSettings,
-) -> Timeframe {
+pub fn databar_processing(timeframe: Timeframe, databar: DataBar) -> Timeframe {
+  let settings = timeframe.settings
   let databar = indicator.run(databar, timeframe.databar_list, settings)
   let #(databar, timeframe, yin_settled, yang_settled) =
     leaves(timeframe, databar)

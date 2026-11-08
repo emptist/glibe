@@ -1,14 +1,21 @@
 //// Configuration for the entire trading system. Gleam IS the config: no JSON,
 //// no parser, no `panic` on an unknown spelling.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-02-PLAN.md`.
-//// Ruling: `docs/RULINGS.md` R13 (closed sets are types), R19 (docs-first).
+//// Plan: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`.
+//// Ruling: `docs/RULINGS.md` R22 (a name is not the thing), R23 (no composite
+//// string keys, no stand-in tables), R13, R19, R20.
 ////
-//// Per-interval data limits are `Dict(Interval, Int)` here. The old string
-//// key for a four-hour span, which the 7-variant type could not represent, is
-//// now a value of `Interval`. The `timeframe_settings` composite-string
-//// table (`"BTCUSDT_H1"`) is NOT migrated here: the shape of that migration
-//// is one of the owner rulings recorded as open in `docs/RULINGS.md` R20.
+//// Ownership is a VALUE here, not a lookup: `AppConfig.desk` is a `Desk` built
+//// from `Symbol` names, `Instrument` values and `Interval`-keyed `Timeframe`s.
+//// The old `symbols` / `timeframe_settings` tables, their `"BTCUSDT_H1"`
+//// composite keys and the `get_symbol` / `config_get_tfs` `list.find`
+//// accessors are DELETED, not adapted (R23). The parameter block each engine
+//// runs on is `Timeframe.settings`; there is no second dictionary.
+////
+//// Per-interval data limits are `Dict(Interval, Int)` here (R21 / 04-02).
+//// The three remaining catalog tables (`exchanges` / `assets` / `markets`)
+//// still use `String` keys; typing those identities is a separate plan,
+//// recorded in the 04-03 plan's out-of-scope section.
 
 import gleam/dict
 import gleam/list
@@ -25,8 +32,7 @@ pub type AppConfig {
     exchanges: List(#(String, exchange.Exchange)),
     assets: List(#(String, asset.Asset)),
     markets: List(#(String, market.Market)),
-    symbols: List(#(String, symbol.Symbol)),
-    timeframe_settings: List(#(String, indicator_settings.TimeframeSettings)),
+    desk: desk.Desk,
   )
 }
 
@@ -38,13 +44,58 @@ import glibe/api/rules.{
   settlement_type_from_string, trading_hours_from_string,
 }
 import glibe/api/symbol
+import glibe/desk
 import glibe/indicator_settings
+import glibe/timeframe
 
 // ============================================================================
 // Default Configuration (Single Source of Truth)
 // ============================================================================
 
 pub fn default_config() -> AppConfig {
+  // R23: one parameter block, carried by each engine. No second dictionary,
+  // no composite `"BTCUSDT_H1"` key, no `list.find` lookup.
+  let settings =
+    indicator_settings.TimeframeSettings(
+      sma_tiny_window_size: 7,
+      sma_small_window_size: 70,
+      sma_medium_window_size: 140,
+      sma_large_window_size: 252,
+      sma_huge_window_size: 504,
+      kdj_window_size: 7,
+      kdj_k_period: 3,
+      kdj_m_period: 10,
+      bb_multiplier: 1.99,
+      sma_for_bbm: indicator_settings.SmaForBbmMedium,
+      branch_exit_leaf_size: 40,
+    )
+  let btc =
+    desk.new_instrument()
+    |> desk.put_timeframe(interval.IntervalOneHour, timeframe.new(settings))
+    |> desk.put_timeframe(interval.IntervalOneDay, timeframe.new(settings))
+  let spy =
+    desk.new_instrument()
+    |> desk.put_timeframe(interval.IntervalOneHour, timeframe.new(settings))
+    |> desk.put_timeframe(interval.IntervalOneDay, timeframe.new(settings))
+  let spy_futu =
+    desk.new_instrument()
+    |> desk.put_timeframe(interval.IntervalOneHour, timeframe.new(settings))
+    |> desk.put_timeframe(interval.IntervalOneDay, timeframe.new(settings))
+  let binance =
+    desk.put_instrument(desk.new_broker(), symbol.from_string("BTCUSDT"), btc)
+  let ib =
+    desk.put_instrument(desk.new_broker(), symbol.from_string("SPY"), spy)
+  let futu =
+    desk.put_instrument(
+      desk.new_broker(),
+      symbol.from_string("SPY_FUTU"),
+      spy_futu,
+    )
+  let configured_desk =
+    desk.new()
+    |> desk.put_broker(desk.broker_id("binance"), binance)
+    |> desk.put_broker(desk.broker_id("ib"), ib)
+    |> desk.put_broker(desk.broker_id("futu"), futu)
   AppConfig(
     version: 1,
     exchanges: [
@@ -506,137 +557,7 @@ pub fn default_config() -> AppConfig {
         ),
       ),
     ],
-    symbols: [
-      #(
-        "BTCUSDT",
-        symbol.Symbol(
-          market_id: "binance_spot_crypto",
-          asset_id: "BTC",
-          market_symbol: "BTCUSDT",
-          base_asset: asset.AssetRef(
-            id: "BTC",
-            name: "Bitcoin",
-            class: asset_class_from_string("Crypto"),
-          ),
-          quote_asset: asset.AssetRef(
-            id: "USDT",
-            name: "Tether",
-            class: asset_class_from_string("Crypto"),
-          ),
-          available_brokers: ["binance"],
-          available_data_providers: ["binance"],
-          primary_execution_venue: "binance",
-        ),
-      ),
-      #(
-        "SPY",
-        symbol.Symbol(
-          market_id: "ib_equity",
-          asset_id: "SPY",
-          market_symbol: "SPY",
-          base_asset: asset.AssetRef(
-            id: "SPY",
-            name: "SPDR S&P 500 ETF Trust",
-            class: asset_class_from_string("ETF"),
-          ),
-          quote_asset: asset.AssetRef(
-            id: "USD",
-            name: "US Dollar",
-            class: asset_class_from_string("Currency"),
-          ),
-          available_brokers: ["ib", "futu"],
-          available_data_providers: ["ib", "futu", "polygon"],
-          primary_execution_venue: "ib",
-        ),
-      ),
-      #(
-        "SPY_FUTU",
-        symbol.Symbol(
-          market_id: "futu_us_equity",
-          asset_id: "SPY",
-          market_symbol: "SPY",
-          base_asset: asset.AssetRef(
-            id: "SPY",
-            name: "SPDR S&P 500 ETF Trust",
-            class: asset_class_from_string("ETF"),
-          ),
-          quote_asset: asset.AssetRef(
-            id: "USD",
-            name: "US Dollar",
-            class: asset_class_from_string("Currency"),
-          ),
-          available_brokers: ["futu"],
-          available_data_providers: ["futu"],
-          primary_execution_venue: "futu",
-        ),
-      ),
-    ],
-    timeframe_settings: [
-      #(
-        "BTCUSDT_H1",
-        indicator_settings.TimeframeSettings(
-          sma_tiny_window_size: 7,
-          sma_small_window_size: 70,
-          sma_medium_window_size: 140,
-          sma_large_window_size: 252,
-          sma_huge_window_size: 504,
-          kdj_k_period: 3,
-          kdj_m_period: 10,
-          kdj_window_size: 7,
-          bb_multiplier: 1.99,
-          sma_for_bbm: indicator_settings.SmaForBbmMedium,
-          branch_exit_leaf_size: 40,
-        ),
-      ),
-      #(
-        "BTCUSDT_D1",
-        indicator_settings.TimeframeSettings(
-          sma_tiny_window_size: 7,
-          sma_small_window_size: 70,
-          sma_medium_window_size: 140,
-          sma_large_window_size: 252,
-          sma_huge_window_size: 504,
-          kdj_k_period: 3,
-          kdj_m_period: 10,
-          kdj_window_size: 7,
-          bb_multiplier: 1.99,
-          sma_for_bbm: indicator_settings.SmaForBbmMedium,
-          branch_exit_leaf_size: 40,
-        ),
-      ),
-      #(
-        "SPY_H1",
-        indicator_settings.TimeframeSettings(
-          sma_tiny_window_size: 7,
-          sma_small_window_size: 70,
-          sma_medium_window_size: 140,
-          sma_large_window_size: 252,
-          sma_huge_window_size: 504,
-          kdj_k_period: 3,
-          kdj_m_period: 10,
-          kdj_window_size: 7,
-          bb_multiplier: 1.99,
-          sma_for_bbm: indicator_settings.SmaForBbmMedium,
-          branch_exit_leaf_size: 40,
-        ),
-      ),
-      #(
-        "SPY_D1",
-        indicator_settings.TimeframeSettings(
-          sma_tiny_window_size: 7,
-          sma_small_window_size: 70,
-          sma_medium_window_size: 140,
-          sma_large_window_size: 252,
-          sma_huge_window_size: 504,
-          kdj_k_period: 3,
-          kdj_m_period: 10,
-          kdj_window_size: 7,
-          bb_multiplier: 1.99,
-          sma_for_bbm: indicator_settings.SmaForBbmMedium,
-          branch_exit_leaf_size: 40,
-        ),
-      ),
-    ],
+    desk: configured_desk,
   )
 }
 
@@ -674,33 +595,6 @@ pub fn get_asset(config: AppConfig, id: String) -> Option(asset.Asset) {
 pub fn get_market(config: AppConfig, id: String) -> Option(market.Market) {
   case
     list.find(config.markets, fn(pair) {
-      let #(k, _) = pair
-      k == id
-    })
-  {
-    Ok(pair) -> Some(pair.1)
-    Error(_) -> None
-  }
-}
-
-pub fn get_symbol(config: AppConfig, id: String) -> Option(symbol.Symbol) {
-  case
-    list.find(config.symbols, fn(pair) {
-      let #(k, _) = pair
-      k == id
-    })
-  {
-    Ok(pair) -> Some(pair.1)
-    Error(_) -> None
-  }
-}
-
-pub fn config_get_tfs(
-  config: AppConfig,
-  id: String,
-) -> Option(indicator_settings.TimeframeSettings) {
-  case
-    list.find(config.timeframe_settings, fn(pair) {
       let #(k, _) = pair
       k == id
     })

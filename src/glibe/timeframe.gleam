@@ -1,33 +1,47 @@
-// The `Timeframe` — one `(symbol, interval)` and everything that belongs to it.
-//
-// **This module holds the record and its birth, and nothing else.**
-//
-// It used to hold the ingest, the whole pipeline, a CSV exporter and three
-// hooks, which is how it became the file the reviews kept calling a mixture.
-// The reason given for keeping the pipeline here was Gleam's import cycle:
-// `leaves` and `branches` need both the `Timeframe` type and the `Leaf` /
-// `Branch` types, and putting them in `leaf.gleam` would make that module
-// import `timeframe`, which imports it back. Splitting the **state** from the
-// **pipeline that threads it** dissolves the cycle instead of arguing with it:
-// `engine.gleam` imports all three and nothing imports `engine` from below.
-//
-// So: this file is a record and the one function that makes an empty one.
-// Every step that moves it lives in `engine.gleam`, and
-// `scripts/no_timeframe_mixture.sh` fails the build if one of them comes back.
+//// The `Timeframe` — one interval of one instrument, and everything it runs on.
+////
+//// Plan: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`.
+//// Ruling: `docs/RULINGS.md` R23 (thorough correction), R22, R20, R19.
+////
+//// *"即然你的左手不知道他是左手你也活的好好的，为什么instrument的timeframe
+//// 必须要知道他的interval？有这么愚蠢的设计吗？"* [user 2026-11-04,
+//// `glib/.planning/HANDOFF-2026-11-03.md:96`]
+////
+//// This record stores NO `symbol`, NO `interval` and NO market tag. The
+//// interval is the KEY in `Instrument.timeframes`; the symbol is the KEY in
+//// `Broker.instruments`. The caller that selected this value already holds
+//// both, which is why `engine.sourcebar_gate` is handed the interval as an
+//// argument. `settings` is a FIELD of this record, not a second dictionary on
+//// the `Instrument` — that second dictionary was the circle R23 deletes.
+////
+//// **This module holds the record and its birth, and nothing else.**
+////
+//// It used to hold the ingest, the whole pipeline, a CSV exporter and three
+//// hooks, which is how it became the file the reviews kept calling a mixture.
+//// The reason given for keeping the pipeline here was Gleam's import cycle:
+//// `leaves` and `branches` need both the `Timeframe` type and the `Leaf` /
+//// `Branch` types, and putting them in `leaf.gleam` would make that module
+//// import `timeframe`, which imports it back. Splitting the **state** from the
+//// **pipeline that threads it** dissolves the cycle instead of arguing with it:
+//// `engine.gleam` imports all three and nothing imports `engine` from below.
+////
+//// So: this file is a record and the one function that makes an empty one.
+//// Every step that moves it lives in `engine.gleam`, and
+//// `scripts/no_timeframe_mixture.sh` fails the build if one of them comes back.
 
 import gleam/option.{type Option}
-import glibe/api/exchange.{type MarketType}
-import glibe/api/interval.{type Interval}
-import glibe/api/symbol.{type Symbol}
 import glibe/branch.{type DataBranch}
 import glibe/databar.{type DataBar}
+import glibe/indicator_settings.{type TimeframeSettings}
 import glibe/leaf.{type DataLeaf}
 
+/// The whole live state of ONE interval of ONE instrument. Its owner and its
+/// interval are the keys above it; neither is a field here.
 pub type Timeframe {
   Timeframe(
-    symbol: Symbol,
-    interval: Interval,
-    market_type: MarketType,
+    // The parameter block this engine runs on. One value per `Timeframe`; it
+    // is not an entity with a dictionary or a config table of its own (R23).
+    settings: TimeframeSettings,
     // **No bar is in hand when a `Timeframe` is born** — the first source bar
     // is what opens a bucket, so this starts at `None` and is `None` again for
     // the moment between a close and the next source bar.
@@ -60,15 +74,11 @@ pub type Timeframe {
 
 /// **An empty `Timeframe`, born before any bar.** Nothing is seeded with a
 /// value: there is no bar to seed it from, and a seed would be read as a fact.
-pub fn new(
-  symbol: Symbol,
-  interval: Interval,
-  market_type: MarketType,
-) -> Timeframe {
+/// `settings` is the one thing it does carry, because an engine cannot run
+/// without the numbers it runs on.
+pub fn new(settings: TimeframeSettings) -> Timeframe {
   Timeframe(
-    symbol: symbol,
-    interval: interval,
-    market_type: market_type,
+    settings: settings,
     working_databar: option.None,
     databar_list: [],
     growing_yin_leaf: option.None,
