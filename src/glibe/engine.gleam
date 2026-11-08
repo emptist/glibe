@@ -1,7 +1,8 @@
 //// The engine — every step that moves a `Timeframe`, in the order they run.
 ////
 //// Plans: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`,
-//// `.planning/phases/04-domain-cleanup/04-06-PLAN.md`.
+//// `.planning/phases/04-domain-cleanup/04-06-PLAN.md`,
+//// `.planning/phases/04-domain-cleanup/04-08-PLAN.md` (typed rejection).
 //// Rulings: `docs/RULINGS.md` R23 (settings travel with the engine; the
 //// interval is in the key, not in the value), R19, R27 (standard bar time is
 //// unix time), R28 (native provider bars standardise themselves).
@@ -38,7 +39,7 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import glibe/api/interval
-import glibe/api/sourcebar.{type SourceBar}
+import glibe/api/sourcebar.{type SourceBar, type SourceBarRejection}
 import glibe/branch
 import glibe/databar.{type DataBar}
 import glibe/indicator
@@ -61,12 +62,14 @@ import glibe/trading/strategy.{manual_signal}
 ///
 /// **A bar that cannot be right is rejected, with the reason, and nothing is
 /// repaired**: a repair puts a number in the engine that no exchange sent, and
-/// every indicator downstream is then measured on it.
+/// every indicator downstream is then measured on it. The reason is a
+/// `SourceBarRejection`, so the routing layer can attach the address of the
+/// bar that failed instead of printing a message (plan 04-08 / R13).
 pub fn sourcebar_gate(
   timeframe: Timeframe,
   interval: interval.Interval,
   sourcebar: SourceBar,
-) -> Result(#(Option(DataBar), Timeframe), String) {
+) -> Result(#(Option(DataBar), Timeframe), SourceBarRejection) {
   use bar <- result.try(sourcebar.validate(sourcebar))
   let idx = bars_accepted(timeframe.databar_list)
   let in_hand = case timeframe.working_databar {

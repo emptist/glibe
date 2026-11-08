@@ -1,7 +1,8 @@
 //// The standard source bar — an absolute instant, plus the OHLCV a provider
 //// sent. This is the one shape every downstream module works with.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-06-PLAN.md`.
+//// Plans: `.planning/phases/04-domain-cleanup/04-06-PLAN.md`,
+//// `.planning/phases/04-domain-cleanup/04-08-PLAN.md` (a typed rejection).
 //// Rulings: `docs/RULINGS.md` R27 (standard bar time is unix time), R13
 //// (errors are types), R19 (docs-first), R22 (a name is not the thing named),
 //// R23 (one fact lives in one place).
@@ -99,6 +100,23 @@ pub fn decode_bars() -> decode.Decoder(List(SourceBar)) {
   decode.list(of: decode_bar())
 }
 
+/// **Why a source bar was refused at the gate.** One constructor per check
+/// `validate` already makes. The reason is a value of a closed set, not a
+/// `String` to be matched on later: a monitor has to say which addressed bar
+/// was refused and why (plan 04-08), and a `String` carries neither (R13).
+pub type SourceBarRejection {
+  /// A price below zero.
+  NegativePrice
+  /// `high` below `low`.
+  HighBelowLow
+  /// `high` below `open` or `close`.
+  HighIsNotHighest
+  /// `low` above `open` or `close`.
+  LowIsNotLowest
+  /// A negative volume.
+  NegativeVolume
+}
+
 /// **The bar, or the reason it is not one.**
 ///
 /// A bar whose own numbers disagree is not repaired into a bar that agrees — a
@@ -106,23 +124,25 @@ pub fn decode_bars() -> decode.Decoder(List(SourceBar)) {
 /// indicator downstream is then measured on it. The checks are the four that
 /// are true of an OHLC bar by definition: the high is the highest of the four,
 /// the low is the lowest, neither is negative, and a volume is not negative.
-pub fn validate(bar: SourceBar) -> Result(SourceBar, String) {
+/// The failure is a `SourceBarRejection`, so callers add context by wrapping
+/// the value instead of parsing a message.
+pub fn validate(bar: SourceBar) -> Result(SourceBar, SourceBarRejection) {
   case
     bar.open <. 0.0 || bar.high <. 0.0 || bar.low <. 0.0 || bar.close <. 0.0
   {
-    True -> Error("a price is negative")
+    True -> Error(NegativePrice)
     False ->
       case bar.high <. bar.low {
-        True -> Error("high is below low")
+        True -> Error(HighBelowLow)
         False ->
           case bar.high <. bar.open || bar.high <. bar.close {
-            True -> Error("high is not the highest")
+            True -> Error(HighIsNotHighest)
             False ->
               case bar.low >. bar.open || bar.low >. bar.close {
-                True -> Error("low is not the lowest")
+                True -> Error(LowIsNotLowest)
                 False ->
                   case bar.volume < 0 {
-                    True -> Error("volume is negative")
+                    True -> Error(NegativeVolume)
                     False -> Ok(bar)
                   }
               }

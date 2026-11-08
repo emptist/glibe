@@ -1,8 +1,11 @@
 //// Binance REST client — the provider's boundary with our standard model.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-06-PLAN.md`.
+//// Plans: `.planning/phases/04-domain-cleanup/04-06-PLAN.md`,
+//// `.planning/phases/04-domain-cleanup/04-08-PLAN.md` (the requested symbol is
+//// a `Symbol`, not a universal `String`).
 //// Rulings: `docs/RULINGS.md` R27 (standard bar time is unix time),
-//// R28 (native provider bars stay native, each provider standardises itself).
+//// R28 (native provider bars stay native, each provider standardises itself),
+//// R22 (a name is a `Symbol`, not the instrument).
 ////
 //// `kline.decode_klines` returns **native** twelve-field `Kline` values. This
 //// module is where they cross into the standard model: each one goes through
@@ -16,6 +19,7 @@ import gleam/list
 import gleam/result
 import glibe/api/interval.{type Interval}
 import glibe/api/sourcebar.{type SourceBar, type SourceBarTimeError}
+import glibe/api/symbol.{type Symbol}
 import glibe/binance/kline.{
   decode_klines, interval_to_binance_string, to_sourcebar,
 }
@@ -46,15 +50,20 @@ fn get(
   }
 }
 
-/// Fetch klines and hand the engine standard `SourceBar` values only.
+/// Fetch ONE interval's kline stream and hand the engine standard `SourceBar`
+/// values only. The requested name is a `Symbol` (R22); it becomes a `String`
+/// only here, in the HTTP query. The identity of the request is NOT returned
+/// inside each bar — `monitor.IncomingBar` pairs it at the ingest boundary
+/// (plan 04-08), and the broker half of the address is a subscription fact,
+/// not a provider↔broker relation invented here (R26).
 pub fn fetch_klines(
-  symbol: String,
+  name: Symbol,
   interval: Interval,
   limit: Int,
 ) -> Result(List(SourceBar), BinanceError) {
   let interval_str = interval_to_binance_string(interval)
   get("/api/v3/klines", [
-    #("symbol", symbol),
+    #("symbol", symbol.to_string(name)),
     #("interval", interval_str),
     #("limit", int.to_string(limit)),
   ])
