@@ -836,3 +836,26 @@ interval does not"*。glibe 造出第二本字典 + 复合串表 + 两个查找�
 - 落地：`.planning/phases/04-domain-cleanup/04-03-PLAN.md` 与
   `src/glibe/config.gleam` 模块文档里「另立一个 identity-typing 计划」的
   措辞按本条改为「按需逐步增加」。`docs/DESIGN.md` 记录当前状态。
+
+## R27 — 标准 `SourceBar` 的时间是 unix time（2026-11-09）
+
+owner 原话：*"这里存在设计问题了，glib我已经批评过很多次，可能还是没有改，他的数据提供商方面sourcebar type，没有反应真实情况，定义错误。如果都不按照实际情况写，那么也不需要我们系统自定标准sourcebar 类型，而外部提供商模块也不用设置 to_sourcebar 函数来转换外部为我们内部标准的sourcebar了，所以，date在标准sourcebar中必须时timestamp，unix time"*
+
+- **标准类型必须反映真实情况**：一根 bar 的时间是**绝对时刻**。内部标准
+  `SourceBar` 的时间字段是 unix time（`gleam_time.Timestamp`，其内部即 unix
+  seconds + nanoseconds），不是日期字符串、不是本地墙钟、不是「墙钟读数」。
+- **转换责任在 provider adapter**：外部表示（Binance 的 epoch 毫秒、带或不带
+  时区的标签、各市场的本地日历）由 provider 模块的 `to_sourcebar` 折成 unix
+  time。这正是「自定义标准 `SourceBar`」存在的理由。标准层不拆字符串、不猜
+  时区，也不把「没想明白」伪装成一个新类型。
+- **作废的方向**：`.planning/phases/04-domain-cleanup/04-06-PLAN.md` 初稿曾
+  按「墙钟读数」定义 `BarClock`，并用 R26 论证不直接用 `Timestamp`。该论证
+  被本条否决：它是把没想明白的东西造了个类型，属于 R22 批评的绕圈子。
+  `src/glibe/api/bar_clock.gleam` 与其测试整份删除，不留别名、不留兼容层、
+  不留 deprecated 副本；历史留在提交记录里，不留在代码里。
+- **桶网格跟着绝对时刻走**：`interval.bucket_ends` 对 unix 秒做网格取模
+  （1h → `% 3600`、4h → `% 14400`、3m → `% 180`），不需要 calendar，也不
+  需要 offset。若某市场的桶网格不与 UTC 对齐，那是**市场规则**，由有消费方
+  时的 market 层表达（R26），不在这里预先发明。
+- 边界不变：`String` 只活在线格式与 CSV/HTML 输出；`parse_rfc3339`、
+  `to_rfc3339` 这类转换只出现在 adapter 与输出边。
