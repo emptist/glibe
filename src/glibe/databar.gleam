@@ -7,6 +7,7 @@
 /// Fields that no step ever wrote were removed — an uncomputed number printed
 /// is a lie the reader cannot tell from a zero.
 import gleam/float
+import gleam/time/timestamp.{type Timestamp}
 import glibe/api/sourcebar.{type SourceBar}
 import glibe/trading/signal.{type Signal, NoSignal}
 
@@ -14,7 +15,7 @@ pub type DataBar {
   DataBar(
     idx: Int,
     // global position in databar_list (0 = oldest settled bar)
-    date: String,
+    timestamp: Timestamp,
     open: Float,
     high: Float,
     low: Float,
@@ -64,7 +65,7 @@ pub type DataBar {
 pub fn of_sourcebar(bar: SourceBar, idx: Int) -> DataBar {
   DataBar(
     idx:,
-    date: bar.date,
+    timestamp: bar.timestamp,
     open: bar.open,
     high: bar.high,
     low: bar.low,
@@ -106,7 +107,7 @@ pub fn of_sourcebar(bar: SourceBar, idx: Int) -> DataBar {
 pub fn fold_sourcebar(working: DataBar, bar: SourceBar) -> DataBar {
   DataBar(
     ..working,
-    date: bar.date,
+    timestamp: bar.timestamp,
     high: float.max(working.high, bar.high),
     low: float.min(working.low, bar.low),
     close: bar.close,

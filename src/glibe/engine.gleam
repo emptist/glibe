@@ -50,13 +50,12 @@ import glibe/trading/strategy.{manual_signal}
 
 /// **One source bar arrives; a bucket may close.**
 ///
-/// The bar is validated and its date normalised **before** anything else sees
-/// it, because both are facts about the boundary and not about the engine: an
-/// exchange that counts milliseconds since the epoch is translated here, so
-/// every step downstream reads `"2024-01-15 09:00:00"` and not
-/// `"1705299600000"`. Before the conversion lived here, an hourly timeframe
-/// never closed a bar at all on Binance data — no minute field matched, and
-/// every source bar was folded into one growing bar forever.
+/// The bar is validated here; its **time was already converted by the
+/// provider's `to_sourcebar`** (R27/R28), so the gate receives only a
+/// `Timestamp`. Before that conversion existed, Binance's epoch milliseconds
+/// reached the bucket test as `"1705299600000"`, no minute field matched, and
+/// an hourly timeframe folded every bar into one growing bar forever. Doing
+/// the conversion inside the bucket test would have been the same bug twice.
 ///
 /// **A bar that cannot be right is rejected, with the reason, and nothing is
 /// repaired**: a repair puts a number in the engine that no exchange sent, and
@@ -67,13 +66,12 @@ pub fn sourcebar_gate(
   sourcebar: SourceBar,
 ) -> Result(#(Option(DataBar), Timeframe), String) {
   use bar <- result.try(sourcebar.validate(sourcebar))
-  let bar = sourcebar.normalize_date(bar)
   let idx = bars_accepted(timeframe.databar_list)
   let in_hand = case timeframe.working_databar {
     None -> databar.of_sourcebar(bar, idx)
     Some(working) -> databar.fold_sourcebar(working, bar)
   }
-  case interval.bucket_ends(interval, bar.date) {
+  case interval.bucket_ends(interval, bar.timestamp) {
     True -> Ok(#(Some(in_hand), Timeframe(..timeframe, working_databar: None)))
     False -> Ok(#(None, Timeframe(..timeframe, working_databar: Some(in_hand))))
   }

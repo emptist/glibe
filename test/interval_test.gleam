@@ -8,11 +8,21 @@
 import gleam/dict
 import gleam/list
 import gleam/option.{Some}
+import gleam/time/timestamp
 import glibe/api/interval
 import glibe/api/market.{type Market}
 import glibe/api/rules
+import glibe/api/sourcebar
 import glibe/binance/kline
 import glibe/config
+
+/// A test clock: parse a wire label through the same boundary conversion the
+/// adapters use, so no test builds a Time by hand.
+fn at(raw: String) -> timestamp.Timestamp {
+  let assert Ok(instant) = sourcebar.unix_timestamp(raw)
+    as "test clock label parses"
+  instant
+}
 
 /// The closed set has nine values, including the `IntervalFourHour` config used to name as a
 /// `String` because the seven-variant type could not represent it.
@@ -48,12 +58,12 @@ pub fn min3_and_h4_spellings_test() {
 pub fn min3_bucket_end_test() {
   assert interval.bucket_ends(
     interval.IntervalThreeMinute,
-    "2024-01-15 09:03:00",
+    at("2024-01-15 09:03:00"),
   )
     as "minute 03 closes a IntervalThreeMinute bucket"
   assert interval.bucket_ends(
       interval.IntervalThreeMinute,
-      "2024-01-15 09:04:00",
+      at("2024-01-15 09:04:00"),
     )
     == False
     as "minute 04 does not close a IntervalThreeMinute bucket"
@@ -61,26 +71,36 @@ pub fn min3_bucket_end_test() {
 
 /// A 4-hour bucket ends at 00, 04, 08 … on the hour, and only at minute 00.
 pub fn h4_bucket_end_test() {
-  assert interval.bucket_ends(interval.IntervalFourHour, "2024-01-15 08:00:00")
+  assert interval.bucket_ends(
+    interval.IntervalFourHour,
+    at("2024-01-15 08:00:00"),
+  )
     as "08:00 closes an IntervalFourHour bucket"
-  assert interval.bucket_ends(interval.IntervalFourHour, "2024-01-15 09:00:00")
+  assert interval.bucket_ends(
+      interval.IntervalFourHour,
+      at("2024-01-15 09:00:00"),
+    )
     == False
     as "09:00 is not an IntervalFourHour boundary, even though it is an IntervalOneHour boundary"
-  assert interval.bucket_ends(interval.IntervalFourHour, "2024-01-15 08:30:00")
+  assert interval.bucket_ends(
+      interval.IntervalFourHour,
+      at("2024-01-15 08:30:00"),
+    )
     == False
     as "a half hour is not an IntervalFourHour boundary"
-  assert interval.bucket_ends(interval.IntervalFourHour, "2024-01-15T00:00:00")
+  assert interval.bucket_ends(
+    interval.IntervalFourHour,
+    at("2024-01-15T00:00:00"),
+  )
     as "the T-separated ISO form is read too"
 }
 
-/// An unreadable timestamp is not a bucket end: folding the bar in loses no
-/// data, it only waits.
-pub fn unreadable_timestamp_is_not_a_bucket_end_test() {
-  assert interval.bucket_ends(interval.IntervalThreeMinute, "2024-01-15")
-    == False
-    as "a bare date has no minute field"
-  assert interval.bucket_ends(interval.IntervalFourHour, "2024-01-15") == False
-    as "a bare date has no hour field"
+/// A bare date is rejected at the boundary, before any bucket question can be
+/// asked (R27). The old `False` fallback is gone.
+pub fn bare_date_is_rejected_at_the_boundary_test() {
+  let assert Error(sourcebar.BarTimeHasNoTimeOfDay(_)) =
+    sourcebar.unix_timestamp("2024-01-15")
+    as "an OHLC bar without a time of day is not a bar"
 }
 
 /// The adapter answers for the whole closed set; exhaustiveness is the

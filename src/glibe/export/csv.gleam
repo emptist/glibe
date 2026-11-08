@@ -14,6 +14,8 @@ import gleam/float
 import gleam/int
 import gleam/list
 import gleam/string
+import gleam/time/calendar
+import gleam/time/timestamp
 import glibe/databar.{type DataBar}
 import glibe/timeframe.{type Timeframe}
 import glibe/trading/signal
@@ -60,7 +62,7 @@ pub fn header() -> String {
 fn row(bar: DataBar) -> String {
   string.join(
     [
-      bar.date,
+      timestamp.to_rfc3339(bar.timestamp, calendar.utc_offset),
       f(bar.open),
       f(bar.high),
       f(bar.low),

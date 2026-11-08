@@ -1,8 +1,10 @@
 //// The interval — one bar's width, and the only thing that knows when a bar's
 //// width has run out.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-02-PLAN.md`.
-//// Ruling: `docs/RULINGS.md` R13 (closed sets are types), R19 (docs-first).
+//// Plans: `.planning/phases/04-domain-cleanup/04-02-PLAN.md`,
+//// `.planning/phases/04-domain-cleanup/04-06-PLAN.md`.
+//// Rulings: `docs/RULINGS.md` R13 (closed sets are types), R19 (docs-first),
+//// R21 (full constructor names), R27 (standard bar time is unix time).
 ////
 //// **One class, one module.** `Interval` and everything that is a question
 //// about an interval live here: the codec the settings file is written in, and
@@ -16,22 +18,24 @@
 //// and that is the adapter's vocabulary, not the type's: it stays in
 //// `binance/`.
 ////
-//// **Why nine variants.** Before this plan the closed set had seven, while
+//// **Why nine variants.** Before plan 04-02 the closed set had seven, while
 //// `config.gleam` named an eighth, four-hour interval as a `String`. A
 //// `String` cannot be checked against a closed set, so the compiler could not
 //// see the mismatch at all. Three-minute and four-hour spans are now values of
 //// the type; adding a constructor makes exhaustiveness checking name every
-//// place that must learn
-//// about it — `all`, `to_string`, `from_string`, `bucket_ends`, and the Binance
-//// adapter. That is the mechanism, not a grep.
+//// place that must learn about it — `all`, `to_string`, `from_string`,
+//// `bucket_ends`, and the Binance adapter. That is the mechanism, not a grep.
 ////
-//// **Still open, deliberately:** `bucket_ends` takes `date: String`. The
-//// root-law fix is `gleam_time.Timestamp` at the ingest boundary
-//// (`api/sourcebar.gleam`), which is a separate boundary plan. This module
-//// does not invent a private time type to hide that debt.
+//// **The bucket test now takes a `Timestamp` (R27).** It used to split a
+//// `date: String` with `string.split`, then quietly answer `False` when the
+//// split failed — the fallback that let epoch-milliseconds flow through
+//// forever. The provider's `to_sourcebar` has already converted the wire
+//// label to unix time, so this function is **integer arithmetic on unix
+//// seconds**: no calendar, no offset, no string, no parser. A market whose
+//// bucket grid is not UTC-aligned needs an IANA time-zone rule at its adapter
+//// (daylight saving included), not a change to this closed set.
 
-import gleam/int
-import gleam/string
+import gleam/time/timestamp.{type Timestamp}
 
 /// **The closed set of time spans the system can reason about.** No `String`
 /// may stand in for one of these. Adding a constructor forces every `case` in
@@ -111,77 +115,27 @@ pub fn from_string(name: String) -> Result(Interval, Nil) {
 
 /// **True when the source bar that just arrived is the last of its bucket.**
 ///
-/// The date is the one `sourcebar.normalize_date` handed over, so it is an
-/// ISO-8601 timestamp (`"2024-01-15 09:30:00"`, `"2024-01-15T09:30:00"`) or a
-/// bare date. The provider's epoch-milliseconds never reach this function.
+/// `instant` is the standard bar's unix time (R27). A bucket ends on the
+/// unix-second grid: a three-minute one at `seconds % 180 == 0`, a four-hour
+/// one at `% 14400 == 0`. Sub-daily grids are therefore UTC-aligned by
+/// construction; an exchange whose session grid follows a local, DST-shifting
+/// clock is a market rule to be expressed at that provider's adapter, not a
+/// `String` to be split here.
 ///
-/// Sub-daily buckets are aligned to the hour: a three-minute bucket ends at
-/// `00, 03, 06, …`; a four-hour one at `00:00, 04:00, 08:00, …`. Daily,
-/// weekly and monthly buckets keep their existing `True` behaviour, recorded
-/// as design debt in plan 04-02.
-pub fn bucket_ends(interval: Interval, date: String) -> Bool {
+/// Daily, weekly and monthly buckets keep their existing `True` behaviour,
+/// recorded as design debt in plan 04-02.
+pub fn bucket_ends(interval: Interval, instant: Timestamp) -> Bool {
+  let #(seconds, _nanoseconds) =
+    timestamp.to_unix_seconds_and_nanoseconds(instant)
   case interval {
     IntervalOneMinute -> True
-    IntervalThreeMinute -> bucket_ends_minutes(date, 3)
-    IntervalFifteenMinute -> bucket_ends_minutes(date, 15)
-    IntervalThirtyMinute -> bucket_ends_minutes(date, 30)
-    IntervalOneHour -> bucket_ends_minutes(date, 60)
-    IntervalFourHour -> bucket_ends_hours(date, 4)
+    IntervalThreeMinute -> seconds % 180 == 0
+    IntervalFifteenMinute -> seconds % 900 == 0
+    IntervalThirtyMinute -> seconds % 1800 == 0
+    IntervalOneHour -> seconds % 3600 == 0
+    IntervalFourHour -> seconds % 14_400 == 0
     IntervalOneDay -> True
     IntervalOneWeek -> True
     IntervalOneMonth -> True
-  }
-}
-
-/// A sub-daily bucket ends on the interval's own step: an hourly one on minute
-/// `00`, a 15-minute one on `00`, `15`, `30`, `45`.
-fn bucket_ends_minutes(date: String, step: Int) -> Bool {
-  case minute_of(date) {
-    Ok(minute) -> minute % step == 0
-    // A timestamp the parser cannot read is not a bucket end. Folding the bar
-    // in is the safe answer: it loses no data, it only waits.
-    Error(Nil) -> False
-  }
-}
-
-/// A multi-hour bucket ends on the hour-aligned grid: a four-hour one at
-/// `00:00`, `04:00`, `08:00`, … An hourly bucket needs only the minute; this
-/// one needs the hour too, so the private reader returns both fields.
-fn bucket_ends_hours(date: String, step: Int) -> Bool {
-  case clock_of(date) {
-    Ok(#(hour, minute)) -> minute == 0 && hour % step == 0
-    // An unreadable timestamp is not a bucket end: fold the bar in and wait.
-    Error(Nil) -> False
-  }
-}
-
-/// The hour and minute fields of an ISO-8601 timestamp, however the date and
-/// the time are separated. Both `"2024-01-15 09:30:00"` and
-/// `"2024-01-15T09:30:00"` read `#(9, 30)`; a bare `"2024-01-15"` reads none.
-fn clock_of(date: String) -> Result(#(Int, Int), Nil) {
-  let time_part = case string.split(date, " ") {
-    [_date, time] -> time
-    [one] ->
-      case string.split(one, "T") {
-        [_date, time] -> time
-        _ -> ""
-      }
-    _ -> ""
-  }
-  case string.split(time_part, ":") {
-    [hour, minute, ..] ->
-      case int.parse(hour), int.parse(minute) {
-        Ok(h), Ok(m) -> Ok(#(h, m))
-        _, _ -> Error(Nil)
-      }
-    _ -> Error(Nil)
-  }
-}
-
-/// The minute field of a timestamp. A bare date has no minute at all.
-fn minute_of(date: String) -> Result(Int, Nil) {
-  case clock_of(date) {
-    Ok(#(_hour, minute)) -> Ok(minute)
-    Error(Nil) -> Error(Nil)
   }
 }

@@ -1,6 +1,7 @@
 import gleam/float
 import gleam/list
 import gleam/option.{None, Some}
+import gleam/time/timestamp
 import gleeunit
 import glibe/api/asset
 import glibe/api/interval
@@ -18,6 +19,14 @@ import glibe/sma
 import glibe/timeframe
 import glibe/trading/signal.{Buy, NoSignal, Sell}
 import glibe/trading/strategy
+
+/// A test clock: parse a wire label through the same boundary conversion the
+/// adapters use, so no test builds a Time by hand.
+fn at(raw: String) -> timestamp.Timestamp {
+  let assert Ok(instant) = sourcebar.unix_timestamp(raw)
+    as "test clock label parses"
+  instant
+}
 
 pub fn main() {
   gleeunit.main()
@@ -38,7 +47,7 @@ pub fn main() {
 fn bar(close: Float) -> databar.DataBar {
   databar.DataBar(
     idx: 0,
-    date: "2024-01-01",
+    timestamp: at("2024-01-01 00:00:00"),
     open: close,
     high: close,
     low: close,
@@ -337,42 +346,6 @@ pub fn bollinger_band_ordering_law_test() {
 // Ingest boundary — the hourly-bar bug and the reject-don't-repair rule
 // ============================================================================
 
-/// Binance sends `openTime` as epoch-milliseconds. Before the conversion lived
-/// at the boundary, `"1735704000000"` reached `bucket_ends` and matched no
-/// minute field, so an hourly timeframe never closed a bar. The boundary turns
-/// it into a human-readable timestamp; this test pins that.
-pub fn sourcebar_epoch_ms_normalizes_test() {
-  let raw =
-    SourceBar(
-      date: "1705309200000",
-      open: 100.0,
-      high: 101.0,
-      low: 99.0,
-      close: 100.5,
-      volume: 10,
-    )
-  let normalized = sourcebar.normalize_date(raw)
-  assert normalized.date == "2024-01-15 09:00:00"
-    as "epoch-ms was not normalised to ISO-8601"
-}
-
-/// A date that already reads as a date passes through untouched — the boundary
-/// only translates, it never guesses.
-pub fn sourcebar_iso_date_passes_through_test() {
-  let raw =
-    SourceBar(
-      date: "2024-01-15 09:30:00",
-      open: 100.0,
-      high: 101.0,
-      low: 99.0,
-      close: 100.5,
-      volume: 10,
-    )
-  let normalized = sourcebar.normalize_date(raw)
-  assert normalized.date == "2024-01-15 09:30:00"
-    as "an already-ISO date was altered"
-}
-
 /// R23: `interval` lives ONLY in the key, so the caller that selected the
 /// `Timeframe` hands it to the gate. One and the same `Timeframe` value closes
 /// at 09:00 under `IntervalOneHour` and does not under `IntervalFourHour`
@@ -382,7 +355,7 @@ pub fn sourcebar_iso_date_passes_through_test() {
 pub fn the_gate_is_given_the_interval_by_the_caller_test() {
   let raw =
     SourceBar(
-      date: "2024-01-15 09:00:00",
+      timestamp: at("2024-01-15 09:00:00"),
       open: 100.0,
       high: 101.0,
       low: 99.0,
@@ -402,9 +375,15 @@ pub fn the_gate_is_given_the_interval_by_the_caller_test() {
 /// over: an hourly bar ends on minute `00`, so a source bar at `:00` closes the
 /// bucket and one at `:30` does not. This is the bug, proved.
 pub fn interval_hourly_bucket_closes_on_hour_test() {
-  assert interval.bucket_ends(interval.IntervalOneHour, "2024-01-15 09:00:00")
+  assert interval.bucket_ends(
+    interval.IntervalOneHour,
+    at("2024-01-15 09:00:00"),
+  )
     as "an hourly bar must close on minute 00"
-  assert interval.bucket_ends(interval.IntervalOneHour, "2024-01-15 09:30:00")
+  assert interval.bucket_ends(
+      interval.IntervalOneHour,
+      at("2024-01-15 09:30:00"),
+    )
     == False
     as "an hourly bar should not close on minute 30"
 }
@@ -414,7 +393,7 @@ pub fn interval_hourly_bucket_closes_on_hour_test() {
 pub fn sourcebar_rejects_high_below_low_test() {
   let bad =
     sourcebar.validate(SourceBar(
-      date: "2024-01-15 09:00:00",
+      timestamp: at("2024-01-15 09:00:00"),
       open: 100.0,
       high: 90.0,
       low: 99.0,
