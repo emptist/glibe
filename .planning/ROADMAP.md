@@ -237,3 +237,17 @@ The thinking core's own short-code example was corrected and re-mirrored.
 **`config.gleam`'s `symbols` / `timeframe_settings` tables are still untouched** —
 their migration and the `Symbol` / `Instrument` naming question remain owner
 rulings. See `docs/RULINGS.md` R20, R21.
+
+## Phase 04 Plan 03 — one name, one entity, one owner (2026-11-09)
+Added `.planning/phases/04-domain-cleanup/04-03-PLAN.md` and its SUMMARY.
+R22 rules that `Symbol` is a name and never the `Instrument`; the false
+`Symbol = Instrument = Asset on specific Market` line and its nine unread
+fields are deleted. R23 rules that `TimeframeSettings` is not an entity: the
+second `Dict(Interval, TimeframeSettings)`, the `"BTCUSDT_H1"` composite
+string table and both `list.find` accessors are deleted; settings become
+`Timeframe.settings` and `Timeframe` stops carrying `symbol` / `interval` /
+`market_type`. R24 makes the web-layer framework comparison the AI's demo
+work, not an owner ruling. R25 keeps `TPlus1` / `TPlus2` — an industry term
+is not an exchange wire code. Third measured docs-first/TDD cycle:
+RED 41 compile errors, GREEN 50 passed / 0 warnings / guards 0.
+See `docs/RULINGS.md` R22–R25.

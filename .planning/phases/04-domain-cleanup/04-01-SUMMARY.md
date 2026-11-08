@@ -2,6 +2,12 @@
 
 **`src/glibe/desk.gleam` gives the two orphan `config.gleam` lists typed owners, and is the first glibe module built documentation-first / TDD.**
 
+> **Status 2026-11-09:** the two open items recorded below (the
+> `Symbol` / `Instrument` naming conflict and the two composite-string config
+> tables) were **closed by R22 / R23** and implemented by
+> `.planning/phases/04-domain-cleanup/04-03-PLAN.md`. This file is the record
+> of phase 04-01 at the time it finished; it is not the current shape.
+
 ## Accomplishments
 - `Desk -> Broker -> Instrument -> Interval` is now expressed in types. Identity is a dict key (`BrokerId`, `AccountId`, `Symbol`), never a field of the owned value; both ids are `opaque`; failed lookups return a 5-variant `LookupError`, never `Error(String)`.
 - The module's `////` names this plan by full path. `gleam docs build` puts that link in `package-interface.json` as machine-readable `documentation`.

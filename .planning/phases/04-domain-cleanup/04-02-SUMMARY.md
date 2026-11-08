@@ -2,6 +2,11 @@
 
 **The `String` that named a four-hour interval is gone. It is now a value of `Interval`, and every constructor has a full, prefixed name (R21).**
 
+> **Status 2026-11-09:** the two owner rulings recorded below were **closed
+> by R22 / R23** (`Symbol` is a name; the composite-string config tables are
+> deleted). `TPlus1` / `TPlus2` keep their names (R25). This file is the
+> record of phase 04-02 at the time it finished; it is not the current shape.
+
 ## Accomplishments
 - `Interval` is a **9-variant closed set**: `IntervalOneMinute`, `IntervalThreeMinute`, `IntervalFifteenMinute`, `IntervalThirtyMinute`, `IntervalOneHour`, `IntervalFourHour`, `IntervalOneDay`, `IntervalOneWeek`, `IntervalOneMonth`. Exhaustiveness checking named every place that had to learn the two new values.
 - **14** `List(#(String, Int))` per-interval limit tables in `config.gleam` became `Dict(Interval, Int)`. The old `"H4"` key was not representable by the 7-variant type; it is now `interval.IntervalFourHour` and the compiler checks it.
