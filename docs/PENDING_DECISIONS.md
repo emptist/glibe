@@ -22,13 +22,13 @@
 |---|---|---|
 | `Symbol` 与 `Instrument` 是否同一东西 / 要不要 `InstrumentId` | **`Symbol` 永不是 `Instrument`**；名字不是实体。不统一、不设别名、不建中间层 | `src/glibe/api/symbol.gleam` 重写；`= Instrument =` 那句与 9 个从未被读的字段整句删除（R22） |
 | `config.gleam` 两张复合字符串表按什么形状搬迁 / `TimeframeSettings` 是什么 | **彻底纠正，不绕圈子**。`TimeframeSettings` 不是实体，是 `Timeframe` 的参数块 | 两张表、`"BTCUSDT_H1"`、两个 `list.find` 访问器、第二本 settings 字典全部删除；`Timeframe` 不再自带 `symbol` / `interval` / `market_type`；`AppConfig` 直接持有 `Desk`（R23） |
-| web 层框架（Mist / Wisp / Lustre） | **由我写 demo 对比测试决定**，不是 owner 裁决项 | R24；demo 的可测指标写在 `04-03-PLAN.md` 的「Follow-up work」，是我的下一步工作 |
+| web 层框架（Mist / Wisp / Lustre） | **由我写 demo 对比测试决定**，不是 owner 裁决项 | R24；三个 demo 已跑完，结论与实测数字在 `docs/DESIGN.md`、`04-04-SUMMARY.md` |
 | `TPlus1` / `TPlus2` 是否改名 | **保持原名**。行业公认术语不是线路码 | R25；R21 §3 的「等他一句话」关闭，不再追问 |
 
 **不需要你决定（我按已定规则继续做）：**
 
-- web 层三个最小 demo 的对比测试与结论（R24，我的优势是测试速度；框架不会由你逐个试）。
-- `exchanges` / `assets` / `markets` 三张配置表的 identity 类型化；`Instrument` 增加 `Market` 层；`bucket_ends` 的 `date: String` → `gleam_time.Timestamp`；5 个 `*_from_string` + `panic` 的 codec；日/周/月 bucket 恒 `True` 的旧行为。各自单独计划，按 R13 / R19 / R21 / R23 推进。
+- 三张目录表与 `Instrument` 的**关系**：按 R26 不定，不预先做一整套 identity 类型化，等真正有消费方时按需逐个加 type。已确认的只有 `Broker ▸ Instrument`。
+- `bucket_ends` 的 `date: String` → `gleam_time.Timestamp`；5 个 `*_from_string` + `panic` 的 codec；日/周/月 bucket 恒 `True` 的旧行为。各自单独计划，按 R13 / R19 / R21 / R23 推进。
 - 真实数据下 SVG / JS 图表能力对比试验：**推迟**到 databar processing 其余部分做完（你 2026-11-07 定的时机）。
 - BEAM Stage F（每个 `(symbol, interval)` 一个受监督 actor、replay CLI、退役 `data_generator.ex`、`no_minute_trading.sh`）：工作，不是裁决。
 - 已裁定、不要再看：JS 图表库 + 生成 `.mjs` 优先（R17）、小范围手写 JS（R16）、Phoenix 去留与 `webclient/`（R18）、`Desk` 而非 `Deck`（R20）、`Interval` 九值 + 全名构造子（R21）、SVG 自绘不再是默认路线、WASM 不采用。
@@ -48,6 +48,7 @@
 | 参数块与归属链 | `TimeframeSettings` 不是实体；`Instrument` 只有一本 `Dict(Interval, Timeframe)`；interval 只在 key 里；settings 随 engine 走 | `docs/RULINGS.md` R23 |
 | web 框架 | AI 写 demo 对比决定，不是 owner 裁决 | `docs/RULINGS.md` R24 |
 | 术语 vs 线路码 | CPU / T+1 / T+2 公认术语保留；`H4` / `M1` / `"1h"` 只在 codec/adapter | `docs/RULINGS.md` R25 |
+| 目录表与关系 | 只有 `Broker ▸ Instrument` 已确认；`Asset` / `Exchange` / `Market` 之间及与 `Instrument` 的关系**不定**，按需逐个加 type，不预先造一整套 | `docs/RULINGS.md` R26 |
 | 手写 `.mjs` 范围 | 仅页面/图表设置 + 一根 settled bar 的更新 | `docs/RULINGS.md` R16 |
 | JS 图表库 | 采用；优先 Gleam 源码 → 生成 `.mjs` | `docs/RULINGS.md` R17 |
 | Phoenix / webclient | 旧应用移 `deprecated/glibe_web/` 备考不删；`webclient/` 独立 JS-target package | `docs/RULINGS.md` R18 |
@@ -85,9 +86,8 @@ owner 原话（逐字引用、`[user 日期]`、UC 编号）及全部论证在�
 
 ## R.5 待做工作（不需要裁决）
 
-- web 层 demo 对比（R24，我的工作）：Mist + Wisp 数据端点 / 加 Lustre server
-  components / 无框架静态端点，按 Gleam 与手写 JS 行数、依赖数、一根 settled
-  bar 到 view 的通路、运行时导入检查给结论，落到 `docs/DESIGN.md`。
+- ~~web 层 demo 对比（R24）~~ 已完成；实测数字与结论在 `docs/DESIGN.md`、
+  `.planning/phases/04-domain-cleanup/04-04-SUMMARY.md`、`probes/web-layer/`。
 - BEAM Stage F：受监督 `Timeframe` actor、真实 klines 的 replay CLI、退役
   `data_generator.ex`、`no_minute_trading.sh`。
 - 真实数据图表对比试验（时机见上面「不需要你决定」）。

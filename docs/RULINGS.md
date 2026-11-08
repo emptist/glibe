@@ -757,6 +757,12 @@ interval does not"*。glibe 造出第二本字典 + 复合串表 + 两个查找�
 - 边界不变：根 `src/` 仍是纯 erlang（R15），`webclient/` 是唯一 JS-target
   package（R18），生成 `.mjs` 优先（R17）。demo 对比的结论**不等于**现在
   采用某个框架；是否引入仍按 `docs/DESIGN.md` 的稳定文档落地。
+- **2026-11-09 已完成**：三个最小 demo 在 `probes/web-layer/` 真实起服务、发
+  HTTP 请求、做 Node 导入检查；结论「推荐 A：Mist + Wisp 数据端点 + 生成的
+  `.mjs` 视图，不采用 Lustre server components 作为默认」写进
+  `docs/DESIGN.md`，全部实测数字在
+  `.planning/phases/04-domain-cleanup/04-04-SUMMARY.md`。根 `gleam.toml`
+  与根 `src/` 未改动，本条「结论不等于采用」的边界保持。
 
 ---
 
@@ -776,3 +782,50 @@ interval does not"*。glibe 造出第二本字典 + 复合串表 + 两个查找�
 - R21 本身不因此放宽：构造子仍要写全名并带类型前缀；被禁的是**线路码当
   类型名**，不是行业术语。`docs/gleam-thinking-core-to-memory.md` §5/§13
   的 "No abbreviations" 按本条读。
+
+---
+
+## R26 — 关系未定就按需逐个加 type，不预先造一整套关系（2026-11-09 owner 裁定）
+
+**owner 原话（逐字）：**
+> *"exchanges/assets/markets 这里的assets具体指什么呢？与instrument 什么关系？
+> exchange 和 market 什么关系，从数据源看，可以确定 Broker <- Instrument
+> 这种关系是对的。其他type之间的关系，比较难确定，可以按需要逐步增加type，
+> 届时关系可能就比较明晰了。"* [user 2026-11-09]
+
+- **已确认的只有 `Broker ▸ Instrument`**，理由来自数据源本身。owner 原话
+  （`glib/docs/reference/domain-hierarchy-2026-10-22.md` §1）：*"又必须隶属于
+  某个提供商，因为提供商提供的数据格式不同，推送方式不同，推送申请不同，
+  推送频率不同，等等"*；`glib/docs/RULINGS.md` §1.18：*"broker，同时也是api
+  provider 他们是从不同角度命名的同样的东西"*。现行 `src/glibe/desk.gleam`
+  的 `Broker(instruments: Dict(Symbol, Instrument))` 与此一致。
+- **其余关系现在不定**：`Asset` / `Exchange` / `Market` 三者彼此、以及与
+  `Instrument` 的关系，不在这里一次性定死，也不为「类型化」而把三张目录表
+  硬塞进 `Desk` 链。按真实需要逐个增加 type，关系会在有消费方时变明晰。
+  这不是允许 `String` 长期留在领域模型里：R13 / 根法则仍要求「该 type 出场
+  时定义 type」；本条定的是**不预先发明没有消费方的关系**。
+- 现有事实，逐条核对，不是推断（`src/glibe/config.gleam`）：
+  - `assets` = 9 条标准化标的的**目录项** `Asset(id, name, class)`（BTC、SPY、
+    USD…）；`class` 才是类别。owner 原话 *"Assets are standardized by laws"*
+    （UC-47，`glib/docs/RULINGS.md:385`；`session-ses_f35a.md:568`）。glib 的
+    `SYSTEM_MODEL.md` §10 把 `Asset` 列为 *"Deliberately unbuilt"*。
+  - `markets` = 规则集 `Market(exchange: String, asset_class, rules)`；owner 原话
+    *"different market have different settings so they should not be mixed
+    together"*、*"a Binance BTC/USDT may have different trading rules comparing
+    with the same asset in other markets"*（UC-47）。
+  - `exchanges` = 连接参数 `Exchange(id, name, mic, base_url, ws_url,
+    gateway_host, gateway_port)`。owner 原话 `glib/docs/RULINGS.md` §1.17：
+    *"从ib的api观察，exchange放在contract里面，因为下单之后，同一个品种有可能
+    是在不同的exchang中交易的"* —— exchange 是 contract 的字段（执行/路由场所），
+    与「规则集」不是同一个概念，也不是 glib 里那个 `{ Binance | IB }` provider
+    枚举（同名冲突，见 `domain-hierarchy-2026-10-22.md` §5）。
+  - `get_asset` / `get_exchange` 在 `src/` 与 `test/` **没有任何调用者**；
+    `get_market` 只在 `test/interval_test.gleam:99` 被调用一次。三张表与
+    `Instrument` 之间当前**没有类型连接**，所以也没有可供「搬迁」的关系。
+- **禁止重犯**：`Symbol = Instrument = Asset on specific Market` 那句已被
+  R22 整句删除；`instrument = asset on market`、`Market = Exchange +
+  AssetClass + MarketRules` 都是 glib 文档里的 **AI prose**，不是 owner 定的
+  关系。不得借本条把它们重新写回来。
+- 落地：`.planning/phases/04-domain-cleanup/04-03-PLAN.md` 与
+  `src/glibe/config.gleam` 模块文档里「另立一个 identity-typing 计划」的
+  措辞按本条改为「按需逐步增加」。`docs/DESIGN.md` 记录当前状态。

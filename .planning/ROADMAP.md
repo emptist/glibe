@@ -251,3 +251,26 @@ work, not an owner ruling. R25 keeps `TPlus1` / `TPlus2` — an industry term
 is not an exchange wire code. Third measured docs-first/TDD cycle:
 RED 41 compile errors, GREEN 50 passed / 0 warnings / guards 0.
 See `docs/RULINGS.md` R22–R25.
+
+## R26 — catalogue relations are open (2026-11-09)
+
+Owner ruled that only `Broker ▸ Instrument` is settled from the data-source
+argument; relations among `Asset` / `Exchange` / `Market` and to `Instrument`
+are hard to settle now, so types are added one at a time when a consumer needs
+one. No advance identity-typing plan, no speculative `Market` level on
+`Instrument`. Measured: `get_asset` and `get_exchange` have zero callers,
+`get_market` one (a test). Full text: `docs/RULINGS.md` R26;
+current shape: `docs/DESIGN.md` "The catalogue tables are NOT in the ownership
+chain".
+
+## Phase 04 Plan 04 — BEAM web-layer demos (2026-11-09)
+
+Added `.planning/phases/04-domain-cleanup/04-04-PLAN.md`, its SUMMARY, and
+three runnable Erlang-target demos in `probes/web-layer/`. R24 discharged:
+Mist+Wisp (72 Gleam lines / 22 Hex), +Lustre server component (124 / 23), bare
+Mist (82 / 14); all with 0 hand-written JS and 0 npm deps. Real HTTP requests
+proved one settled bar reached both the HTML view and the JSON endpoint; demo
+B's `/poll` returned a real Lustre `Mount` patch. Node imports the generated
+`webclient.mjs`. Recommendation A recorded in `docs/DESIGN.md`: thin Mist+Wisp
+data endpoints, view in the generated `.mjs`, no Lustre server components by
+default. **Not adopted** — root `gleam.toml` and `src/` untouched.

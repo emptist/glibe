@@ -110,13 +110,90 @@ stale claims in this document, not states of the code. The one real imported
 mistake — seib's three graded lower-band clamps — is fixed to the owner's
 ruled order (R12). See `REVIEW_ROUND5.md` §5–§6.
 
+## The catalogue tables are NOT in the ownership chain (R26)
+
+`AppConfig` still carries three `List(#(String, …))` catalogues —
+`exchanges`, `assets`, `markets`. They are **not** levels of the `Desk` chain
+and they are **not** related to `Instrument` by any type today:
+
+| table | what one entry actually is | consumers in `src/` and `test/` |
+|---|---|---|
+| `assets` | `Asset(id, name, class)` — 9 standardised things (BTC, SPY, USD…). `class` is the category. | `get_asset`: **none** |
+| `exchanges` | `Exchange(id, name, mic, base_url, ws_url, gateway_host, gateway_port)` — connection parameters. | `get_exchange`: **none** |
+| `markets` | `Market(exchange: String, asset_class, rules)` — a rule set (hours, fees, limits, settlement). | `get_market`: one test, `test/interval_test.gleam:99` |
+
+The owner's words: *"Assets are standardized by laws"*, *"Market is often
+related to different exchanges"*, *"different market have different settings
+so they should not be mixed together"* (UC-47), and, on IB, *"exchange放在
+contract里面"* (`glib/docs/RULINGS.md` §1.17). So exchange is a routing/venue
+fact on a contract, market is a rule set, and an asset is a legally
+standardised thing — three different kinds of fact, not three layers of one
+tree. Any sentence equating them, or writing `Instrument = Asset on Market`,
+is AI prose and was deleted under R22.
+
+**Only `Broker ▸ Instrument` is settled**, from the data-source argument:
+*"又必须隶属于某个提供商，因为提供商提供的数据格式不同，推送方式不同，推送
+申请不同，推送频率不同"* (`glib/docs/reference/domain-hierarchy-2026-10-22.md`
+§1). R26 (2026-11-09): the remaining relations are hard to settle now, so
+types are added **one at a time, when a consumer needs one**, and the
+relations will become clear then. No advance identity-typing plan, no
+speculative `Market` level on `Instrument`. This is not permission to keep
+`String` in the domain model — R13 still applies the moment a type is called
+for. Full text and verbatim quotes: `docs/RULINGS.md` R26.
+
+## The BEAM web layer, measured (R24)
+
+R24 put the framework choice on the AI, by running demos. Three minimal
+Erlang-target Gleam projects in `probes/web-layer/` all serve the same settled
+bar (`index: 42, close: 123.5`) and were started with real HTTP requests
+against them. Full RED/GREEN record and runtime output:
+`.planning/phases/04-domain-cleanup/04-04-SUMMARY.md`.
+
+| demo | server half | src Gleam | Hex pkgs | hand-written JS | client asset |
+|---|---|---|---|---|---|
+| A | Mist + Wisp | **72** | 22 | **0 lines** | generated `webclient.mjs` (3 lines) |
+| B | Mist + Wisp + Lustre server component | 124 | 23 | **0 lines** | `lustre-server-component.min.mjs`, 14,191 B (Hex-shipped) |
+| C | Mist only, no framework | 82 | 14 | **0 lines** | same generated `webclient.mjs` |
+
+All three: `gleam test` 1 passed, `--warnings-as-errors` 0, `gleam docs build`
+0, npm deps 0, identical build steps (`deps download` → `build` → `run`, plus
+one shared `webclient` build). `GET /` and `GET /bar` returned 200 with the bar
+in all three. B's `GET /poll` returned a real Lustre `Mount` patch (`kind: 0`,
+`vdom` containing `123.5`) — the server-component data path works, it is not a
+mock. Node imports the generated `.mjs` (`exports: ["main"]`, exit 0), which is
+the runtime check a green `gleam build` cannot supply.
+
+**Recommendation: A — Mist + Wisp for thin data endpoints, the view in the
+generated `webclient/` `.mjs`. Do not adopt Lustre server components as the
+default.** The view this product needs is a JS chart (R17) and tabulated
+fractal data; Lustre server components patch DOM, so driving a canvas chart
+would need a further custom-element bridge, plus an OTP runtime to supervise
+and a 14 KB client runtime, for a data path the chart does not use. A has the
+least Gleam code because Wisp supplies the request edge; C has 8 fewer Hex
+packages but more hand-written Gleam and no static/logging/crash-rescue
+middleware. Every option has the same browser asset and zero hand-written JS —
+**the framework choice changes only the server half**, not R17/R18.
+
+This is a recommendation, **not an adoption** (R24). Nothing was added to the
+root `gleam.toml` and the root `src/` was untouched. Demos are measurement
+apparatus: all three `gleam.toml` files are erlang-target, `webclient/` remains
+the product's only JavaScript-target package (R18).
+
+Two compiler corrections the demos produced: Mist 6.0.3 exports `mist.start`,
+not the `mist.start_http` still shown in Wisp's own doc example; Lustre 5.7.1's
+`html.title` takes a `String`, not a child list. A prose review would have
+shipped both wrong.
+
 ## What glibe does not do yet
 
 - **Stage F** — BEAM actors, the replay CLI, `DataGenerator` retirement, the
   minute-trading guard (Stage F, `REVIEW_ROUND5.md` §1). This is the work,
   and it waits on nothing.
-- **Three open design points** — the web-layer decision, typed identity
-  keys in `config.gleam`, and the `Interval` closed set 7 → 9. Plans first
+- **The catalogue tables' identities and relations** — deliberately open
+  under R26, not a pending owner ruling. They get types when a consumer
+  appears. The web-layer comparison is **done** (R24); recommendation A is
+  recorded above and adoption waits for a plan that actually builds the layer.
+  The `Interval` closed set is already 9 values (R21). Plans first
   (*"计划和文档先行"*, 2026-10-28).
 - **The AI strategy** — deliberately absent. glib's AI layer was deleted by
   the owner; there is nothing to port. **glibe does not wait for a feature the

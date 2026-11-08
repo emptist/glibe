@@ -4,6 +4,32 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
+## 2026-11-09 (R24 / phase 04-04 web demos)
+
+| axis | value | how it was taken |
+|---|---|---|
+| demos | **3 runnable Erlang-target projects** in `probes/web-layer/` | `gleam run` + real HTTP GET on ports 8601/8602/8603 |
+| Gleam / Hex / JS | A 72 lines / 22 pkgs; B 124 / 23; C 82 / 14; **all 0 hand-written JS, 0 npm** | non-blank source count + `manifest.toml` |
+| one settled bar | `GET /` and `GET /bar` 200 with `123.5` in all three; B `GET /poll` returns Lustre `Mount` (`kind:0`) | HTTP response bodies |
+| runtime import | `webclient.mjs` → `IMPORT_OK exports=["main"]`, exit 0 | `node --input-type=module -e "import(...)"` |
+| GREEN | 3 × `gleam test` 1 passed, `--warnings-as-errors` 0, `docs build` 0, plan link in `package-interface.json` | forced recompile after `touch src/*.gleam` |
+| conclusion | **recommend A**, not adopted; recommendation in `docs/DESIGN.md` | R24 boundary kept |
+| open owner rulings | **0** | R24 was AI work, not a ruling |
+
+## 2026-11-09 (R26 / catalogue types)
+
+| axis | value | how it was taken |
+|---|---|---|
+| settled relation | **only `Broker ▸ Instrument`**, from the data-source argument | `glib/docs/reference/domain-hierarchy-2026-10-22.md` §1 + §1.18; `src/glibe/desk.gleam` |
+| `assets` | 9 `Asset(id, name, class)` catalogue entries; `get_asset` has **0 callers** | `src/glibe/config.gleam:139-212,583` + repo-wide Grep |
+| `exchanges` | 3 connection-parameter records; `get_exchange` has **0 callers** | `src/glibe/config.gleam:101-138,568` + repo-wide Grep |
+| `markets` | rule sets; `get_market` has **1 caller**, a test | `src/glibe/config.gleam:213-559,595`; `test/interval_test.gleam:99` |
+| open owner rulings | **0** | R26 is a ruling, not a new question |
+
+**Owner's direction:** *"其他type之间的关系，比较难确定，可以按需要逐步增加
+type，届时关系可能就比较明晰了"* — no advance identity-typing plan, no
+speculative relations. Full text: `docs/RULINGS.md` R26.
+
 ## 2026-11-09 (R22–R25 / phase 04-03)
 
 | axis | value | how it was taken |
