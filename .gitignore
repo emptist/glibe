@@ -3,6 +3,7 @@
 *.ez
 /build
 webclient/build/
+probes/**/build/
 erl_crash.dump
 rebar3.crashdump
 
