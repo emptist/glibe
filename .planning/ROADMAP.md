@@ -227,6 +227,12 @@ The plan lands `src/glibe/desk.gleam` as the first documentation-first / TDD
 module with a `////` link to the plan. **`config.gleam` itself is unchanged** —
 migrating its two String-keyed tables is a separate plan and an owner decision.
 Name: `Desk`, not `Deck`. See `docs/RULINGS.md` R20.
+
+> 2026-11-09 status: the two tables no longer exist. Phase 04 Plan 03 (R22,
+> R23) deleted them, their `"BTCUSDT_H1"` composite keys and both `list.find`
+> accessors; `AppConfig` now holds a typed `Desk`. The "separate plan / owner
+> decision" line above was true when written and is history now.
+
 ## Phase 04 Plan 02 — typed intervals (2026-11-08)
 Added `.planning/phases/04-domain-cleanup/04-02-PLAN.md` and its SUMMARY.
 `Interval` is now a 9-variant closed set with fully named constructors (R21);
@@ -237,6 +243,10 @@ The thinking core's own short-code example was corrected and re-mirrored.
 **`config.gleam`'s `symbols` / `timeframe_settings` tables are still untouched** —
 their migration and the `Symbol` / `Instrument` naming question remain owner
 rulings. See `docs/RULINGS.md` R20, R21.
+
+> 2026-11-09 status: both items are settled, not open. R22 ruled `Symbol` is
+> never `Instrument`; R23 ruled `TimeframeSettings` is not an entity and moved
+> settings into `Timeframe`. Both tables were deleted. See Plan 03 below.
 
 ## Phase 04 Plan 03 — one name, one entity, one owner (2026-11-09)
 Added `.planning/phases/04-domain-cleanup/04-03-PLAN.md` and its SUMMARY.
