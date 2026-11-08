@@ -52,6 +52,11 @@ block of one `Timeframe` (`Timeframe.settings`); no second dict, no composite
 choice is **the AI's demo comparison work, not an owner ruling**. R25 a
 recognised professional term (CPU, T+1/T+2) is **not** an abbreviation; keep
 `TPlus1`/`TPlus2`. Wire codes like `H4`/`M1` are still banned.
+R26 **only `Broker ▸ Instrument` is settled** (data-source argument); relations
+among `Asset` / `Exchange` / `Market` and to `Instrument` are deliberately
+open — add types **one at a time when a consumer needs one**, no advance
+identity-typing plan, no speculative `Market` level. `assets`/`exchanges`
+have 0 consumers; `Instrument = Asset on Market` is AI prose, do not revive.
 
 ## Measured facts
 - Gleam 1.19.2: `import mod.{type T, Ctor}`; **no `T(..)` form**. A function may
@@ -66,6 +71,11 @@ recognised professional term (CPU, T+1/T+2) is **not** an abbreviation; keep
 - Tests: bool `assert … as "msg"`, `let assert`; never `panic` or `case Bool`.
   Negative guard tests use `/tmp` fixtures (`scripts/test_guards.sh`), **never**
   plant broken code in real `src/`.
+- Web demos (04-04, R24): Mist+Wisp 72 lines/22 Hex vs +Lustre server
+  component 124/23 vs bare Mist 82/14; all 0 hand-written JS, 0 npm, same
+  generated `webclient.mjs`. **Recommend A** (thin Wisp endpoints + generated
+  `.mjs` view), not adopted. Mist 6.0.3 = `mist.start` (Wisp doc example's
+  `start_http` is stale); Lustre 5.7.1 `html.title(attrs, String)`.
 - *"Needs no JS library"* is a **dependency** claim, not a capability claim.
   Series/option definitions and per-bar mapping are inherent work, **not** extra
   cost. Real-data chart trial deferred until databar processing is complete.
