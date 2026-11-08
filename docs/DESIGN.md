@@ -256,6 +256,48 @@ implementation. The specification lives in the `////` module docs of
 → `package-interface.json` in both packages carries that link. No conversion
 code, no `tzif` dependency, no new type and no test were added this round.
 
+## One addressed bar, one timeframe (04-08)
+
+The ownership chain could already HOLD many instruments, each with many
+intervals: `Desk(brokers: Dict(BrokerId, Broker))` →
+`Broker(instruments: Dict(Symbol, Instrument))` →
+`Instrument(timeframes: Dict(Interval, Timeframe))`, and
+`config.default_config()` builds 3 brokers × 3 instruments × 2 intervals = six
+independent states. What was missing was the ARRIVAL of a bar. `SourceBar`
+deliberately carries no identity (R27 / R28); `binance.fetch_klines` returns
+`List(SourceBar)` and leaves its request's `symbol` / `interval` behind; and
+`engine.sourcebar_gate` was handed a `Timeframe` plus an `Interval` by the
+caller. A BTCUSDT bar could be fed into SPY's hourly engine with no function
+objecting at all.
+
+`src/glibe/monitor.gleam` closes that gap with three types and one pure step.
+`TimeframeAddress(BrokerId, Symbol, Interval)` puts the interval IN the
+address, never in a `Timeframe` field (R23); `IncomingBar(address, bar)` pairs
+the request identity with the standard bar once, at the ingest boundary; and
+`MonitorError` carries the address plus a typed lower-level reason. `advance`
+walks the three dictionaries, runs the gate, runs `databar_processing` when a
+bucket closes, and puts the resulting `Timeframe` back into a NEW `Desk`. On
+failure nothing is written — the caller's `Desk` is untouched because the
+function is pure.
+
+One `IncomingBar` advances ONE `Timeframe`. A kline stream is requested per
+interval, so N instruments × M intervals means N×M addressed steps, not one
+bar fanned out over every interval. The broker belongs in the address because
+the same `Symbol` under two brokers names two different instruments.
+`sourcebar.validate` and `sourcebar_gate` now return `SourceBarRejection`
+instead of `String`, so the routing layer can say which address refused which
+bar and why (R13).
+
+This is a type-structure change, not a runtime one: no actor, subscription,
+socket, clock or `gleam_otp` dependency. Stage F's supervised actors and the
+replay CLI (section below) call this step. No `Market` / `Asset` / `Exchange`
+relation was invented (R26), and neither `SourceBar` nor `Timeframe` gained a
+field. Six tests in `test/monitor_test.gleam` pin the isolation: the addressed
+timeframe advances while the same instrument's other interval and two other
+brokers' instruments stay identical; two instruments keep their own closes; a
+non-boundary bar only opens a bucket; the same bar closes an hourly but not a
+four-hour bucket; and both failure paths carry the address.
+
 ## What glibe does not do yet
 
 - **Stage F** — BEAM actors, the replay CLI, `DataGenerator` retirement, the

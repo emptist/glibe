@@ -4,6 +4,35 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
+## 2026-11-09 (phase 04-08 — one addressed bar advances one timeframe)
+
+- Measured answer to "can the type structure monitor many instruments, each
+  with many intervals, at the same time?": the STATIC chain was already
+  complete (`desk.gleam:74-94`, `config.gleam:75-101`: 3 brokers × 3
+  instruments × 2 intervals = six independent `Timeframe` states), but a bar's
+  ARRIVAL had no address and gate-path errors were `String`.
+- New `src/glibe/monitor.gleam`: `TimeframeAddress(BrokerId, Symbol,
+  Interval)`, `IncomingBar(address, bar)`, `MonitorError` (address + typed
+  lower-level reason), and the pure
+  `advance(desk, incoming) -> Result(Desk, MonitorError)`. One bar advances
+  exactly one `Timeframe`; no fan-out to all intervals.
+- `SourceBarRejection` closed set replaces five `Error("…")` arms in
+  `sourcebar.validate`; `engine.sourcebar_gate` propagates it.
+  `binance.fetch_klines` now takes `Symbol`, not `String` (R22); its return
+  type is unchanged and no provider↔broker relation was invented (R26).
+- Six new tests in `test/monitor_test.gleam`: addressed timeframe advances,
+  other interval / other brokers untouched, two instruments keep their own
+  closes, non-boundary bar only opens a bucket, same bar closes 1h but not 4h,
+  and both error paths carry the address.
+- RED 58 passed / 6 `todo` failures (0 compile errors, 3 skeleton warnings).
+  GREEN `gleam build --warnings-as-errors` 0/0, `gleam test` **64 passed**,
+  `gleam format --check src test` 0, `guards.sh --all` 0, `gleam docs build` 0;
+  `package-interface.json` carries `04-08-PLAN.md` on all four touched modules.
+- Deliberately NOT done: actors / subscriptions / streams / replay CLI /
+  `gleam_otp` (Stage F), `Market` / `Asset` / `Exchange` relations (R26), any
+  field on `SourceBar` or `Timeframe` (R23 / R27 / R28).
+- Owner items waiting for a ruling: **0**. This is R26 work, not a ruling.
+
 ## 2026-11-09 (R30 / phase 04-07 — local time in the web view, documentation only)
 
 - Owner ruling R30: the web interface shows date-times in **local** time so

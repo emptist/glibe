@@ -103,3 +103,7 @@ owner 原话（逐字引用、`[user 日期]`、UC 编号）及全部论证在�
   模块的 `////` 文档里写好规格，实现是 04-07 的按序工作，**不是待裁决项**。
   见 `docs/RULINGS.md` R30 与
   `.planning/phases/04-domain-cleanup/04-07-PLAN.md`。
+- 04-08 多品种 × 多周期同时监控的类型结构（地址 / 到达 bar / 领域错误 /
+  纯 `advance`）：已完成，是 R26 按序工作，**不是待裁决项**。真实并发 actor、
+  订阅与 replay CLI 仍属 Stage F，见
+  `.planning/phases/04-domain-cleanup/04-08-PLAN.md` 与 `docs/DESIGN.md`。

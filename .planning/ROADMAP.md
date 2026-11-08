@@ -326,3 +326,20 @@ library, not a dependency (R26). This round delivers only `////` module docs
 linking `.planning/phases/04-domain-cleanup/04-07-PLAN.md` in four modules
 across both packages; `package-interface.json` in each carries the link. No
 implementation, no new type, no test, no owner decision item.
+
+
+## Phase 04 Plan 08 — one addressed bar, one timeframe (2026-11-09)
+
+Owner asked whether the type structure can already monitor many instruments,
+each with many intervals, at the same time, and said to continue if not. The
+static `Desk ▸ Broker ▸ Instrument ▸ Interval ▸ Timeframe` chain was already
+complete (six independent states in `config.gleam`); the arrival of a bar was
+not. New `src/glibe/monitor.gleam` gives a bar a typed `TimeframeAddress`,
+pairs it once with the standard bar as `IncomingBar`, replaces the gate's
+`String` failure with `SourceBarRejection` / `MonitorError`, and provides the
+pure `advance(desk, incoming) -> Result(Desk, MonitorError)`. One bar advances
+exactly one `Timeframe`; no interval fan-out, no field on `SourceBar` or
+`Timeframe`, no `Market` relation (R26), no actor or stream (Stage F).
+Sixth docs-first cycle: RED 58 passed / 6 `todo` failures, GREEN **64 passed**
+/ 0 warnings / guards 0 / format 0 / docs 0; `package-interface.json` carries
+the `04-08-PLAN` link on all four touched modules. Not an owner ruling.
