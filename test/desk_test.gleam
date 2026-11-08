@@ -108,49 +108,54 @@ pub fn instrument_lives_under_its_broker_test() {
   assert reported == sym as "the error carries the symbol that was asked for"
 }
 
-/// Settings are keyed by `Interval`, so `H1` and `D1` cannot be confused.
+/// Settings are keyed by `Interval`, so `IntervalOneHour` and `IntervalOneDay` cannot be confused.
 pub fn settings_are_keyed_by_interval_test() {
   let h1 = settings()
   let d1 = indicator_settings.TimeframeSettings(..h1, branch_exit_leaf_size: 41)
   let instrument =
     desk.new_instrument()
-    |> desk.put_settings(interval.H1, h1)
-    |> desk.put_settings(interval.D1, d1)
-  let assert Ok(got_h1) = desk.get_settings(instrument, interval.H1)
-  let assert Ok(got_d1) = desk.get_settings(instrument, interval.D1)
-  assert got_h1 == h1 as "H1 keeps its own settings"
-  assert got_d1 == d1 as "D1 keeps its own settings"
+    |> desk.put_settings(interval.IntervalOneHour, h1)
+    |> desk.put_settings(interval.IntervalOneDay, d1)
+  let assert Ok(got_h1) =
+    desk.get_settings(instrument, interval.IntervalOneHour)
+  let assert Ok(got_d1) = desk.get_settings(instrument, interval.IntervalOneDay)
+  assert got_h1 == h1 as "IntervalOneHour keeps its own settings"
+  assert got_d1 == d1 as "IntervalOneDay keeps its own settings"
   let assert Error(desk.NoSuchSettings(missing)) =
-    desk.get_settings(instrument, interval.MIN15)
+    desk.get_settings(instrument, interval.IntervalFifteenMinute)
     as "an interval with nothing put has no settings"
-  assert missing == interval.MIN15 as "the error names the interval asked for"
+  assert missing == interval.IntervalFifteenMinute
+    as "the error names the interval asked for"
 }
 
 /// Live state is keyed by `Interval` too — this is the list that had no home.
 pub fn timeframes_are_keyed_by_interval_test() {
-  let h1 = timeframe.new(btc(), interval.H1, exchange.Crypto)
-  let d1 = timeframe.new(btc(), interval.D1, exchange.Crypto)
+  let h1 = timeframe.new(btc(), interval.IntervalOneHour, exchange.Crypto)
+  let d1 = timeframe.new(btc(), interval.IntervalOneDay, exchange.Crypto)
   let instrument =
     desk.new_instrument()
-    |> desk.put_timeframe(interval.H1, h1)
-    |> desk.put_timeframe(interval.D1, d1)
-  let assert Ok(got_h1) = desk.get_timeframe(instrument, interval.H1)
-  let assert Ok(got_d1) = desk.get_timeframe(instrument, interval.D1)
-  assert got_h1 == h1 as "H1 keeps its own state"
-  assert got_d1 == d1 as "D1 keeps its own state"
+    |> desk.put_timeframe(interval.IntervalOneHour, h1)
+    |> desk.put_timeframe(interval.IntervalOneDay, d1)
+  let assert Ok(got_h1) =
+    desk.get_timeframe(instrument, interval.IntervalOneHour)
+  let assert Ok(got_d1) =
+    desk.get_timeframe(instrument, interval.IntervalOneDay)
+  assert got_h1 == h1 as "IntervalOneHour keeps its own state"
+  assert got_d1 == d1 as "IntervalOneDay keeps its own state"
   assert got_h1 != got_d1 as "one interval per key"
   let assert Error(desk.NoSuchTimeframe(missing)) =
-    desk.get_timeframe(instrument, interval.MIN15)
+    desk.get_timeframe(instrument, interval.IntervalFifteenMinute)
     as "an interval with nothing put has no state"
-  assert missing == interval.MIN15 as "the error names the interval asked for"
+  assert missing == interval.IntervalFifteenMinute
+    as "the error names the interval asked for"
 }
 
 /// Insertion never mutates: this is why the type relations are safe to share.
 pub fn put_does_not_mutate_the_instrument_test() {
   let empty = desk.new_instrument()
-  let _ = desk.put_settings(empty, interval.H1, settings())
+  let _ = desk.put_settings(empty, interval.IntervalOneHour, settings())
   let assert Error(desk.NoSuchSettings(_)) =
-    desk.get_settings(empty, interval.H1)
+    desk.get_settings(empty, interval.IntervalOneHour)
     as "the original instrument is unchanged"
 }
 
@@ -158,16 +163,16 @@ pub fn put_does_not_mutate_the_instrument_test() {
 pub fn the_whole_chain_reaches_a_timeframe_test() {
   let bid = desk.broker_id("ib")
   let sym = btc()
-  let tf = timeframe.new(sym, interval.H1, exchange.Crypto)
+  let tf = timeframe.new(sym, interval.IntervalOneHour, exchange.Crypto)
   let instrument =
     desk.new_instrument()
-    |> desk.put_settings(interval.H1, settings())
-    |> desk.put_timeframe(interval.H1, tf)
+    |> desk.put_settings(interval.IntervalOneHour, settings())
+    |> desk.put_timeframe(interval.IntervalOneHour, tf)
   let broker = desk.put_instrument(desk.new_broker(), sym, instrument)
   let root = desk.put_broker(desk.new(), bid, broker)
   let assert Ok(b) = desk.get_broker(root, bid)
   let assert Ok(i) = desk.get_instrument(b, sym)
-  let assert Ok(got) = desk.get_timeframe(i, interval.H1)
+  let assert Ok(got) = desk.get_timeframe(i, interval.IntervalOneHour)
   assert got == tf
     as "every instrument and timeframe is reachable from the desk"
 }

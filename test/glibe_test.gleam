@@ -311,7 +311,7 @@ pub fn bollinger_band_ordering_law_test() {
 }
 
 // ============================================================================
-// Ingest boundary — the H1 bug and the reject-don't-repair rule
+// Ingest boundary — the hourly-bar bug and the reject-don't-repair rule
 // ============================================================================
 
 /// Binance sends `openTime` as epoch-milliseconds. Before the conversion lived
@@ -353,11 +353,12 @@ pub fn sourcebar_iso_date_passes_through_test() {
 /// The bucket test now closes an hourly bar on the minute the boundary hands
 /// over: an hourly bar ends on minute `00`, so a source bar at `:00` closes the
 /// bucket and one at `:30` does not. This is the bug, proved.
-pub fn interval_h1_bucket_closes_on_hour_test() {
-  assert interval.bucket_ends(interval.H1, "2024-01-15 09:00:00")
-    as "an H1 bar must close on minute 00"
-  assert interval.bucket_ends(interval.H1, "2024-01-15 09:30:00") == False
-    as "an H1 bar should not close on minute 30"
+pub fn interval_hourly_bucket_closes_on_hour_test() {
+  assert interval.bucket_ends(interval.IntervalOneHour, "2024-01-15 09:00:00")
+    as "an hourly bar must close on minute 00"
+  assert interval.bucket_ends(interval.IntervalOneHour, "2024-01-15 09:30:00")
+    == False
+    as "an hourly bar should not close on minute 30"
 }
 
 /// A bar whose own numbers disagree is rejected, with the reason, and nothing

@@ -1,7 +1,19 @@
-/// Configuration for the entire trading system
-/// Single source of truth - no JSON needed, Gleam IS the config
+//// Configuration for the entire trading system. Gleam IS the config: no JSON,
+//// no parser, no `panic` on an unknown spelling.
+////
+//// Plan: `.planning/phases/04-domain-cleanup/04-02-PLAN.md`.
+//// Ruling: `docs/RULINGS.md` R13 (closed sets are types), R19 (docs-first).
+////
+//// Per-interval data limits are `Dict(Interval, Int)` here. The old string
+//// key for a four-hour span, which the 7-variant type could not represent, is
+//// now a value of `Interval`. The `timeframe_settings` composite-string
+//// table (`"BTCUSDT_H1"`) is NOT migrated here: that is one of the two owner
+//// rulings still open in `docs/PENDING_DECISIONS.md` §4.
+
+import gleam/dict
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import glibe/api/interval
 
 // ============================================================================
 // Config Types (structure only, types imported from their modules)
@@ -162,8 +174,16 @@ pub fn default_config() -> AppConfig {
               platform_fee_bps: 0,
             ),
             data_limits: rules.DataRequestLimits(
-              max_bars_per_request: [#("D1", 1000), #("H1", 1000), #("H4", 500)],
-              max_history_days: [#("D1", 3650), #("H1", 730), #("H4", 1825)],
+              max_bars_per_request: dict.from_list([
+                #(interval.IntervalOneDay, 1000),
+                #(interval.IntervalOneHour, 1000),
+                #(interval.IntervalFourHour, 500),
+              ]),
+              max_history_days: dict.from_list([
+                #(interval.IntervalOneDay, 3650),
+                #(interval.IntervalOneHour, 730),
+                #(interval.IntervalFourHour, 1825),
+              ]),
               rate_limit_req_per_sec: 50,
               rate_limit_req_per_min: 1200,
               max_concurrent_requests: 5,
@@ -202,8 +222,14 @@ pub fn default_config() -> AppConfig {
               platform_fee_bps: 0,
             ),
             data_limits: rules.DataRequestLimits(
-              max_bars_per_request: [#("D1", 1000), #("H1", 1000)],
-              max_history_days: [#("D1", 3650), #("H1", 730)],
+              max_bars_per_request: dict.from_list([
+                #(interval.IntervalOneDay, 1000),
+                #(interval.IntervalOneHour, 1000),
+              ]),
+              max_history_days: dict.from_list([
+                #(interval.IntervalOneDay, 3650),
+                #(interval.IntervalOneHour, 730),
+              ]),
               rate_limit_req_per_sec: 50,
               rate_limit_req_per_min: 1200,
               max_concurrent_requests: 5,
@@ -244,8 +270,14 @@ pub fn default_config() -> AppConfig {
               platform_fee_bps: 0,
             ),
             data_limits: rules.DataRequestLimits(
-              max_bars_per_request: [#("D1", 2520), #("H1", 5000)],
-              max_history_days: [#("D1", 7560), #("H1", 730)],
+              max_bars_per_request: dict.from_list([
+                #(interval.IntervalOneDay, 2520),
+                #(interval.IntervalOneHour, 5000),
+              ]),
+              max_history_days: dict.from_list([
+                #(interval.IntervalOneDay, 7560),
+                #(interval.IntervalOneHour, 730),
+              ]),
               rate_limit_req_per_sec: 50,
               rate_limit_req_per_min: 3000,
               max_concurrent_requests: 5,
@@ -294,8 +326,14 @@ pub fn default_config() -> AppConfig {
               platform_fee_bps: 3,
             ),
             data_limits: rules.DataRequestLimits(
-              max_bars_per_request: [#("D1", 1260), #("H1", 2000)],
-              max_history_days: [#("D1", 2520), #("H1", 365)],
+              max_bars_per_request: dict.from_list([
+                #(interval.IntervalOneDay, 1260),
+                #(interval.IntervalOneHour, 2000),
+              ]),
+              max_history_days: dict.from_list([
+                #(interval.IntervalOneDay, 2520),
+                #(interval.IntervalOneHour, 365),
+              ]),
               rate_limit_req_per_sec: 10,
               rate_limit_req_per_min: 100,
               max_concurrent_requests: 5,
@@ -341,8 +379,14 @@ pub fn default_config() -> AppConfig {
               platform_fee_bps: 3,
             ),
             data_limits: rules.DataRequestLimits(
-              max_bars_per_request: [#("D1", 2000), #("H1", 5000)],
-              max_history_days: [#("D1", 5040), #("H1", 730)],
+              max_bars_per_request: dict.from_list([
+                #(interval.IntervalOneDay, 2000),
+                #(interval.IntervalOneHour, 5000),
+              ]),
+              max_history_days: dict.from_list([
+                #(interval.IntervalOneDay, 5040),
+                #(interval.IntervalOneHour, 730),
+              ]),
               rate_limit_req_per_sec: 10,
               rate_limit_req_per_min: 100,
               max_concurrent_requests: 5,
@@ -383,8 +427,14 @@ pub fn default_config() -> AppConfig {
               platform_fee_bps: 0,
             ),
             data_limits: rules.DataRequestLimits(
-              max_bars_per_request: [#("D1", 1000), #("H1", 5000)],
-              max_history_days: [#("D1", 2520), #("H1", 730)],
+              max_bars_per_request: dict.from_list([
+                #(interval.IntervalOneDay, 1000),
+                #(interval.IntervalOneHour, 5000),
+              ]),
+              max_history_days: dict.from_list([
+                #(interval.IntervalOneDay, 2520),
+                #(interval.IntervalOneHour, 730),
+              ]),
               rate_limit_req_per_sec: 10,
               rate_limit_req_per_min: 100,
               max_concurrent_requests: 5,
@@ -423,8 +473,14 @@ pub fn default_config() -> AppConfig {
               platform_fee_bps: 0,
             ),
             data_limits: rules.DataRequestLimits(
-              max_bars_per_request: [#("D1", 2000), #("H1", 5000)],
-              max_history_days: [#("D1", 3650), #("H1", 730)],
+              max_bars_per_request: dict.from_list([
+                #(interval.IntervalOneDay, 2000),
+                #(interval.IntervalOneHour, 5000),
+              ]),
+              max_history_days: dict.from_list([
+                #(interval.IntervalOneDay, 3650),
+                #(interval.IntervalOneHour, 730),
+              ]),
               rate_limit_req_per_sec: 10,
               rate_limit_req_per_min: 100,
               max_concurrent_requests: 5,

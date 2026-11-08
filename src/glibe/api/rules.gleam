@@ -1,9 +1,24 @@
-/// Market rules and trading parameters
+//// Market rules and trading parameters.
+////
+//// Plan: `.planning/phases/04-domain-cleanup/04-02-PLAN.md`.
+//// Ruling: `docs/RULINGS.md` R13 (closed sets are types), R19 (docs-first).
+////
+//// Per-interval data limits used to be `List(#(String, Int))`, and one of
+//// those strings named a four-hour span the `Interval` type could not
+//// represent. Both tables are now `Dict(Interval, Int)`: one interval, one
+//// limit, and a typed key the compiler can check. The accessors return a
+//// domain error carrying that key, never `Error(String)` and never an
+//// `Option` that hides the reason.
+//// Ruling `docs/RULINGS.md` R21 names every variant in full; wire spellings
+//// such as `"1h"` live only in the codec, never in a type constructor.
+
+import gleam/dict.{type Dict}
 import gleam/float
 import gleam/int
 import gleam/list
 import gleam/option.{type Option}
 import gleam/string
+import glibe/api/interval.{type Interval}
 
 /// Fee schedule per market
 pub type FeeSchedule {
@@ -15,19 +30,52 @@ pub type FeeSchedule {
   )
 }
 
-/// Data request limits per market
+/// Data request limits per market. The two per-interval tables are keyed by
+/// `Interval` values, not spellings, so an unrepresentable interval such as
+/// the old four-hour string key cannot be written at all.
 pub type DataRequestLimits {
   DataRequestLimits(
-    max_bars_per_request: List(#(String, Int)),
-    // per interval
-    max_history_days: List(#(String, Int)),
-    // per interval
+    /// Maximum bars one request may ask for, keyed by interval.
+    max_bars_per_request: Dict(Interval, Int),
+    /// Maximum days of history available, keyed by interval.
+    max_history_days: Dict(Interval, Int),
     rate_limit_req_per_sec: Int,
     rate_limit_req_per_min: Int,
     max_concurrent_requests: Int,
     requires_pagination: Bool,
     supports_streaming: Bool,
   )
+}
+
+/// A per-interval limit was not configured. One variant per missing table,
+/// each carrying the `Interval` that was asked for — never `Error(String)`.
+pub type LimitError {
+  NoBarLimit(Interval)
+  NoHistoryLimit(Interval)
+}
+
+/// The maximum number of bars one request may ask for on `interval`.
+/// A missing entry is `NoBarLimit(interval)`, not `None` and not a `panic`.
+pub fn max_bars_per_request_for(
+  limits: DataRequestLimits,
+  interval: Interval,
+) -> Result(Int, LimitError) {
+  case dict.get(limits.max_bars_per_request, interval) {
+    Ok(limit) -> Ok(limit)
+    Error(Nil) -> Error(NoBarLimit(interval))
+  }
+}
+
+/// The maximum number of days of history available on `interval`.
+/// A missing entry is `NoHistoryLimit(interval)`.
+pub fn max_history_days_for(
+  limits: DataRequestLimits,
+  interval: Interval,
+) -> Result(Int, LimitError) {
+  case dict.get(limits.max_history_days, interval) {
+    Ok(limit) -> Ok(limit)
+    Error(Nil) -> Error(NoHistoryLimit(interval))
+  }
 }
 
 /// Trading hours specification

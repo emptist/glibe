@@ -1,5 +1,11 @@
-// Binance kline (candlestick) decoding — array-format REST response
-// Format: [[openTime, open, high, low, close, volume, ...], ...]
+//// Binance kline (candlestick) decoding — array-format REST response.
+//// Format: [[openTime, open, high, low, close, volume, ...], ...]
+////
+//// Plan: `.planning/phases/04-domain-cleanup/04-02-PLAN.md`.
+//// This adapter holds the Binance spelling of each `Interval`; the canonical
+//// spelling lives in `api/interval.gleam`. Adding a constructor to that closed
+//// set makes this `case` non-exhaustive until it is answered here — the
+//// compiler is the checklist, not a grep guard.
 
 import gleam/dynamic
 import gleam/dynamic/decode
@@ -8,19 +14,25 @@ import gleam/int
 import gleam/json
 import gleam/list
 import gleam/result
-import glibe/api/interval.{type Interval, D1, H1, MIN1, MIN15, MIN30, MO1, W1}
+import glibe/api/interval.{
+  type Interval, IntervalFifteenMinute, IntervalFourHour, IntervalOneDay,
+  IntervalOneHour, IntervalOneMinute, IntervalOneMonth, IntervalOneWeek,
+  IntervalThirtyMinute, IntervalThreeMinute,
+}
 import glibe/api/sourcebar.{type SourceBar, SourceBar}
 
 /// Convert canonical Interval to Binance REST string
 pub fn interval_to_binance_string(i: Interval) -> String {
   case i {
-    D1 -> "1d"
-    H1 -> "1h"
-    W1 -> "1w"
-    MO1 -> "1M"
-    MIN1 -> "1m"
-    MIN15 -> "15m"
-    MIN30 -> "30m"
+    IntervalOneDay -> "1d"
+    IntervalOneHour -> "1h"
+    IntervalOneWeek -> "1w"
+    IntervalOneMonth -> "1M"
+    IntervalOneMinute -> "1m"
+    IntervalThreeMinute -> "3m"
+    IntervalFifteenMinute -> "15m"
+    IntervalThirtyMinute -> "30m"
+    IntervalFourHour -> "4h"
   }
 }
 
