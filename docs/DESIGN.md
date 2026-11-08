@@ -50,7 +50,7 @@ sourcebar_gate  →  databar_processing
 
 - `validate` rejects a bar whose own numbers disagree — rejects, never repairs (R8).
 - `normalize_date` turns the provider's epoch-milliseconds into ISO-8601 (R9).
-  This is the whole of the H1 bug that lived through three review rounds: an
+  This is the whole of the hourly-bar bug that lived through three review rounds: an
   hourly timeframe never closed a bar on Binance data because `"1705309200000"`
   matched no minute field.
 

@@ -519,3 +519,69 @@ timeframes: Dict(Interval, Timeframe))`。identity 是 key，不是字段；
   当前用 `Symbol` 作 `Dict` 的 key；是否需要专门的 `InstrumentId` 也未决。
 - `Interval` 闭集 7 → 9、web 层框架（Mist / Wisp / Lustre）仍未裁定。
 - 没有新增任何 sh 守卫；防漂移靠编译器自己的 `package-interface.json`。
+
+---
+
+## R21 — 类型构造子必须写全名，禁止「一个字母 + 数字」的线路码（2026-11-08 owner 裁定）
+
+**owner 原话（逐字节）：** *"those one letter with a number things everywhere
+are extremely stupid and we should avoid them. what is D1/H1/H4? All
+meaningless stupid spams. As types they should have been at least
+OneDay/OneHour/FourHour, or even better with a keyword, for example `Interval`,
+such as IntervalOneDay, IntervalFourHour, and so on."*
+
+### 1. 错在哪一层
+
+`D1` / `H1` / `H4` / `MIN15` 是**交易所与配置文件的线路码**，属于边界词汇。
+我把边界词汇抄进了 **model 的闭集构造子**，于是整个 codebase 都在用一组需要
+额外记忆的暗号去推理。这不是拼写问题，是**分层问题**：线路码只能出现在
+codec / adapter（`to_string`、`from_string`、Binance 拼写函数、配置文件格式），
+**不能**成为类型本身的名字。
+
+这条与官方 conventions 一致：`docs/gleam-thinking-core-to-memory.md` §5/§11
+早已写明 **"No abbreviations"**、**"Anti-patterns: abbreviations"**；但同一份
+核心的 §0 示例自己就用了短码。**武器自身违反了自己的规则**，本条一并修正。
+
+### 2. 命名规则（对所有自定义类型生效，不只 `Interval`）
+
+**构造子 = 类型名前缀 + 用英文写全的值，单位按 owner 给的形状取单数**
+（`IntervalOneDay`、`IntervalFourHour`，不是 `IntervalOneDays` /
+`IntervalFourHours`）。禁止一个/两个字母的单位缩写加数字。
+
+| 旧（线路码） | 新（构造子） |
+|---|---|
+| `MIN1` | `IntervalOneMinute` |
+| `MIN3` | `IntervalThreeMinute` |
+| `MIN15` | `IntervalFifteenMinute` |
+| `MIN30` | `IntervalThirtyMinute` |
+| `H1` | `IntervalOneHour` |
+| `H4` | `IntervalFourHour` |
+| `D1` | `IntervalOneDay` |
+| `W1` | `IntervalOneWeek` |
+| `MO1` | `IntervalOneMonth` |
+
+**保持不变：** `"1m"` / `"3m"` / `"4h"` / `"1M"` 这类线路拼写是**字符串边界
+数据**，只活在 `to_string` / `from_string` / `binance/kline.gleam` 里。它们不是
+构造子，不违反本条。
+
+### 3. 机制与范围
+
+- **机制是穷尽性检查，不是 sh 守卫。** 增加一个构造子，`case` 缺臂就是编译
+  错误，编译器列出所有要改的地方。命名规则写进
+  `docs/gleam-thinking-core-to-memory.md` §0 / §5 / §13，以及
+  `gleam-language` skill 的工作流与可运行探针；两份核心用 `cmp` 保持一致。
+- **已改名：** `src/`、`test/` 全部构造子引用；`webclient/` 无引用；当前计划
+  `.planning/phases/04-domain-cleanup/04-02-PLAN.md`；临时待裁决文档里
+  「Interval 闭集」那一项；`README.md`、`docs/DESIGN.md`、
+  `.planning/ROADMAP.md` 中的现行表述。
+- **历史文档不改写**：`REVIEW_*.md`、`session-ses_*.md`、`.workbuddy/memory/`
+  日志、已完成的旧 phase 计划里保留当时的短码，它们是**当时的记录**，不是
+  当前命名。与 R18 对 `apps/glibe_web` 路径的处理同一条规矩。旧代码形态在
+  04-02 计划里以「被替换的记录」形式引用一次。
+- **`TPlus1` / `TPlus2`（`api/rules.gleam`）未改名**：它们把行业标准术语
+  T+1 / T+2 拼了出来，不是线路码；已向 owner 标出，等他一句话。
+- **`config.gleam` 的 `"BTCUSDT_H1"` 复合字符串键仍在**：那是临时待裁决文档
+  里尚未拍板的数据迁移，不是构造子；本条不动。
+
+**执行边界：** 本条定的是**命名**，不是配置表迁移的许可。临时待裁决文档里的
+两项 owner 裁决（表的搬迁形状、`Symbol` / `Instrument` 命名冲突）仍然开着。

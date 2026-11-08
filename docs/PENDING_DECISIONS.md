@@ -25,7 +25,7 @@
 | SVG 图表真实数据试验 | 已定，不需裁决 | 推迟，等 databar processing 其余部分 |
 | config.gleam 类型化 identity keys | 已裁定方向 | **R20，部分生效**：所有权链 `Desk → Broker → Instrument → Interval` 已在 `src/glibe/desk.gleam` 落地为 shell；`config.gleam` 两张 String 表的**实际迁移仍未决**，另立计划 |
 | Symbol = Instrument 命名冲突 / 是否需要 InstrumentId | 命名待裁决 | **未决**，R20 明确不擅自改名、不擅自统一 |
-| Interval 闭集 7 → 9 | 设计待定 | 未决，类型变更 |
+| Interval 闭集 7 → 9 | 设计待定 | **已完成**（计划 04-02 / R21，见下方第 5 节） |
 | BEAM Stage F | 待做，不需裁决 | 未开始 |
 
 ---
@@ -329,8 +329,11 @@ owner 改写**，也没有拿它当改名依据。若你其实想要的是那个
 
 **仍未决、需要你拍板的只剩两件：**
 1. **什么时候、以什么形状把 `config.gleam` 的 `symbols` 与
-   `timeframe_settings` 两张表搬进这条链**（`:13-17`、`:518`、`:632`、`:647`）。
-   本次**没有改 `config.gleam`**，表与 `list.find` 原样保留。
+   `timeframe_settings` 两张表搬进这条链**（`AppConfig` 的两个字段、以及
+   `get_symbol` / `config_get_tfs` 里的 `list.find`）。这两张表**原样保留**。
+   **注意区分**：计划 04-02 动的是 `rules.DataRequestLimits` 里另 14 张
+   per-interval 限量表（String 键 → `Dict(Interval, Int)`），**不是**这两张
+   `symbols` / `timeframe_settings` 表。
 2. **命名冲突**：`src/glibe/api/symbol.gleam:1` 写着 "Symbol = Instrument"，
    而新增的 `Instrument` 是「被拥有的值」、`Symbol` 是「key」。两者是同义词
    还是两个概念，是命名裁决；按「不擅自改名」本次不动。是否再引入专门的
@@ -340,12 +343,30 @@ owner 改写**，也没有拿它当改名依据。若你其实想要的是那个
 `symbol` / `interval` 字段，key 与 value 可能不一致；让它 keyless 是单独的
 类型变更，已记为 design debt，本次未动。
 
-### 5. Interval 闭集 7 → 9
+### 5. Interval 闭集 7 → 9 — **已完成，不再是待裁决项（计划 04-02 / R21）**
 
-`api/interval.gleam:19-34` 是 `MIN1 MIN15 MIN30 H1 D1 W1 MO1`（7 个）；glib 已
-定的闭集是 `MIN1 MIN3 MIN15 MIN30 H1 H4 D1 W1 MO1`（9 个）。补 `MIN3` / `H4`
-要加 codec 行和 bucket-end 规则。这是类型层的事，必须是类型变更，不能加字符串
-分支。
+`docs/REVIEW_ROUND5.md` 记录过 glib 的 9 个闭集值，以及「补两值要加 codec
+行和 bucket-end 规则」。那个判断是对的，但**当时用的构造子名是交易所线路码**；
+按 R21（2026-11-08）它们已全部改为带 `Interval` 前缀的全名。
+
+**已落地：** `.planning/phases/04-domain-cleanup/04-02-PLAN.md` →
+`src/glibe/api/interval.gleam`（9 个构造子、codec、3 分钟 / 4 小时 bucket 规则）、
+`src/glibe/binance/kline.gleam`（穷尽性补齐）、`src/glibe/api/rules.gleam`
+（`Dict(Interval, Int)` + `LimitError` 两个 typed accessor）、
+`src/glibe/config.gleam`（14 张限量表的 String 键全部消失）、
+`test/interval_test.gleam`（8 个先写的测试）。
+
+**实测：** 骨架 `gleam build` 0 errors / 14 warnings（10 `Todo`）、
+`--warnings-as-errors` exit 1；`gleam test` RED `37 passed / 7 failures`，
+每条打印 `todo <file>:<line>` + `info:`。填体后 `--warnings-as-errors` 0 /
+0 warnings、`44 passed, no failures`、`format --check` 0、
+`scripts/guards.sh --all` 0。`gleam docs build` 的
+`package-interface.json` 里 4 个被改模块都有模块文档和计划路径；24 个模块里
+仍有 19 个 `documentation` 为空（如实保留）。
+
+**仍未做（各自单独计划，不是本项遗留）：** `bucket_ends` 的 `date: String`
+→ `gleam_time.Timestamp` 边界改造；`rules.gleam` / `asset.gleam` 里 5 个
+`*_from_string` + `panic` 解析器；日 / 周 / 月 bucket 恒为 `True` 的旧行为。
 
 ---
 

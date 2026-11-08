@@ -12,16 +12,34 @@ No validation layer, no parser, no shell guard, no comment asking a human to be
 careful. A `String` where a closed set exists is a debt paid later in parsers,
 `panic`, catch-all branches and guard scripts. The whole fix is often:
 ```gleam
-pub type Interval { MIN1 MIN15 MIN30 H1 D1 W1 MO1 }
+pub type Interval {
+  IntervalOneMinute
+  IntervalFifteenMinute
+  IntervalThirtyMinute
+  IntervalOneHour
+  IntervalOneDay
+  IntervalOneWeek
+  IntervalOneMonth
+}
 pub fn to_string(i: Interval) -> String {
-  case i { MIN1 -> "1m" MIN15 -> "15m" MIN30 -> "30m"
-           H1 -> "1h" D1 -> "1d" W1 -> "1w" MO1 -> "1M" }
+  case i {
+    IntervalOneMinute -> "1m"
+    IntervalFifteenMinute -> "15m"
+    IntervalThirtyMinute -> "30m"
+    IntervalOneHour -> "1h"
+    IntervalOneDay -> "1d"
+    IntervalOneWeek -> "1w"
+    IntervalOneMonth -> "1M"
+  }
 }
 ```
-Adding a constructor makes every incomplete `case` a compile error. The spelling
-lives in one function; the type lives everywhere. **The compiler does the
-remembering.** (Official pattern "Make invalid states impossible"; official
-anti-pattern: a catch-all `_` disables exactly that help.)
+Constructors are **named in full, prefixed by the type name**. Short exchange
+wire codes (a unit letter plus a digit) are abbreviations — banned as type
+constructors (owner R21; official "no abbreviations" anti-pattern). Wire
+spellings such as `"1h"` live ONLY in the codec/adapter, never in a constructor.
+Adding a constructor makes every incomplete `case` a compile error. **The
+compiler does the remembering.** (Official "Make invalid states impossible";
+official anti-pattern: a catch-all `_` disables exactly that help.)
 
 ## 1. What the compiler guarantees
 - Static full type checking. No `null`, no implicit conversions, no exceptions.
@@ -142,7 +160,9 @@ use a, b <- my_function                     // → my_function(fn(a,b){ ... })
 - `//` comment, `///` doc (before item), `////` module doc (top). Comments go on
   the line BEFORE the thing. Comment liberally, but write clear code.
 - Acronyms are one word (`Json`, not `JSON` → `j_s_o_n` on BEAM). No
-  abbreviations: `capacity`, never `cap`.
+  abbreviations: `capacity`, never `cap`. **Closed-set constructors carry the
+  type name and spell the value out** (`IntervalOneDay`, not a wire code); wire
+  codes are boundary data, never model names (owner R21).
 - Conversion names `x_to_y`; if the module matches the type, drop the prefix
   (`identifier.to_string`); name the encoding (`date_to_rfc3339`). Fallible
   names are domain-specific (`parse_json`, `enqueue`); `try_` only for a
@@ -196,7 +216,10 @@ signals a design that can be improved. `assert` is for tests; `panic` and
 home-grown equivalents: `gleam_stdlib`, `gleam_time` (`Timestamp`), `gleam_json`,
 `gleam_http`, `gleam_erlang`, `gleam_otp`, `gleam_javascript` — **"Do not
 replicate functionality provided by these packages."** Test runner `gleeunit`:
-any `pub fn *_test()` in `test/`.
+any `pub fn *_test()` in `test/`. `gleam_erlang` is where the Erlang-interop
+helpers `charlist`/`atom` live — `gleam add gleam_erlang`; never hand-roll BIFs
+(`erlang:binary_to_list`, `binary_to_atom`). Measured gotchas:
+`multi-target-erlang.md` §8.
 
 ## 9. Targets, externals, project structure
 - `gleam.toml`: `name`, `version` required; `target = "erlang" | "javascript"`
@@ -293,7 +316,8 @@ gleam lsp                           # from workspace root
 2. Does any `case` end in `_` over a custom type? Remove it.
 3. Is any error `String` or `Dynamic`? Replace with a domain error type.
 4. Did I write a parser + `panic` for data that is already Gleam source? Delete it.
-5. Are all module functions annotated? Are names exact, full, domain-shaped?
+5. Are all module functions annotated? Are names exact, full, domain-shaped,
+   with every constructor prefixed by its type name (R21)?
 6. Is the boundary (target, FFI, file format) declared by `gleam.toml` / package
    layout rather than by a guard script?
 7. `gleam check` → `gleam build --warnings-as-errors` → `gleam test` →

@@ -14,7 +14,7 @@ owner's rulings and the good code from glib directly. See
 
 0. **[`docs/gleam-thinking-core-to-memory.md`](docs/gleam-thinking-core-to-memory.md)**
    — **the Gleam thinking core, preserved in git.** The whole language
-   condensed to 315 lines: the type-first reflex, compiler guarantees,
+   on one card: the type-first reflex, compiler guarantees,
    conventions/anti-patterns, targets, externals, toolchain, docs-first/TDD.
    **Every client — VSCode, Trae, any editor or agent — should include this file
    IN FULL in its context before any Gleam work.** It is a byte-for-byte copy of
@@ -180,7 +180,7 @@ moves it lives in `engine.gleam` (RULINGS.md R7). The `Result` from
 ### `sourcebar_gate` — Time bucket aggregation
 - Folds incoming `SourceBar`s into `working_databar` (OHLCV accumulation)
 - Returns `Some(closed_databar)` when time bucket completes, `None` otherwise
-- Decision `bucket_ends` uses ONLY timestamp + interval (proper H1/D1 bucket logic)
+- Decision `bucket_ends` uses ONLY timestamp + interval (proper hourly/daily bucket logic)
 
 ### `databar_processing` — The computation pipeline (holds NO arithmetic)
 ```gleam
@@ -387,7 +387,7 @@ recorded in [`docs/QUESTIONS.md`](docs/QUESTIONS.md).
 ## Recent Fixes (2026-09-25)
 
 1. **TradingHours parsing** — Fixed `:` delimiter bug for RTH/Custom formats (now uses `;`)
-2. **Timeframe bucket_ends** — Implemented proper H1/D1 bucket logic (was always `True`)
+2. **Timeframe bucket_ends** — Implemented proper hourly/daily bucket logic (was always `True`)
 3. **Leaf/Branch detection** — Fixed O(n²) full regeneration bug (now incremental)
 4. **Zero warnings** — `gleam build` / `gleam test` clean, `gleam format --check` clean
 5. **Tests added** — 23 tests (config, asset, rules, indicators, ingest boundary)
@@ -399,7 +399,7 @@ recorded in [`docs/QUESTIONS.md`](docs/QUESTIONS.md).
    build if the mixture returns (RULINGS.md R7).
 2. **Ingest boundary** — `api/sourcebar.gleam` `validate` rejects a malformed bar
    (never repairs); `normalize_date` turns epoch-milliseconds into ISO-8601 at the
-   boundary, fixing the H1 bug where an hourly bar never closed on Binance data.
+   boundary, fixing the hourly-bar bug where an hourly bar never closed on Binance data.
 3. **Verdict ownership** — dropped 15 `DataBar` fields no module wrote; the manual
    verdict lives in `trading/strategy.gleam`. `DataBar` now carries 26 measured
    fields only.

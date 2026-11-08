@@ -7,7 +7,7 @@ loudly when it is broken.
 ## Gleam language references
 
 0. **[`gleam-thinking-core-to-memory.md`](gleam-thinking-core-to-memory.md)** —
-   **the thinking core, in this repo, tracked by git.** 315 lines holding the
+   **the thinking core, in this repo, tracked by git.** One card holding the
    whole language: type-first reflex, compiler guarantees, conventions and
    anti-patterns, targets, externals, toolchain, and the docs-first/TDD cycle
    (§14). **Load it IN FULL before any Gleam judgement**, in every client —
