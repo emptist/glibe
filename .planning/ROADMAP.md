@@ -40,7 +40,7 @@
 - `src/glibe/api/symbol.gleam` — Symbol with market_id, asset_id, base/quote assets
 - `src/glibe/api/market.gleam` — Market = Exchange + AssetClass + Rules
 - `src/glibe/api/sourcebar.gleam` — SourceBar + JSON decode
-- `src/glibe/api/interval.gleam` — Interval (D1, H1, W1, MO1, MIN1, MIN15, MIN30)
+- `src/glibe/api/interval.gleam` — Interval (7 variants at this phase; all constructors renamed to full descriptive names per R21, 9 variants per plan 04-02)
 - `src/glibe/indicators.gleam` — TimeframeSettings, SmaSeries, SmaForBbm
 - `src/glibe/sma.gleam` — SMA incremental logic
 - `src/glibe/kdj.gleam` — KDJ oscillator
@@ -227,3 +227,13 @@ The plan lands `src/glibe/desk.gleam` as the first documentation-first / TDD
 module with a `////` link to the plan. **`config.gleam` itself is unchanged** —
 migrating its two String-keyed tables is a separate plan and an owner decision.
 Name: `Desk`, not `Deck`. See `docs/RULINGS.md` R20.
+## Phase 04 Plan 02 — typed intervals (2026-11-08)
+Added `.planning/phases/04-domain-cleanup/04-02-PLAN.md` and its SUMMARY.
+`Interval` is now a 9-variant closed set with fully named constructors (R21);
+the 14 per-interval limit tables in `config.gleam` are `Dict(Interval, Int)`;
+`rules.LimitError` is the typed lookup failure. Second measured docs-first/TDD
+cycle: RED 37 passed / 7 failures, GREEN 44 passed / 0 warnings / guards 0.
+The thinking core's own short-code example was corrected and re-mirrored.
+**`config.gleam`'s `symbols` / `timeframe_settings` tables are still untouched** —
+their migration and the `Symbol` / `Instrument` naming question remain owner
+rulings. See `docs/RULINGS.md` R20, R21.
