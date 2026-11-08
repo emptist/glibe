@@ -227,6 +227,35 @@ and `astimezone`; the Gleam counterpart is `tzif` 2.0.0 (+ `zones` or
 equity consumer appears (R26). Today's UTC-aligned unix grid does **not**
 model a 09:30 open; that debt is explicit, not hidden.
 
+## The web view shows local time (R30)
+
+One absolute instant, two different conversions. R29 is the **input** side:
+an exchange's local session clock (US 09:30) becomes an instant inside the
+provider/market adapter, and that instant is HKT 22:30 in winter but 21:30 in
+summer. R30 is the **output** side: the same `Timestamp` becomes the analyst's
+local wall clock in the web view. Both need an IANA time-zone rule and daylight
+saving; neither may use a fixed numeric offset or a hand-written DST table.
+They are not one conversion — a market-calendar rule must not be written into
+a display function, and a viewer zone is not an exchange zone.
+
+The standard model is untouched: `SourceBar.timestamp` stays unix time
+(R27), `interval.bucket_ends` stays a UTC-aligned unix grid, and
+`export/csv.gleam` keeps UTC RFC3339 because it is a machine comparison
+artifact, not a human analysis screen. A display zone is an IANA name
+(`Asia/Hong_Kong`, `America/New_York`). On the BEAM side R29 verified
+`tzif` 2.0.0 (+ `zones` / `tzif_loader`); if the time-bearing view is built
+in the generated `.mjs` / `webclient/`, the browser runtime's IANA support
+is the other option. Which side renders, and where the viewer zone comes
+from, are settled when a real consumer exists (R26).
+
+The owner asked for documentation in the corresponding modules, not an
+implementation. The specification lives in the `////` module docs of
+`src/glibe/web/server.gleam` (main), `webclient/src/webclient.gleam`,
+`src/glibe/export/csv.gleam` and `src/glibe/api/sourcebar.gleam`; each links
+`.planning/phases/04-domain-cleanup/04-07-PLAN.md`, and `gleam docs build`
+→ `package-interface.json` in both packages carries that link. No conversion
+code, no `tzif` dependency, no new type and no test were added this round.
+
 ## What glibe does not do yet
 
 - **Stage F** — BEAM actors, the replay CLI, `DataGenerator` retirement, the

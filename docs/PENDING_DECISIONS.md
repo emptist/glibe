@@ -99,3 +99,7 @@ owner 原话（逐字引用、`[user 日期]`、UC 编号）及全部论证在�
   unix time `Timestamp`；provider 原生结构与名字各自保留，各自 `to_sourcebar`。
 - R29 市场日历（US/Eastern 夏令时、09:30 开盘的桶网格）：等美股消费方出现时
   单独立计划，用 `tzif` 2.0.0，**不是待裁决项**，是 R26 的按序工作。
+- R30 web 界面本地时间显示（IANA 时区 / 夏令时）：owner 已裁定，本轮只在相应
+  模块的 `////` 文档里写好规格，实现是 04-07 的按序工作，**不是待裁决项**。
+  见 `docs/RULINGS.md` R30 与
+  `.planning/phases/04-domain-cleanup/04-07-PLAN.md`。

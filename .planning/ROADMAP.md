@@ -312,3 +312,17 @@ arithmetic. An early `BarClock` draft was voided by R27 and deleted with no
 compatibility layer. Fifth docs-first cycle: RED 54 passed / 11 `todo`
 failures, GREEN 58 passed / 0 warnings / guards 0 / docs 0. `tzif` is
 deliberately not a dependency yet (R26).
+
+
+## Phase 04 Plan 07 — local time in the web view (2026-11-09)
+
+Owner ruling R30: date-times in the web interface are shown in local time so
+analysis is readable, which requires time-zone conversion and daylight saving;
+the owner asked for documentation in the corresponding modules first. R30 is
+the output-side projection of the same unix-time `Timestamp` (R27) that R29
+converts on the input side; neither changes the standard bar, the UTC-aligned
+bucket grid or the CSV UTC RFC3339 export. `tzif` 2.0.0 stays a verified
+library, not a dependency (R26). This round delivers only `////` module docs
+linking `.planning/phases/04-domain-cleanup/04-07-PLAN.md` in four modules
+across both packages; `package-interface.json` in each carries the link. No
+implementation, no new type, no test, no owner decision item.

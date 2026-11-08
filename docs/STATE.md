@@ -4,6 +4,31 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
+## 2026-11-09 (R30 / phase 04-07 — local time in the web view, documentation only)
+
+- Owner ruling R30: the web interface shows date-times in **local** time so
+  analysis is readable, which requires time-zone conversion and daylight
+  saving; the requested deliverable is documentation in the corresponding
+  modules so the implementation can be done later.
+- R30 = output side (instant → viewer's local wall clock); R29 = input side
+  (market local → instant). Both use IANA rules, never a fixed offset; they
+  are separate conversions and are not merged.
+- Standard `SourceBar.timestamp` / `DataBar.timestamp` (unix time, R27),
+  `interval.bucket_ends` (UTC-aligned unix grid) and CSV UTC RFC3339 are
+  unchanged. No `tzif` dependency, no new type, no conversion code, no test.
+- `////` module docs in `src/glibe/web/server.gleam` (main specification),
+  `webclient/src/webclient.gleam`, `src/glibe/export/csv.gleam` and
+  `src/glibe/api/sourcebar.gleam` all link plan 04-07; verified in **both**
+  packages' `package-interface.json`.
+- Also measured this round: the 04-06 module docs of `databar.gleam` and
+  `export/csv.gleam` had been truncated mid-sentence where a `////` block
+  broke into `//` lines. `gleam docs build` exposed it; both are whole now.
+- Measured: `gleam build --warnings-as-errors` 0/0, `gleam test` **58 passed**,
+  `format --check src test` 0 (root and `webclient/`), `guards.sh --all` 0,
+  `gleam docs build` 0 in both packages; core mirror `cmp` 0; no document
+  references the temporary decisions file.
+- Owner items waiting for a ruling: **0**.
+
 ## 2026-11-09 (R27–R29 / phase 04-06 — unix time at the ingest boundary)
 
 - Standard `SourceBar.timestamp: gleam_time.Timestamp`; `DataBar.timestamp`
