@@ -1,157 +1,77 @@
-# MEMORY — glibe project conventions (curated)
+# MEMORY — glibe (curated, compact)
 
-## Authority (do not invert)
-**The owner's current statement > the Idris spec > legacy code > my inference.**
-glib's `docs/` are mostly **hy4's AI prose**, not the owner's record. Owner
-words appear as dated `[user …]` quotes, `{<UC: …>}` annotations and Chinese
-verbatim quotes in `glib/docs/RULINGS.md`. hy4-invented vocabulary is banned:
-generic "gate", "price gate", "risk gate", "ladder"/"Rung". Owner words:
-`sourcebar_gate` (the only gate), **price checker**, **risk manager**.
+## Authority
+**Owner's current statement > Idris spec > legacy code > my inference.**
+`glib/docs/` is mostly **hy4's AI prose**, not the owner's record. Owner words
+appear as dated `[user …]`, `{<UC: …>}` and Chinese verbatim quotes in
+`glib/docs/RULINGS.md`. Ban hy4 vocabulary: generic "gate", "price gate",
+"risk gate", "ladder"/"Rung". Owner words: `sourcebar_gate` (the only gate),
+**price checker**, **risk manager**. hy4 is a different model, banned from glib;
+never inherit its first person or rename owner quotes.
 
-## Direction (owner, 2026-11-07)
-- *"glibe is the future, pure erlang target is the future."*
-- *"BEAM is great. Let's build our success on it!"*
-- *"No handwritten erlangs or even worse JS source files, keep the system clean
-  and beautiful!"* → `scripts/no_foreign_source.sh` guards `src/`.
-- *"Use types everytime a type is needed in nature, let gleam make your thinking
-  correct and coding reliable!"* → closed sets are custom types, not `String`.
-- **glibe stops waiting on glib.** Many features required in glib never landed
-  in its `src/`; the AI layer was deleted by the owner. glibe takes the owner's
-  rulings + glib's good code directly. Never cite an unbuilt glib roadmap as a
-  dependency.
+## Direction
+- *"glibe is the future, pure erlang target is the future"*; *"BEAM is great"*;
+  *"No handwritten erlangs or even worse JS source files"* → `src/` Gleam only.
+  **Use a type whenever a type is needed in nature** (root law); no universal
+  `String` + parser + guard to repair it.
+- **glibe does not wait on glib**: take the owner's rulings + glib's good code
+  directly; never cite an unbuilt glib roadmap as a dependency.
+- Root stays erlang. `webclient/` is the only JS-target package (R18);
+  generated `.mjs` preferred (R17), small hand-written JS allowed only there.
+- Web frontend exists for human eyes: spot output anomalies, read trends from
+  charts, inspect tabular fractal structures, see order issue/fill points.
 
-## Language facts (Gleam 1.19.2, verified)
-- Import: `import mod.{type T}` / `import mod.{type T, CtorA, CtorB}`.
-  **There is no `T(..)` constructor-import form** — it was never Gleam syntax,
-  not a version change. Qualifying constructors (`mod.CtorA`) is also valid.
-- A function may have BOTH `@external(erlang/js, …)` and a Gleam body; the
-  Gleam body is the fallback for targets without an external. This is why no
-  handwritten `.erl` is ever needed for a dual-target port.
-- **v1.19.0 (2026-10-05) stopped generating Erlang source for modules.**
-  Official: <https://gleam.run/news/gleam-doesnt-compile-to-erlang-source-anymore/>
-  — *"Previously Gleam generated Erlang source code, now it generates Erlang
-  abstract forms."* Path is `.gleam → .abstr → Erlang compiler back half →
-  .beam`, NOT "straight to .beam" (that earlier claim here was wrong).
-  Fresh-project probe on 1.19.2: 25 `.abstr`, 30 `.beam`, **0 `.erl` per
-  module**, exactly one `@@main.erl` (`gleam run` runner stub) — delete and
-  rebuild regenerates it, so it is **current, not a stale artefact**. Other
-  `.erl` under `build/` = Hex-package-shipped sources (epoch 1970, for
-  rebar3/mix), package FFI, or stale `build/dev/javascript/` cache.
-- `lpil` = **Louis Pilfold, creator of Gleam**, and Wisp's author. Mist =
-  `rawhat`, Lustre = Hayleigh Thompson. Wisp v2.2.2, BEAM/Erlang target.
-- References: <https://tour.gleam.run/everything/> (authoritative),
-  <https://www.kodikra.com/2026/03/the-complete-gleam-guide-from-zero-to.html>
-  (learning roadmap; its `.gleam → .erl → erlc` diagram is the pre-1.19.0
-  pipeline), <https://gleam-wisp.github.io/wisp/> (Wisp, evaluation only).
+## Load before any Gleam judgement
+`docs/gleam-thinking-core-to-memory.md` **IN FULL** (one card, git mirror of
+`~/.workbuddy/skills/gleam-language/references/gleam-core.md`; keep `cmp`-equal).
+Workflow (R19): `////` module doc **naming the `.planning` item** → types →
+`///` on every type/function → `todo as "…"` bodies → tests → bodies → green.
+`gleam docs build` → `package-interface.json` makes the plan link
+machine-readable; that is the anti-drift check, **no new sh guard**.
+`--warnings-as-errors` is a GREEN gate only; RED skeletons legitimately fail it.
+Every AI-authored file in every project follows this docs-first order.
 
-## Rulings with mechanisms
-- **R12** lower-band floor = ONE `1e-6·bb_m` positive floor on the outer edge
-  **before** interpolation (owner 2026-10-14, settled 2026-11-02). Three graded
-  floors or a `0.0` clamp are wrong. The withdrawn *floor under the lower
-  bands* item in `docs/QUESTIONS.md` used to misquote this as
-  "no floor" — do not repeat that error.
-- **R13** closed sets are types (`trading/signal.gleam`). One set, one home.
-- **R14** `src/` is Gleam only; guard + CI. `apps/glibe_web` (Phoenix/Elixir +
-  JS) is outside the guard and is an open owner decision; see
-  `REVIEW_ROUND5.md` §10 and `RULINGS.md` R14/R16.
-- **R15** IB = historic data for stocks/ETFs only; if it forces JS-target
-  dependence, drop IB. Guard also fails on `@external(javascript, …)` and
-  `target = "javascript"` in `gleam.toml`.
-- **glib §1.28 (owner, 2026-11-01)** *"目的就是不让你手写 mjs …
-  如果手写就说明你错了"*: hand-written `.mjs`/FFI on the Erlang target is the
-  **error signal**, not a line cost to budget. Package-shipped FFI is not ours.
-- **R16 (owner, 2026-11-07)** *"如果仅限于页面设置和更新数据的这一个小范围，
-  手写js的风险是严格掌控的，可以接受"*: **scoped exception already given** —
-  page/chart setup + one settled-bar update only. Not SSE, tabs, symbol switch,
-  business logic, second engine. §1.28 still holds outside it; R15 guard
-  unchanged. Withdraws "needs another explicit exception / SVG is the only
-  compliant shape" from `REVIEW_ROUND5.md` §13.4.
-- **R17 (owner, 2026-11-07)** *"我们是开发应用的，不是开发框架，所以能用js
-  chart，成本不高的话，还是用"* + *"尽量用Gleam编译的mjs取代手写这件事 …
-  如果遇到障碍可以写出来"*: **JS chart library adopted in principle** (cost
-  measured 0 extra hand-written foreign source); generated `.mjs` preferred,
-  R16 is the small-scope fallback, `"尽量"` is a preference not a ban. SVG
-  self-drawn chart is no longer the default (that would be building a
-  framework). **Still undecided**: web-layer framework, `apps/glibe_web` fate,
-  separate `client/` package. Obstacles in `REVIEW_ROUND5.md` §13.10.
-- **Gleam does NOT resolve npm deps**: `gleam build` exits 0 with a bare
-  `import` and no package installed; Node then throws `ERR_MODULE_NOT_FOUND`.
-  After installing `lightweight-charts@5.0.0`, the probe's placeholder
-  `addSeries`/`updateSeries` bindings fail (`does not provide an export named
-  'addSeries'`). Real exports have `createChart`, `LineSeries`,
-  `createSeriesMarkers`, enums — no instance methods. **A green build is not a
-  runnable app**; add a runtime import check when this route is built.
-- **WASM (owner musing, NOT a decision)**: Elixir *has* tried it — Popcorn 1.0
-  (2026-10-27) runs full OTP/BEAM in WASM in the browser, unmodified Elixir,
-  730 KB + ~2.5 MB stdlib, ~200 ms boot, Web Workers, `JS.run/3`. Gleam has no
-  WASM backend; DOM/canvas still needs JS. `REVIEW_ROUND5.md` §15. Not adopted.
-- **psipi is unverified**: no directory found under `/Users/jk`, no past-chat
-  record. Owner recalls generated `.mjs` replacing handwritten JS for a local
-  DB. **Example-level evidence only**, never a spec or justification.
+## Rulings — full text in `docs/RULINGS.md`
+R12 one `1e-6·bb_m` lower-band floor before interpolation. R13 closed sets are
+types. R14 `src/` Gleam only. R15 IB = historic stocks/ETFs only; guard fails
+on `@external(javascript,…)` and `target = "javascript"`. R16 small-scope
+hand-written JS already permitted. R17 JS chart lib adopted. R18 Phoenix app →
+`deprecated/`, separate `webclient/` package. R19 docs-first/TDD is in-code.
+R20 `Desk ▸ Broker ▸ Instrument ▸ Timeframe` ownership is **must-have**; name
+is **`Desk`** (owner's 2026-11-03 "Deck" quote is a recorded spelling drift,
+not a renaming instruction); dashboard = VIEW in `webclient/`.
+R21 **constructors are named in full, prefixed by the type name**
+(`IntervalOneDay`, `IntervalFourHour`). Short letter+digit wire codes as type
+constructors are banned; wire spellings (`"1h"`) stay in codec/adapter only.
+Historical review/session docs keep old codes as records; R21 says so.
 
-## Documentation conventions (owner, 2026-11-07)
-- **No bare `Qn` labels.** They read like "Question N" but also meant numbered
-  questions in a chat message; one label pointed at two things (§11.2 cited it
-  for live-view/JS-target while the third item in QUESTIONS.md was the band
-  floor). Cite **full file path + section title**, never a bare number.
-- **Pending decisions live in ONE temporary document**
-  (`docs/PENDING_DECISIONS.md`), self-contained with all decision context; owner
-  reads only that file. It is **one-way**: it may copy from other docs, but
-  **no other document may reference it** — it is cleared and replaced after
-  each decision, so reverse links would dangle. `docs/QUESTIONS.md` is now only
-  a stable withdrawn-items record.
-- **The precise "generated mjs" claim** (owner's insistence, 2026-11-07):
-  *"写gleam代码，编译形成应用JS库绘图所需的那个mjs是可以做到的"* — YES, the
-  **application module** (15 series specs, options, `DataBar → bar` mapping,
-  one-bar `paint`) is written in Gleam and emitted by `gleam build` as
-  `build/dev/javascript/<pkg>/<module>.mjs`; nobody writes that file. Fuller
-  probe: `gleam_json` v3.1.0 + `src/probe/chart.gleam` → 154-line `chart.mjs`
-  with `export function specs/chart_options/setup/paint`, zero `.mjs` in `src/`.
-  `json.object` = `Object.fromEntries` (package-shipped FFI). Three kinds of
-  `.mjs`: compiler output, package-shipped, our `./xxx.mjs` FFI (only the last
-  is hand-written). Boundaries: library itself is npm ESM; root stays pure
-  erlang; a separate `client/` JS-target package is Lustre's deliberate two-
-  runtime split (**not** a tension with "pure erlang target"); `chart.addSeries`
-  / `series.update` are instance methods, so a 2–5 line forwarder may be needed
-  (R16 permits it); dotted `@external` names fail at compile time. See
-  `REVIEW_ROUND5.md` §13.8/§13.9.
+## Measured facts (not inference)
+- Gleam 1.19.2: `import mod.{type T, Ctor}`; **no `T(..)` form**. A function may
+  have an `@external` **and** a Gleam body (fallback). v1.19.0 emits
+  `.abstr → .beam`, no per-module `.erl`; only the `@@main.erl` runner stub.
+- `gleam build` does **not** resolve npm deps: a green build is not a runnable
+  app (`ERR_MODULE_NOT_FOUND`). LightweightCharts v5 exports `createChart`,
+  `LineSeries`…; `addSeries`/`updateSeries` are **instance methods**; dotted
+  `@external` names fail to compile. Add a runtime import check.
+- `lpil` = Louis Pilfold (Gleam + Wisp); Mist = `rawhat`; Lustre = Hayleigh
+  Thompson. Popcorn/WASM is research only, **not adopted**. psipi unverified.
+- Test assertions: bool `assert … as "msg"`, `let assert`; never `panic` or
+  `case Bool`. Negative guard tests use `/tmp` fixtures
+  (`scripts/test_guards.sh`), **never** plant broken code in real `src/`.
+- *"Needs no JS library"* is a **dependency** claim, not a capability claim.
+  Series/option definitions and per-bar mapping are inherent work, **not** an
+  "extra cost" of a chart lib. Real-data chart trial deferred until databar
+  processing is complete.
 
-## Claim discipline (owner, 2026-11-07)
-- **No "entrapment-style" negative tests.** Never prove a guard works by
-  planting deliberately broken code in `src/` and removing it. Use
-  `scripts/test_guards.sh`: throwaway `/tmp` fixture trees, 7 cases, assert
-  exit codes + messages; real source untouched. Wired into `guards.sh --all`.
-- **Test assertions are `assert` (bool, `as "msg"`) and `let assert` (partial
-  pattern), not `case Bool { True -> Nil, False -> panic }`.** Tour: bool
-  `assert` is for tests; `panic` "should almost never be used"; `let assert`
-  sparingly, not in libraries; `todo` emits a compile warning (so
-  `--warnings-as-errors` makes unfinished code fail loudly). Current tree:
-  test 15 bool / 12 let / 0 panic / 0 todo; `src/` 10 panic (string codecs,
-  design observation) / 6 let assert / 0 todo. `gleam build` requires 0
-  warnings, so never plant a `todo` as a probe.
-- *"Needs no JS library"* is a **dependency** claim, never a **capability**
-  claim. `REVIEW_ROUND5.md` §12 corrects the Lustre/SVG overclaim.
-- **Extra cost = hand-written foreign source only** (owner 2026-11-07):
-  *"不管你用什么语言，用绘图库都是要写一点配置的。这部分不是额外成本"* —
-  series/option definitions and the per-bar update mapping are inherent work in
-  any language, not overhead of adopting the JS chart lib. Never present the
-  65–85-line bridge count as a "cost" against the generated/SVG routes.
-- A UI/chart comparison must be tried on **real data** before being called
-  equivalent — and only after the rest of databar processing is done (the
-  deferred real-data trial, `REVIEW_ROUND5.md` §12). Do not attempt it early;
-  the web-layer decision stays the owner's call.
-
-## Toolchain / workflow
-- `gleam`, `erl`, `elixir` live in `/opt/homebrew/bin`; WorkBuddy's shell lacks
-  it — always `export PATH="/opt/homebrew/bin:$PATH"`.
-- macOS BSD `grep` breaks on `\|` alternation and `\b`; use the Grep tool or
-  Python. Never trust `cmd | tail` to preserve exit codes — capture with
-  `> log 2>&1; echo "EXIT=$?"`.
+## Conventions
+- **No bare `Qn` labels** — cite full path + section title.
+- Pending decisions live **only** in `docs/PENDING_DECISIONS.md`,
+  self-contained, **one-way**: it may copy from other docs, but **no other
+  document may reference it**. `docs/QUESTIONS.md` = withdrawn items only.
+- Toolchain: `export PATH="/opt/homebrew/bin:$PATH"`. BSD `grep` is
+  unreliable — use the Grep tool or Python. Capture exit codes with
+  `> log 2>&1; echo "EXIT=$?"`, never `cmd | tail`.
 - Green = `gleam build` (0 errors/0 warnings) + `gleam test` + `gleam format
   --check src test` + `sh scripts/guards.sh --all`. **Build/test before
-  committing**; one logical concern per commit; do not push unless asked.
-- Never `rm -rf build` (owner denied a bulk delete).
-
-## Git state note
-The push attempted 2026-10-05 was interrupted and never landed;
-`origin/fix-types` stayed at `4c2e280` while local advanced.
+  committing**; one logical concern per commit; **do not push unless asked**;
+  never `rm -rf build`.
