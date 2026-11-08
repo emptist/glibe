@@ -121,3 +121,19 @@ have 0 consumers; `Instrument = Asset on Market` is AI prose, do not revive.
   `simple_auto_trading.py:132` are the reference examples.
 - Wire gotcha: `float.parse("100")` is `Error(Nil)`; `parse_number` widens Int.
 - Owner 2026-11-09: *"尽量发挥gleam的特长，有效减少先乱写后翻工补救的巨大消耗和浪费，一下手就把想明白的逻辑写明白。"* Put understanding in types; leave the un-thought-out in `todo`, never in `String`.
+
+## R30 (2026-11-09) — web display time is local
+- Owner: web 界面日期时间用本地时间显示以方便分析，必然涉及时间转换 + 夏令时；
+  要求先在相应模块写文档方便实现（本轮只交付文档，不是待裁决项）。
+- **R30 = 输出侧**（同一个 unix-time `Timestamp` → 分析者本地墙钟）；**R29 =
+  输入侧**（市场当地时刻 → 绝对时刻）。两者都靠 IANA 规则（`tzif` 2.0.0 /
+  浏览器运行时），禁止固定 offset 或手写 DST 表；不得合并成一个转换，显示时区
+  ≠ 交易所时区。市场当地时间若并列显示，只是同一 Timestamp 的另一个带 IANA
+  名的投影，不是第二个 bar / 字段。
+- 标准层不变：R27 unix time、`bucket_ends` UTC 网格、CSV UTC RFC3339。
+  规格在 `src/glibe/web/server.gleam` 的 `////`（主），另三个模块各写职责并
+  指向 `.planning/phases/04-domain-cleanup/04-07-PLAN.md`；实现属 04-07，
+  `tzif` 仍非依赖（R26）。
+- **`////` 模块文档块被 `//` 行打断会截断 `package-interface.json` 里的文档**
+  （04-06 曾输出半句话）。写完模块文档必须 `gleam docs build` 并查产物；
+  两个包各自有 `package-interface.json`，都要查。
