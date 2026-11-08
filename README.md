@@ -50,7 +50,7 @@ no dependency added** (`docs/RULINGS.md` R18).
 | **Target** | ✅ `erlang` | root package pure BEAM; no handwritten `.mjs`/`.erl`/`.ex` under `src/`. The separate `webclient/` package is the only JavaScript target, declared in its own `gleam.toml` |
 | **Binance REST** | ✅ Working | testnet.binance.vision (works from China), `gleam_httpc` |
 | **Stream Processing** | ✅ Core Complete | SMA×5, Bollinger, KDJ, Leaf, Branch, Timeframe pipeline |
-| **Tests** | ✅ Passing | **54 tests** — indicators, api, ingest boundary, the ownership chain, the `Interval` closed set, the web layer and three Round-5 invariant tests; assertions use bool `assert` / `let assert` with messages, not `panic` |
+| **Tests** | ✅ Passing | **58 tests** — indicators, api, ingest boundary, the ownership chain, the `Interval` closed set, the web layer and three Round-5 invariant tests; assertions use bool `assert` / `let assert` with messages, not `panic` |
 | **Build** | ✅ Green | gleam **1.19.2** / OTP **29**: 0 errors, 0 warnings |
 | **IB Client Portal** | ⚠️ Retired | The handwritten Elixir `ibkr.ex` wrapper had **zero callers** and an undeclared `ibkr_api` dep; it produced 12 build warnings. Removed under *"No handwritten erlangs"*. The FFI contract survives as `ibkr.gleam.disabled` (a design record, not compiled). |
 | **Visualization** | ✅ Settled | **JS chart library (R17)**, generated `.mjs` preferred; hand-written `.mjs` only inside `webclient/` (R16). The client exists so a human can spot anomalies by eye, read trends from charts, inspect tabulated fractal data, and see order issue/fill points (R18). `deprecated/glibe_web` is a Phoenix comparison piece, not the implementation. The BEAM web layer is **Mist + Wisp**, chosen by three measured demos (R24) and adopted in phase 04-05: `GET /` renders the real `Desk` as a table, `GET /desk` returns it as JSON. No Lustre server components, no hand-written JS. |
@@ -120,11 +120,11 @@ src/
 │   │   ├── market.gleam          # Market = Exchange + AssetClass + Rules
 │   │   ├── rules.gleam           # MarketRules, TradingHours, SettlementType, parsers
 │   │   ├── symbol.gleam          # Symbol = a NAME, not the instrument (RULINGS.md R22)
-│   │   ├── sourcebar.gleam       # SourceBar + decode + validate + normalize_date (boundary)
+│   │   ├── sourcebar.gleam       # standard SourceBar: unix-time Timestamp + OHLCV
 │   │   └── interval.gleam        # Interval + codec (to_string/from_string/all) + bucket_ends
 │   ├── binance/
 │   │   ├── types.gleam           # legacy SourceBar/Interval (superseded by api/ — see DESIGN.md)
-│   │   ├── kline.gleam           # Binance kline → SourceBar
+│   │   ├── kline.gleam           # native 12-field Kline + to_sourcebar
 │   │   └── binance.gleam         # Binance public API (gleam_httpc)
 │   ├── sma.gleam                 # SMA series (Tiny/Small/Medium/Large/Huge) — five windows
 │   ├── kdj.gleam                 # KDJ oscillator (LLV/HHV + SMA for K/D/M)
@@ -152,6 +152,7 @@ src/
 │   └── assets/js/chart_hook.js
 └── test/
     ├── glibe_test.gleam          # engine / indicator / config invariants
+    ├── sourcebar_time_test.gleam  # unix time at the ingest boundary (R27/R28)
     ├── desk_test.gleam           # the ownership chain (R20, R23)
     ├── interval_test.gleam       # the Interval closed set and its codec (R21)
     ├── symbol_test.gleam         # a name is not the thing named (R22)

@@ -197,6 +197,36 @@ not the `mist.start_http` still shown in Wisp's own doc example; Lustre 5.7.1's
 `html.title` takes a `String`, not a child list. A prose review would have
 shipped both wrong.
 
+## The ingest boundary is a provider boundary (R27–R29)
+
+A bar happens at an absolute instant. The standard `SourceBar` holds
+`gleam_time.Timestamp` (unix seconds + nanoseconds) and nothing about a
+provider's spelling of time. `sourcebar.unix_timestamp` converts a wire label
+at the edge: epoch milliseconds, RFC3339, or an unlabelled ISO label read as
+UTC by that adapter. A bad label is a typed `SourceBarTimeError`, not a
+default clock.
+
+Provider shapes stay native (R28): `binance/kline.gleam` keeps all twelve REST
+kline fields in `Kline` — including `closeTime`, `quoteAssetVolume`,
+`numberOfTrades` and the taker-buy volumes IB never sends — and
+`to_sourcebar(kline)` is Binance's own standardisation step. `decode_klines`
+returns `List(Kline)`; `binance/binance.gleam` is the only place they cross
+into the standard model. The names stay native too: `kline`, `bar`, `quote`
+are each provider's own words; only the standard layer is `SourceBar`.
+
+`interval.bucket_ends` is now integer arithmetic on unix seconds (1h
+`% 3600`, 4h `% 14400`, 3m `% 180`). No `string.split`, no `clock_of`, no
+`normalize_date`, no handwritten civil-date algorithm.
+
+**Known boundary (R29).** US equity sessions follow `US/Eastern` with daylight
+saving: 09:30 there is HKT 22:30 in winter and 21:30 in summer, so the same
+market open has different unix times. This is a market calendar rule, not a
+fixed offset. `ibOptions/tradingtime.py` uses `pytz.timezone('US/Eastern')`
+and `astimezone`; the Gleam counterpart is `tzif` 2.0.0 (+ `zones` or
+`tzif_loader`), to be introduced at the provider/market adapter when a US
+equity consumer appears (R26). Today's UTC-aligned unix grid does **not**
+model a 09:30 open; that debt is explicit, not hidden.
+
 ## What glibe does not do yet
 
 - **Stage F** — BEAM actors, the replay CLI, `DataGenerator` retirement, the

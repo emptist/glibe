@@ -299,3 +299,16 @@ global `main` slot. Fourth measured docs-first/TDD cycle: RED 50 passed /
 200 / 200 / 404. `package-interface.json` carries the `04-05-PLAN` link.
 This adoption is AI work under R24, not a new owner ruling; owner items stay
 at zero. Chart, streaming and SPA interaction remain out of scope.
+
+
+## Phase 04 Plan 06 — unix time at the ingest boundary (2026-11-09)
+
+Owner rulings R27 (standard bar time is unix time), R28 (native provider bars
+stay native and standardise themselves, names included), R29 (US daylight
+saving needs an IANA library, not a fixed offset). Standard `SourceBar` /
+`DataBar` hold `gleam_time.Timestamp`; `binance/kline.gleam` keeps all twelve
+native `Kline` fields and `to_sourcebar`; `bucket_ends` is unix-second
+arithmetic. An early `BarClock` draft was voided by R27 and deleted with no
+compatibility layer. Fifth docs-first cycle: RED 54 passed / 11 `todo`
+failures, GREEN 58 passed / 0 warnings / guards 0 / docs 0. `tzif` is
+deliberately not a dependency yet (R26).

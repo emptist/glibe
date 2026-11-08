@@ -106,3 +106,18 @@ have 0 consumers; `Instrument = Asset on Market` is AI prose, do not revive.
   --check src test` + `sh scripts/guards.sh --all`. **Build/test before
   committing**; one logical concern per commit; **do not push unless asked**;
   never `rm -rf build`.
+
+## R27–R29 (2026-11-09) — time and provider boundaries
+- Standard `SourceBar.timestamp` = `gleam_time.Timestamp` (unix time). Never a
+  date `String`, a wall clock, or an invented "BarClock" (that draft was voided
+  and deleted, no compat layer). `DataBar.timestamp` likewise.
+- Provider native types stay native **with their own names** (`Kline` for
+  Binance; `bar`/`quote` elsewhere), all wire fields kept; each provider has
+  `to_sourcebar`. The standard layer is the only union point (R28).
+- `bucket_ends` = unix-second remainder grid (1h 3600, 4h 14400, 3m 180).
+  UTC-aligned only. US 09:30 open + DST is an explicit market-calendar debt
+  (R29): use `tzif` 2.0.0 (+ `zones`/`tzif_loader`) when a US-equity consumer
+  exists, never a fixed offset. `ibOptions/tradingtime.py:24` and
+  `simple_auto_trading.py:132` are the reference examples.
+- Wire gotcha: `float.parse("100")` is `Error(Nil)`; `parse_number` widens Int.
+- Owner 2026-11-09: *"尽量发挥gleam的特长，有效减少先乱写后翻工补救的巨大消耗和浪费，一下手就把想明白的逻辑写明白。"* Put understanding in types; leave the un-thought-out in `todo`, never in `String`.

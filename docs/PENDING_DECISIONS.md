@@ -94,3 +94,8 @@ owner 原话（逐字引用、`[user 日期]`、UC 编号）及全部论证在�
 - BEAM Stage F：受监督 `Timeframe` actor、真实 klines 的 replay CLI、退役
   `data_generator.ex`、`no_minute_trading.sh`。
 - 真实数据图表对比试验（时机见上面「不需要你决定」）。
+
+- ~~04-06 标准 bar 时间类型化~~ **已完成**（R27–R29）：标准 `SourceBar` 用
+  unix time `Timestamp`；provider 原生结构与名字各自保留，各自 `to_sourcebar`。
+- R29 市场日历（US/Eastern 夏令时、09:30 开盘的桶网格）：等美股消费方出现时
+  单独立计划，用 `tzif` 2.0.0，**不是待裁决项**，是 R26 的按序工作。

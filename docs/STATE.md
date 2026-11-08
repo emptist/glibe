@@ -4,6 +4,24 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
+## 2026-11-09 (R27–R29 / phase 04-06 — unix time at the ingest boundary)
+
+- Standard `SourceBar.timestamp: gleam_time.Timestamp`; `DataBar.timestamp`
+  likewise. `date: String`, `normalize_date`, `date_to_iso`, `epoch_ms_to_iso`,
+  `civil_from_days`, `clock_of`, `minute_of`: all deleted.
+- `binance/kline.gleam` keeps a native twelve-field `Kline`; `decode_klines`
+  returns `List(Kline)`; `to_sourcebar` converts `openTime` to unix time.
+  `binance/binance.gleam` is the standardisation exit.
+- `bucket_ends` is a unix-second remainder grid. Bare dates and unreadable
+  labels are `SourceBarTimeError` rejections; the old `False` fallback is gone.
+- Compiler-found bug fixed at the wire edge: `float.parse("100")` is
+  `Error(Nil)`, so `get_float` / `get_int` had never read Binance's integer
+  strings. `parse_number` widens an `Int` to `Float` at the boundary.
+- Measured: `gleam build --warnings-as-errors` 0/0, `gleam test` **58 passed**,
+  `format --check` 0, `guards.sh --all` 0, `gleam docs build` 0; core mirror
+  `cmp` 0; no document references the temporary decisions file.
+- Owner items waiting for a ruling: **0**.
+
 ## 2026-11-09 (phase 04-05 — the product web layer, adopted)
 
 | axis | value | how it was taken |
