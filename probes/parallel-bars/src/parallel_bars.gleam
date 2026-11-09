@@ -23,6 +23,15 @@
 //// uses no lock, mutex, ETS or FFI. Nothing here is production code.
 
 import gleam/erlang/process
+import gleam/int
+import gleam/io
+import gleam/list
+import gleam/result
+import gleam/time/timestamp
+import glibe/api/interval
+import glibe/api/sourcebar.{type SourceBar}
+import glibe/api/symbol
+import glibe/config
 import glibe/desk
 import glibe/monitor
 
@@ -38,10 +47,86 @@ pub type StepReply {
   )
 }
 
+/// One well-formed bar with a recognisable close. The timestamp goes through
+/// the same wire conversion the provider adapters use (R27).
+fn quote(instant: timestamp.Timestamp, close: Float) -> SourceBar {
+  sourcebar.SourceBar(
+    timestamp: instant,
+    open: close -. 0.5,
+    high: close +. 1.0,
+    low: close -. 1.0,
+    close: close,
+    volume: 10,
+  )
+}
+
+/// Pair one bar with its three typed keys, once, at the ingest boundary.
+fn addressed(
+  broker: String,
+  name: String,
+  iv: interval.Interval,
+  bar: SourceBar,
+) -> monitor.IncomingBar {
+  monitor.IncomingBar(
+    address: monitor.TimeframeAddress(
+      broker: desk.broker_id(broker),
+      symbol: symbol.from_string(name),
+      interval: iv,
+    ),
+    bar: bar,
+  )
+}
+
 /// The six configured `Timeframe` addresses, each paired with one well-formed
 /// bar. Every bar is valid on its own; only the ADDRESS differs.
 pub fn sample_arrivals() -> List(monitor.IncomingBar) {
-  todo as "04-09: build six addressed bars from config.default_config()"
+  let assert Ok(instant) = sourcebar.unix_timestamp("2024-01-15 09:00:00")
+    as "the probe's fixed instant parses through the wire conversion"
+  [
+    addressed(
+      "binance",
+      "BTCUSDT",
+      interval.IntervalOneHour,
+      quote(instant, 100.0),
+    ),
+    addressed(
+      "binance",
+      "BTCUSDT",
+      interval.IntervalOneDay,
+      quote(instant, 101.0),
+    ),
+    addressed("ib", "SPY", interval.IntervalOneHour, quote(instant, 300.0)),
+    addressed("ib", "SPY", interval.IntervalOneDay, quote(instant, 301.0)),
+    addressed(
+      "futu",
+      "SPY_FUTU",
+      interval.IntervalOneHour,
+      quote(instant, 400.0),
+    ),
+    addressed(
+      "futu",
+      "SPY_FUTU",
+      interval.IntervalOneDay,
+      quote(instant, 401.0),
+    ),
+  ]
+}
+
+/// Collect exactly `remaining` replies from the caller-owned subject.
+/// A timeout is a `Result`, not a `panic`: a silent worker is a measurement.
+fn collect(
+  from replies: process.Subject(StepReply),
+  remaining remaining: Int,
+  gathered gathered: List(StepReply),
+) -> Result(List(StepReply), Nil) {
+  case remaining {
+    0 -> Ok(list.reverse(gathered))
+    _ ->
+      case process.receive(from: replies, within: 5000) {
+        Ok(reply) -> collect(replies, remaining - 1, [reply, ..gathered])
+        Error(Nil) -> Error(Nil)
+      }
+  }
 }
 
 /// Run every arrival in its OWN BEAM process and collect all typed replies.
@@ -51,7 +136,21 @@ pub fn advance_in_parallel(
   initial: desk.Desk,
   arrivals: List(monitor.IncomingBar),
 ) -> Result(List(StepReply), Nil) {
-  todo as "04-09: spawn one process per arrival and collect the typed replies"
+  let replies: process.Subject(StepReply) = process.new_subject()
+  list.each(arrivals, fn(incoming) {
+    process.spawn(fn() {
+      let outcome = monitor.advance(initial, incoming)
+      process.send(
+        replies,
+        StepReply(
+          address: incoming.address,
+          worker: process.self(),
+          outcome: outcome,
+        ),
+      )
+    })
+  })
+  collect(from: replies, remaining: list.length(arrivals), gathered: [])
 }
 
 /// Apply every arrival to ONE `Desk`, in arrival order. This is the
@@ -60,15 +159,55 @@ pub fn advance_in_order(
   initial: desk.Desk,
   arrivals: List(monitor.IncomingBar),
 ) -> desk.Desk {
-  todo as "04-09: fold pure steps into one Desk"
+  list.fold(over: arrivals, from: initial, with: fn(so_far, incoming) {
+    // A refused bar writes nothing back; the probe's bars are all valid.
+    result.unwrap(monitor.advance(so_far, incoming), so_far)
+  })
 }
 
 /// A readable name for an address, for the probe's printed report only.
 pub fn describe(address: monitor.TimeframeAddress) -> String {
-  todo as "04-09: render the three typed keys"
+  desk.broker_id_to_string(address.broker)
+  <> "/"
+  <> symbol.to_string(address.symbol)
+  <> "/"
+  <> interval.to_string(address.interval)
 }
 
 /// Print the measured process ids and the isolation result.
 pub fn main() -> Nil {
-  todo as "04-09: print the measured process ids and isolation"
+  let initial = config.default_config().desk
+  let arrivals = sample_arrivals()
+  let assert Ok(replies) = advance_in_parallel(initial, arrivals)
+    as "every spawned worker answers within the timeout"
+  let workers = list.map(replies, fn(reply) { reply.worker })
+  io.println(
+    "04-09 | "
+    <> int.to_string(list.length(arrivals))
+    <> " addressed bars, "
+    <> int.to_string(list.length(list.unique(workers)))
+    <> " distinct BEAM processes, 0 actor / 0 supervisor / 0 lock",
+  )
+  list.each(replies, fn(reply) {
+    io.println("  " <> describe(reply.address))
+    let _ = echo reply.worker
+    Nil
+  })
+  let ordered = advance_in_order(initial, arrivals)
+  let matching =
+    list.length(
+      list.filter(replies, fn(reply) {
+        case reply.outcome {
+          Ok(partial) -> partial == ordered
+          Error(_) -> False
+        }
+      }),
+    )
+  io.println(
+    "  partial Desks equal to the single-owner fold: "
+    <> int.to_string(matching)
+    <> " / "
+    <> int.to_string(list.length(replies)),
+  )
+  Nil
 }
