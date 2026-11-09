@@ -66,15 +66,11 @@ of the same `Timestamp` to the analyst's local wall clock (IANA/DST), R29 is the
   `.abstr → .beam` (no per-module `.erl`, only the `@@main.erl` runner stub).
 - `float.parse("100")` is `Error(Nil)` — `parse_number` widens Int.
 - `gleam build` does not resolve npm deps (green build ≠ runnable app);
-  LightweightCharts v5 `addSeries`/`updateSeries` are instance methods; dotted
-  `@external` names fail to compile.
-- Mist 6.0.3 uses `mist.start` (Wisp doc's `start_http` is stale); Lustre 5.7.1
-  `html.title(attrs, String)`; `wisp/simulate.request(method, path)` builds a
-  real Request; `wisp.Text(body)` is the response body;
-  `gleam run -m <module>` needs no root `main` slot.
-- Web demos (04-04): Mist+Wisp 72 lines/22 Hex vs +Lustre 124/23 vs bare Mist
-  82/14; all 0 hand-written JS. *"Needs no JS library"* is a **dependency**
-  claim, not a capability claim.
+  dotted `@external` names fail to compile. Mist 6.0.3 = `mist.start` (Wisp
+  doc's `start_http` stale); `wisp/simulate.request(method, path)` builds a real
+  Request; `wisp.Text(body)` is the response body; `gleam run -m <module>`
+  needs no root `main`. Web demos (04-04): Mist+Wisp 72/22 Hex vs +Lustre
+  124/23 vs bare Mist 82/14. *"Needs no JS library"* is a **dependency** claim.
 - `gleam_otp` **is already a direct root dependency** (`gleam.toml`); saying
   "not introduced" was wrong — what was missing was its use.
 - **`gleam_erlang/process.spawn` + typed `Subject` is the whole parallel-task
