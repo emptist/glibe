@@ -109,8 +109,13 @@ of the same `Timestamp` to the analyst's local wall clock (IANA/DST), R29 is the
   exactly ONE `Timeframe`** — no fan-out to all intervals; N×M monitoring = N×M
   addressed steps. `SourceBarRejection` replaces `Error(String)`; `fetch_klines`
   takes `Symbol`. 64 tests green.
-- 04-09 (deferred 11-09, resumed 11-10): owner says Gleam's parallelism is
-  natural/simple and challenged the "**Stage F = supervised actors**" framing.
-  Evidence + two of my factual errors + tomorrow's 5 steps in
-  `.planning/phases/04-domain-cleanup/04-09-PLAN.md`. Rewrite that framing
-  across DESIGN/STATE/ROADMAP; **0 owner decisions pending**.
+- 04-09 **DONE (2026-11-10, R31)**: `probes/parallel-bars/` (Erlang target,
+  path dep on `glibe`) measured 6 addressed bars → **6 distinct BEAM Pids**,
+  reverse arrival order, 0 actor / 0 supervisor / 0 lock / 0 FFI;
+  RED 0 passed / 4 failures → GREEN **4 passed**. **0/6 并行 `Desk` 等于
+  单一 owner fold**：N 份不可变值不会自己合并，要么一个 owner 顺序 fold，
+  要么每个地址自持 `Timeframe` —— 所有权/数据流，不是同步问题（R26，
+  未新增生产类型）。R31 逐字记录 owner 话；DESIGN/STATE/ROADMAP/README/
+  PENDING 已重写「Stage F = 受监督 actor」框架；`gleam_otp` 早已是直接
+  依赖（两处错话已纠正）。实时行情流 / replay CLI 仍待做。明细见
+  `.planning/phases/04-domain-cleanup/04-09-SUMMARY.md`。**0 待裁决项**。
