@@ -956,3 +956,54 @@ owner 原话（逐字）：*"在web 界面，应该采用本地时间显示日�
   `src/glibe/api/sourcebar.gleam`（绝对时刻不被显示需求改变）的 `////`
   模块文档；`.planning/phases/04-domain-cleanup/04-07-PLAN.md`；
   `docs/DESIGN.md`「web 显示边界与本地时间」。
+
+---
+
+## R31 — 并发就是 BEAM 进程 + 类型化消息，不是一套待建的补救机制（2026-11-09 owner 指示，2026-11-10 实测落地）
+
+owner 原话（逐字）：*"gleam语言呀，是天然多线程，好像不需要actor那些东西，你看下官网和网上的资料，也可以分析一些官方或著名的代码，比如wisp lutre之类的，怎么实现并行任务的，非常简单啊非常自然。因为他是一个一个严格的value，完全不住在内存里，所以根本没有那些复杂的补救措施需要做"*
+
+owner 范围纠正（2026-11-09 06:09，逐字）：*"你去看什么javascript target完全不对路，我们是erlang 和 BEAM专属项目"*
+
+- **裁定**：并行不是由「受监督 actor / 订阅 / 行情流 / replay CLI」组成的一整个
+  Stage F 前置工程。`monitor.advance` 保持纯函数；N 个带地址的 bar 同时推进只需
+  `gleam/erlang/process.spawn` + 类型化 `process.Subject` + `process.receive`。
+  **不需要为并发新增类型、加锁、加依赖，也不改 `SourceBar` / `Timeframe`。**
+  `docs/DESIGN.md`、`README.md`、`.planning/ROADMAP.md` 中「Stage F = 受监督
+  actor」的框架予以重写；replay CLI 与真实行情流仍是待办工作，但不再是并行的
+  前提。
+- **官方证据**（2026-11-09 查证）：`https://gleam.run/` 首页
+  "multi-core actor based concurrency system … millions of concurrent green
+  threads"，示例只有 `process.new_subject` / `process.spawn` / `process.receive`
+  三行；`https://gleam.run/news/gleam-v0.12-and-gleam-otp-v0.1-released/`：
+  "there's no need for an `async/await` syntax or callbacks … doesn't require
+  any special types such as futures or promises"、"Erlang and Gleam don't have
+  mutable state so locks and shared mutable state is not an option"、
+  "The Gleam compiler can full type check channels"。
+- **actor 的准确位置**：`build/packages/gleam_otp/src/gleam/otp/actor.gleam:1-14`
+  自述 "An Actor is a process like any other BEAM process"，它只是「状态跨消息
+  存活 + 自动处理 OTP 系统消息」的**薄封装**；`supervisor` 是**容错 / 重启**，
+  不是并行机制。Wisp `wisp.gleam` 0 处 `process.`；glisten 每连接一个进程 +
+  监督池；Lustre 服务端 runtime 恰一个 actor。**actor 未被禁用**，用不用由
+  真实消费方按 R26 决定。
+- **值并非「不在内存里」**：值在**每个进程自己的堆**里，不可变、发消息时复制、
+  进程间不共享；所以没有锁、竞态、死锁。长生命周期状态必须住在某个进程的递归
+  循环参数里，或由单一 owner 顺序 fold —— 这是**所有权 / 数据流**决定，不是
+  同步补救措施。
+- **04-09 实测**（`probes/parallel-bars/`，Erlang target，2026-11-10）：
+  6 个带 `TimeframeAddress` 的 bar → **6 个不同 BEAM Pid**，0 actor /
+  0 supervisor / 0 lock / 0 FFI；回复顺序与发出顺序相反；4 个测试 GREEN。
+  **N 份并行结果各是一份只改了自己地址的 `Desk`，0/6 等于单一 owner fold
+  后的完整状态** —— 不可「取最后一份」合并。要么一个 owner 按到达顺序
+  `advance`，要么每个地址自己持有 `Timeframe`（后者不需要全局 `Desk`）。
+- **事实更正**：`gleam_otp` 早就是根 `gleam.toml` 的直接依赖
+  (`>= 1.3.0 and < 2.0.0`)；我 04-08 答复说「没引入」是错的，
+  `docs/DESIGN.md` 04-08 段末 "no … `gleam_otp` dependency" 同错。缺的是
+  **使用它**，不是依赖。
+- **范围**：只在 Erlang / BEAM 语境下成立；不拿 JavaScript target / promise
+  作旁证或类比（owner 06:09）。
+- **Landed in**：`probes/parallel-bars/src/parallel_bars.gleam`（`////` 点名
+  `04-09-PLAN.md`）与 `test/parallel_bars_test.gleam`；`docs/DESIGN.md`
+  「Parallel addressed steps are already natural」；`docs/STATE.md` 2026-11-10；
+  `.planning/ROADMAP.md` Phase 04 Plan 09；`README.md`；
+  `.planning/phases/04-domain-cleanup/04-09-SUMMARY.md`。不是待裁决项。

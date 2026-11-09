@@ -4,7 +4,8 @@
 //// Rulings: `docs/RULINGS.md` R13 (errors are types), R19 (docs-first / TDD),
 //// R20 (`Desk ▸ Broker ▸ Instrument ▸ Timeframe`), R22 (a name is not the
 //// thing named), R23 (identity is a key, never a field), R26 (no speculative
-//// relations), R27 / R28 (the standard bar carries no provider identity).
+//// relations), R27 / R28 (the standard bar carries no provider identity),
+//// R31 (BEAM parallelism is `process.spawn` + a typed `Subject`).
 ////
 //// **What was missing.** The chain `Desk ▸ Broker ▸ Instrument ▸ Interval ▸
 //// Timeframe` already expresses many instruments, each with many intervals,
@@ -27,13 +28,17 @@
 //// **Why a wrapper type.** The standard `SourceBar` is deliberately free of
 //// provider identity (R27 / R28); the identity belongs to the request that
 //// produced it. `IncomingBar` pairs the two at the ingest boundary and is
-//// the unit a Stage F actor message or a replay step carries. Neither
+//// the unit a spawned BEAM process or a replay step carries. Neither
 //// `SourceBar` nor `Timeframe` gains a field.
 ////
 //// **Pure, not a scheduler.** `advance` returns a NEW `Desk`; it starts no
-//// process, opens no socket and holds no clock. Supervised actors, streams
-//// and the replay CLI are Stage F (`docs/DESIGN.md:101,261`) and call this
-//// step. No `Market` / `Asset` / `Exchange` relation is invented here (R26).
+//// process, opens no socket and holds no clock (R31). Many addressed steps
+//// run at once with `process.spawn` + a typed `Subject`: `probes/parallel-bars/`
+//// measured six bars in six BEAM processes with 0 actor / 0 supervisor /
+//// 0 lock. One owner folds the returned `Desk` values, or each address owns
+//// its own `Timeframe` — an ownership choice, not a synchronisation device.
+//// A live feed and the replay CLI are the remaining runtime work. No
+//// `Market` / `Asset` / `Exchange` relation is invented here (R26).
 
 import gleam/option.{None, Some}
 import gleam/result
