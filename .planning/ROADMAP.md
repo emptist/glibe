@@ -359,3 +359,25 @@ Lustre（服务端 runtime 恰一个 actor + factory supervisor）的 file:line 
 `.planning/phases/04-domain-cleanup/04-09-PLAN.md`。
 **今天没有改代码、没有建 probe、没有加依赖、没有改既有结论。** 明天按该文件
 §4 继续。不是待裁决项。
+
+
+## Phase 04 Plan 09 — 完成（2026-11-10，R31）
+
+按 11-09 的接手点复工，范围严格 Erlang / BEAM。`probes/parallel-bars/`
+（独立 Erlang-target 包，`glibe` path 依赖）按 R19 走完 RED→GREEN：
+骨架 + `////` 点名 `04-09-PLAN.md` → 4 个测试 RED（0 passed / 4 failures /
+0 错误）→ 填体 GREEN（4 passed / `--warnings-as-errors` 0/0）。
+`gleam run -m parallel_bars` 实测 **6 个带地址 bar → 6 个不同 BEAM Pid**、
+回复逆序到达、**0 actor / 0 supervisor / 0 lock / 0 FFI**、4 tests green。
+**0/6 份并行 `Desk` 等于单一 owner fold 的结果**：不可变值不会自己合并，
+要么一个 owner 顺序 fold，要么每个地址自持 `Timeframe`；这是所有权/数据流
+决定，不是同步补救措施（R26，不新增生产类型）。生产代码逻辑未改
+（`monitor.gleam` 仅同步 `////` 模块文档），依赖未加。
+`docs/RULINGS.md` 新增 **R31**（owner 原话逐字 + 官方证据 + actor 定位 +
+值住在各进程自己的堆 + 实测 + 两处事实更正）；`docs/DESIGN.md` 新增
+「Parallel addressed steps are already natural」并重写 `:101` 表格、
+04-08 段末与「What glibe does not do yet」的 Stage F 框架；`README.md`、
+`docs/STATE.md`、`docs/PENDING_DECISIONS.md`（仅 `# REFERENCE`）、记忆同步。
+`gleam_otp` 早已是根包直接依赖，已纠正「没引入」的错误说法。
+决策区仍 0 项；历史计划/总结保留旧措辞。详见
+`.planning/phases/04-domain-cleanup/04-09-SUMMARY.md`。

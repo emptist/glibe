@@ -1,5 +1,11 @@
 # Phase 04 Plan 08 — Summary
 
+> **2026-11-10 更正，原文保留为历史记录**（`docs/RULINGS.md` R31 / 04-09）：
+> 下面「no … `gleam_otp` dependency (Stage F)」是**错的** —— `gleam_otp`
+> 早就是根 `gleam.toml` 的直接依赖；且「并发属 Stage F 受监督 actor」的
+> 框架已被 owner 纠正。04-08 本身（类型化的到达 bar 与纯 `advance`）不变，
+> 并发实测见 `probes/parallel-bars/` 与 `04-09-SUMMARY.md`。
+
 **One addressed market bar advances exactly one `Timeframe`.** The static
 ownership chain was already complete; the arrival of a bar was not. Work under
 R13 / R19 / R20 / R22 / R23 / R26 / R27 / R28. **Not a new owner ruling**: the

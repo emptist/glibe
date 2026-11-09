@@ -8,7 +8,7 @@
 > 链接）。引用一律写「文件全路径 + 条目名」，不用裸编号（"Q" 加数字那种既像
 > Question N 又不是的写法）。
 >
-> 最后更新：2026-11-09
+> 最后更新：2026-11-10
 
 ---
 
@@ -30,7 +30,7 @@
 - 三张目录表与 `Instrument` 的**关系**：按 R26 不定，不预先做一整套 identity 类型化，等真正有消费方时按需逐个加 type。已确认的只有 `Broker ▸ Instrument`。
 - `bucket_ends` 的 `date: String` → `gleam_time.Timestamp`；5 个 `*_from_string` + `panic` 的 codec；日/周/月 bucket 恒 `True` 的旧行为。各自单独计划，按 R13 / R19 / R21 / R23 推进。
 - 真实数据下 SVG / JS 图表能力对比试验：**推迟**到 databar processing 其余部分做完（你 2026-11-07 定的时机）。
-- BEAM Stage F（每个 `(symbol, interval)` 一个受监督 actor、replay CLI、退役 `data_generator.ex`、`no_minute_trading.sh`）：工作，不是裁决。
+- 实时行情流 / replay CLI / 退役 `data_generator.ex` / `no_minute_trading.sh`：工作，不是裁决。**并发本身已完成**（R31 / 04-09：6 个带地址 bar 在 6 个 BEAM 进程里跑过，不需要受监督 actor 前置）。
 - 已裁定、不要再看：JS 图表库 + 生成 `.mjs` 优先（R17）、小范围手写 JS（R16）、Phoenix 去留与 `webclient/`（R18）、`Desk` 而非 `Deck`（R20）、`Interval` 九值 + 全名构造子（R21）、SVG 自绘不再是默认路线、WASM 不采用。
 
 ---
@@ -91,8 +91,9 @@ owner 原话（逐字引用、`[user 日期]`、UC 编号）及全部论证在�
 - ~~依该结论采用 A（04-05）~~ 已完成；根包加入 `mist` / `wisp`，
   `src/glibe/web/server.gleam` 服务真实 `Desk`。这是我按 R24 自己该做的决定，
   细节在 `.planning/phases/04-domain-cleanup/04-05-SUMMARY.md`。
-- BEAM Stage F：受监督 `Timeframe` actor、真实 klines 的 replay CLI、退役
-  `data_generator.ex`、`no_minute_trading.sh`。
+- 实时运行时：真实 klines 的 replay CLI、行情流、退役
+  `data_generator.ex`、`no_minute_trading.sh`。**并发不在此列**（R31 / 04-09 已
+  实测：`process.spawn` + 类型化 `Subject`，0 actor / 0 supervisor / 0 lock）。
 - 真实数据图表对比试验（时机见上面「不需要你决定」）。
 
 - ~~04-06 标准 bar 时间类型化~~ **已完成**（R27–R29）：标准 `SourceBar` 用
@@ -104,6 +105,9 @@ owner 原话（逐字引用、`[user 日期]`、UC 编号）及全部论证在�
   见 `docs/RULINGS.md` R30 与
   `.planning/phases/04-domain-cleanup/04-07-PLAN.md`。
 - 04-08 多品种 × 多周期同时监控的类型结构（地址 / 到达 bar / 领域错误 /
-  纯 `advance`）：已完成，是 R26 按序工作，**不是待裁决项**。真实并发 actor、
-  订阅与 replay CLI 仍属 Stage F，见
+  纯 `advance`）：已完成，是 R26 按序工作，**不是待裁决项**，见
   `.planning/phases/04-domain-cleanup/04-08-PLAN.md` 与 `docs/DESIGN.md`。
+- R31（2026-11-09 owner 指示，2026-11-10 实测）：并发不是一整套待建的受监督
+  actor 机制；`probes/parallel-bars/` 实测 6 个 BEAM 进程 / 0 lock，N 份并行
+  `Desk` 是 N 份局部视图，合并属所有权决定。**不是待裁决项**，全文在
+  `docs/RULINGS.md` R31、`.planning/phases/04-domain-cleanup/04-09-SUMMARY.md`。

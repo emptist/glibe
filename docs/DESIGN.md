@@ -98,7 +98,7 @@ bar, because only a bar is broadcast, drawn and accepted. That word is a
 | unwritten bar fields | 0 | 0 (deleted 15) | R10 |
 | **target** | `javascript` (dual-target only planned) | **`erlang`, pure** | *"BEAM is great"* — glibe is the future |
 | **foreign source in `src/`** | 14 handwritten `.mjs` | **0 compiled** | *"No handwritten erlangs or even worse JS source files"* |
-| **runtime** | one JS process | **BEAM** | one actor per instrument, supervised — Stage F, unstarted |
+| **runtime** | one JS process | **BEAM** | `process.spawn` + a typed `Subject`; no shared memory, no lock (R31). A long-lived state owner may use an actor, but parallelism does not require one |
 | **dashboard** | handwritten JS + FFI | Phoenix/Elixir + JS in `apps/` | **unowned AI choice** (`5e91f44`), debt — owner decision pending; `REVIEW_ROUND5.md` §10, `RULINGS.md` R14/R16. The *chart* is the owner's (UC-56/57/60); the framework is not |
 | KDJ window | `w` | **`w`** | same; idib `kdjPeriod = 7` |
 | σ window | includes bar in hand | **includes it** | same |
@@ -186,7 +186,7 @@ serves the real `config.default_config().desk`: `GET /` is a server-rendered
 table, `GET /desk` is the same `Desk ▸ Broker ▸ Instrument ▸ Interval` chain as
 JSON, any other path is 404. A closed `Route` type, not a path `String`, names
 the endpoints. Run with `gleam run -m glibe/web/server` (port 8610) — the root
-library deliberately keeps no global `main` slot, so Stage F's replay CLI is
+library deliberately keeps no global `main` slot, so the replay CLI is
 still free. Real HTTP requests returned 200 / 200 / 404 with the configured
 `binance` / `futu` / `ib` brokers and `BTCUSDT` / `SPY` / `SPY_FUTU` names.
 No Lustre server components, no hand-written JS, no new browser asset. See
@@ -288,21 +288,66 @@ the same `Symbol` under two brokers names two different instruments.
 instead of `String`, so the routing layer can say which address refused which
 bar and why (R13).
 
-This is a type-structure change, not a runtime one: no actor, subscription,
-socket, clock or `gleam_otp` dependency. Stage F's supervised actors and the
-replay CLI (section below) call this step. No `Market` / `Asset` / `Exchange`
-relation was invented (R26), and neither `SourceBar` nor `Timeframe` gained a
-field. Six tests in `test/monitor_test.gleam` pin the isolation: the addressed
+This is a type-structure change, not a runtime one: `advance` starts no
+process, opens no socket and holds no clock. `gleam_otp` is already a direct
+dependency of the root package, but this module does not use it. Running many
+addressed steps at once is measured in `probes/parallel-bars/` (R31) and needs
+no further type work; the remaining runtime work is a live feed and the replay
+CLI (section below). No `Market` / `Asset` / `Exchange` relation was invented
+(R26), and neither `SourceBar` nor `Timeframe` gained a field. Six tests in `test/monitor_test.gleam` pin the isolation: the addressed
 timeframe advances while the same instrument's other interval and two other
 brokers' instruments stay identical; two instruments keep their own closes; a
 non-boundary bar only opens a bucket; the same bar closes an hourly but not a
 four-hour bucket; and both failure paths carry the address.
 
+## Parallel addressed steps are already natural (04-09 / R31)
+
+Owner 2026-11-09: *"gleam语言呀，是天然多线程 … 怎么实现并行任务的，非常简单啊
+非常自然。因为他是一个一个严格的value，完全不住在内存里，所以根本没有那些
+复杂的补救措施需要做"*. The earlier framing — "Stage F's supervised actors,
+subscriptions and streams" — described concurrency as a whole mechanism still
+to be built. It is not.
+
+Official sources: `gleam.run` needs only `process.new_subject` /
+`process.spawn` / `process.receive`; the v0.12 release says "there's no need
+for an `async/await` syntax or callbacks", "doesn't require any special types
+such as futures or promises", and "Erlang and Gleam don't have mutable state
+so locks and shared mutable state is not an option". `gleam_otp`'s actor module
+describes itself as "a process like any other BEAM process" — a thin wrapper
+for state that survives across messages plus OTP system messages. Supervisors
+are fault tolerance, not parallelism. Wisp has zero `process.` calls; glisten
+spawns one process per connection; Lustre's server runtime is exactly one
+actor. **An actor is not banned; it is simply not a prerequisite.**
+
+`probes/parallel-bars/` (Erlang target, R19 RED→GREEN) measures it: six
+`IncomingBar` values at six configured `TimeframeAddress` values, one
+`process.spawn` each, one typed `Subject` for the replies. Measured run:
+**six distinct BEAM Pids**, replies arriving in reverse spawn order,
+**0 actor / 0 supervisor / 0 lock / 0 FFI**, 4 tests green. No production
+logic changed: only `monitor.gleam`'s `////` module doc was synced to R31,
+and no dependency was added.
+
+The honest ownership result is the one thing worth writing down. Each parallel
+worker returns a whole new `Desk` that advanced ONE address and still holds the
+original state at the other five. **0 of 6 partial `Desk` values equal the
+single-owner fold.** Immutable values do not merge themselves: either one owner
+applies the steps in arrival order, or each address owns its own `Timeframe`
+and there is no global `Desk` to merge. That is a **data-flow / ownership**
+choice (R26: decide when a consumer needs it), not a synchronisation problem —
+no lock, no retry, no supervisor is involved. Values do live in memory, in
+each process's own heap; what does not exist is **shared mutable memory**.
+
+Scope: **Erlang / BEAM only** (owner 2026-11-09 06:09). See `docs/RULINGS.md`
+R31 and `.planning/phases/04-domain-cleanup/04-09-SUMMARY.md`.
+
 ## What glibe does not do yet
 
-- **Stage F** — BEAM actors, the replay CLI, `DataGenerator` retirement, the
-  minute-trading guard (Stage F, `REVIEW_ROUND5.md` §1). This is the work,
-  and it waits on nothing.
+- **The live runtime** — a replay CLI over real klines, the feed that produces
+  `IncomingBar` values, `DataGenerator` retirement, the minute-trading guard
+  (`REVIEW_ROUND5.md` §1). **Concurrency is not on this list** (R31): six
+  addressed bars already ran in six BEAM processes with `process.spawn` and a
+  typed `Subject` in `probes/parallel-bars/`. Whether a long-lived state owner
+  uses `gleam_otp`'s actor is a per-consumer choice (R26), not a prerequisite.
 - **The catalogue tables' identities and relations** — deliberately open
   under R26, not a pending owner ruling. They get types when a consumer
   appears. The web-layer comparison (R24) and adoption (phase 04-05) are both

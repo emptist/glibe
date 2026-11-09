@@ -4,6 +4,36 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
+## 2026-11-10 (phase 04-09 — BEAM 并行实测 / R31，当前状态)
+
+- 按 `.planning/phases/04-domain-cleanup/04-09-PLAN.md` §4 复工；范围严格
+  **Erlang / BEAM**（owner 06:09）。
+- 新建 `probes/parallel-bars/`（独立 Erlang-target 包，`glibe` 为 path 依赖）。
+  按 R19：骨架 + `////` 点名 04-09 计划 + 类型 + `///` 签名 + `todo` → 4 个
+  测试 RED（0 passed / 4 failures / 0 编译错误 / 5 todo warnings）→ 填体
+  GREEN（**4 passed**，`build --warnings-as-errors` 0/0）。
+- `gleam run -m parallel_bars` 实测输出：6 个带 `TimeframeAddress` 的 bar →
+  **6 个不同 BEAM Pid**（`<0.117.0>`…`<0.122.0>`），回复顺序与发出顺序相反；
+  **0 actor / 0 supervisor / 0 lock / 0 FFI**；
+  `partial Desks equal to the single-owner fold: 0 / 6`。
+- **诚实结论（不是同步问题，是所有权问题）**：每份并行 `Desk` 只改了自己一个
+  地址，另外五个仍是原值；N 份不可变值不会自己合并。要么单一 owner 按到达
+  顺序 fold，要么每个地址自己持有 `Timeframe`（不需要全局 `Desk`）。按 R26
+  等真实消费方决定，**不新增生产类型**；生产代码逻辑未改（`monitor.gleam`
+  仅同步 `////` 模块文档到 R31 / 04-09），依赖未加。
+- **R31 已写入 `docs/RULINGS.md`**：逐字记录 owner 06:01 / 06:09 原话、官方
+  证据、actor 的准确位置、值住在各进程自己的堆（不存在的是共享可变内存）、
+  04-09 实测与两处事实更正。
+- **两处事实错误已纠正**：① `gleam_otp` 早就是根 `gleam.toml` 的直接依赖；
+  ② `docs/DESIGN.md` 04-08 段末 "no … `gleam_otp` dependency" 同错。
+  `:101` 表格与 04-08 段末「Stage F 的受监督 actor」框架已重写；
+  `README.md`、`.planning/ROADMAP.md` 与临时待裁决文档同步。
+- **待裁决事项仍为 0 项**；R31 不是待裁决项。
+  历史 review / session 文档（含 04-08 PLAN/SUMMARY、10-04 改进计划）按惯例
+  保留旧措辞作为记录。
+- 全套绿灯、核心镜像 `cmp`、`package-interface.json` 计划链接、反向引用检查
+  均已在收尾提交前跑完（全 0）；按逻辑即时提交，**不 push**。
+
 ## 2026-11-09 (Gleam 天然并行研究 — DEFERRED，本日只记录状态)
 
 - owner 06:01 指出：Gleam 天然多线程、并行任务非常简单自然，不必把「受监督
@@ -30,7 +60,7 @@ sections are kept as history, not as the current answer.
   无 probe、无编译、无测试、无 R31。工作树只有记录类文件。
 - 明天按 `04-09-PLAN.md` §4 继续：编译实测 spawn + Subject → 诚实回答 N 份新
   `Desk` 的合并/所有权 → 重写 Stage F 框架 → 纠正两处事实 → 验证与即时提交。
-  不是 owner 待裁决项，`docs/PENDING_DECISIONS.md` 决策区仍 0 项。
+  不是 owner 待裁决项，临时待裁决文档的决策区仍 0 项。
 
 ## 2026-11-09 (phase 04-08 — one addressed bar advances one timeframe)
 

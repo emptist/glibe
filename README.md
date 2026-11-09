@@ -50,12 +50,12 @@ no dependency added** (`docs/RULINGS.md` R18).
 | **Target** | ✅ `erlang` | root package pure BEAM; no handwritten `.mjs`/`.erl`/`.ex` under `src/`. The separate `webclient/` package is the only JavaScript target, declared in its own `gleam.toml` |
 | **Binance REST** | ✅ Working | testnet.binance.vision (works from China), `gleam_httpc` |
 | **Stream Processing** | ✅ Core Complete | SMA×5, Bollinger, KDJ, Leaf, Branch, Timeframe pipeline |
-| **Tests** | ✅ Passing | **64 tests** — indicators, api, ingest boundary, the ownership chain, the `Interval` closed set, the web layer, addressed multi-instrument monitoring and three Round-5 invariant tests; assertions use bool `assert` / `let assert` with messages, not `panic` |
+| **Tests** | ✅ Passing | **64 tests** in the root package — indicators, api, ingest boundary, the ownership chain, the `Interval` closed set, the web layer, addressed multi-instrument monitoring and three Round-5 invariant tests; plus **4 tests** in `probes/parallel-bars/` (BEAM parallelism / ownership). Assertions use bool `assert` / `let assert` with messages, not `panic` |
 | **Build** | ✅ Green | gleam **1.19.2** / OTP **29**: 0 errors, 0 warnings |
 | **IB Client Portal** | ⚠️ Retired | The handwritten Elixir `ibkr.ex` wrapper had **zero callers** and an undeclared `ibkr_api` dep; it produced 12 build warnings. Removed under *"No handwritten erlangs"*. The FFI contract survives as `ibkr.gleam.disabled` (a design record, not compiled). |
 | **Visualization** | ✅ Settled | **JS chart library (R17)**, generated `.mjs` preferred; hand-written `.mjs` only inside `webclient/` (R16). The client exists so a human can spot anomalies by eye, read trends from charts, inspect tabulated fractal data, and see order issue/fill points (R18). `deprecated/glibe_web` is a Phoenix comparison piece, not the implementation. The BEAM web layer is **Mist + Wisp**, chosen by three measured demos (R24) and adopted in phase 04-05: `GET /` renders the real `Desk` as a table, `GET /desk` returns it as JSON. No Lustre server components, no hand-written JS. |
 | **Web display time** | 📄 Documented (R30) | The web view shows date-times in the analyst's local time with IANA daylight-saving rules; the standard bar stays unix time, the bucket grid stays UTC-aligned and CSV stays UTC RFC3339. Specification in `src/glibe/web/server.gleam`, plan `.planning/phases/04-domain-cleanup/04-07-PLAN.md`. Implementation not started — docs only this round. |
-| **Multi-instrument monitoring** | ✅ Typed (04-08) | One `IncomingBar` carries a typed `TimeframeAddress(BrokerId, Symbol, Interval)`; the pure `monitor.advance` locates that one `Timeframe`, runs the gate and (on a closed bucket) the full pipeline, and writes back a new `Desk`. Six isolation tests prove other intervals and other brokers stay untouched. No actor / stream / replay CLI yet — that is Stage F. |
+| **Multi-instrument monitoring** | ✅ Typed + parallel measured (04-08 / 04-09) | One `IncomingBar` carries a typed `TimeframeAddress(BrokerId, Symbol, Interval)`; the pure `monitor.advance` locates that one `Timeframe`, runs the gate and (on a closed bucket) the full pipeline, and writes back a new `Desk`. Six isolation tests prove other intervals and other brokers stay untouched. **Parallelism needs no new type or dependency** (R31): `probes/parallel-bars/` ran six addressed bars in six distinct BEAM processes with `process.spawn` + a typed `Subject`, 0 actor / 0 supervisor / 0 lock, 4 tests green. N parallel `Desk` values are N partial views — a single owner folds them, or each address owns its own `Timeframe`. A live feed and a replay CLI remain unstarted. |
 | **Guards** | ✅ Added | `scripts/guards.sh --all` — build, test, format, `no_timeframe_mixture`, `no_foreign_source`, plus `test_guards.sh` (7 fixture-based negative tests, no source mutation); also runs in CI |
 
 ## Quick Start
@@ -147,6 +147,9 @@ src/
 │   ├── web/
 │   │   └── server.gleam          # Mist + Wisp endpoints; view of the real Desk (R24)
 │   └── config.gleam              # AppConfig + default_config (single source of truth)
+├── probes/
+│   ├── web-layer/                # three measured BEAM web demos (R24 / 04-04)
+│   └── parallel-bars/            # 04-09: six addressed bars, six BEAM processes (R31)
 ├── webclient/                    # separate JS-target Gleam package (own gleam.toml)
 │   └── src/webclient.gleam       # → build/dev/javascript/webclient/webclient.mjs
 ├── deprecated/glibe_web/         # Phoenix LiveView, kept for comparison only
