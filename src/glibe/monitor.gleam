@@ -1,47 +1,30 @@
-//// One addressed market bar advances exactly one `Timeframe`.
+//// HISTORICAL (04-08) — this layer is NOT part of the owner's design (R33).
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-08-PLAN.md`.
-//// Rulings: `docs/RULINGS.md` R13 (errors are types), R19 (docs-first / TDD),
-//// R20 (`Desk ▸ Broker ▸ Instrument ▸ Timeframe`), R22 (a name is not the
-//// thing named), R23 (identity is a key, never a field), R26 (no speculative
-//// relations), R27 / R28 (the standard bar carries no provider identity),
-//// R31 (BEAM parallelism is `process.spawn` + a typed `Subject`),
-//// R32 (the structure is a garden: one `Desk`, every `Timeframe` leaf alive).
+//// Plan: `.planning/phases/04-domain-cleanup/04-08-PLAN.md` (superseded).
+//// Rulings: `docs/RULINGS.md` R33, R19 (docs-first / TDD), R20 / R23 (the
+//// ownership chain), R27 / R28 (the standard bar carries no provider
+//// identity), R26 (no speculative relations).
 ////
-//// **What was missing.** The chain `Desk ▸ Broker ▸ Instrument ▸ Interval ▸
-//// Timeframe` already expresses many instruments, each with many intervals,
-//// and `config.default_config()` builds six independent `Timeframe` states.
-//// But a bar ARRIVING from a provider had no address: `binance.fetch_klines`
-//// returns `List(SourceBar)` and leaves the `symbol` / `interval` of its own
-//// request behind, while `engine.sourcebar_gate` is handed a `Timeframe` and
-//// an `Interval` by the caller. Nothing stopped a BTCUSDT bar from being fed
-//// into SPY's hourly engine. This module is the typed boundary where that
-//// pairing happens once.
+//// **Why it is historical.** Owner 2026-11-10: *"什么monitor.advance 哪有
+//// 这些type，你的设计思路停留在非Gleam非functional非type的其他语言
+//// 和架构体系中"*. The system is already live: data arrives from a subscribed
+//// real-time source and moves through
+//// `sourcebar_gate → databar_processing → model ↔ view`; **every type is
+//// live because data moves through it**, and `Desk` is the ONE top-level
+//// Value. Wrapping a bar as an addressed message and writing a function to
+//// "advance" a Value is imperative scheduling brought in from another
+//// architecture — not this design. `leaf` / 叶子 means `YinLeaf` and
+//// `YangLeaf` only; it never named a `Timeframe`.
 ////
-//// **Why the address has three parts.** `BrokerId` because the same `Symbol`
-//// under two brokers names two different instruments; `Symbol` because that
-//// is the key in `Broker.instruments`; `Interval` because a kline stream is
-//// requested per interval, and it is the key in `Instrument.timeframes`.
-//// One `IncomingBar` advances ONE `Timeframe` — it is NOT fanned out to every
-//// interval of its instrument. Monitoring N instruments × M intervals is N×M
-//// LIVE leaves, each isolated from the others (R32).
-////
-//// **Why a wrapper type.** The standard `SourceBar` is deliberately free of
-//// provider identity (R27 / R28); the identity belongs to the request that
-//// produced it. `IncomingBar` pairs the two at the ingest boundary and is
-//// the unit a spawned BEAM process or a replay step carries. Neither
-//// `SourceBar` nor `Timeframe` gains a field.
-////
-//// **Pure, not a scheduler.** `advance` returns a NEW `Desk`; it starts no
-//// process, opens no socket and holds no clock (R31). The structure is a
-//// garden (R32): ONE `Desk`, and every `Timeframe` in an `Instrument`'s
-//// `Dict(Interval, Timeframe)` is alive, processing its own bars and making
-//// its own trading decisions. `process.spawn` + a typed `Subject` is the
-//// whole BEAM primitive for that; there are no N `Desk` copies to merge.
-//// `probes/parallel-bars/` measured exactly such copies, so its "0 of 6"
-//// conclusion is void (R32). A new real thing is one new field in an
-//// existing type, placed by asking what it belongs to; no `Market` / `Asset`
-//// / `Exchange` relation is invented here (R26).
+//// **The code below is kept exactly as written, unchanged.** `monitor.advance`,
+//// `TimeframeAddress`, `IncomingBar` and `MonitorError` are retained as a
+//// dated record of work done and as passing tests; their disposition
+//// (delete or rework) is the owner's call. Until then they are NOT a basis
+//// for the structure, and no mechanism may be built on top of them. R31's
+//// concurrency framing and R32's "every `Timeframe` leaf is alive" wording
+//// are void under R33. A new real thing is one new field in an existing
+//// type, placed by asking what it belongs to; no `Market` / `Asset` /
+//// `Exchange` relation is invented here (R26).
 
 import gleam/option.{None, Some}
 import gleam/result
@@ -51,9 +34,10 @@ import glibe/api/symbol.{type Symbol}
 import glibe/desk.{type BrokerId, type Desk}
 import glibe/engine
 
-/// The address of ONE live `Timeframe` inside a `Desk`. Three typed keys in
+/// The address of ONE `Timeframe` inside a `Desk`. Three typed keys in
 /// the order the ownership chain is walked — no composite `"BTCUSDT_H1"`
 /// string (R23), and no `String` standing in for any of them.
+/// Historical: this type is not part of the design (R33, see module doc).
 pub type TimeframeAddress {
   TimeframeAddress(broker: BrokerId, symbol: Symbol, interval: Interval)
 }

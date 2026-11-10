@@ -1,20 +1,22 @@
-//// SUPERSEDED 2026-11-10 (R32) — this probe measured the WRONG SHAPE.
+//// SUPERSEDED 2026-11-10 (R32 / R33) — wrong shape AND wrong premise.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-09-PLAN.md`.
-//// Rulings: `docs/RULINGS.md` R19 (docs-first / TDD), R27 / R28 (the standard
-//// bar carries no provider identity), R31 (BEAM concurrency is
-//// `process.spawn` + a typed `Subject`), R32 (the structure is a garden).
+//// Plan: `.planning/phases/04-domain-cleanup/04-09-PLAN.md` (superseded).
+//// Rulings: `docs/RULINGS.md` R33, R19 (docs-first / TDD), R27 / R28 (the
+//// standard bar carries no provider identity), R32 (the garden method).
 ////
 //// **Why it is superseded.** `advance_in_parallel` copies ONE `Desk` into six
 //// spawned processes; each calls `monitor.advance` and returns a whole new
-//// `Desk`. The resulting "0 of 6 partial Desks equal the single-owner fold"
-//// and the "ownership / merge" question are a pseudo-problem created by that
-//// copy. Owner 2026-11-10: *"Desk只有一个 … 每一个Instrument里面有一组
-//// Timeframe，每一个都活着，处理数据，进行交易"*. The real structure has ONE
-//// `Desk` and N×M live `Timeframe` leaves; there is nothing to merge.
+//// `Desk`. The "0 of 6 partial Desks equal the single-owner fold" and the
+//// "ownership / merge" question are a pseudo-problem created by that copy
+//// (R32). R33 goes further: the whole premise — that concurrency is a thing
+//// to build so the structure can be "alive" — is wrong. Owner 2026-11-10:
+//// *"其实是每一个type都是活的，数据动，他就动，因为你定义好了的"*, and
+//// *"如果没有数据，系统也就不动了，睡觉，等待"*. `Desk` is the ONE top-level
+//// Value; `monitor.advance` itself is not part of the design. `leaf` / 叶子
+//// means `YinLeaf` / `YangLeaf`, not a `Timeframe`.
 //// This package is kept only as a dated historical experiment and as a
 //// language measurement (six distinct Pids, zero locks). It is NOT evidence
-//// for the design; see `docs/RULINGS.md` R32 and `docs/DESIGN.md`.
+//// for the design; see `docs/RULINGS.md` R33 and `docs/DESIGN.md`.
 ////
 //// **Scope.** Erlang / BEAM only (owner 2026-11-09 06:09: *"你去看什么
 //// javascript target完全不对路，我们是erlang 和 BEAM专属项目"*). This probe

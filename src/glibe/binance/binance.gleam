@@ -53,9 +53,10 @@ fn get(
 /// Fetch ONE interval's kline stream and hand the engine standard `SourceBar`
 /// values only. The requested name is a `Symbol` (R22); it becomes a `String`
 /// only here, in the HTTP query. The identity of the request is NOT returned
-/// inside each bar — `monitor.IncomingBar` pairs it at the ingest boundary
-/// (plan 04-08), and the broker half of the address is a subscription fact,
-/// not a provider↔broker relation invented here (R26).
+/// inside each bar. The 04-08 `monitor.IncomingBar` pairing is historical
+/// and not part of the owner's design (R33): real-time data arrives from a
+/// subscribed source and moves through the standard bar into the pipeline.
+/// No provider↔broker relation is invented here (R26).
 pub fn fetch_klines(
   name: Symbol,
   interval: Interval,
