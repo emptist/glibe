@@ -96,6 +96,51 @@ relation; R23 deletes all of it. `AppConfig.desk` is now a typed `Desk` value.
 Full reasoning and the owner's verbatim words: `docs/RULINGS.md` R22 / R23;
 plan and measurements: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`.
 
+## What the two predecessors had (R34)
+
+Owner 2026-11-10, verbatim: *"很可惜seib当时没有binance，我印象中仅支持一个
+数据源就是ib，所以他缺一层，就是多个经纪商数据提供者，但是大格局都有了，
+细节也有了"*；*"ibOptions的实现，受制于Python+pandas其实架构没有那么好，
+完全靠配置解决很多结构性问题，他的架构不足取，只能看里面涉及到那些设置，
+那些设置那些事应该是type定义的，被迫搞成了settings之类的文件 … 但是结构
+不行。并且两个先驱都仅支持一个broker"*.
+
+- **Both predecessors had ONE broker / data source.** seib had no Binance
+  (the owner's "我印象中" is kept as he said it: IB only); ibOptions likewise.
+  What was missing is a whole **layer of multiple brokers / data providers**,
+  not a missing detail — he says the big picture and the details were already
+  there. This is a structural assessment, not an endorsement: seib → glib →
+  glibe is a lineage of ideas, not a proof of correctness (R33), and neither
+  predecessor's code is authority.
+- **ibOptions is a requirements list, not an architecture.** Python + pandas
+  pushed structural questions into configuration. Everything a normal manual
+  or automatic trading workflow needs is in there, so read it for *which
+  settings exist*; do not port its classes, config files, module layout or
+  pandas-shaped thinking, and do not use it as evidence that a design is
+  right or landed.
+- **A setting is a type that was flattened.** Those settings should have been
+  type definitions; in glibe a real thing is a type, and an aspect of an
+  existing thing is **one field in that type's definition** (R32 / R26). No
+  universal config table, string key, parser or `list.find` accessor stands
+  in for the missing relation (R13 / R19 / R21 / R23). `config.gleam` is a
+  Gleam value (`AppConfig` + `default_config()`), not an external settings
+  file.
+- **The layer they lacked already exists here.** `Desk(brokers:
+  Dict(BrokerId, Broker))` (`src/glibe/desk.gleam:92-93`), with
+  `Broker(instruments: …, accounts: …)` and `config.default_config()`
+  building `binance` / `ib` / `futu` (`src/glibe/config.gleam:87-101`).
+  This fits R33's ONE top-level Value and the `api provider / data sources`
+  end of the pipe. R34 adds **no** separate provider framework or provider
+  type; `Broker ▸ Instrument` (R26) is unchanged and no `Asset` / `Exchange`
+  / `Market` relation is preset.
+- **Boundary.** A long list of settings is not a licence to invent a matching
+  set of types in advance (R26 / R32): one setting becomes one field when a
+  real consumer appears. The remaining work is still the input boundary
+  (each provider's real-time arrival → standard `SourceBar`) and the replay
+  CLI (R33). R34 changed no `src/` file, added no dependency and wrote no
+  probe. Full verbatim words, the read-only checks and the R29 qualification
+  are in `docs/RULINGS.md` R34.
+
 ## The pipeline
 
 The order is fixed and not a matter of taste:
@@ -277,6 +322,12 @@ and `astimezone`; the Gleam counterpart is `tzif` 2.0.0 (+ `zones` or
 equity consumer appears (R26). Today's UTC-aligned unix grid does **not**
 model a 09:30 open; that debt is explicit, not hidden.
 
+**R34 qualification (2026-11-10).** The `ibOptions` citation above is a
+time-zone / market-calendar **fact** only, not an architectural reference:
+the owner ruled that project's architecture *"不足取，只能看里面涉及到那些设置"*.
+The IANA-library conclusion and the explicit debt above are unchanged, but
+those Python files are not a basis for glibe's structure (R34).
+
 ## The web view shows local time (R30)
 
 One absolute instant, two different conversions. R29 is the **input** side:
@@ -401,6 +452,10 @@ a language primitive, not the structure.
   (`REVIEW_ROUND5.md` §1). This is input-boundary work, not a runtime that
   "makes the system live": with no data, the system sleeps (R33). No
   concurrency framework, actor prerequisite or `IncomingBar` layer is implied.
+- **No bulk translation of ibOptions settings into types** — R34 keeps that
+  project as a requirements list only. A setting becomes a type or one field
+  when a real consumer appears (R26 / R32); none is queued as a task, and
+  none of its Python / pandas shape is ported.
 - **The catalogue tables' identities and relations** — deliberately open
   under R26, not a pending owner ruling. They get types when a consumer
   appears. The web-layer comparison (R24) and adoption (phase 04-05) are both
