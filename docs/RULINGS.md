@@ -1356,6 +1356,16 @@ ai记录的。然后你自己也判断一下，在这个层次关系中，有没
 Timeframe的field，brokerId不应该是Broker的field，而是都作为持有自己的那个
 type里面，dict的key，你可以看glib里面记录我设计思路的文档。"*
 
+**owner 补充（逐字，10:37）**：*"我举例说，你的左手不知道他是左还是右，同样，
+Timeframe不应该知道他是什么interval"*
+
+> **这个比喻就是身份法则的原型**：「左 / 右」是**外部观察者（持有者）给的
+> 方位标签**，不是手自身的属性；`interval` 是 `Instrument.timeframes`
+> 这个 Dict 的 key，是**持有者给的名字**，不是 `Timeframe` 自己知道的
+> 事实。`brokerId`（`Desk.brokers` 的 key）与 `Symbol`
+> （`Broker.instruments` 的 key）同理。谁持有，谁命名；被持有的值
+> 不携带自己的身份。
+
 > **R36 的升级**：R36 只记了「`Market` 与 `Broker` 双向都不隶属 → 否决」
 > 这个结论。owner 举这个例子是**教判断方法**，本条把判据补齐；R36 的
 > 结论不变，但不得再被读成「逐个猜关系」。
@@ -1379,7 +1389,8 @@ type里面，dict的key，你可以看glib里面记录我设计思路的文档�
   **持有自己的那个 type 里 Dict 的 key**：
   `Desk.brokers: Dict(BrokerId, Broker)`、`Instrument.timeframes:
   Dict(Interval, Timeframe)`（`Broker.instruments` 的 key 是 `Symbol`，
-  R22 / R23）。被持有的值**不命名自己的持有者**。
+  R22 / R23）。被持有的值**不命名自己的持有者**，也不知道自己的方位：
+  *"你的左手不知道他是左还是右"*（owner 10:37 逐字）。
 - **owner 指路的 glib 记录（记录的是他的设计思路；glib 不作实现依据，
   R33）**：
   - `~/gits/hub/tools_ib/glib/docs/NAMING.md:575-589`：*"the owner
