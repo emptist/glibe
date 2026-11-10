@@ -104,7 +104,15 @@ of the same `Timestamp` to the analyst's local wall clock (IANA/DST), R29 is the
   Timeframe 的 field、`brokerId` 不是 Broker 的 field；*"你的左手不知道
   他是左还是右"*。owner 指路：`glib/docs/NAMING.md:575-589`、
   `glib/docs/DESIGN.md` §18.2 `:3269-3299`（思路记录，非实现依据）。
-  判定法则，不改 `src/`。
+  判定法则（10:18–10:37 那轮不改 `src/`，非永久禁令）。
+**04-10 落地（owner 10:42 逐字：*"概念 -> type definition -> unit test ->
+implementation 完整链条"*）**：R33–R37 从 `docs/` 散文写进 `////` / `///`
+代码文档，模块文档命名 `04-10-PLAN.md`；**不新增 type**（现有链已是定义，
+R35 简单验证码）；`test/level_judgement_test.gleam` 6 测试 RED 68/2；
+`desk.timeframe_under` 三行 `result.try` 纯读取 GREEN 70/0。四笔提交。
+`desk.gleam` 里「Market 尚未定」旧句已更正为 R36 否决。新读取**不是**
+R33 作废的 `monitor.advance` 那层。不新增 type/field/关系/依赖，不碰目录表
+与 `monitor.gleam`，决策区 0 项。执行注记在 `docs/RULINGS.md` 文末。
 
 ## Measured facts
 - Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; **no `T(..)` form**;
@@ -124,6 +132,10 @@ of the same `Timestamp` to the analyst's local wall clock (IANA/DST), R29 is the
   (no async/await, no futures, no locks); actor = thin long-lived-state
   wrapper; supervisor = fault tolerance. Wisp 0 `process.` calls; glisten
   one process per connection; Lustre server runtime exactly one actor.
+- `package-interface.json`: `modules` is a **dict** name → module; a module's
+  `documentation` and a function's `documentation` are **lists of lines**, not
+  strings — join with `"\n"` before searching, or a keyword check falsely
+  reports the docs as missing/truncated (04-10 measured).
 - Tests: bool `assert … as "msg"`, `let assert` (never `panic`/`case Bool`);
   negative guard tests use `/tmp` fixtures, never broken real `src/`.
 
@@ -146,6 +158,13 @@ of the same `Timestamp` to the analyst's local wall clock (IANA/DST), R29 is the
   understanding in types; leave the un-thought-out in `todo`, never in `String`.
 
 ## Phase 04 status
+- **04-10（2026-11-10 10:42，当前）**：R33–R37 已按完整链条落进代码
+  （`////` / `///` → 不新增 type → 6 个测试 RED 68/2 → `timeframe_under`
+  纯读取 GREEN）。**70 tests 根包 + 4（probe）green**，`BUILD_WAE=0/0`、
+  FORMAT/DOCS/GUARDS/CMP 全 0，两包 `package-interface.json` 全文渲染含
+  04-10 链接。计划/结果 `04-10-PLAN.md` / `04-10-SUMMARY.md`，四笔提交
+  `3e7ac3b`→`7594beb`→`2d3aff9`→`44a8142`，文档同步 `5e750e5` /
+  `a0721a9`。工作树 clean，**未 push**。决策区 0 项。
 - **R33（2026-11-10，当前规格）**：系统本来就活，见上面 Rulings 段。
   04-08 的 `monitor.*` 与 04-09 的 `probes/parallel-bars/` **全部标为历史、
   非 owner 设计**（`////` / `///` 文档已更正；`src/` 生产代码未删，处置待
