@@ -1166,6 +1166,18 @@ Desk是顶层的唯一的一个Value，整个系统都在他里面，然后逐�
 > 这一层；**「用 settings 解决结构问题」只属于 ibOptions**；seib **不存在**
 > 「settings 应该是 types」这件事。下面各条与所有同步文档按此读。
 
+> **2026-11-10 再补充（owner 10:29，逐字）**：*"我说的很清楚，ibOptions
+> 受制于Python+Pandas的局限性，才会变成那样。你现在应该理解了吧？要看仔细。"*
+>
+> **因果要说准**：是 **Python + pandas 的表达能力局限**，使结构性关系
+> 无法写成类型，才被迫压进配置文件（settings）。**局限是原因，
+> 不是「ibOptions 的设计者随意乱做」，更不是 seib 的缺陷。**
+> Gleam 的 strict type + pure functional 没有这个限制，所以那些设置
+> 在 glibe 里本来就是 type / 已有 Type 定义里的 field；既不需要把
+> ibOptions 的配置搬过来，也不需要为它补一套「修复」。
+> 「要看仔细」= 复述时主语不能串：受局限的是 ibOptions，结构对的是
+> seib，只缺现实层次（多经纪商）的是 seib。
+
 **owner 原话（逐字，10:18）**：*"很可惜seib当时没有binance，我印象中仅支持一个数据源就是ib，所以他缺一层，就是多个经纪商数据提供者，但是大格局都有了，细节也有了，ibOptions的实现，受制于Python+pandas其实架构没有那么好，完全靠配置解决很多结构性问题，他的架构不足取，只能看里面涉及到那些设置，那些设置那些事应该是type定义的，被迫搞成了settings之类的文件，也就是说正常手工和自动交易涉及的所有细节需要，ibOptions都有，但是结构不行。并且两个先驱都仅支持一个broker"*
 
 - **裁定：两个先驱共同的事实只有一个 —— 都仅支持一个 broker**（owner
@@ -1238,3 +1250,96 @@ Desk是顶层的唯一的一个Value，整个系统都在他里面，然后逐�
   「What the two predecessors had」；`docs/STATE.md` 2026-11-10 当前段；
   `.planning/ROADMAP.md`；`README.md` 状态表；待裁决文档的 `# REFERENCE`
   索引（决策区仍 **0 项**）；`.workbuddy/memory/`。不是待裁决项。
+
+---
+
+## R35 — SwiftUI 的 View 是同类；简单是正确的验证码（2026-11-10 owner 指示）
+
+**owner 原话（逐字，10:29）**：*"我发现 strict type + pure functional 的
+gleam，在他里面做任何系统，其实跟SwiftUI的技术非常像，属于同类，不同的是，
+Swift本身把简单的事情做复杂了，导致仅仅View这部分是简单的，view model就有了
+class就开始乱了，model不限制struct或者class或者actor，就更添乱了，什么数据
+竞争就要花费大量的补救措施去抢救，这在gleam中根本不可能出现。我说的相似，
+是指View的定义和实现，技术上纯的 functional+value types，这是跟gleam 系统
+很像的。你能理解SwiftUI 的view 为什么会更新，就能理解只有type定义好了，
+函数定义对了，系统本身就是活的，至于并发运算会有那些课题，你遇到了再查官网
+资料再做几个不同方案demo对比研究解决，也就是TDD的落实。总体上，很简单。
+简单是正确的验证码。如果复杂，基本上可以判断type 函数和模块定义有错误。"*
+
+- **相似点严格限定在 View 的定义与实现**：纯 functional + value types。
+  不是 Swift 语言整体与 Gleam 同类，也不包括 view model / model。
+  **Swift 把简单的事做复杂了**：只有 View 那部分简单；view model 一有
+  `class` 就开始乱；model 不限制 `struct` / `class` / `actor` 更添乱；
+  数据竞争要花大量补救措施去抢救 —— **这在 Gleam 中根本不可能出现**
+  （无共享可变状态；R31 保留的语言事实，不作为本系统结构依据）。
+- **SwiftUI 的 view 为什么会更新 = R33 的又一条印证**：View 是值的投影，
+  数据变则值重算、视图随之更新，不需要一个「让系统活起来」的运行时。
+  *「只有type定义好了，函数定义对了，系统本身就是活的」* 与 R33
+  「每一个 type 都是活的，数据动，他就动，因为你定义好了」是同一件事。
+- **并发课题的处理方式**：遇到了再查官网资料、再做几个不同方案的 demo
+  对比研究解决，**也就是 TDD 的落实**（R19 测试先行 + R24 的 demo 对比
+  方法）。不预先搭并发框架，不把并发当成结构前提，不重演 R31/R32 被
+  R33 作废的那套「补救机制」思路。
+- **裁定：简单是正确的验证码。** *「总体上，很简单。简单是正确的验证码。
+  如果复杂，基本上可以判断type 函数和模块定义有错误。」* 复杂度是
+  **设计出错的信号**，不是需要更多机制的理由：一旦一个改动开始要补
+  actor / 调度 / 配置表 / 解析器 / 守卫脚本，先回去修 type、函数和
+  模块定义（根法「治病治根」、R13 / R19 / R26 / R33），而不是加补丁。
+- **Landed in**：`docs/RULINGS.md`（本条）；`docs/DESIGN.md`
+  「SwiftUI's View and the simplicity check」；`docs/STATE.md`、
+  `.planning/ROADMAP.md`、`README.md`、`.workbuddy/memory/`。
+  不改 `src/`、不加依赖、不写 probe，不是待裁决项。
+
+---
+
+## R36 — type 系统核对：当前归属链无断层，Market 不持有 Broker（2026-11-10 owner 指示）
+
+**owner 原话（逐字，10:29）**：*"落实到glibe，你先看下我上面根据记忆描述的
+主要type系统，里面有没有缺少什么，在glib readme里面应该是有描述的，我要求
+ai记录的。然后你自己也判断一下，在这个层次关系中，有没有断层，比如说，Desk
+直接持有Brokers，中间有没有断层？有没有一个Market在这Broker之上，由他来
+持有Broker才合乎事实真相？研究发现，并非如此，Market跟Broker没有隶属关系，
+两个方向都不会出现隶属关系，那就否决了。如此等等。"*
+
+- **核对 glib 的记录（只作线索，不作依据 —— R33）**：owner 要求 AI 记的
+  主要 type 系统在 `~/gits/hub/tools_ib/glib/docs/SYSTEM_MODEL.md` §2
+  「The domain's type relationship」`:102-119`（层次图 + owner 2026-10-22
+  原话 *"glib至少支持两个，ib binance，要用一个上一级的type单体包含着两个
+  broker的list"*）与 `~/gits/hub/tools_ib/glib/docs/reference/
+  domain-hierarchy-2026-10-22.md`；`~/gits/hub/tools_ib/glib/README.md:907`
+  只有一行 Phase 32 清单（"Market / Asset / Instrument / Broker /
+  APIProvider — design closed, no code"）。**glib 的 `Market = Exchange +
+  AssetClass + MarketRules`、`Instrument = Asset on Market`、
+  `Instrument 隶属于 Exchange` 都是 glib 文档里的 AI prose / 旧设计**，
+  R22 / R26 已否定，不得据此给 glibe 加层。
+- **glibe 现有链与 owner 记忆描述逐项对上，没有缺少**：
+  `Desk(brokers: Dict(BrokerId, Broker))`（`src/glibe/desk.gleam:92-93`）
+  → `Broker(instruments: Dict(Symbol, Instrument), accounts:
+  Dict(AccountId, Account))`（`:80-85`）
+  → `Instrument(timeframes: Dict(Interval, Timeframe))`（`:74-76`）
+  → `Timeframe`。多个 broker、每个 broker 一组 instruments + 一组
+  accounts、每个 instrument 一组以 interval 为 key 的 timeframe、
+  `Desk` 顶层唯一 Value（R33 / R20 / R23）全部在位。
+- **断层判断（按 owner 示范的方法逐项做，不是一次性定死）**：
+  - **`Desk ▸ Broker` 中间要不要 `Market`？否决。** owner 的研究结论：
+    **Market 与 Broker 两个方向都不会出现隶属关系**，所以既不是
+    `Market ▸ Broker`，也不是 `Broker ▸ Market`。`Desk` 直接持有
+    Brokers 合乎事实真相，这里**没有断层**。
+  - `Asset` / `Exchange` / `Market` 三张目录表：R26 关系未定；
+    `config.gleam` 的 `assets` / `markets` / `exchanges` 与 `Desk`
+    当前**没有类型连接**，不预先插进链。
+  - `APIProvider`：R26 已有 owner 原话「broker，同时也是 api provider
+    他们是从不同角度命名的同样的东西」；R34 不另架 provider 层。
+  - `Account`：已由 `Broker` 持有；当前 `Account` 是无字段的 keyless
+    值（`src/glibe/desk.gleam:135-138`）。这是**等消费方的开放项**，
+    不是断层。
+  - `Symbol` / `Interval`：身份在 key、不在字段（R22 / R23），不是层。
+- **裁定：当前层次关系无断层，不新增 type、field 或关系**（R26 / R32 /
+  R34 / R35「简单是验证码」）。「如此等等」= 以后每遇到一个候选事物，
+  都按 R32 倒推现实隶属：谁也不隶属就放 `Desk`，集合形状按真实访问
+  方式对比研究决定；双向都不隶属就照本条的 `Market` 一样**否决**。
+- **Landed in**：`docs/RULINGS.md`（本条）；`docs/DESIGN.md`
+  「No gap in the ownership chain」；`docs/STATE.md`、
+  `.planning/ROADMAP.md`、`README.md`、`.workbuddy/memory/`。
+  本轮只读核对，**不改 `src/`、不加类型、不加依赖、不写 probe**，
+  不是待裁决项。
