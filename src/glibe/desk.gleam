@@ -75,6 +75,7 @@
 //// compiled interface — not prose kept somewhere else that nobody reads.
 
 import gleam/dict.{type Dict}
+import gleam/result
 import glibe/api/interval.{type Interval}
 import glibe/api/symbol.{type Symbol}
 import glibe/timeframe.{type Timeframe}
@@ -286,5 +287,7 @@ pub fn timeframe_under(
   symbol: Symbol,
   interval: Interval,
 ) -> Result(Timeframe, LookupError) {
-  todo as "04-10 step 4: follow the three holders' keys down to the timeframe"
+  use broker <- result.try(get_broker(desk, broker_id))
+  use instrument <- result.try(get_instrument(broker, symbol))
+  get_timeframe(instrument, interval)
 }
