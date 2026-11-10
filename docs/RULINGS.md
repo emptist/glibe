@@ -1343,3 +1343,68 @@ ai记录的。然后你自己也判断一下，在这个层次关系中，有没
   `.planning/ROADMAP.md`、`README.md`、`.workbuddy/memory/`。
   本轮只读核对，**不改 `src/`、不加类型、不加依赖、不写 probe**，
   不是待裁决项。
+
+---
+
+## R37 — 主干层要有上下两个隶属关系；依附 ≠ 隶属；身份在持有者的 Dict key（2026-11-10 owner 指示）
+
+**owner 原话（逐字，10:34）**：*"我举例Desk Market Broker，目的是教你如何思考，
+如何处理系统的type架构，意思是有层次关系的那些types，构成层次关系某一层的type
+必须是跟上下级之间存在两个隶属关系的type其他type不属于这个主干，他们依附于
+某一个type，但是不是隶属关系，如果不依附任何type就放在Desk这个顶级type里面，
+因为他至少属于我们系统吧，所以Desk可以持有他。至于为啥interval不应该是
+Timeframe的field，brokerId不应该是Broker的field，而是都作为持有自己的那个
+type里面，dict的key，你可以看glib里面记录我设计思路的文档。"*
+
+> **R36 的升级**：R36 只记了「`Market` 与 `Broker` 双向都不隶属 → 否决」
+> 这个结论。owner 举这个例子是**教判断方法**，本条把判据补齐；R36 的
+> 结论不变，但不得再被读成「逐个猜关系」。
+
+- **裁定：层次主干的判据。** 构成层次关系某一层的 type，**必须同时与
+  上下级存在两个隶属关系** —— 既隶属于上层，又拥有下层。
+  `Desk ▸ Broker ▸ Instrument ▸ Timeframe` 每层都满足；`Market` 与
+  `Broker` 两个方向都不隶属，所以它不是主干的一层（R36 的否决由此
+  得出，不是靠感觉）。
+- **裁定：非主干 type 只有两种去处，且「依附」不等于「隶属」。**
+  - **依附于某一个 type、但不是隶属关系** → 附着在该 type 上，
+    **不插进上下级之间、不成为新的一层**。
+  - **不依附任何 type** → 放在 `Desk` 这个顶级 type 里：
+    *"因为他至少属于我们系统吧，所以Desk可以持有他"*。这给 R32
+    「谁也不隶属就放 `Desk`」补上了理由。
+  - 依附只是附着，**不产生层级**；不能因为一个 type 与某层有关就把
+    它塞进主干。`Asset` / `Exchange` / `Market` 等具体归属仍按 R26
+    等真实消费方逐个定，本条**不预先判定它们放哪**。
+- **裁定：身份属于持有者，不属于被持有者。** `interval` 不是
+  `Timeframe` 的 field、`brokerId` 不是 `Broker` 的 field；它们是
+  **持有自己的那个 type 里 Dict 的 key**：
+  `Desk.brokers: Dict(BrokerId, Broker)`、`Instrument.timeframes:
+  Dict(Interval, Timeframe)`（`Broker.instruments` 的 key 是 `Symbol`，
+  R22 / R23）。被持有的值**不命名自己的持有者**。
+- **owner 指路的 glib 记录（记录的是他的设计思路；glib 不作实现依据，
+  R33）**：
+  - `~/gits/hub/tools_ib/glib/docs/NAMING.md:575-589`：*"the owner
+    holds what it owns, and the owned never names its owner"*；
+    `Instrument` 没有 `broker` 字段、`Timeframe` 没有 `instrument` /
+    `interval` 字段；*"A collection is not an owner-pointer"* ——
+    `Desk.brokers` 是 broker 的集合，`Dict(Interval, Timeframe)` 的
+    key 是 interval 的家，**不是 `Timeframe` 上某个字段的副本**。
+  - `~/gits/hub/tools_ib/glib/docs/DESIGN.md` §18.2 `:3269-3299`：
+    owner 2026-11-04 逐字 *"I used 'list' for easy of expression, in fact
+    they could use dictionary or any collections that are most fit to the
+    requirements, for example, instrument with a dictionary of timeframes
+    using interval as key"*；每层集合按**真实访问方式**选：
+    `Broker → instruments` 按 symbol 查找、`Instrument → timeframes`
+    按 interval 查找、`Timeframe → bars` 是 newest-first 的历史序列。
+  - **形状差别要说清**：glib 文档把 `Desk → brokers` 写成
+    `List(Broker)`；glibe 是 `Dict(BrokerId, Broker)`（R32「集合形状
+    按真实访问方式对比研究决定」）。**不是从 glib 搬来的**。
+- **落地现状（无需改动）**：`src/glibe/desk.gleam:74-76`、
+  `:80-85`、`:92-93` 已经是这个形状；`Timeframe` 不带 `interval` /
+  `symbol` / `market_type`，`Broker` 不带 `broker_id`（R23）。
+- **执行边界**：这是**思考与判定的法则**，不是一次重构：本轮不新增
+  type、不改 `src/`、不加依赖、不写 probe、不动现有 key，
+  不新增待裁决项。它同时是 R35「简单是验证码」的具体用法 ——
+  主干关系清楚，就不需要中间层或补救机制。
+- **Landed in**：`docs/RULINGS.md`（本条）；`docs/DESIGN.md`
+  「How to judge a level of the chain」；`docs/STATE.md`、
+  `.planning/ROADMAP.md`、`README.md`、`.workbuddy/memory/`。
