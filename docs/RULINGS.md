@@ -1419,3 +1419,36 @@ Timeframe不应该知道他是什么interval"*
 - **Landed in**：`docs/RULINGS.md`（本条）；`docs/DESIGN.md`
   「How to judge a level of the chain」；`docs/STATE.md`、
   `.planning/ROADMAP.md`、`README.md`、`.workbuddy/memory/`。
+  **10:42 起已按 04-10 落入代码文档 / 测试 / 实现，见下方执行注记。**
+
+---
+
+## 2026-11-10 10:42 — 这些裁定的落地方式（执行注记，非新裁定）
+
+**owner 原话（逐字）**：*"这些逻辑，需要在设计module以及type的时候，用gleam
+document的规矩，写进代码文档，之后是unit test 以及填充实际代码完成 test，
+形成 概念 -> type definition -> unit test -> implementation 完整链条"*
+
+- **本注记不是新裁定**，是 R19 的执行记录：R33 / R34 / R35 / R36 / R37
+  （连同 R26）从 `docs/` 散文进入**代码文档**，并走完
+  `概念 → type definition → unit test → implementation`。执行计划是
+  `.planning/phases/04-domain-cleanup/04-10-PLAN.md`，结果在
+  `.planning/phases/04-domain-cleanup/04-10-SUMMARY.md`。
+- **上文 R34 / R35 / R36 / R37 里的「本轮不改 `src/`」「本轮只读核对」
+  「不重构 `src/`」等执行边界，只描述 2026-11-10 10:18–10:37 的裁定
+  记录轮次**，不是对后续写代码的永久禁令。10:42 起按 owner 明示同时改
+  `src/` 与 `test/`。四条裁定的**内容没有变化**。
+- **落点**：`src/glibe/desk.gleam`（R33 / R34 / R36 / R37 的 `////`、
+  各 type / function 的 `///`，新增纯读取 `timeframe_under`）、
+  `src/glibe/config.gleam`（R34）、`src/glibe/timeframe.gleam`、
+  `src/glibe/api/symbol.gleam`、`src/glibe/api/interval.gleam`（R37）、
+  `src/glibe/web/server.gleam`（R35）；`test/level_judgement_test.gleam`
+  六个断言固定 R34 / R36 / R37 的可执行事实。`gleam docs build` 生成的
+  `package-interface.json` 已核对：六个模块的 `////` 与 `timeframe_under`
+  的 `///` 完整渲染，均带 04-10 计划链接，无 `//` 截断。
+- **边界未变**：不新增 type / field / relation，不加依赖，不碰三张目录表，
+  不改 `monitor.gleam`，不预设 `Asset` / `Exchange` / `Market` 关系，
+  决策区仍 **0 项**。`desk.timeframe_under` 是纯读取，不是 R33 否决的
+  `monitor.advance` / `TimeframeAddress` / `IncomingBar` / `MonitorError`。
+  真正待做的工作仍是「把各数据源的实时到达接到标准 `SourceBar` 入口」
+  与 replay CLI。
