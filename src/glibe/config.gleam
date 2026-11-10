@@ -22,18 +22,24 @@
 //// and types are added one at a time when a consumer actually needs one.
 //// See `docs/RULINGS.md` R26 and the 04-03 plan's out-of-scope section.
 ////
-//// **R34 (2026-11-10): the layer both predecessors lacked is HERE.** Both
-//// seib and ibOptions had ONE broker. seib's structure was right — *"大格局
-//// 都有了，细节也有了"* — and lacked only the layer of multiple brokers / data
-//// providers. `default_config()` builds `binance` / `ib` / `futu` into
+//// **R34 (2026-11-10): the layer both predecessors lacked is HERE.** They are
+//// TWO ENTIRELY DIFFERENT THINGS (owner 11:10, verbatim *"seib和iboptions
+//// 完全两码事"*). **seib is CoffeeScript — the owner's own system design**:
+//// it has NO Python + pandas limitation and no "cannot tell types apart"
+//// problem. Its structure was right — *"大格局都有了，细节也有了"* — and it
+//// lacked only the layer of multiple brokers / data providers. **ibOptions was
+//// a workaround for the language** (*"为了迁就语言凑合的"*): Python + pandas
+//// could not express structural relations as types, so they were flattened
+//// into `settings*.py` files. It is 五脏俱全 (every manual and automated
+//// trading detail is there) but *"都不对劲"* — unsound throughout, not just
+//// structurally. `default_config()` builds `binance` / `ib` / `futu` into
 //// `Desk(brokers: Dict(BrokerId, Broker))`; no provider type, no provider
-//// framework and no extra level is introduced. ibOptions' architecture is
-//// NOT adopted: Python + pandas could not express structural relations as
-//// types, so they were flattened into `settings*.py` files. It is a
-//// requirements list only — read which settings exist, and express each as a
-//// type or one field of an existing type when a real consumer needs it
-//// (R26 / R32). No settings table, string key or parser is imported here.
-//// `default_config()` is Gleam source, so there is nothing to parse.
+//// framework and no extra level is introduced. ibOptions is a requirements
+//// list only — read which settings exist, and express each as a type or one
+//// field of an existing type when a real consumer needs it (R26 / R32). No
+//// settings table, string key or parser is imported here; `default_config()`
+//// is Gleam source, so there is nothing to parse. The only thing the two
+//// predecessors share is numeric: one broker each.
 ////
 //// **R37: why `desk` is a value and the catalogues are not in it.** A level
 //// of the chain has TWO ownership relations; the three catalogue lists

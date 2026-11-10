@@ -59,12 +59,16 @@
 //// function and module definitions instead: *"简单是正确的验证码"* (R35).
 ////
 //// **The layer both predecessors lacked (R34).** seib and ibOptions each had
-//// ONE broker. seib's structure was right and lacked only the layer of
-//// multiple brokers / data providers; `Desk(brokers: Dict(BrokerId, Broker))`
-//// with `binance` / `ib` / `futu` in `config.default_config()` IS that layer.
-//// No provider framework is added. ibOptions is a requirements list only —
-//// its settings were flattened types because Python + pandas could not
-//// express structural relations. Nothing is imported from it here.
+//// ONE broker — the only thing they share, and they are *"完全两码事"*
+//// (owner 11:10). **seib is CoffeeScript, the owner's own system design**: no
+//// Python + pandas limitation, no "cannot tell types apart" problem. Its
+//// structure was right and lacked only the layer of multiple brokers / data
+//// providers; `Desk(brokers: Dict(BrokerId, Broker))` with `binance` / `ib`
+//// / `futu` in `config.default_config()` IS that layer. No provider framework
+//// is added. **ibOptions was a workaround for Python + pandas**, 五脏俱全
+//// but *"都不对劲"* (*"为了迁就语言凑合的"*): structural relations could
+//// not be types, so its settings were flattened types. A requirements list
+//// only; nothing is imported from it here.
 ////
 //// This module was written documentation-first (R19): `////` naming the
 //// `.planning` item, types, `///` + annotated signatures + `todo` bodies,
