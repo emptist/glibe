@@ -1052,3 +1052,68 @@ owner 原话（逐字）：*"结构复述正确，不过这是一个花园，不
   `README.md`；`src/glibe/monitor.gleam` 与
   `probes/parallel-bars/src/parallel_bars.gleam` 的 `////` 模块文档；
   `04-09-PLAN.md` / `04-09-SUMMARY.md` 顶部的日期更正注记。不是待裁决项。
+
+---
+
+## R33 — 系统本来就是活的：Desk 是唯一顶层 Value，每个 type 随数据而动（2026-11-10 owner 指示）
+
+**owner 原话（逐字，09:57）**：*"说到live，那glib不是实现实时数据了吗？图形是可以根据数据更新的。因为我的设计里面本来就是活的呀，api provider / data sources ... -> history + live data ... -> sourcebar_gate  -> databar_processing -> model <-> view 你看这不是活的吗？
+Desk是顶层的唯一的一个Value，整个系统都在他里面，然后逐层嵌套，形成完整系统，你的系统结构好像搞错了，所以非常混乱。什么monitor.advance 哪有这些type，你的设计思路停留在非Gleam非functional非type的其他语言和架构体系中，完全不是seib一路下来到glibe到系统思路。
+在Gleam世界里面，你唯一要做的就是定义types，基本结构对了，什么都有了，哪有那些乱七八糟的概念和复杂混乱的关系。我还觉得很奇怪你用actor做什么，原来是结构都没设计对。"*
+
+**owner 原话（逐字，09:59）**：*"也不是“每一个叶子活起来”，叶子在这个系统中是特指 YinLeaf, YangLeaf 不要乱用。其实是每一个type都是活的，数据动，他就动，因为你定义好了的。"*
+
+**owner 原话（逐字，10:04）**：*"glib做的不一定对，他可能仅仅记录了我的设计，以及他的计划，不一定已经落实，已经有的不一定对，因为他跟你一样，都是满脑子乱七八糟的混乱东西，训练给他投毒的那些垃圾材料。"*
+
+- **裁定：系统本来就是活的，没有「把系统变活」这一步。** 流向是 owner 给出的
+  固定管道：`api provider / data sources → history + live data →
+  sourcebar_gate → databar_processing → model ↔ view`。history 与 live 是
+  **同一条数据流**，不是两套机制；`model` 变了，`view` 就是它的投影。
+  「实时」不是额外搭建的运行时，而是这根管道在收到数据时本来就会发生的事。
+  **每一个 type 都是活的：数据动，它就动，因为 type 定义好了**（owner 逐字）。
+  这是纯函数式的「值随数据重算」，不是进程活着、不是 actor、不是订阅、
+  不是调度，也不是「让叶子活起来的运行时」。
+- **裁定：Desk 是顶层唯一的一个 Value。** 整个系统都在它里面，逐层嵌套形成
+  完整系统：`Desk ▸ Broker ▸ Instrument ▸ Interval ▸ Timeframe`（R20/R23），
+  Broker 另有一组 `accounts`。`config.default_config()` 就是这一个 Value。
+  **在 Gleam 世界里唯一要做的就是定义 types，基本结构对了，什么都有了**
+  （owner 逐字）。R19 的 type-first / 文档先行是这条的根法，不是补充手段。
+- **`monitor.gleam` 的那一层不是这个系统的 type。** `monitor.advance`、
+  `TimeframeAddress`、`IncomingBar`、`MonitorError` 是我从
+  「非 Gleam、非 functional、非 type」的其他语言架构里带进来的外来概念
+  （owner 逐字）：把一根 bar 包装成带地址的消息、再写一个函数去「推进」
+  一个 Value，是把命令式调度 / 消息路由套在纯值系统上。owner 明确
+  *"什么monitor.advance 哪有这些type"*。**「我用 actor 做什么」的答案也在
+  这里：结构没设计对，才会去找一套外部并发机制来补救**（owner 逐字）。
+  这些 type 的处置（删除或改造）由 owner 定；在定之前不得把它们当成
+  系统结构的依据，也不得以它们为前提继续加机制。
+- **词汇：「叶子」特指 `YinLeaf` / `YangLeaf`。** 两个构造器在
+  `src/glibe/leaf.gleam:25-28`（glib 同形），是 bar 所属的阴阳叶。
+  不得把 `Timeframe`、结构末端或「每个并行单元」称作 leaf / 叶子。
+  此前 R31 / R32 及 DESIGN / STATE / ROADMAP / PENDING / 模块文档里
+  所有这类用法作废并纠正。
+- **glib 不是权威。** *"glib做的不一定对，他可能仅仅记录了我的设计，以及
+  他的计划，不一定已经落实，已经有的不一定对"*（owner 逐字）。glib 的
+  源码与文档只是另一个模型的产物，**不得作为「设计已落实」或「设计正确」
+  的证据**；它记录的可能是计划。此前 R32 / STATE / ROADMAP / 记忆里
+  「glib 核实：四类型链已落地」这类断言一律降级为「读过 glib，不作依据」。
+  **唯一权威是 owner 的当前陈述**（见本文件首条权威顺序）。seib → glib →
+  glibe 是思路的沿革，不是正确性的证明链。
+- **作废清单**：R31 的「并发 = `process.spawn` + 类型化 `Subject` 让结构
+  活起来」作为**设计结论**作废（官网 / v0.12 的语言事实与 `gleam_otp`
+  事实更正仍成立，但它们不描述这个系统的结构）；R32 的「每一个
+  Timeframe 都活着 / 花盆自己的生命 / 让叶子活起来的运行时」措辞作废；
+  04-08 的 `monitor.advance` 作为「系统缺的一步」这一论断作废；
+  04-09 `probes/parallel-bars/` 已在 R32 作废，此处进一步确认它既非
+  结构实证也非设计实证。**R32 仍然成立的部分**：花园、加一个新事物
+  = 在已有 Type 定义里加一个 field、位置靠倒推隶属、集合形状对比研究
+  决定、R26 不预设层级。R20 / R23 / R27 / R28 / R30 不受影响。
+- **范围**：Erlang / BEAM 专属项目（owner 2026-11-09 06:09）不变。
+  本轮只记录裁定、撤回错误结论、清理词汇：**不删生产代码、不新增
+  type、不写 probe、不加依赖**。
+- **Landed in**：`docs/RULINGS.md`（本条）；`docs/DESIGN.md`
+  「The system is already live」；`docs/STATE.md` 2026-11-10；
+  `.planning/ROADMAP.md`；`README.md`；`docs/PENDING_DECISIONS.md`
+  （仅 `# REFERENCE`）；`src/glibe/monitor.gleam` 的 `////` 模块文档；
+  `04-08-PLAN.md` / `04-08-SUMMARY.md` / `04-09-PLAN.md` /
+  `04-09-SUMMARY.md` 顶部的日期更正注记。不是待裁决项。
