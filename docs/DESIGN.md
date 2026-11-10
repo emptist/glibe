@@ -98,6 +98,15 @@ plan and measurements: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`.
 
 ## What the two predecessors had (R34)
 
+> **Owner correction 2026-11-10, 10:26, verbatim:** *"注意我说的seib的结构
+> 是对的，ibOptions结构不好，用settings解决结构问题，按照你的复述，可就
+> 变成了seib也不对，他的settings也应该是types。这就乱了。"*
+>
+> The first draft of this section treated the two predecessors as sharing
+> one defect. That was wrong. **seib's structure was RIGHT** — its only gap
+> was the layer of multiple brokers / data providers. **Only ibOptions has
+> the settings-instead-of-types problem**; seib has no such defect.
+
 Owner 2026-11-10, verbatim: *"很可惜seib当时没有binance，我印象中仅支持一个
 数据源就是ib，所以他缺一层，就是多个经纪商数据提供者，但是大格局都有了，
 细节也有了"*；*"ibOptions的实现，受制于Python+pandas其实架构没有那么好，
@@ -105,27 +114,38 @@ Owner 2026-11-10, verbatim: *"很可惜seib当时没有binance，我印象中仅
 那些设置那些事应该是type定义的，被迫搞成了settings之类的文件 … 但是结构
 不行。并且两个先驱都仅支持一个broker"*.
 
-- **Both predecessors had ONE broker / data source.** seib had no Binance
+- **The one fact they share: both had ONE broker.** seib had no Binance
   (the owner's "我印象中" is kept as he said it: IB only); ibOptions likewise.
-  What was missing is a whole **layer of multiple brokers / data providers**,
-  not a missing detail — he says the big picture and the details were already
-  there. This is a structural assessment, not an endorsement: seib → glib →
-  glibe is a lineage of ideas, not a proof of correctness (R33), and neither
-  predecessor's code is authority.
-- **ibOptions is a requirements list, not an architecture.** Python + pandas
+  **Their structure is NOT judged alike:**
+  - **seib's structure was right** — *"大格局都有了，细节也有了"* (owner,
+    verbatim). Its only gap was the **layer of multiple brokers / data
+    providers**: with just one data source, that layer had not appeared in
+    reality yet. This is a missing layer, **not a structural error**.
+    seib had **no** "settings should have been types" problem; that criticism
+    must never be extended to it.
+  - **ibOptions's structure was not good** (the two bullets below), and it
+    too had a single broker.
+  - R33 still holds: seib → glib → glibe is a lineage of ideas, not a proof
+    of correctness, and predecessor code is not authority. That seib's
+    structure was right comes from the owner's statement, not from reading
+    seib's code.
+- **ibOptions only — a requirements list, not an architecture.** Python + pandas
   pushed structural questions into configuration. Everything a normal manual
   or automatic trading workflow needs is in there, so read it for *which
   settings exist*; do not port its classes, config files, module layout or
   pandas-shaped thinking, and do not use it as evidence that a design is
   right or landed.
-- **A setting is a type that was flattened.** Those settings should have been
+- **ibOptions only — a setting is a type that was flattened; seib has no
+  such defect.** Those settings should have been
   type definitions; in glibe a real thing is a type, and an aspect of an
   existing thing is **one field in that type's definition** (R32 / R26). No
   universal config table, string key, parser or `list.find` accessor stands
   in for the missing relation (R13 / R19 / R21 / R23). `config.gleam` is a
   Gleam value (`AppConfig` + `default_config()`), not an external settings
   file.
-- **The layer they lacked already exists here.** `Desk(brokers:
+- **The layer seib lacked already exists here.** This adds that layer; it
+  does **not** repair seib's structure and does **not** import ibOptions's
+  settings. `Desk(brokers:
   Dict(BrokerId, Broker))` (`src/glibe/desk.gleam:92-93`), with
   `Broker(instruments: …, accounts: …)` and `config.default_config()`
   building `binance` / `ib` / `futu` (`src/glibe/config.gleam:87-101`).
@@ -138,8 +158,8 @@ Owner 2026-11-10, verbatim: *"很可惜seib当时没有binance，我印象中仅
   real consumer appears. The remaining work is still the input boundary
   (each provider's real-time arrival → standard `SourceBar`) and the replay
   CLI (R33). R34 changed no `src/` file, added no dependency and wrote no
-  probe. Full verbatim words, the read-only checks and the R29 qualification
-  are in `docs/RULINGS.md` R34.
+  probe. Full verbatim words, the 10:26 correction, the read-only checks and
+  the R29 qualification are in `docs/RULINGS.md` R34.
 
 ## The pipeline
 
