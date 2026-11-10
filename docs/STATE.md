@@ -4,7 +4,16 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-10 (phase 04-09 — BEAM 并行实测 / R31，当前状态)
+## 2026-11-10 (R32 — 结构是花园；当前状态)
+
+- owner 09:45 逐字裁定：*"结构复述正确，不过这是一个花园，不断根据需要往里面加新的花盆。实际上就是在Type定义中加新field而已 … 那就倒推他和其他type现实中什么关系呢？隶属于谁呢？如果谁也不隶属，是其他关系，那么可能放在Desk里面就好了，那么用dict还是list还是其他东西放呢？根据需要来对比研究决定。"* 全文在 `docs/RULINGS.md` R32。
+- **结构确认**：`Desk` 只有一个；Desk 里若干 Broker（binance、ib）；每个 Broker 有一组 `Instruments` 和一组 `accounts`；每个 `Instrument` 有 `Dict(Interval, Timeframe)`；**每一个 Timeframe 都活着**，各自处理数据、进行交易。glibe `src/glibe/desk.gleam:74-94` 已有这条静态链，`config.gleam:75-101` 建了 3 broker × 3 品种 × 2 周期。
+- **glib 核实**：`glib/src/glib/desk.gleam:11-13`、`broker.gleam:29-34`、`domain/instrument.gleam:76-82` 已落地同一四类型链（含 `accounts` 与 `Dict(Interval, Timeframe)`），`55-02-SUMMARY.md` 标 done；`glib/docs/DESIGN.md:3264-3286` 逐字记了 owner 2026-11-04 的 "instrument with a dictionary of timeframes using interval as key"。但 glib 是 `target = "javascript"`，其 `.planning/HANDOFF-2026-11-03.md:297-305` 自承 runtime 是 single-stream walls，「每个 Timeframe 活着」**未做到**。
+- **撤回 04-09 的错误结论**：`probes/parallel-bars/` 把一份 `Desk` 复制进 6 个进程、返回 6 份 partial `Desk`；由此写出的「0/6 合并 / 所有权决定」是伪问题。R31 该段、`docs/DESIGN.md` 04-09 节、`04-09-SUMMARY.md` §4、README / ROADMAP / PENDING 的相应结论作废；官方 BEAM 证据与 `gleam_otp` 事实更正保留。probe 留作带 `////` 作废注记的历史实验。
+- **当前缺口**：静态链已有，运行时还没有让任何一个 `Timeframe` 活起来（无进程、无行情流、无交易输出）。按 R32 这是往类型里加 field 的正常生长，不是新框架；按 R26 等真实消费方，本轮**不新增生产类型、不改 `src/` 逻辑、不写新 probe**。
+- `docs/PENDING_DECISIONS.md` 决策区仍 0 项。
+
+## 2026-11-10 (phase 04-09 — BEAM 并行实测 / R31，历史记录；结论见 R32 作废)
 
 - 按 `.planning/phases/04-domain-cleanup/04-09-PLAN.md` §4 复工；范围严格
   **Erlang / BEAM**（owner 06:09）。

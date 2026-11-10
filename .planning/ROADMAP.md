@@ -381,3 +381,27 @@ Lustre（服务端 runtime 恰一个 actor + factory supervisor）的 file:line 
 `gleam_otp` 早已是根包直接依赖，已纠正「没引入」的错误说法。
 决策区仍 0 项；历史计划/总结保留旧措辞。详见
 `.planning/phases/04-domain-cleanup/04-09-SUMMARY.md`。
+**2026-11-10 更正（R32）**：本条「0/6 合并 / 所有权决定」的结论作废 —— 该 probe
+复制了 `Desk`，而真实结构里 Desk 只有一个。
+
+## Phase 04 Plan 09 更正 / R32 — 结构是花园（2026-11-10，当前）
+
+owner 09:45：*"结构复述正确，不过这是一个花园，不断根据需要往里面加新的花盆。实际上就是在Type定义中加新field而已 … 那就倒推他和其他type现实中什么关系呢？隶属于谁呢？如果谁也不隶属，是其他关系，那么可能放在Desk里面就好了，那么用dict还是list还是其他东西放呢？根据需要来对比研究决定。"* 逐字全文在 `docs/RULINGS.md` R32。
+
+- **结构**：一个 `Desk` → 若干 Broker（binance、ib）→ 每个 Broker 有
+  `Instruments` 与 `accounts` → 每个 `Instrument` 有 `Dict(Interval, Timeframe)`
+  → **每个 Timeframe 都活着**，处理数据、进行交易。并发不是外部机制，是花盆
+  自己的生命；没有 N 份 `Desk`、没有合并。
+- **方法**：加一个新事物 = 在已有 Type 定义里加一个 field；位置靠倒推「现实中
+  隶属于谁」，谁也不隶属就放 `Desk`（`exchanges` 是 owner 的例子）；集合用
+  `Dict` / `List` / 其他，按真实访问方式对比研究决定。R26 仍成立：不预先把
+  `Asset` / `Exchange` / `Market` 塞进链里。
+- **glib 核实**：四类型链与 `accounts` / `Dict(Interval, Timeframe)` 已在
+  glib 源码落地（`desk.gleam:11-13`、`broker.gleam:29-34`、
+  `domain/instrument.gleam:76-82`），但 glib 是 JS target，运行时仍是
+  single-stream，「每个 Timeframe 活着」未做到。
+- **撤回**：04-09 的 `probes/parallel-bars/` 形状错误（复制 `Desk`），其
+  「0/6 合并 / 所有权」结论及写进 R31、DESIGN、README、STATE、PENDING 的
+  相应框架作废；官方 BEAM 证据保留。probe 保留为带作废注记的历史实验。
+- 本轮只记录裁定与撤回，**不加生产类型、不改 `src/` 逻辑、不写新 probe**；
+  决策区仍 0 项。让叶子活起来的运行时是后续按 R32「加 field」的按序工作。
