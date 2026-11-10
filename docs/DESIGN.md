@@ -56,6 +56,35 @@ api provider / data sources  →  history + live data  →  sourcebar_gate
   is void. The garden method (one new field, placed by real ownership, R26)
   still stands. See `docs/RULINGS.md` R33.
 
+## SwiftUI's View and the simplicity check (R35)
+
+Owner 2026-11-10, verbatim (full words in `docs/RULINGS.md` R35): *"我说的
+相似，是指View的定义和实现，技术上纯的 functional+value types"*；
+*"你能理解SwiftUI 的view 为什么会更新，就能理解只有type定义好了，函数定义
+对了，系统本身就是活的"*；*"总体上，很简单。简单是正确的验证码。如果复杂，
+基本上可以判断type 函数和模块定义有错误。"*
+
+- **The resemblance is ONLY the View's definition and implementation** —
+  pure functional + value types. It is not Swift as a whole: Swift made
+  simple things complicated, so only the View part is simple; a `class` in
+  the view model starts the mess, an unrestricted `struct` / `class` /
+  `actor` model adds more, and data races then need a mass of rescue
+  machinery — **which cannot occur in Gleam at all** (R31's BEAM language
+  facts stand; they still do not describe this system's structure).
+- **Why a SwiftUI view updates is why this system is live (R33)**: a view is
+  a projection of values; data changes → values recompute → the view
+  follows. Types right + functions right is the whole job. No runtime, no
+  actor, no step that "makes the system live".
+- **Concurrency topics are met, not pre-built**: when one is actually
+  encountered, read the official docs and compare a few different demo
+  solutions — TDD put into practice (R19 / R24). No concurrency framework
+  ahead of a real problem.
+- **Simplicity is the correctness checksum.** If a change becomes
+  complicated, the type / function / module definitions are almost
+  certainly wrong: go back and fix the definitions (root law, R13 / R19 /
+  R26 / R33) instead of adding actors, schedulers, config tables, parsers
+  or guard scripts.
+
 ## The one idea
 
 glib's own docs say a module should hold one class, and say `timeframe.gleam` is
@@ -129,8 +158,11 @@ Owner 2026-11-10, verbatim: *"很可惜seib当时没有binance，我印象中仅
     of correctness, and predecessor code is not authority. That seib's
     structure was right comes from the owner's statement, not from reading
     seib's code.
-- **ibOptions only — a requirements list, not an architecture.** Python + pandas
-  pushed structural questions into configuration. Everything a normal manual
+- **ibOptions only — a requirements list, not an architecture.** Owner 10:29,
+  verbatim: *"ibOptions受制于Python+Pandas的局限性，才会变成那样"* — the
+  **limitation of Python + pandas is the cause**: structural relations could
+  not be expressed as types, so they were forced into configuration files.
+  That is not a careless design, and it is **not seib's defect**. Everything a normal manual
   or automatic trading workflow needs is in there, so read it for *which
   settings exist*; do not port its classes, config files, module layout or
   pandas-shaped thinking, and do not use it as evidence that a design is
@@ -160,6 +192,53 @@ Owner 2026-11-10, verbatim: *"很可惜seib当时没有binance，我印象中仅
   CLI (R33). R34 changed no `src/` file, added no dependency and wrote no
   probe. Full verbatim words, the 10:26 correction, the read-only checks and
   the R29 qualification are in `docs/RULINGS.md` R34.
+
+## No gap in the ownership chain (R36)
+
+Owner 2026-11-10, verbatim: *"然后你自己也判断一下，在这个层次关系中，有没有
+断层，比如说，Desk直接持有Brokers，中间有没有断层？有没有一个Market在这
+Broker之上，由他来持有Broker才合乎事实真相？研究发现，并非如此，Market跟
+Broker没有隶属关系，两个方向都不会出现隶属关系，那就否决了。如此等等。"*
+
+The owner asked for two things: check his remembered type system against the
+record he had AI write down in glib, then check the chain for **gaps**.
+
+- **The glib record is a clue, not authority (R33).**
+  `~/gits/hub/tools_ib/glib/docs/SYSTEM_MODEL.md` §2 (`:102-119`) holds the
+  hierarchy diagram and his 2026-10-22 words *"glib至少支持两个，ib binance，
+  要用一个上一级的type单体包含着两个broker的list"*; the fuller record is
+  `~/gits/hub/tools_ib/glib/docs/reference/domain-hierarchy-2026-10-22.md`.
+  `~/gits/hub/tools_ib/glib/README.md:907` only lists "Phase 32: Market /
+  Asset / Instrument / Broker / APIProvider — design closed, no code".
+  glib's `Market = Exchange + AssetClass + MarketRules` and
+  `Instrument = Asset on Market` are AI prose / older design, already
+  rejected by R22 / R26 — they are **not** a reason to add a level here.
+- **The chain matches his description, with nothing missing:**
+  `Desk(brokers: Dict(BrokerId, Broker))` →
+  `Broker(instruments: Dict(Symbol, Instrument), accounts: Dict(AccountId, Account))`
+  → `Instrument(timeframes: Dict(Interval, Timeframe))` → `Timeframe`, with
+  `Desk` the ONE top-level Value (R33 / R20 / R23).
+- **Gap checks, one candidate at a time:**
+  - **`Market` between `Desk` and `Broker`? Rejected.** The owner's finding:
+    Market and Broker have **no ownership relation in either direction**,
+    so neither holds the other. `Desk` holding brokers directly is the fact;
+    **there is no gap here**.
+  - `Asset` / `Exchange` / `Market` catalogues: relations deliberately open
+    under R26; `config.gleam`'s three tables currently have **no type
+    connection** to `Desk`, so there is nothing to insert.
+  - `APIProvider`: R26 records the owner's words that broker and api
+    provider are the same thing seen from two angles; R34 adds no layer.
+  - `Account`: already owned by `Broker`; today's `Account` is a keyless
+    value with no fields (`src/glibe/desk.gleam:135-138`) — an item waiting
+    for a consumer, **not a gap**.
+  - `Symbol` / `Interval`: identity in the keys, never fields (R22 / R23) —
+    not levels.
+- **Result: no gap, no new type, field or relation** (R26 / R32 / R34 and
+  R35's simplicity check). "如此等等" is the standing method: for each new
+  real thing, work backwards to its real ownership (R32); a thing owned by
+  nobody goes on `Desk`, the collection shape is chosen by comparing real
+  access patterns, and **a relation that fails in both directions is
+  rejected**, exactly as `Market` was.
 
 ## The pipeline
 
