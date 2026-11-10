@@ -1,12 +1,14 @@
 //// The product web layer: a thin BEAM view of the real Desk.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-05-PLAN.md` (adopt R24 A).
+//// Plans: `.planning/phases/04-domain-cleanup/04-05-PLAN.md` (adopt R24 A),
+//// `.planning/phases/04-domain-cleanup/04-07-PLAN.md` (R30 display boundary),
+//// `.planning/phases/04-domain-cleanup/04-10-PLAN.md` (R35 in code docs).
 //// Rulings: `docs/RULINGS.md` R15 (root is Erlang-target), R17 (the view is
 //// the generated `.mjs`, never hand-written JS), R18 (`webclient/` is the
 //// only JS-target package), R19 (docs-first / TDD), R20 (`Desk` is the model,
 //// the dashboard is a VIEW), R21 (constructors named in full), R22 (a name is
 //// not the thing named), R23 (no stand-in entities), R24 (this framework was
-//// chosen by measured demos, not by the owner).
+//// chosen by measured demos, not by the owner), R33, R35, R36, R37.
 ////
 //// This module serves the REAL model from `config.default_config().desk` —
 //// `Desk ▸ Broker ▸ Instrument ▸ Interval ▸ Timeframe` — not the demo's
@@ -55,6 +57,32 @@
 //// This round adds documentation only: no conversion code, no `tzif`
 //// dependency, no new type, no test. Tests and bodies belong to plan 04-07
 //// under R19, starting with both DST sides of one instant.
+////
+//// **R35 (owner 2026-11-10): why a view updates, and the simplicity check.**
+//// The resemblance to SwiftUI is ONLY in the definition and implementation of
+//// the View: pure functional + value types. Swift made the rest complicated —
+//// a view model with a `class`, a model free to be a `struct` / `class` /
+//// `actor`, data races and a large industry of remedies — none of which can
+//// occur in Gleam. A SwiftUI view updates because it is a projection of a
+//// value; understanding that is understanding *"只有type定义好了，函数定义
+//// 对了，系统本身就是活的"* (R33). `page` and `desk_to_json` are pure
+//// projections of `config.default_config().desk`: when the value is
+//// recomputed, the view is recomputed. There is no subscription, actor or
+//// runtime in this module that "makes the view live".
+////
+//// Concurrency topics are met when they actually arise: read the official
+//// docs, build a few competing demos, compare, and decide — that is TDD
+//// (R19 + R24's demo method), not a framework built in advance. *"总体上，
+//// 很简单。简单是正确的验证码。如果复杂，基本上可以判断type 函数和模块定义
+//// 有错误。"* If a change here starts needing actors, a scheduler, a config
+//// table, a parser or a guard script, go back and fix the type, function and
+//// module definitions. R36 / R37: this view reads the chain as it is —
+//// `Desk` holds `Broker` directly (no `Market` gap), and broker, symbol and
+//// interval are the holders' KEYS, becoming display strings only here.
+////
+//// Plan 04-10 adds documentation to this module only. Its tests and body
+//// live in `desk.gleam` / `test/level_judgement_test.gleam`; the chain
+//// 概念 → type definition → unit test → implementation is recorded there.
 
 import gleam/dict
 import gleam/erlang/process

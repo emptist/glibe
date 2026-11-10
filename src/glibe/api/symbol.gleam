@@ -1,8 +1,9 @@
 //// A name, not the thing named.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`.
-//// Ruling: `docs/RULINGS.md` R22 (a name is not the thing), R23 (no stand-in
-//// types), R19 (docs-first), R13, R21.
+//// Plans: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`,
+//// `.planning/phases/04-domain-cleanup/04-10-PLAN.md`.
+//// Rulings: `docs/RULINGS.md` R22 (a name is not the thing), R23 (no stand-in
+//// types), R19 (docs-first), R13, R21, R37 (identity is a key, not a field).
 ////
 //// *"Symbol never is Instrument, people may call you with different titles
 //// and names they like, but you are you, how can a title and name be you?"*
@@ -25,6 +26,12 @@
 ////
 //// The `String` spelling lives only here, at the text boundary. Everything
 //// downstream sees a `Symbol` value, never a universal `String`.
+////
+//// **R37 (2026-11-10)**: this type is a KEY, not a field of `Instrument`.
+//// The holder names what it owns — `Broker.instruments: Dict(Symbol,
+//// Instrument)` — and the owned value never names its owner. *"你的左手不知道
+//// 他是左还是右"*: the name lives in the holder, like left / right lives in
+//// the observer. `test/level_judgement_test.gleam` pins this (04-10 plan).
 
 /// The spelling one provider uses to name one instrument. Opaque, so a
 /// `String` from a config file or a wire message is not accidentally a name.

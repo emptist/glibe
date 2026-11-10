@@ -1,8 +1,11 @@
 //// The ownership root — where every instrument and every timeframe lives.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`.
-//// Ruling: `docs/RULINGS.md` R20 (the chain is must-have, `Desk` is the name),
-//// R22 (a name is not the thing), R23 (one dictionary, no stand-ins), R19.
+//// Plans: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`,
+//// `.planning/phases/04-domain-cleanup/04-10-PLAN.md` — the latter carries
+//// the DESIGN JUDGEMENTS themselves into this file's docs, tests and bodies.
+//// Rulings: `docs/RULINGS.md` R19, R20, R22, R23, R26, R33, R34, R35, R36,
+//// R37. Full verbatim owner words and reasoning live there; this module doc
+//// states the rule that a type or function here must satisfy.
 ////
 //// Ownership chain, top to bottom:
 ////   Desk -> Broker -> Instrument -> Interval -> Timeframe
@@ -24,14 +27,52 @@
 //// the engine as `Timeframe.settings`. `src/glibe/config.gleam` holds a `Desk`
 //// value directly, so there is no list of strings to look up.
 ////
-//// Open, deliberately not fixed here: `Market` is not a level in this chain
-//// yet, so `Instrument` does not carry a `Market` field. glib's landed
-//// `Instrument(market, timeframes)` has one; adding it to glibe is a separate
-//// architectural change, recorded in the 04-03 plan's out-of-scope section.
+//// **How to judge a level (R36 / R37, 2026-11-10).** A type that forms one
+//// level of this chain must have TWO ownership relations: one to the level
+//// above and one to the level below. Every other type either ATTACHES to one
+//// type without being owned as a level — it is never inserted between two
+//// levels — or attaches to nothing at all and is held by `Desk`, because it at
+//// least belongs to the system. Attachment is not ownership and creates no
+//// level. `Market` was tested in BOTH directions: `Market ▸ Broker` and
+//// `Broker ▸ Market` are both false, so `Market` is REJECTED as a level and
+//// `Desk` holds `Broker` directly. There is NO gap here (R36). The older note
+//// in this file saying "Market is not a level yet, adding it is a separate
+//// architectural change" is CORRECTED: it is not an open option. `Asset` /
+//// `Exchange` / `Market` relations stay open until a consumer needs one
+//// (R26); none is preset, none is inserted into this chain.
 ////
-//// This module was written documentation-first: `////`, then types, then
-//// `///` + annotated signatures + `todo` bodies, then its tests, and only then
-//// were the bodies filled. See R19 in `docs/RULINGS.md`.
+//// **Why identity is a key (R37).** Owner 2026-11-10, verbatim: *"我举例说，
+//// 你的左手不知道他是左还是右，同样，Timeframe不应该知道他是什么interval"*.
+//// Left / right is the holder's label, not a property of the hand. So
+//// `BrokerId` is the key of `Desk.brokers`, `Symbol` the key of
+//// `Broker.instruments`, `Interval` the key of `Instrument.timeframes`, and
+//// the value never names its holder. A `Timeframe` does not know its interval.
+////
+//// **The system is already live (R33 / R35).** `Desk` is the single top-level
+//// Value; every type here is recomputed as a pure value when data moves.
+//// `put_broker` / `put_instrument` / `put_timeframe` return NEW values and
+//// leave their arguments unchanged — that IS the update a view renders. No
+//// actor, clock, polling, subscription or runtime that "makes leaves alive"
+//// belongs in this module. "叶子" in this system means `YinLeaf` / `YangLeaf`
+//// from `glibe/leaf.gleam`, never a `Timeframe`. If a change starts needing
+//// an actor, a scheduler, a config table or a guard script, fix the type,
+//// function and module definitions instead: *"简单是正确的验证码"* (R35).
+////
+//// **The layer both predecessors lacked (R34).** seib and ibOptions each had
+//// ONE broker. seib's structure was right and lacked only the layer of
+//// multiple brokers / data providers; `Desk(brokers: Dict(BrokerId, Broker))`
+//// with `binance` / `ib` / `futu` in `config.default_config()` IS that layer.
+//// No provider framework is added. ibOptions is a requirements list only —
+//// its settings were flattened types because Python + pandas could not
+//// express structural relations. Nothing is imported from it here.
+////
+//// This module was written documentation-first (R19): `////` naming the
+//// `.planning` item, types, `///` + annotated signatures + `todo` bodies,
+//// then the tests in `test/desk_test.gleam` and
+//// `test/level_judgement_test.gleam`, and only then the bodies.
+//// `gleam docs build` renders these comments into
+//// `package-interface.json`, so the judgements above are part of the
+//// compiled interface — not prose kept somewhere else that nobody reads.
 
 import gleam/dict.{type Dict}
 import glibe/api/interval.{type Interval}
@@ -40,12 +81,14 @@ import glibe/timeframe.{type Timeframe}
 
 /// The identity of a broker. Opaque, so a `String` is not a `BrokerId`.
 /// The desk holds it as the key of `Desk.brokers`; the broker never stores it.
+/// R37: the name belongs to the HOLDER. A broker no more knows its own id
+/// than a left hand knows it is left.
 pub opaque type BrokerId {
   BrokerId(String)
 }
 
 /// The identity of an account. Opaque, so a `String` is not an `AccountId`.
-/// The broker holds it as the key of `Broker.accounts`.
+/// The broker holds it as the key of `Broker.accounts` (R37).
 pub opaque type AccountId {
   AccountId(String)
 }
@@ -54,6 +97,8 @@ pub opaque type AccountId {
 /// the key that was asked for — never `Error(String)`. There is no
 /// `NoSuchSettings` any more: settings are a field of the `Timeframe`, not a
 /// second keyed collection (R23).
+/// R37: this error type ATTACHES to the chain (it describes its lookups) but
+/// is not owned as a level and is never inserted between two levels.
 pub type LookupError {
   NoSuchBroker(BrokerId)
   NoSuchAccount(AccountId)
@@ -63,6 +108,8 @@ pub type LookupError {
 
 /// A keyless account. Balances and positions are not invented here; the
 /// account's identity is the `AccountId` key the broker holds.
+/// R37: `Broker` holds it, but it has no level below it, so it attaches to
+/// the chain without becoming one of its levels.
 pub type Account {
   Account
 }
@@ -71,12 +118,17 @@ pub type Account {
 /// name. It stores its timeframes and nothing about its own identity — the
 /// `Symbol` key in `Broker.instruments` is its name, and the `Interval` key
 /// inside `timeframes` is each engine's interval. One dictionary, not two.
+/// R37: TWO ownership relations — owned by `Broker` and owning
+/// `Dict(Interval, Timeframe)` — which is what makes it a level of the chain.
 pub type Instrument {
   Instrument(timeframes: Dict(Interval, Timeframe))
 }
 
 /// A broker owns the instruments it trades and the accounts it is responsible
 /// for. Both are keyed; the broker itself is keyless.
+/// R37: TWO ownership relations — owned by `Desk` and owning `instruments` —
+/// so it is a level. R36: NO `Market` sits above it; both directions of that
+/// relation were rejected.
 pub type Broker {
   Broker(
     instruments: Dict(Symbol, Instrument),
@@ -89,6 +141,11 @@ pub type Broker {
 /// the `Desk` is the model, not the screen. That is why it is `Desk`, the
 /// trading-desk term already used in `glib/src/glib/desk.gleam`, and not
 /// `Deck` (a slide deck).
+/// R33: the ONE top-level Value; the whole system is nested inside it.
+/// R36: it holds `Broker` directly, with no gap. R37: a type that attaches to
+/// nothing else is held here, because it at least belongs to the system.
+/// R34: this `Dict(BrokerId, Broker)` IS the multiple-brokers layer that both
+/// single-broker predecessors lacked — no separate provider framework.
 pub type Desk {
   Desk(brokers: Dict(BrokerId, Broker))
 }
@@ -207,4 +264,27 @@ pub fn get_timeframe(
     Ok(timeframe) -> Ok(timeframe)
     Error(Nil) -> Error(NoSuchTimeframe(interval))
   }
+}
+
+/// Read one `Timeframe` all the way down from the top-level `Desk`, following
+/// the three holders' keys: `Desk.brokers`, `Broker.instruments`,
+/// `Instrument.timeframes`. A failure at any level is that level's
+/// `LookupError` variant carrying the key asked for.
+///
+/// R36: the chain has NO gap — `Desk` holds `Broker` directly, no `Market`
+/// level appears. R37: every argument after `desk` is a KEY owned by the level
+/// above, not a field of the value being read. R33: this is a pure READ, not
+/// `monitor.advance`, not an `IncomingBar`, not an address type and not a
+/// scheduler; it advances nothing and keeps no state. The values it returns
+/// are recomputed by their holders, which is why the view stays current.
+///
+/// Plan: `.planning/phases/04-domain-cleanup/04-10-PLAN.md`, step 2 signature,
+/// step 3 test, step 4 body. This `///` is the specification the test asserts.
+pub fn timeframe_under(
+  desk: Desk,
+  broker_id: BrokerId,
+  symbol: Symbol,
+  interval: Interval,
+) -> Result(Timeframe, LookupError) {
+  todo as "04-10 step 4: follow the three holders' keys down to the timeframe"
 }

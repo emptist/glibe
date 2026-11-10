@@ -1,11 +1,28 @@
 //// The `Timeframe` — one interval of one instrument, and everything it runs on.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`.
-//// Ruling: `docs/RULINGS.md` R23 (thorough correction), R22, R20, R19.
+//// Plans: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`,
+//// `.planning/phases/04-domain-cleanup/04-10-PLAN.md`.
+//// Rulings: `docs/RULINGS.md` R23 (thorough correction), R22, R20, R19,
+//// R33, R35, R37.
 ////
 //// *"即然你的左手不知道他是左手你也活的好好的，为什么instrument的timeframe
 //// 必须要知道他的interval？有这么愚蠢的设计吗？"* [user 2026-11-04,
 //// `glib/.planning/HANDOFF-2026-11-03.md:96`]
+////
+//// **R37 (owner 2026-11-10, 10:37, verbatim)**: *"我举例说，你的左手不知道
+//// 他是左还是右，同样，Timeframe不应该知道他是什么interval"*. Left / right
+//// is the HOLDER's label, not the hand's own property. `Interval` is the key
+//// in `Instrument.timeframes`, so this record neither knows nor stores it;
+//// the same rule puts `BrokerId` and `Symbol` in their holders' keys. Identity
+//// is never a field of the value it names. A test in
+//// `test/level_judgement_test.gleam` asserts that two equal `Timeframe`
+//// values under two different interval keys stay equal — the difference is
+//// in the key, not in the value (04-10 plan, step 3).
+////
+//// **R33 / R35**: this record does not "wake up". It is a pure value that is
+//// recomputed when data moves, which is why the view updates without a
+//// runtime. If a change needs a mechanism to keep it alive, the type,
+//// function and module definitions are wrong — *"简单是正确的验证码"*.
 ////
 //// This record stores NO `symbol`, NO `interval` and NO market tag. The
 //// interval is the KEY in `Instrument.timeframes`; the symbol is the KEY in

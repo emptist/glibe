@@ -2,9 +2,17 @@
 //// width has run out.
 ////
 //// Plans: `.planning/phases/04-domain-cleanup/04-02-PLAN.md`,
-//// `.planning/phases/04-domain-cleanup/04-06-PLAN.md`.
+//// `.planning/phases/04-domain-cleanup/04-06-PLAN.md`,
+//// `.planning/phases/04-domain-cleanup/04-10-PLAN.md`.
 //// Rulings: `docs/RULINGS.md` R13 (closed sets are types), R19 (docs-first),
-//// R21 (full constructor names), R27 (standard bar time is unix time).
+//// R21 (full constructor names), R27 (standard bar time is unix time),
+//// R37 (identity is a key, not a field).
+////
+//// **R37 (2026-11-10)**: `Interval` is the KEY of `Instrument.timeframes`,
+//// never a field of `Timeframe`. Owner 10:37, verbatim: *"你的左手不知道他是
+//// 左还是右，同样，Timeframe不应该知道他是什么interval"*. The holder names
+//// what it owns. `test/level_judgement_test.gleam` asserts that equal
+//// `Timeframe` values under two different keys remain equal (04-10 plan).
 ////
 //// **One class, one module.** `Interval` and everything that is a question
 //// about an interval live here: the codec the settings file is written in, and

@@ -1,9 +1,11 @@
 //// Configuration for the entire trading system. Gleam IS the config: no JSON,
 //// no parser, no `panic` on an unknown spelling.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`.
-//// Ruling: `docs/RULINGS.md` R22 (a name is not the thing), R23 (no composite
-//// string keys, no stand-in tables), R13, R19, R20.
+//// Plans: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`,
+//// `.planning/phases/04-domain-cleanup/04-10-PLAN.md`.
+//// Rulings: `docs/RULINGS.md` R22 (a name is not the thing), R23 (no
+//// composite string keys, no stand-in tables), R13, R19, R20, R26, R34,
+//// R35, R36, R37.
 ////
 //// Ownership is a VALUE here, not a lookup: `AppConfig.desk` is a `Desk` built
 //// from `Symbol` names, `Instrument` values and `Interval`-keyed `Timeframe`s.
@@ -19,6 +21,27 @@
 //// the data-source argument; the other relations are deliberately left open,
 //// and types are added one at a time when a consumer actually needs one.
 //// See `docs/RULINGS.md` R26 and the 04-03 plan's out-of-scope section.
+////
+//// **R34 (2026-11-10): the layer both predecessors lacked is HERE.** Both
+//// seib and ibOptions had ONE broker. seib's structure was right — *"大格局
+//// 都有了，细节也有了"* — and lacked only the layer of multiple brokers / data
+//// providers. `default_config()` builds `binance` / `ib` / `futu` into
+//// `Desk(brokers: Dict(BrokerId, Broker))`; no provider type, no provider
+//// framework and no extra level is introduced. ibOptions' architecture is
+//// NOT adopted: Python + pandas could not express structural relations as
+//// types, so they were flattened into `settings*.py` files. It is a
+//// requirements list only — read which settings exist, and express each as a
+//// type or one field of an existing type when a real consumer needs it
+//// (R26 / R32). No settings table, string key or parser is imported here.
+//// `default_config()` is Gleam source, so there is nothing to parse.
+////
+//// **R37: why `desk` is a value and the catalogues are not in it.** A level
+//// of the chain has TWO ownership relations; the three catalogue lists
+//// attach to `AppConfig`, not to a level, and no relation to `Broker` or
+//// `Instrument` is presumed (R26 / R36). A type that attaches to nothing
+//// else may be held by `Desk` — that is a placement RULE, not permission to
+//// invent a relation. R35: *"简单是正确的验证码"* — if this file starts
+//// needing a config framework, the definitions are wrong, not the tooling.
 
 import gleam/dict
 import gleam/list
