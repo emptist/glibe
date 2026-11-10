@@ -959,15 +959,17 @@ owner 原话（逐字）：*"在web 界面，应该采用本地时间显示日�
 
 ---
 
-## R31 — 并发就是 BEAM 进程 + 类型化消息，不是一套待建的补救机制（2026-11-09 owner 指示，2026-11-10 实测落地）
+## R31 — 并发就是 BEAM 进程 + 类型化消息，不是一套待建的补救机制（2026-11-09 owner 指示；2026-11-10 部分结论经 R32 作废）
 
 owner 原话（逐字）：*"gleam语言呀，是天然多线程，好像不需要actor那些东西，你看下官网和网上的资料，也可以分析一些官方或著名的代码，比如wisp lutre之类的，怎么实现并行任务的，非常简单啊非常自然。因为他是一个一个严格的value，完全不住在内存里，所以根本没有那些复杂的补救措施需要做"*
 
 owner 范围纠正（2026-11-09 06:09，逐字）：*"你去看什么javascript target完全不对路，我们是erlang 和 BEAM专属项目"*
 
 - **裁定**：并行不是由「受监督 actor / 订阅 / 行情流 / replay CLI」组成的一整个
-  Stage F 前置工程。`monitor.advance` 保持纯函数；N 个带地址的 bar 同时推进只需
-  `gleam/erlang/process.spawn` + 类型化 `process.Subject` + `process.receive`。
+  Stage F 前置工程。`monitor.advance` 保持纯函数；并发单位是花园里**每个活着
+  的 `Timeframe`**（R32），不是「把 N 根 bar 同时喂给 N 份 `Desk` 副本」。
+  BEAM 上让一个叶子活着只需 `gleam/erlang/process.spawn` + 类型化
+  `process.Subject` + `process.receive`。
   **不需要为并发新增类型、加锁、加依赖，也不改 `SourceBar` / `Timeframe`。**
   `docs/DESIGN.md`、`README.md`、`.planning/ROADMAP.md` 中「Stage F = 受监督
   actor」的框架予以重写；replay CLI 与真实行情流仍是待办工作，但不再是并行的
@@ -987,15 +989,18 @@ owner 范围纠正（2026-11-09 06:09，逐字）：*"你去看什么javascript 
   监督池；Lustre 服务端 runtime 恰一个 actor。**actor 未被禁用**，用不用由
   真实消费方按 R26 决定。
 - **值并非「不在内存里」**：值在**每个进程自己的堆**里，不可变、发消息时复制、
-  进程间不共享；所以没有锁、竞态、死锁。长生命周期状态必须住在某个进程的递归
-  循环参数里，或由单一 owner 顺序 fold —— 这是**所有权 / 数据流**决定，不是
-  同步补救措施。
-- **04-09 实测**（`probes/parallel-bars/`，Erlang target，2026-11-10）：
-  6 个带 `TimeframeAddress` 的 bar → **6 个不同 BEAM Pid**，0 actor /
-  0 supervisor / 0 lock / 0 FFI；回复顺序与发出顺序相反；4 个测试 GREEN。
-  **N 份并行结果各是一份只改了自己地址的 `Desk`，0/6 等于单一 owner fold
-  后的完整状态** —— 不可「取最后一份」合并。要么一个 owner 按到达顺序
-  `advance`，要么每个地址自己持有 `Timeframe`（后者不需要全局 `Desk`）。
+  进程间不共享；所以没有锁、竞态、死锁。长生命周期状态住在某个进程的递归
+  循环参数里 —— 每个 `Timeframe` 自己那一份（R32）。**不存在「N 份并行
+  `Desk` 由单一 owner fold」这一形状**；那是 04-09 复制 `Desk` 才造出来的
+  伪问题，已作废。
+- **04-09 实测：形状错误，结论作废（R32）**。`probes/parallel-bars/`
+  把同一份 `initial: Desk` 送进 6 个进程，每个调用 `monitor.advance` 返回
+  **一整份新 `Desk`**，于是得到「6 份 partial Desk / 0 of 6 等于单一 owner
+  fold / 必须选择合并或所有权形状」。真实结构里 **Desk 只有一个**，并发是
+  `Instrument` 的 `Dict(Interval, Timeframe)` 里每个叶子各自活着（owner
+  2026-11-10，R32）；不存在 N 份 `Desk`，也不存在合并问题。该 probe 保留为
+  带作废注记的历史实验，**不再作为设计实证**；它的 6 个 Pid / 0 lock 只是
+  `process.spawn` 的语言事实，与结构无关。
 - **事实更正**：`gleam_otp` 早就是根 `gleam.toml` 的直接依赖
   (`>= 1.3.0 and < 2.0.0`)；我 04-08 答复说「没引入」是错的，
   `docs/DESIGN.md` 04-08 段末 "no … `gleam_otp` dependency" 同错。缺的是
@@ -1003,7 +1008,47 @@ owner 范围纠正（2026-11-09 06:09，逐字）：*"你去看什么javascript 
 - **范围**：只在 Erlang / BEAM 语境下成立；不拿 JavaScript target / promise
   作旁证或类比（owner 06:09）。
 - **Landed in**：`probes/parallel-bars/src/parallel_bars.gleam`（`////` 点名
-  `04-09-PLAN.md`）与 `test/parallel_bars_test.gleam`；`docs/DESIGN.md`
-  「Parallel addressed steps are already natural」；`docs/STATE.md` 2026-11-10；
+  `04-09-PLAN.md`）与 `test/parallel_bars_test.gleam`（**带作废注记，不作
+  设计实证**）；`docs/DESIGN.md`「The structure is a garden」；`docs/STATE.md`
+  2026-11-10；
   `.planning/ROADMAP.md` Phase 04 Plan 09；`README.md`；
   `.planning/phases/04-domain-cleanup/04-09-SUMMARY.md`。不是待裁决项。
+  **2026-11-10 更正**：其中「04-09 实测 / 0 of 6 合并」一段测量的形状是错的，
+  结论作废，见下面 R32；owner 原话、官方证据与 `gleam_otp` 事实更正仍成立。
+
+---
+
+## R32 — 结构是花园：新东西只是 Type 定义里的一个 field（2026-11-10 owner 指示）
+
+owner 原话（逐字）：*"结构复述正确，不过这是一个花园，不断根据需要往里面加新的花盆。实际上就是在Type定义中加新field而已，比如说你发现需要 exchanges 那么放在哪儿合适呢？那就倒推他和其他type现实中什么关系呢？隶属于谁呢？如果谁也不隶属，是其他关系，那么可能放在Desk里面就好了，那么用dict还是list还是其他东西放呢？根据需要来对比研究决定。"*
+
+- **裁定**：`Desk ▸ Broker ▸ Instrument ▸ Interval ▸ Timeframe` 不是一次设计完、
+  封闭的骨架，是**花园**：按真实需要不断往里加花盆。加一个花盆的落地动作
+  **就是在已有 Type 定义里加一个 field**，不是新建一层框架、一套并发机制、
+  一个「Stage」，也不是一整个待裁决问题。R20 的链、R23 的「身份在 key」都
+  保持；新 field 不改变它们。
+- **位置由倒推决定，不由命名习惯决定**：① 新东西与已有 type 在现实中是
+  什么关系；② 它隶属于谁；③ 谁也不隶属、只是并列 / 目录关系 → 放 `Desk`。
+  owner 举的 `exchanges` 即此例：交易所不隶属于某个 `Broker`（一个 broker
+  可接多个交易所，一个交易所也可被多个 broker 使用），也不隶属于
+  `Instrument`，所以落在 `Desk`。这是**倒推出来的位置**，不是预设的层级。
+- **集合形状按需对比研究决定**：`Dict` / `List` / 其他，取决于真实访问方式
+  （按 id 查 → `Dict`；只枚举 → `List`）。身份放 key、不放 field（R23），
+  一个事实只存一处。不先定集合再替它找用途，也不为「以后可能有用」加空表。
+- **与 R26 的关系**：R26 说按真实消费方逐个加 type、不预设 `Asset` /
+  `Exchange` / `Market` 的层级；R32 补的是「怎么加」——加 field + 倒推隶属
+  + 对比集合。**不推翻 R26，也不把三个 catalogue 名预先塞进链里。**
+- **并发在花园里的位置**：「每一个 Timeframe 都活着、处理数据、进行交易」
+  是花盆自己的生命，不是外部加的一整套调度机制；**Desk 只有一个**。
+  04-09 把同一份 `Desk` 复制进 6 个进程、再讨论 6 份 partial `Desk` 怎么
+  合并，是**复制了不该复制的东西**，凭空造出「0/6 等于单一 owner fold」
+  「必须选择所有权形状」的伪问题。该结论及由它写进 R31、`docs/DESIGN.md`
+  04-09 节、`04-09-SUMMARY.md` §4 的框架一并作废；官方 Gleam / BEAM 证据、
+  actor 与 supervisor 的准确定位、`gleam_otp` 事实更正仍成立。
+- **范围**：Erlang / BEAM 专属项目（owner 2026-11-09 06:09），不拿
+  JavaScript target 作旁证。
+- **Landed in**：`docs/RULINGS.md`（本条）；`docs/DESIGN.md`「The structure is
+  a garden」；`docs/STATE.md` 2026-11-10；`.planning/ROADMAP.md`；
+  `README.md`；`src/glibe/monitor.gleam` 与
+  `probes/parallel-bars/src/parallel_bars.gleam` 的 `////` 模块文档；
+  `04-09-PLAN.md` / `04-09-SUMMARY.md` 顶部的日期更正注记。不是待裁决项。
