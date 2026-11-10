@@ -105,14 +105,28 @@ of the same `Timestamp` to the analyst's local wall clock (IANA/DST), R29 is the
   他是左还是右"*。owner 指路：`glib/docs/NAMING.md:575-589`、
   `glib/docs/DESIGN.md` §18.2 `:3269-3299`（思路记录，非实现依据）。
   判定法则（10:18–10:37 那轮不改 `src/`，非永久禁令）。
-**04-10 落地（owner 10:42 逐字：*"概念 -> type definition -> unit test ->
-implementation 完整链条"*）**：R33–R37 从 `docs/` 散文写进 `////` / `///`
+**04-10 落地（retrofit，不是流程示例；owner 10:42 逐字：*"概念 ->
+type definition -> unit test -> implementation 完整链条"*）**：R33–R37
+从 `docs/` 散文写进 `////` / `///`
 代码文档，模块文档命名 `04-10-PLAN.md`；**不新增 type**（现有链已是定义，
 R35 简单验证码）；`test/level_judgement_test.gleam` 6 测试 RED 68/2；
 `desk.timeframe_under` 三行 `result.try` 纯读取 GREEN 70/0。四笔提交。
 `desk.gleam` 里「Market 尚未定」旧句已更正为 R36 否决。新读取**不是**
 R33 作废的 `monitor.advance` 那层。不新增 type/field/关系/依赖，不碰目录表
 与 `monitor.gleam`，决策区 0 项。执行注记在 `docs/RULINGS.md` 文末。
+**R19 制作流程（owner 10:42 / 10:58 / 11:01 / 11:03 同一条指示；
+「实际完成方式」就是制作流程）**：对象是**一个 module 文件**，四步按序
+① 先写描述（`////` 命名 `.planning` 条目 + `///` 覆盖每项）→ ② 再写
+**空架子**（按需 type / function，可空 / `todo as "…"`，没有实际东西）→
+③ 再写 test，**设计目标在此** → ④ 逐步测试、逐步完成全部合乎 test
+要求的代码。架子阶段 `gleam build` / `gleam test` 就能跑；
+`--warnings-as-errors` 只是 GREEN gate。
+**11:05 批评（逐字 `docs/RULINGS.md` 11:05 段）**：*"你制作一个module的
+过程，实际上完全不是这样走的，所以错误百出。甚至是倒过来整，最后才
+填补文档说明设计意图，补充test充门面。这是乱搞。"* → **04-10 是代码
+先有、文档与测试后补的反向补课，不得包装成流程示例**；今后新建 /
+重做 module 必须从描述开始，禁止先实现后补文档 / 补 test；对既有代码
+的 retrofit 要标明是补课。
 
 ## Measured facts
 - Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; **no `T(..)` form**;

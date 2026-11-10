@@ -1429,9 +1429,10 @@ Timeframe不应该知道他是什么interval"*
 document的规矩，写进代码文档，之后是unit test 以及填充实际代码完成 test，
 形成 概念 -> type definition -> unit test -> implementation 完整链条"*
 
-- **本注记不是新裁定**，是 R19 的执行记录：R33 / R34 / R35 / R36 / R37
-  （连同 R26）从 `docs/` 散文进入**代码文档**，并走完
-  `概念 → type definition → unit test → implementation`。执行计划是
+- **本注记不是新裁定**。R33 / R34 / R35 / R36 / R37（连同 R26）从
+  `docs/` 散文进入**代码文档**；**但 04-10 不是「制作一个 module」的
+  流程示例 —— 它是在已经写好的代码上反向补文档与测试**（见下方 11:05）。
+  执行计划是
   `.planning/phases/04-domain-cleanup/04-10-PLAN.md`，结果在
   `.planning/phases/04-domain-cleanup/04-10-SUMMARY.md`。
 - **上文 R34 / R35 / R36 / R37 里的「本轮不改 `src/`」「本轮只读核对」
@@ -1452,3 +1453,82 @@ document的规矩，写进代码文档，之后是unit test 以及填充实际�
   `monitor.advance` / `TimeframeAddress` / `IncomingBar` / `MonitorError`。
   真正待做的工作仍是「把各数据源的实时到达接到标准 `SourceBar` 入口」
   与 replay CLI。
+
+---
+
+## 2026-11-10 — R19：一个 module 文件的制作流程（owner 10:42 / 10:58 / 11:01 / 11:03 是同一条指示）
+
+**owner 原话（逐字，10:42）**：*"这些逻辑，需要在设计module以及type的时候，
+用gleam document的规矩，写进代码文档，之后是unit test 以及填充实际代码完成
+test，形成 概念 -> type definition -> unit test -> implementation 完整链条"*
+
+**owner 原话（逐字，10:58）**：*"我说的 概念 - type definition - unit test -
+implementing 是指一个module文件的实际完成方式：
+1. 新建module，例如 module_a.gleam
+//// module document here
+2. 如果有type要定义的话：
+/// type document here
+pub type AType { <an empty AType here, or with： todo as "some idea or description">}
+3. 如果有function要定义的话：
+/// function document here
+fn will_do_this -> AType { empty is ok, with a todo is ok too }
+4. 定义 unit tests on type and functions
+/// document here
+<test definitions here>
+这样做了之后，gleam test or gleam build will work for you"*
+
+**owner 原话（逐字，11:01）**：*"是整个制作流程，先写描述，在写架子
+（没有实际东西），再写test设计目标在此；再逐步测试逐步完成全部合乎
+test要求的代码"*
+
+**owner 原话（逐字，11:03）**：*"我说的 概念 - type definition - unit test -
+implementing 是指一个module文件的实际完成方式 实际完成方式，不就是制作
+流程吗？我看你没理解，补充一句，不过你还是没有理解对。现在应该理解了。"*
+
+> **「实际完成方式」就是「制作流程」。** 对象始终是**一个 module
+> 文件**。下面只记这一条定义。
+
+- **唯一定义**：`概念 → type definition → unit test → implementing`
+  是**一个 module 文件从描述到完成的制作流程**，四步按顺序推进：
+  1. **先写描述**：`////` 模块文档（命名 `.planning` 条目）+ `///`
+     覆盖每个 type / function（以及测试）。概念与判据写在这里。
+  2. **再写架子，没有实际东西**：按需定义 type（可空）、function
+     签名（可空 / `todo as "…"`）。此时 `gleam build` / `gleam test`
+     就能跑；warnings 合法，`--warnings-as-errors` 只是 **GREEN gate**。
+  3. **再写 test —— 设计目标在此**：测试把设计目标写成可执行的
+     `assert` / `let assert`，每条测试也有 `///` 文档。此时 RED。
+  4. **逐步测试、逐步完成全部合乎 test 要求的代码**：一次填一个
+     body，compile，循环到 GREEN。
+- **「如果有」是条件**：type / function 按需定义，不凭空造。但「没有
+  实际东西」只指**架子阶段**，不是不实现；第 4 步必须把代码填到
+  全部合乎 test 要求。
+- **04-10 的如实定位（见下方 11:05）**：它**不是**这条流程的示例，而是
+  对既有代码的反向补课。`Desk` 等 type 与逐层 `get_*` 早就实现，
+  04-10 才补 `////` / `///` 与 6 个断言；只有 `timeframe_under` 这一小段
+  是「`///` + `todo` → test → 实现」的顺序。R34–R37 的逐字内容与
+  GREEN 结果不变，但不得再自称按流程制作了 module。
+- **以后新建 module 从头照此流程走**：描述 → 空架子 → 测试定目标 →
+  逐步实现；概念先进 `////` / `///`，不先进 `docs/` 散文。
+
+---
+
+## 2026-11-10 11:05 — 制作过程的根因批评（执行纪律，非新裁定）
+
+**owner 原话（逐字）**：*"问题是，你制作一个module的过程，实际上完全不是
+这样走的，所以错误百出。甚至是倒过来整，最后才填补文档说明设计意图，
+补充test充门面。这是乱搞。"*
+
+- **根因是制作顺序，不是某条内容写错**：代码先落地、文档与测试后补，
+  等于让设计意图追着实现跑。测试如果只是给已有行为补断言，就是
+  「充门面」，不能承载设计目标（11:01 逐字 *"test设计目标在此"*）。
+- **纪律（约束每个 AI authored 文件）**：新建 / 重做一个 module 必须按
+  上方四步顺序推进 —— ① 描述（`////` 命名 `.planning` 条目 + `///`
+  覆盖每项）→ ② 空架子（可空 / `todo`，没有实际东西）→ ③ 写 test，
+  **设计目标写在 test 里** → ④ 逐步测试、逐步实现到全部合乎 test
+  要求。**禁止**先写实现再补文档说明设计意图、再补 test。
+- **对既有代码的补课要标明是补课**：不得把 retrofit 包装成流程示例，
+  也不得用一堆文档 / 断言制造「按流程做完」的印象。本条同时约束
+  文档写法。
+- **本轮处置**：代码与 GREEN 结果保留（真实有效），但所有把 04-10 写成
+  「按流程制作」的叙述改为如实定位；不删代码、不删测试、不新增 type /
+  依赖 / probe，决策区仍 **0 项**。

@@ -1,16 +1,28 @@
 # Phase 04 Summary 10 — the design rulings became CODE (2026-11-10)
 
 **Result: GREEN.** Plan `.planning/phases/04-domain-cleanup/04-10-PLAN.md`
-was executed as four logical commits of the R19 chain, not as one batch.
+was executed in four logical commits, not as one batch.
 
-## The chain, as it actually ran
+> **R19 的制作流程（owner 逐字全文在 `docs/RULINGS.md` 文末「一个 module
+> 文件的制作流程」段）**：「实际完成方式」就是制作流程，对象是
+> **一个 module 文件** —— ① 先写描述 → ② 再写**空架子**（没有实际东西）→
+> ③ 再写 test，**设计目标在此** → ④ 逐步测试、逐步完成全部合乎 test
+> 要求的代码。
+>
+> **如实定位（owner 11:05，逐字在 `docs/RULINGS.md` 11:05 段）：04-10
+> 没有照这条流程走。** `Desk` 等 type 与逐层 `get_*` 早已实现，本轮才补
+> 文档与断言，是「倒过来整」的反向补课；**不是**流程示例。只有
+> `timeframe_under` 一小段是「`///` + `todo` → test → 实现」的顺序。
+> 本文件记录一次 retrofit，不冒充按流程制作 module。
 
-| step | commit | measured state |
+## What actually happened — a retrofit, NOT the making process
+
+| work done (retrofit) | commit | measured state |
 |---|---|---|
 | plan item | `3e7ac3b` | `04-10-PLAN.md` names the plan, the four steps, the scope and the GREEN gate |
-| 1 概念 → 代码文档 / 2 type definition | `7594beb` | `////` + `///` in six modules; **no new type**; one documented signature with `todo as "…"`. `gleam build` = 0 errors / 5 warnings (4 unused args + 1 `Todo found`), `gleam format --check` = 0. RED skeletons legitimately fail `--warnings-as-errors` |
-| 3 unit test | `2d3aff9` | `test/level_judgement_test.gleam`, 6 tests. `gleam test` = **68 passed, 2 failures**, both crashing at `src/glibe/desk.gleam:289` with the `todo` message |
-| 4 implementation | `44a8142` | `todo` replaced by three `result.try` steps. **70 passed, no failures** |
+| 后补 `////` / `///` 文档 + 一个带 `todo` 的签名 | `7594beb` | six existing modules; **no new type**; one documented signature with `todo as "…"` and no real body. `gleam build` = 0 errors / 5 warnings (4 unused args + 1 `Todo found`), `gleam format --check` = 0 |
+| 后补 6 个断言 | `2d3aff9` | `test/level_judgement_test.gleam`, each with `///`. `gleam test` = **68 passed, 2 failures**, both crashing at `src/glibe/desk.gleam:289` with the `todo` message |
+| 填 `timeframe_under` 的 body | `44a8142` | `todo` replaced by three `result.try` steps. **70 passed, no failures**, `--warnings-as-errors` 0/0 |
 
 ## What was written into the code
 
@@ -64,9 +76,9 @@ chars with R33 / R36 / R37. `webclient`'s interface is intact (unmodified).
 
 No new type, field or relation; no dependency; no change to the three
 catalogue tables or their accessors; no `monitor.gleam` edit; no probe; no
-replay CLI; no concurrency framework; `docs/PENDING_DECISIONS.md` decisions
-section still **0 items**; one-way reference rule preserved (no other
-document points at that temporary file). Work tree clean; **not pushed**.
+replay CLI; no concurrency framework; decisions section still **0 items**;
+one-way reference rule preserved (no other document points at that temporary
+file). Work tree clean; **not pushed**.
 
 The real work is unchanged: connect each data source's live arrival to the
 standard `SourceBar` entry, and the replay CLI. `monitor.gleam`'s disposition

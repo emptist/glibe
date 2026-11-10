@@ -12,7 +12,17 @@ sections are kept as history, not as the current answer.
   执行注记在 `docs/RULINGS.md` 文末（非新裁定）；计划与结果在
   `.planning/phases/04-domain-cleanup/04-10-PLAN.md` /
   `04-10-SUMMARY.md`。
-- **链条四步已按逻辑逐笔提交**：① `////` 模块文档命名 04-10 计划、每个
+- **制作流程（R19；owner 10:42 / 10:58 / 11:01 / 11:03 同一条指示，
+  逐字全文在 `docs/RULINGS.md` 文末「一个 module 文件的制作流程」段）**：
+  「实际完成方式」就是制作流程，对象是**一个 module 文件** ——
+  ① 先写描述 → ② 再写空架子（没有实际东西）→ ③ 再写 test，
+  **设计目标在此** → ④ 逐步测试、逐步完成全部合乎 test 要求的代码。
+- **11:05 批评与如实定位（逐字在 `docs/RULINGS.md` 11:05 段）**：04-10
+  **不是**这条流程的示例 —— `Desk` 等 type 与逐层 `get_*` 早已实现，
+  本轮才补 `////` / `///` 与 6 个断言，是**倒过来整**的反向补课；
+  只有 `timeframe_under` 一小段走了「`///` + `todo` → test → 实现」。
+  以后新建 module 必须从描述开始，禁止先实现后补文档 / 补 test。
+- **本轮实际做了什么（retrofit）**：① `////` 模块文档命名 04-10 计划、每个
   type / function 的 `///` 写清「为什么在这一层」（`desk.gleam`、
   `config.gleam`、`timeframe.gleam`、`api/symbol.gleam`、
   `api/interval.gleam`、`web/server.gleam`）；② **不新增 type** —— 现有

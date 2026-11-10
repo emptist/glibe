@@ -298,16 +298,28 @@ Owner 2026-11-10 10:42, verbatim: *"这些逻辑，需要在设计module以及ty
 用gleam document的规矩，写进代码文档，之后是unit test 以及填充实际代码完成
 test，形成 概念 -> type definition -> unit test -> implementation 完整链条"*
 
-R34–R37 were recorded in `docs/` prose. A ruling that no code file names
-drifts, so plan `.planning/phases/04-domain-cleanup/04-10-PLAN.md` carried
-them through R19's full chain, in four commits:
+> **R19 的制作流程（`docs/RULINGS.md` 文末「一个 module 文件的制作流程」
+> 段）**：「实际完成方式」就是制作流程，对象是**一个 module 文件** ——
+> ① 先写描述 → ② 再写**空架子**（没有实际东西）→ ③ 再写 test，
+> **设计目标在此** → ④ 逐步测试、逐步完成全部合乎 test 要求的代码。
+> **owner 11:05：04-10 没有照这条流程走**（代码先有、文档与测试后补，
+> *"倒过来整…补充test充门面"*）。下面记录的是一次 **retrofit**，不是流程
+> 示例；逐字在 `docs/RULINGS.md` 11:05 段。
 
-| step | what exists now |
+R34–R37 were recorded in `docs/` prose. A ruling that no code file names
+drifts, so plan `.planning/phases/04-domain-cleanup/04-10-PLAN.md` added
+them to the existing module files **after the fact** — a retrofit, not an
+example of the making process:
+
+| work done (retrofit) | what exists now |
 |---|---|
-| 概念 → 代码文档 | `////` module docs **naming plan 04-10** and `///` on every type / function in `src/glibe/desk.gleam`, `config.gleam`, `timeframe.gleam`, `api/symbol.gleam`, `api/interval.gleam`, `web/server.gleam`. `gleam docs build` renders them into `package-interface.json` — the compiler's own anti-drift artifact. |
-| type definition | **No new type.** `Desk ▸ Broker ▸ Instrument ▸ Timeframe` already IS the definition the rulings describe. Adding one here would fail R35's simplicity check (R26 / R36 / R37). Each type's `///` now says why it is a level, why it only attaches, or why its identity is a key. |
-| unit test | `test/level_judgement_test.gleam`: three brokers (R34), `Desk` holds `Broker` directly with no `Market` level (R36), a keyless `Broker` under two keys and equal `Timeframe`s under two interval keys (R37), plus one pure read and its three closed `LookupError` cases. RED at the `todo` signature: 68 passed / 2 failures. |
-| implementation | `desk.timeframe_under(desk, broker_id, symbol, interval)` — three `result.try` steps following the holders' keys. GREEN: 70 passed, 0 failures, `--warnings-as-errors` 0/0. |
+| 后补 `////` / `///` 描述 | Module docs **naming plan 04-10** and `///` on every type / function in `src/glibe/desk.gleam`, `config.gleam`, `timeframe.gleam`, `api/symbol.gleam`, `api/interval.gleam`, `web/server.gleam`. `gleam docs build` renders them into `package-interface.json` — the compiler's own anti-drift artifact. |
+| 新增一个带 `todo` 的签名（无新 type） | **本次没有新 type** —— `Desk ▸ Broker ▸ Instrument ▸ Timeframe` 已是裁定描述的定义，凭空造会违反 R35 的简单验证码；只补现有 type 的 `///` 与一个带 `todo` 的签名。此时 `gleam build` 已能过。 |
+| 后补 6 个断言 | `test/level_judgement_test.gleam`: three brokers (R34), `Desk` holds `Broker` directly with no `Market` level (R36), a keyless `Broker` under two keys and equal `Timeframe`s under two interval keys (R37), plus one pure read and its three closed `LookupError` cases. Every test has its own `///`. RED 68/2. |
+| 填一个 body | `desk.timeframe_under` 的 `todo` 填成三段 `result.try`，循环到 GREEN：70 passed, 0 failures, `--warnings-as-errors` 0/0。 |
+
+`--warnings-as-errors` is the GREEN gate, not a judgement on the skeleton;
+the empty skeleton already builds and runs tests.
 
 - **What the one function is NOT**: it is a pure READ. R33 rejected
   `monitor.advance` / `TimeframeAddress` / `IncomingBar` / `MonitorError` as

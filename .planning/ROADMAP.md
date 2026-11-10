@@ -551,7 +551,13 @@ owner 逐字原话在 `docs/RULINGS.md` 文末执行注记与
 `.planning/phases/04-domain-cleanup/04-10-PLAN.md`。结果在
 `04-10-SUMMARY.md`。
 
-- **四步各一笔提交**：`////` 模块文档命名 04-10 计划 + 逐项 `///` →
+- **制作流程（R19）**：「实际完成方式」就是**一个 module 文件的制作
+  流程** —— 描述 → 空架子（没有实际东西）→ test（设计目标在此）→
+  逐步实现；逐字全文在 `docs/RULINGS.md` 文末同名段。
+- **11:05 批评（逐字在 `docs/RULINGS.md` 11:05 段）**：04-10 **不是**
+  流程示例 —— 代码先有、文档与测试后补，是「倒过来整」的反向补课；
+  不得把 retrofit 包装成按流程制作。今后新建 module 必须从描述开始。
+- **本轮实际做了什么（retrofit）**：`////` 模块文档命名 04-10 计划 + 逐项 `///` →
   不新增 type、只留带 `todo` 的签名 → `test/level_judgement_test.gleam`
   （RED 68/2）→ 填 `desk.timeframe_under`（GREEN 70/0）。
 - **概念按模块归位**：`desk.gleam` = R33 / R36 / R37（含「Market 尚未定」
