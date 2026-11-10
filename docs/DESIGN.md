@@ -270,7 +270,11 @@ Owner 2026-11-10, verbatim: *"我举例Desk Market Broker，目的是教你如�
   `interval` is not a `Timeframe` field; `brokerId` is not a `Broker`
   field. `Desk.brokers: Dict(BrokerId, Broker)`, `Broker.instruments:
   Dict(Symbol, Instrument)`, `Instrument.timeframes: Dict(Interval,
-  Timeframe)` — the owned never names its owner (R22 / R23).
+  Timeframe)` — the owned never names its owner (R22 / R23). Owner 10:37,
+  verbatim: *"我举例说，你的左手不知道他是左还是右，同样，Timeframe不应该
+  知道他是什么interval"* — left / right is the **holder's label**, not a
+  property the hand knows; the interval is the holder's key, not a fact the
+  `Timeframe` carries. Whoever holds, names.
 - **The glib records of his design thinking — a clue, not authority (R33).**
   `~/gits/hub/tools_ib/glib/docs/NAMING.md:575-589`: *"the owner holds what
   it owns, and the owned never names its owner"* and *"A collection is not
