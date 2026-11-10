@@ -35,6 +35,9 @@
   裁决。**不是「让系统活起来」的运行时**（R33：系统本来就活，无数据则睡觉
   等待），也不需要 actor / 调度框架。`monitor.gleam` 那层 type 的处置由
   owner 定。
+- ibOptions 的 settings 清单**不是待办清单**：按 R26 / R32，某个设置
+  只有在出现真实消费方时才按倒推隶属加一个 field，不预先批量发明
+  一整套 type，也不搬 Python / pandas 形状（R34）。
 - 已裁定、不要再看：JS 图表库 + 生成 `.mjs` 优先（R17）、小范围手写 JS（R16）、Phoenix 去留与 `webclient/`（R18）、`Desk` 而非 `Deck`（R20）、`Interval` 九值 + 全名构造子（R21）、SVG 自绘不再是默认路线、WASM 不采用。
 
 ---
@@ -48,6 +51,7 @@
 
 | 事项 | 结论 | 原文位置 |
 |---|---|---|
+| 两个先驱 / 多 broker 层 | seib 与 ibOptions 都只支持一个 broker；seib 缺「多个经纪商数据提供者」这一层，但大格局与细节都有；ibOptions 架构不足取，只看设置清单；那些 settings 本应由 type 定义，不批量预造 type、不预设关系 | `docs/RULINGS.md` R34 |
 | 名字与实体 | `Symbol` 是名字（key），`Instrument` 是被拥有的值；错了就整条改正，不留兼容层 | `docs/RULINGS.md` R22 |
 | 参数块与归属链 | `TimeframeSettings` 不是实体；`Instrument` 只有一本 `Dict(Interval, Timeframe)`；interval 只在 key 里；settings 随 engine 走 | `docs/RULINGS.md` R23 |
 | web 框架 | AI 写 demo 对比决定，不是 owner 裁决 | `docs/RULINGS.md` R24 |
