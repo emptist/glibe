@@ -65,7 +65,10 @@ sections are kept as history, not as the current answer.
   不产生层级），**谁也不依附就放 `Desk`**（至少属于我们系统）。
   **身份在持有者的 Dict key**：`interval` 不是 `Timeframe` 的 field、
   `brokerId` 不是 `Broker` 的 field，分别是 `Instrument.timeframes` 与
-  `Desk.brokers` 的 key。owner 指路的 glib 思路记录在
+  `Desk.brokers` 的 key。owner 10:37 逐字比喻：*"你的左手不知道他是左
+  还是右，同样，Timeframe不应该知道他是什么interval"* —— 左 / 右是
+  持有者给的方位标签，不是手自己的属性；谁持有，谁命名。
+  owner 指路的 glib 思路记录在
   `~/gits/hub/tools_ib/glib/docs/NAMING.md:575-589`
   （*"the owner holds what it owns, and the owned never names its owner"*、
   "A collection is not an owner-pointer"）与

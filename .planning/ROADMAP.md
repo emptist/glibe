@@ -528,7 +528,10 @@ owner 逐字原话在 `docs/RULINGS.md` R37。他举 Desk/Market/Broker 是**教
   `Asset` / `Exchange` / `Market` 具体放哪仍按 R26 等消费方，本条不预定。
 - **身份在持有者的 Dict key**：`interval` 不是 `Timeframe` 的 field，
   `brokerId` 不是 `Broker` 的 field；分别是 `Instrument.timeframes`、
-  `Desk.brokers` 的 key（`Symbol` 同理）。被持有者不命名持有者。
+  `Desk.brokers` 的 key（`Symbol` 同理）。被持有者不命名持有者，
+  也不知道自己的方位 —— owner 10:37 逐字 *"你的左手不知道他是左还是右，
+  同样，Timeframe不应该知道他是什么interval"*：左 / 右是持有者给的
+  方位标签，谁持有谁命名。
 - **owner 指路的 glib 思路记录（仅线索，R33）**：
   `~/gits/hub/tools_ib/glib/docs/NAMING.md:575-589`
   （"the owner holds what it owns…"、"A collection is not an
