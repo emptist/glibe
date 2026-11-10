@@ -98,7 +98,7 @@ bar, because only a bar is broadcast, drawn and accepted. That word is a
 | unwritten bar fields | 0 | 0 (deleted 15) | R10 |
 | **target** | `javascript` (dual-target only planned) | **`erlang`, pure** | *"BEAM is great"* — glibe is the future |
 | **foreign source in `src/`** | 14 handwritten `.mjs` | **0 compiled** | *"No handwritten erlangs or even worse JS source files"* |
-| **runtime** | one JS process | **BEAM** | `process.spawn` + a typed `Subject`; no shared memory, no lock (R31). A long-lived state owner may use an actor, but parallelism does not require one |
+| **runtime** | one JS process | **BEAM** | one `Desk`; every `Timeframe` leaf is alive in its own process (R32). `process.spawn` + a typed `Subject`; no shared memory, no lock (R31). A long-lived state owner may use an actor, but parallelism does not require one |
 | **dashboard** | handwritten JS + FFI | Phoenix/Elixir + JS in `apps/` | **unowned AI choice** (`5e91f44`), debt — owner decision pending; `REVIEW_ROUND5.md` §10, `RULINGS.md` R14/R16. The *chart* is the owner's (UC-56/57/60); the framework is not |
 | KDJ window | `w` | **`w`** | same; idib `kdjPeriod = 7` |
 | σ window | includes bar in hand | **includes it** | same |
@@ -290,64 +290,63 @@ bar and why (R13).
 
 This is a type-structure change, not a runtime one: `advance` starts no
 process, opens no socket and holds no clock. `gleam_otp` is already a direct
-dependency of the root package, but this module does not use it. Running many
-addressed steps at once is measured in `probes/parallel-bars/` (R31) and needs
-no further type work; the remaining runtime work is a live feed and the replay
-CLI (section below). No `Market` / `Asset` / `Exchange` relation was invented
+dependency of the root package, but this module does not use it. `advance`
+remains the pure per-leaf step; R32 says the garden has ONE `Desk` and each
+`Timeframe` leaf is alive, so there is no N-`Desk` merge problem to solve.
+The remaining runtime work is a live feed and the replay CLI (section below). No `Market` / `Asset` / `Exchange` relation was invented
 (R26), and neither `SourceBar` nor `Timeframe` gained a field. Six tests in `test/monitor_test.gleam` pin the isolation: the addressed
 timeframe advances while the same instrument's other interval and two other
 brokers' instruments stay identical; two instruments keep their own closes; a
 non-boundary bar only opens a bucket; the same bar closes an hourly but not a
 four-hour bucket; and both failure paths carry the address.
 
-## Parallel addressed steps are already natural (04-09 / R31)
+## The structure is a garden (R32) — and 04-09 measured the wrong shape
 
-Owner 2026-11-09: *"gleam语言呀，是天然多线程 … 怎么实现并行任务的，非常简单啊
-非常自然。因为他是一个一个严格的value，完全不住在内存里，所以根本没有那些
-复杂的补救措施需要做"*. The earlier framing — "Stage F's supervised actors,
-subscriptions and streams" — described concurrency as a whole mechanism still
-to be built. It is not.
+Owner 2026-11-10: *"结构复述正确，不过这是一个花园，不断根据需要往里面加新的
+花盆。实际上就是在Type定义中加新field而已 … 那就倒推他和其他type现实中什么
+关系呢？隶属于谁呢？如果谁也不隶属，是其他关系，那么可能放在Desk里面就好了，
+那么用dict还是list还是其他东西放呢？根据需要来对比研究决定。"*
 
-Official sources: `gleam.run` needs only `process.new_subject` /
-`process.spawn` / `process.receive`; the v0.12 release says "there's no need
-for an `async/await` syntax or callbacks", "doesn't require any special types
-such as futures or promises", and "Erlang and Gleam don't have mutable state
-so locks and shared mutable state is not an option". `gleam_otp`'s actor module
-describes itself as "a process like any other BEAM process" — a thin wrapper
-for state that survives across messages plus OTP system messages. Supervisors
-are fault tolerance, not parallelism. Wisp has zero `process.` calls; glisten
-spawns one process per connection; Lustre's server runtime is exactly one
-actor. **An actor is not banned; it is simply not a prerequisite.**
+The ownership chain is not a finished skeleton. A new real thing is **one new
+field in an existing type**. Where it sits is found by working backwards from
+its real relation to the other types — what does it belong to? — and a thing
+that belongs to nobody sits on `Desk` (`exchanges` is the owner's example).
+Whether a `Dict`, a `List` or something else holds it is decided by comparing
+the real access pattern, not by habit. Identity stays in the key (R23), one
+fact stays in one place, and R26 still holds: no speculative `Asset` /
+`Exchange` / `Market` level is added ahead of a consumer.
 
-`probes/parallel-bars/` (Erlang target, R19 RED→GREEN) measures it: six
-`IncomingBar` values at six configured `TimeframeAddress` values, one
-`process.spawn` each, one typed `Subject` for the replies. Measured run:
-**six distinct BEAM Pids**, replies arriving in reverse spawn order,
-**0 actor / 0 supervisor / 0 lock / 0 FFI**, 4 tests green. No production
-logic changed: only `monitor.gleam`'s `////` module doc was synced to R31,
-and no dependency was added.
+**Concurrency is not a mechanism bolted onto this garden.** One `Desk` holds
+its brokers; each `Broker` holds its instruments and accounts; each
+`Instrument` holds `Dict(Interval, Timeframe)`; and **every one of those
+`Timeframe` leaves is alive**, processing its own bars and making its own
+trading decisions. There is no second `Desk` to merge. The BEAM evidence
+gathered for 04-09 still stands (`04-09-PLAN.md` §2): `process.spawn` + a
+typed `Subject`, no async/await, no futures, no locks, no shared mutable
+memory; an actor is a thin wrapper for state that survives across messages,
+a supervisor is fault tolerance — neither is a prerequisite for parallelism.
+Wisp has zero `process.` calls, glisten spawns one process per connection,
+Lustre's server runtime is exactly one actor. Scope: **Erlang / BEAM only**.
 
-The honest ownership result is the one thing worth writing down. Each parallel
-worker returns a whole new `Desk` that advanced ONE address and still holds the
-original state at the other five. **0 of 6 partial `Desk` values equal the
-single-owner fold.** Immutable values do not merge themselves: either one owner
-applies the steps in arrival order, or each address owns its own `Timeframe`
-and there is no global `Desk` to merge. That is a **data-flow / ownership**
-choice (R26: decide when a consumer needs it), not a synchronisation problem —
-no lock, no retry, no supervisor is involved. Values do live in memory, in
-each process's own heap; what does not exist is **shared mutable memory**.
-
-Scope: **Erlang / BEAM only** (owner 2026-11-09 06:09). See `docs/RULINGS.md`
-R31 and `.planning/phases/04-domain-cleanup/04-09-SUMMARY.md`.
+`probes/parallel-bars/` measured the WRONG shape: it copied that one `Desk`
+into six processes, each returning a whole new `Desk`, and then asked how to
+merge six partial results. "0 of 6 equal the single-owner fold" is a
+**pseudo-problem of my own making**, void as of R32. The probe stays in the
+tree as a dated historical experiment with a superseded note in its module
+doc; it is not evidence for the design, and its six Pids / zero locks measure
+a language primitive, not the structure.
 
 ## What glibe does not do yet
 
-- **The live runtime** — a replay CLI over real klines, the feed that produces
-  `IncomingBar` values, `DataGenerator` retirement, the minute-trading guard
-  (`REVIEW_ROUND5.md` §1). **Concurrency is not on this list** (R31): six
-  addressed bars already ran in six BEAM processes with `process.spawn` and a
-  typed `Subject` in `probes/parallel-bars/`. Whether a long-lived state owner
-  uses `gleam_otp`'s actor is a per-consumer choice (R26), not a prerequisite.
+- **The live runtime** — making each `Timeframe` leaf alive (its own BEAM
+  process, its own bar stream, its own trading decisions), a replay CLI over
+  real klines, the feed that produces `IncomingBar` values, `DataGenerator`
+  retirement, the minute-trading guard (`REVIEW_ROUND5.md` §1). R31 says
+  **no concurrency mechanism has to be built first** — `process.spawn` plus a
+  typed `Subject` is the whole primitive; R32 says making a leaf alive is a
+  field in the garden's types, not a separate framework. Whether a long-lived
+  state owner uses `gleam_otp`'s actor is a per-consumer choice (R26), not a
+  prerequisite.
 - **The catalogue tables' identities and relations** — deliberately open
   under R26, not a pending owner ruling. They get types when a consumer
   appears. The web-layer comparison (R24) and adoption (phase 04-05) are both

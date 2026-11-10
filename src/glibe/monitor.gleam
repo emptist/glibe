@@ -5,7 +5,8 @@
 //// R20 (`Desk ▸ Broker ▸ Instrument ▸ Timeframe`), R22 (a name is not the
 //// thing named), R23 (identity is a key, never a field), R26 (no speculative
 //// relations), R27 / R28 (the standard bar carries no provider identity),
-//// R31 (BEAM parallelism is `process.spawn` + a typed `Subject`).
+//// R31 (BEAM parallelism is `process.spawn` + a typed `Subject`),
+//// R32 (the structure is a garden: one `Desk`, every `Timeframe` leaf alive).
 ////
 //// **What was missing.** The chain `Desk ▸ Broker ▸ Instrument ▸ Interval ▸
 //// Timeframe` already expresses many instruments, each with many intervals,
@@ -23,7 +24,7 @@
 //// requested per interval, and it is the key in `Instrument.timeframes`.
 //// One `IncomingBar` advances ONE `Timeframe` — it is NOT fanned out to every
 //// interval of its instrument. Monitoring N instruments × M intervals is N×M
-//// addressed steps, each isolated from the others.
+//// LIVE leaves, each isolated from the others (R32).
 ////
 //// **Why a wrapper type.** The standard `SourceBar` is deliberately free of
 //// provider identity (R27 / R28); the identity belongs to the request that
@@ -32,13 +33,15 @@
 //// `SourceBar` nor `Timeframe` gains a field.
 ////
 //// **Pure, not a scheduler.** `advance` returns a NEW `Desk`; it starts no
-//// process, opens no socket and holds no clock (R31). Many addressed steps
-//// run at once with `process.spawn` + a typed `Subject`: `probes/parallel-bars/`
-//// measured six bars in six BEAM processes with 0 actor / 0 supervisor /
-//// 0 lock. One owner folds the returned `Desk` values, or each address owns
-//// its own `Timeframe` — an ownership choice, not a synchronisation device.
-//// A live feed and the replay CLI are the remaining runtime work. No
-//// `Market` / `Asset` / `Exchange` relation is invented here (R26).
+//// process, opens no socket and holds no clock (R31). The structure is a
+//// garden (R32): ONE `Desk`, and every `Timeframe` in an `Instrument`'s
+//// `Dict(Interval, Timeframe)` is alive, processing its own bars and making
+//// its own trading decisions. `process.spawn` + a typed `Subject` is the
+//// whole BEAM primitive for that; there are no N `Desk` copies to merge.
+//// `probes/parallel-bars/` measured exactly such copies, so its "0 of 6"
+//// conclusion is void (R32). A new real thing is one new field in an
+//// existing type, placed by asking what it belongs to; no `Market` / `Asset`
+//// / `Exchange` relation is invented here (R26).
 
 import gleam/option.{None, Some}
 import gleam/result

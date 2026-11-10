@@ -1,21 +1,20 @@
-//// N addressed bars, N BEAM processes, no actor, no supervisor, no lock.
+//// SUPERSEDED 2026-11-10 (R32) — this probe measured the WRONG SHAPE.
 ////
 //// Plan: `.planning/phases/04-domain-cleanup/04-09-PLAN.md`.
-//// Rulings: `docs/RULINGS.md` R19 (docs-first / TDD), R26 (no speculative
-//// relations), R27 / R28 (the standard bar carries no provider identity),
-//// R31 (Erlang / BEAM concurrency is `process.spawn` + a typed `Subject`).
+//// Rulings: `docs/RULINGS.md` R19 (docs-first / TDD), R27 / R28 (the standard
+//// bar carries no provider identity), R31 (BEAM concurrency is
+//// `process.spawn` + a typed `Subject`), R32 (the structure is a garden).
 ////
-//// **What this measures.** Owner 2026-11-09: *"gleam语言呀，是天然多线程，
-//// 好像不需要actor那些东西 … 非常简单啊非常自然。因为他是一个一个严格的
-//// value，完全不住在内存里，所以根本没有那些复杂的补救措施需要做"*.
-//// `monitor.advance` is already a pure step from one `Desk` to a new `Desk`.
-//// The question is not whether many bars can run at once — the official
-//// `gleam_erlang/process.spawn` + typed `Subject` is three lines — but what
-//// the N returned `Desk` values MEAN. Each is a partial view: it advanced
-//// exactly one address and left the other five at their original state.
-//// There is no shared memory to lock, but there is an OWNERSHIP decision:
-//// either one owner folds the steps into one `Desk`, or each address owns its
-//// own `Timeframe`. That is a data-flow shape, not a synchronisation device.
+//// **Why it is superseded.** `advance_in_parallel` copies ONE `Desk` into six
+//// spawned processes; each calls `monitor.advance` and returns a whole new
+//// `Desk`. The resulting "0 of 6 partial Desks equal the single-owner fold"
+//// and the "ownership / merge" question are a pseudo-problem created by that
+//// copy. Owner 2026-11-10: *"Desk只有一个 … 每一个Instrument里面有一组
+//// Timeframe，每一个都活着，处理数据，进行交易"*. The real structure has ONE
+//// `Desk` and N×M live `Timeframe` leaves; there is nothing to merge.
+//// This package is kept only as a dated historical experiment and as a
+//// language measurement (six distinct Pids, zero locks). It is NOT evidence
+//// for the design; see `docs/RULINGS.md` R32 and `docs/DESIGN.md`.
 ////
 //// **Scope.** Erlang / BEAM only (owner 2026-11-09 06:09: *"你去看什么
 //// javascript target完全不对路，我们是erlang 和 BEAM专属项目"*). This probe
