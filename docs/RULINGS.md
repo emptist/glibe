@@ -1155,31 +1155,51 @@ Desk是顶层的唯一的一个Value，整个系统都在他里面，然后逐�
 
 ---
 
-## R34 — 两个先驱都只有一个 broker；settings 是本该由 type 定义的东西（2026-11-10 owner 指示）
+## R34 — seib 结构是对的（只缺多经纪商这一层）；ibOptions 结构不好（settings 挤掉了 type）（2026-11-10 owner 指示）
 
-**owner 原话（逐字）**：*"很可惜seib当时没有binance，我印象中仅支持一个数据源就是ib，所以他缺一层，就是多个经纪商数据提供者，但是大格局都有了，细节也有了，ibOptions的实现，受制于Python+pandas其实架构没有那么好，完全靠配置解决很多结构性问题，他的架构不足取，只能看里面涉及到那些设置，那些设置那些事应该是type定义的，被迫搞成了settings之类的文件，也就是说正常手工和自动交易涉及的所有细节需要，ibOptions都有，但是结构不行。并且两个先驱都仅支持一个broker"*
+> **2026-11-10 更正（owner 10:26，逐字）**：*"注意我说的seib的结构是对的，
+> ibOptions结构不好，用settings解决结构问题，按照你的复述，可就变成了seib
+> 也不对，他的settings也应该是types。这就乱了。"*
+>
+> 本条初稿把两个先驱并列成「结构都不行、settings 都该是 type」，**这是错的**。
+> 按 owner 更正：**seib 的结构是对的**，唯一缺的是「多个经纪商数据提供者」
+> 这一层；**「用 settings 解决结构问题」只属于 ibOptions**；seib **不存在**
+> 「settings 应该是 types」这件事。下面各条与所有同步文档按此读。
 
-- **裁定：两个先驱都是单 broker / 单数据源，缺的是「多个经纪商数据提供者」这一层。**
-  seib 当时没有 binance（owner 原话带「我印象中」，按原样保留：仅支持 IB
-  一个数据源）；ibOptions 同样只支持一个 broker。owner 同时说 **「大格局
-  都有了，细节也有了」** —— 缺的是**结构上的一层**，不是细节或功能没写全。
-  这是对先驱的**结构评价**，不是对其正确性的背书：R33 已定
-  seib → glib → glibe 是思路沿革，不是正确性证明链；glib / 先驱代码都
-  不作依据。
-- **裁定：ibOptions 只能看「有哪些设置」，不能搬架构。** Python + pandas
-  使它的架构不足取：很多**结构性问题**被压进配置里解决。
+**owner 原话（逐字，10:18）**：*"很可惜seib当时没有binance，我印象中仅支持一个数据源就是ib，所以他缺一层，就是多个经纪商数据提供者，但是大格局都有了，细节也有了，ibOptions的实现，受制于Python+pandas其实架构没有那么好，完全靠配置解决很多结构性问题，他的架构不足取，只能看里面涉及到那些设置，那些设置那些事应该是type定义的，被迫搞成了settings之类的文件，也就是说正常手工和自动交易涉及的所有细节需要，ibOptions都有，但是结构不行。并且两个先驱都仅支持一个broker"*
+
+- **裁定：两个先驱共同的事实只有一个 —— 都仅支持一个 broker**（owner
+  逐字：*"并且两个先驱都仅支持一个broker"*）。**这不是对两者结构的同一评价**：
+  - **seib 的结构是对的**：*"大格局都有了，细节也有了"*（owner 逐字）。
+    它**只缺一层** —— *"多个经纪商数据提供者"*；seib 当时没有 binance
+    （owner 原话带「我印象中」，按原样保留：仅支持 IB 一个数据源）。
+    缺这一层不是结构错误，而是当时只有一个数据源、这一层在现实里还
+    没有出现。**seib 没有「用 settings 代替 type」的问题**；不得说
+    seib 的 settings 应该是 types，也不得把 ibOptions 的结构批评扩展
+    到 seib。
+  - **ibOptions 的结构不好**（见下两条），且它同样只有一个 broker。
+  - R33 仍成立：seib → glib → glibe 是思路沿革，不是正确性证明链；
+    glib / 先驱代码都不作依据。本条对 seib「结构对」的判断来自 owner
+    本轮陈述，不是从先驱代码读出来的。
+- **裁定（以下两条只针对 ibOptions，不适用于 seib）：ibOptions 只能看
+  「有哪些设置」，不能搬架构。** Python + pandas 使它的架构不足取：
+  很多**结构性问题**被压进配置里解决。
   *「正常手工和自动交易涉及的所有细节需要，ibOptions都有」* —— 它是一份
   **需求 / 细节清单**，可作素材；**不搬**它的 Python / pandas 形状、
   类、配置文件或模块划分到 glibe，也不把它当作设计已落实或设计正确的证据。
-- **裁定：settings 是被压扁的 type。** *「那些设置那些事应该是type定义的，
-  被迫搞成了settings之类的文件」* —— 在 glibe 里，一个设置所代表的现实
+- **裁定（仅 ibOptions）：settings 是被压扁的 type，seib 无此事。**
+  *「那些设置那些事应该是type定义的，被迫搞成了settings之类的文件」*
+  说的是 ibOptions：它把结构性问题做成了配置文件。**不要倒推到 seib** ——
+  owner 明确 seib 的结构是对的，它没有这一缺陷。在 glibe 里，一个设置所代表的现实
   事物应由 type 定义；若它只是某个已有 type 的一个方面，就按 R32 成为
   **已有 Type 定义里的一个 field**。不得复现「通用配置表 + 字符串键 +
   解析器 + 查找函数」那一圈（R13 根法、R19 type-first、R21 线路码只在
   codec/adapter、R23 `TimeframeSettings` 不是实体、R22 不留兼容层）。
   `src/glibe/config.gleam` 现在仍是 Gleam 源码里的一个值
   （`AppConfig` + `default_config()`），不是外部 settings 文件。
-- **裁定：缺的那一层在 glibe 已存在，不是待建工程。**
+- **裁定：seib 缺的那一层在 glibe 已存在，不是待建工程。** 补的是
+  *「多个经纪商数据提供者」* 这一层 —— 不是修复 seib 的结构，也不是
+  把 ibOptions 的 settings 搬进来。
   `Desk(brokers: Dict(BrokerId, Broker))`（`src/glibe/desk.gleam:92-93`），
   `Broker` 持有 `instruments` 与 `accounts`（`src/glibe/desk.gleam:80`）；
   `config.default_config()` 建了 `binance` / `ib` / `futu` 三个 broker
@@ -1206,6 +1226,8 @@ Desk是顶层的唯一的一个Value，整个系统都在他里面，然后逐�
   IB TWS或IB Gateway來實時提供的socket接口"*；`:1015`「…但如果太過複雜
   則捨棄而專門針對IB API」。全仓 `binance` 检索 **0 处匹配**（只有
   `ibkr.info` 文档链接）。与 owner「我印象中仅支持一个数据源就是ib」一致。
+  **这段只核对「单数据源」这个事实，不用于判断 seib 结构对错** ——
+  结构对不对由 owner 本轮陈述定，不由这里的代码检索定。
 - `~/gits/hub/ibOptions/` 顶层有 `settings.py`、11 个 `settings_*.py`
   与 `ib_settings.py`；`settings.py:6` 是 `class MySetts`，把代理、
   AI provider、每日 hour bar 数、interval → 天数换算等写成类属性 /
