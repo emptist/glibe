@@ -81,13 +81,15 @@ of the same `Timestamp` to the analyst's local wall clock (IANA/DST), R29 is the
   谁也不隶属放 `Desk`；集合 Dict/List 按真实访问对比研究；R26 不预设层级。
   R31 官网/v0.12 语言事实与 `gleam_otp` 事实更正仍成立，但不描述本系统。
 **R34–R37（2026-11-10，逐字全文在 `docs/RULINGS.md`）**：
-- **R34 先驱定位**：唯一共同事实 = 都只有一个 broker。**seib 结构是对的**
-  （*"大格局都有了，细节也有了"*），只缺「多个经纪商数据提供者」这一层，
-  缺层不是结构错误；**seib 没有 settings 问题**。ibOptions 结构不好是
-  **受制于 Python+pandas 的局限**（结构关系写不成 type 才被迫压进
-  settings），不是随意乱做；只作需求清单，那些设置在 glibe 是 type/field。
-  缺的那层已在 `Desk(brokers: Dict(BrokerId, Broker))` + 3 broker；不加
-  provider 层。R29 的 ibOptions 引用只是时区事实线索。
+- **R34 先驱定位（11:10 定稿）**：**两者完全两码事**，唯一共同点只是
+  数量上都只有一个 broker。**seib = CoffeeScript、owner 自己的系统设计**：
+  没有 Python/pandas 局限、**不存在连类型都搞不清楚的问题**；结构是对的，
+  只缺「多个经纪商数据提供者」一层，缺层不是错误；**无 settings 问题**。
+  **ibOptions = 为了迁就语言凑合的**（Python+pandas），**五脏俱全但都不
+  对劲**，结构关系写不成 type 才被迫压进 settings，只作需求清单；那些设置
+  在 glibe 是 type/field。此前复述像「seib 也是 python、只不过没受限制」
+  = 错。缺的那层已在 `Desk(brokers: Dict(BrokerId, Broker))` + 3 broker；
+  不加 provider 层。R29 的 ibOptions 引用只是时区事实线索。
 - **R35 SwiftUI**：相似**只在 View 的定义与实现**（纯 functional +
   value types）；Swift 其余被 class/actor/数据竞争搞复杂，Gleam 里不可能。
   **view 为什么会更新 = R33 系统本来就活**。并发课题遇到再查官网 +
@@ -170,11 +172,20 @@ R33 作废的 `monitor.advance` 那层。不新增 type/field/关系/依赖，�
   commit; **do not push unless asked**; never `rm -rf build`.
 - Owner 2026-11-09: *"尽量发挥gleam的特长…一下手就把想明白的逻辑写明白"* — put
   understanding in types; leave the un-thought-out in `todo`, never in `String`.
+- **Owner 2026-11-10 11:11（文档体系裁定）**：`docs/` 下大量文档之所以
+  存在，正因没做到 *"gleam document 领先于测试，测试领先于实际代码"*；
+  **那些文档是 owner 发现错误后上课留下的「差生补课笔记」**，不是设计
+  资产/权威；**流程做对，很多文档不需要**。11:10 把 seib 读成 Python
+  那次就是「反着做习惯」的证据，与 11:05 同一根因。纪律：**不再为记录
+  概念新建散文文档**，已有文档只在改错/记逐字裁定/记实测时更新，
+  文档量应下降；概念进 `////` / `///`，设计目标进 test，实现最后。
 
 ## Phase 04 status
-- **04-10（2026-11-10 10:42，当前）**：R33–R37 已按完整链条落进代码
-  （`////` / `///` → 不新增 type → 6 个测试 RED 68/2 → `timeframe_under`
-  纯读取 GREEN）。**70 tests 根包 + 4（probe）green**，`BUILD_WAE=0/0`、
+- **04-10（2026-11-10 10:42，当前）**：R33–R37 补进代码，**是 retrofit
+  而非按流程制作**（`Desk` 等 type 与 `get_*` 早已实现、文档与测试后补；
+  11:05 owner 定性「倒过来整、补充 test 充门面」）。实际动作：
+  `////` / `///` → 不新增 type → 6 个测试 RED 68/2 → `timeframe_under`
+  纯读取 GREEN。**70 tests 根包 + 4（probe）green**，`BUILD_WAE=0/0`、
   FORMAT/DOCS/GUARDS/CMP 全 0，两包 `package-interface.json` 全文渲染含
   04-10 链接。计划/结果 `04-10-PLAN.md` / `04-10-SUMMARY.md`，四笔提交
   `3e7ac3b`→`7594beb`→`2d3aff9`→`44a8142`，文档同步 `5e750e5` /
