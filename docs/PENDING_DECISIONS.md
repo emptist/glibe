@@ -38,6 +38,9 @@
 - ibOptions 的 settings 清单**不是待办清单**：按 R26 / R32，某个设置
   只有在出现真实消费方时才按倒推隶属加一个 field，不预先批量发明
   一整套 type，也不搬 Python / pandas 形状（R34）。
+- `Market` 是否该在 `Broker` 之上持有它：**已否决**（两个方向都不隶属），
+  `Desk ▸ Broker` 无断层。其余 `Asset` / `Exchange` / `Market` 关系按
+  R26 等真实消费方，不预先加 type（R36）。
 - 已裁定、不要再看：JS 图表库 + 生成 `.mjs` 优先（R17）、小范围手写 JS（R16）、Phoenix 去留与 `webclient/`（R18）、`Desk` 而非 `Deck`（R20）、`Interval` 九值 + 全名构造子（R21）、SVG 自绘不再是默认路线、WASM 不采用。
 
 ---
@@ -51,7 +54,9 @@
 
 | 事项 | 结论 | 原文位置 |
 |---|---|---|
-| 两个先驱 / 多 broker 层 | seib 与 ibOptions 都只支持一个 broker；seib 缺「多个经纪商数据提供者」这一层，但大格局与细节都有；ibOptions 架构不足取，只看设置清单；那些 settings 本应由 type 定义，不批量预造 type、不预设关系 | `docs/RULINGS.md` R34 |
+| 两个先驱 / 多 broker 层 | 唯一共同事实是**都只有一个 broker**。**seib 结构是对的**，只缺「多个经纪商数据提供者」这一层（缺层不是结构错误）；**seib 没有 settings 问题**。ibOptions 受限于 Python + pandas，结构性关系无法写成 type 才被迫压进 settings，只作需求清单；那些设置在 glibe 是 type 或 field，不批量预造、不预设关系 | `docs/RULINGS.md` R34（含 10:26 / 10:29 更正） |
+| SwiftUI View / 简单验证码 | 相似**只在 View 的定义与实现**；view 会更新 = R33 系统本来就活；并发遇到再查官网 + 做几个 demo 对比 = TDD；**简单是正确的验证码**，复杂则 type / 函数 / 模块定义有错 | `docs/RULINGS.md` R35 |
+| 层次关系与断层 | 核对 owner 记忆的 type 系统：链完整无缺少；**Market 与 Broker 双向都不隶属 → 否决**，`Desk ▸ Broker` 无断层；Asset / Exchange / Market 按 R26 开放、Account 已有、Symbol / Interval 是 key；不新增 type / field / 关系 | `docs/RULINGS.md` R36 |
 | 名字与实体 | `Symbol` 是名字（key），`Instrument` 是被拥有的值；错了就整条改正，不留兼容层 | `docs/RULINGS.md` R22 |
 | 参数块与归属链 | `TimeframeSettings` 不是实体；`Instrument` 只有一本 `Dict(Interval, Timeframe)`；interval 只在 key 里；settings 随 engine 走 | `docs/RULINGS.md` R23 |
 | web 框架 | AI 写 demo 对比决定，不是 owner 裁决 | `docs/RULINGS.md` R24 |
