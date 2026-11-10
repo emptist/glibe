@@ -915,6 +915,10 @@ owner 原话（两条，逐字）：*"注意美国股票市场涉及夏令时以
   库的做法一致，也印证 R26：市场日历是有真实消费方的一层。Gleam 侧的对应
   物是 `tzif` 2.0.0（上一条），不是把 Python 代码搬过来。
 - 本轮不引入 `tzif`：`gleam.toml` 只多了 `gleam_time`（04-06）。
+- **2026-11-10 引用限定（R34）**：上面 `~/gits/hub/ibOptions` 的两处实例
+  只是**时区 / 市场日历的事实线索**，不是架构依据。owner 已明确该项目
+  「架构不足取，只能看里面涉及到那些设置」；不得由这两处 Python 代码
+  反推 glibe 的结构。R29 的 IANA 库 / 拒绝固定 offset 结论不变。
 
 ---
 
@@ -1148,3 +1152,67 @@ Desk是顶层的唯一的一个Value，整个系统都在他里面，然后逐�
   `////` 模块文档；
   `04-08-PLAN.md` / `04-08-SUMMARY.md` / `04-09-PLAN.md` /
   `04-09-SUMMARY.md` 顶部的日期更正注记。不是待裁决项。
+
+---
+
+## R34 — 两个先驱都只有一个 broker；settings 是本该由 type 定义的东西（2026-11-10 owner 指示）
+
+**owner 原话（逐字）**：*"很可惜seib当时没有binance，我印象中仅支持一个数据源就是ib，所以他缺一层，就是多个经纪商数据提供者，但是大格局都有了，细节也有了，ibOptions的实现，受制于Python+pandas其实架构没有那么好，完全靠配置解决很多结构性问题，他的架构不足取，只能看里面涉及到那些设置，那些设置那些事应该是type定义的，被迫搞成了settings之类的文件，也就是说正常手工和自动交易涉及的所有细节需要，ibOptions都有，但是结构不行。并且两个先驱都仅支持一个broker"*
+
+- **裁定：两个先驱都是单 broker / 单数据源，缺的是「多个经纪商数据提供者」这一层。**
+  seib 当时没有 binance（owner 原话带「我印象中」，按原样保留：仅支持 IB
+  一个数据源）；ibOptions 同样只支持一个 broker。owner 同时说 **「大格局
+  都有了，细节也有了」** —— 缺的是**结构上的一层**，不是细节或功能没写全。
+  这是对先驱的**结构评价**，不是对其正确性的背书：R33 已定
+  seib → glib → glibe 是思路沿革，不是正确性证明链；glib / 先驱代码都
+  不作依据。
+- **裁定：ibOptions 只能看「有哪些设置」，不能搬架构。** Python + pandas
+  使它的架构不足取：很多**结构性问题**被压进配置里解决。
+  *「正常手工和自动交易涉及的所有细节需要，ibOptions都有」* —— 它是一份
+  **需求 / 细节清单**，可作素材；**不搬**它的 Python / pandas 形状、
+  类、配置文件或模块划分到 glibe，也不把它当作设计已落实或设计正确的证据。
+- **裁定：settings 是被压扁的 type。** *「那些设置那些事应该是type定义的，
+  被迫搞成了settings之类的文件」* —— 在 glibe 里，一个设置所代表的现实
+  事物应由 type 定义；若它只是某个已有 type 的一个方面，就按 R32 成为
+  **已有 Type 定义里的一个 field**。不得复现「通用配置表 + 字符串键 +
+  解析器 + 查找函数」那一圈（R13 根法、R19 type-first、R21 线路码只在
+  codec/adapter、R23 `TimeframeSettings` 不是实体、R22 不留兼容层）。
+  `src/glibe/config.gleam` 现在仍是 Gleam 源码里的一个值
+  （`AppConfig` + `default_config()`），不是外部 settings 文件。
+- **裁定：缺的那一层在 glibe 已存在，不是待建工程。**
+  `Desk(brokers: Dict(BrokerId, Broker))`（`src/glibe/desk.gleam:92-93`），
+  `Broker` 持有 `instruments` 与 `accounts`（`src/glibe/desk.gleam:80`）；
+  `config.default_config()` 建了 `binance` / `ib` / `futu` 三个 broker
+  （`src/glibe/config.gleam:87-101`）。这与 R33 的「`Desk` 是顶层唯一
+  Value，逐层嵌套即完整系统」及管道头 `api provider / data sources`
+  相合；owner 本轮把「经纪商」与「数据提供者」并列说出，本条**不另架
+  一层 provider 框架、不新增 provider / data-source 类型**。R26 已确认的
+  `Broker ▸ Instrument` 不变，也不预设它们与 `Asset` / `Exchange` /
+  `Market` 的关系。
+- **执行边界**：按 R26 / R32，**不因为 ibOptions 有一堆 settings 就预先
+  批量发明一整套 type**；某个设置只有在出现真实消费方时，才按倒推隶属
+  加一个 field。本轮只记录裁定：**不删、不改 `src/`，不加依赖、不写
+  probe、不新增待裁决项**。真正待做的工作仍是 R33 的「把各数据源的
+  实时到达接到标准 `SourceBar` 入口」+ replay CLI。
+- **与 R29 的关系**：R29 引 `~/gits/hub/ibOptions/tradingtime.py:24` 的
+  `pytz.timezone('US/Eastern')` 与 `simple_auto_trading.py:132` 的
+  `astimezone`，只是**时区 / 市场日历的事实线索**。本条明确该项目整体
+  架构不足取；R29 的技术结论（用 IANA 库、不用固定 offset）不变，
+  但这些文件**不得被当成架构依据**。
+
+**只读核对（背景事实，不作依据）**：
+
+- `~/gits/hub/tools_ib/seib/README.md:1061`：*"IB API 是通過在電腦上運行
+  IB TWS或IB Gateway來實時提供的socket接口"*；`:1015`「…但如果太過複雜
+  則捨棄而專門針對IB API」。全仓 `binance` 检索 **0 处匹配**（只有
+  `ibkr.info` 文档链接）。与 owner「我印象中仅支持一个数据源就是ib」一致。
+- `~/gits/hub/ibOptions/` 顶层有 `settings.py`、11 个 `settings_*.py`
+  与 `ib_settings.py`；`settings.py:6` 是 `class MySetts`，把代理、
+  AI provider、每日 hour bar 数、interval → 天数换算等写成类属性 /
+  静态方法。这正是 owner 说的「被迫搞成了 settings 之类的文件」。
+  **只核对存在与形状，不搬运任何设置值，也不据此新建 type。**
+
+- **Landed in**：`docs/RULINGS.md`（本条 + R29 引用限定）；`docs/DESIGN.md`
+  「What the two predecessors had」；`docs/STATE.md` 2026-11-10 当前段；
+  `.planning/ROADMAP.md`；`README.md` 状态表；待裁决文档的 `# REFERENCE`
+  索引（决策区仍 **0 项**）；`.workbuddy/memory/`。不是待裁决项。
