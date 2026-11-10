@@ -58,7 +58,12 @@ exists, never a fixed offset (`~/gits/hub/ibOptions/tradingtime.py:24`,
 `simple_auto_trading.py:132`). R30 web display time = **output-side** projection
 of the same `Timestamp` to the analyst's local wall clock (IANA/DST), R29 is the
 **input-side** market calendar — never merge them; CSV stays UTC RFC3339;
-`tzif` not yet a dependency.
+`tzif` not yet a dependency. R31 BEAM 并发 = `process.spawn` + 类型化
+`Subject`，不是待建的受监督 actor 机制（其「0/6 合并」段已作废）。**R32 结构是
+花园**：加一个新事物 = 已有 Type 定义里的一个 field；位置靠倒推「现实中隶属于
+谁」，谁也不隶属就放 `Desk`（`exchanges` 例）；集合用 Dict/List/其他按真实访问
+方式对比研究决定；R26 仍成立。**一个 `Desk`，每个 `Timeframe` 叶子都活着**，
+处理数据、进行交易；没有 N 份 Desk 要合并。
 
 ## Measured facts
 - Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; **no `T(..)` form**;
@@ -109,13 +114,13 @@ of the same `Timestamp` to the analyst's local wall clock (IANA/DST), R29 is the
   exactly ONE `Timeframe`** — no fan-out to all intervals; N×M monitoring = N×M
   addressed steps. `SourceBarRejection` replaces `Error(String)`; `fetch_klines`
   takes `Symbol`. 64 tests green.
-- 04-09 **DONE (2026-11-10, R31)**: `probes/parallel-bars/` (Erlang target,
-  path dep on `glibe`) measured 6 addressed bars → **6 distinct BEAM Pids**,
-  reverse arrival order, 0 actor / 0 supervisor / 0 lock / 0 FFI;
-  RED 0 passed / 4 failures → GREEN **4 passed**. **0/6 并行 `Desk` 等于
-  单一 owner fold**：N 份不可变值不会自己合并，要么一个 owner 顺序 fold，
-  要么每个地址自持 `Timeframe` —— 所有权/数据流，不是同步问题（R26，
-  未新增生产类型）。R31 逐字记录 owner 话；DESIGN/STATE/ROADMAP/README/
-  PENDING 已重写「Stage F = 受监督 actor」框架；`gleam_otp` 早已是直接
-  依赖（两处错话已纠正）。实时行情流 / replay CLI 仍待做。明细见
-  `.planning/phases/04-domain-cleanup/04-09-SUMMARY.md`。**0 待裁决项**。
+- 04-09 `probes/parallel-bars/`：6 个带地址 bar → 6 个 BEAM Pid / 0 lock，
+  R19 RED→GREEN 4 passed；R31 记官方 BEAM 证据与 `gleam_otp` 事实更正。
+  **但它把一份 `Desk` 复制进 6 个进程，形状错误；「0/6 合并 / 所有权」是
+  伪问题 → R32 作废**。probe 留作带作废注记的历史实验，不作设计实证。
+- 04-10 R32 落地：撤回 R31 该段、DESIGN 04-09 节、README / STATE /
+  ROADMAP / PENDING / 04-09 历史文档里的错误框架；官方 BEAM 证据保留。
+  **glib 核实**：同一四类型链已在 `glib/src/glib/desk.gleam:11-13`、
+  `broker.gleam:29-34`、`domain/instrument.gleam:76-82` 落地（55-02 done），
+  但 glib 是 JS target、runtime single-stream，「每个 Timeframe 活着」未做到。
+  本轮**未加生产类型、未改 `src/` 逻辑、未写新 probe**；0 待裁决项。
