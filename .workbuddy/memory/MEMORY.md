@@ -80,6 +80,31 @@ of the same `Timestamp` to the analyst's local wall clock (IANA/DST), R29 is the
 - **R32 仍成立**：花园 = 在已有 Type 定义里加一个 field；位置靠倒推隶属，
   谁也不隶属放 `Desk`；集合 Dict/List 按真实访问对比研究；R26 不预设层级。
   R31 官网/v0.12 语言事实与 `gleam_otp` 事实更正仍成立，但不描述本系统。
+**R34–R37（2026-11-10，逐字全文在 `docs/RULINGS.md`）**：
+- **R34 先驱定位**：唯一共同事实 = 都只有一个 broker。**seib 结构是对的**
+  （*"大格局都有了，细节也有了"*），只缺「多个经纪商数据提供者」这一层，
+  缺层不是结构错误；**seib 没有 settings 问题**。ibOptions 结构不好是
+  **受制于 Python+pandas 的局限**（结构关系写不成 type 才被迫压进
+  settings），不是随意乱做；只作需求清单，那些设置在 glibe 是 type/field。
+  缺的那层已在 `Desk(brokers: Dict(BrokerId, Broker))` + 3 broker；不加
+  provider 层。R29 的 ibOptions 引用只是时区事实线索。
+- **R35 SwiftUI**：相似**只在 View 的定义与实现**（纯 functional +
+  value types）；Swift 其余被 class/actor/数据竞争搞复杂，Gleam 里不可能。
+  **view 为什么会更新 = R33 系统本来就活**。并发课题遇到再查官网 +
+  做几个 demo 对比 = TDD。**「简单是正确的验证码」**：复杂就说明
+  type / 函数 / 模块定义有错，回去改定义，不加机制。
+- **R36 无断层**：链与 owner 记忆逐项对上；**Market 与 Broker 双向都不
+  隶属 → 否决**，`Desk ▸ Broker` 合乎事实。Asset/Exchange/Market 按 R26
+  开放、APIProvider 与 broker 同物、Account 已有、Symbol/Interval 是 key。
+  glib 记录在 `SYSTEM_MODEL.md` §2 / `domain-hierarchy-2026-10-22.md`，
+  README:907 只有 Phase 32 一行；glib 只是线索（R33）。
+- **R37 主干判据**：构成主干某一层的 type 必须**跟上下级有两个隶属关系**；
+  其他 type **依附但不隶属**（不插层、不产生层级）或谁也不依附 → 放
+  `Desk`（至少属于系统）。**身份在持有者的 Dict key**：`interval` 不是
+  Timeframe 的 field、`brokerId` 不是 Broker 的 field；*"你的左手不知道
+  他是左还是右"*。owner 指路：`glib/docs/NAMING.md:575-589`、
+  `glib/docs/DESIGN.md` §18.2 `:3269-3299`（思路记录，非实现依据）。
+  判定法则，不改 `src/`。
 
 ## Measured facts
 - Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; **no `T(..)` form**;
