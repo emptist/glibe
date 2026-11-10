@@ -439,3 +439,29 @@ owner 09:57 / 09:59 / 10:04 / 10:09 四条逐字原话在 `docs/RULINGS.md` R33�
   「读过 glib，不作依据」。seib → glib → glibe 是思路沿革，不是正确性证明链。
 - **本轮范围**：记裁定 + 撤回 + 清理词汇；**不删生产代码、不新增 type、
   不写 probe、不加依赖**。`monitor.gleam` 的处置由 owner 定。决策区仍 0 项。
+
+---
+
+## R34 — 两个先驱都只有一个 broker；settings 归属 type（2026-11-10，当前）
+
+owner 逐字原话在 `docs/RULINGS.md` R34。
+
+- **结构评价**：seib 当时没有 binance（owner「我印象中」：仅 IB 一个
+  数据源），ibOptions 同样单 broker；两个先驱都只支持一个 broker。
+  seib **缺一层「多个经纪商数据提供者」**，但「大格局都有了，细节也有了」
+  —— 缺的是结构层，不是细节。seib → glib → glibe 仍是思路沿革，
+  不是正确性证明链（R33）。
+- **ibOptions 的定位**：Python + pandas 架构不足取，靠配置解决结构性
+  问题；**只能看里面涉及哪些设置**。正常手工与自动交易的细节需求它
+  都有，是**需求清单**，不是可搬的架构。那些设置本应是 type 定义，
+  被迫做成 settings 文件；在 glibe 里是 type 或已有 Type 定义里的一个
+  field（R13 / R19 / R32），不建通用配置表 / 字符串键 / 解析器。
+- **缺的那一层已在树里**：`Desk(brokers: Dict(BrokerId, Broker))`
+  （`src/glibe/desk.gleam:92-93`）+ `config.default_config()` 的
+  `binance` / `ib` / `futu`（`src/glibe/config.gleam:87-101`）。
+  对应 R33 顶层唯一 Value 与管道头 `api provider / data sources`；
+  **不另架 provider 框架、不新增 provider 类型**，R26 关系不变。
+- **执行边界**：不因 settings 清单批量预造 type（R26 / R32）；
+  某个设置有真实消费方时才按倒推隶属加 field。R29 的 ibOptions
+  引用降级为时区事实线索，不作架构依据。**本轮只写文档与记忆**：
+  不改 `src/`、不加依赖、不写 probe、决策区仍 0 项。R33 规格不变。

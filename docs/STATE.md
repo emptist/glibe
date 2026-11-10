@@ -4,7 +4,33 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-10 (R33 — 系统本来就是活的；当前状态)
+## 2026-11-10 (R34 — 两个先驱与多 broker 层；当前状态)
+
+- **owner 逐字裁定**在 `docs/RULINGS.md` R34。一句话：**seib 与 ibOptions
+  两个先驱都仅支持一个 broker / 数据源**；seib 当时没有 binance
+  （owner 带「我印象中」：仅 IB 一个数据源），**缺的是「多个经纪商数据
+  提供者」这一层**，但「大格局都有了，细节也有了」。ibOptions 的
+  Python + pandas 架构不足取，靠配置解决结构性问题；它**只能看有哪些
+  设置**，正常手工和自动交易涉及的所有细节它都有，但结构不行。
+- **settings 是被压扁的 type**：那些设置本应由 type 定义，被迫做成了
+  settings 文件。在 glibe 里，现实事物是 type，某事物的一方面是已有
+  Type 定义里的一个 field（R32 / R26）；不搬 ibOptions 的配置形状、
+  不预先批量造 type、不预设 `Asset` / `Exchange` / `Market` 关系。
+- **缺的那一层已存在**：`Desk(brokers: Dict(BrokerId, Broker))`
+  （`src/glibe/desk.gleam:92-93`），`config.default_config()` 建了
+  `binance` / `ib` / `futu` 三个 broker（`src/glibe/config.gleam:87-101`）；
+  与 R33「`Desk` 是顶层唯一 Value」及管道头 `api provider / data sources`
+  相合。R34 **未新增 provider / data-source 类型**，`Broker ▸ Instrument`
+  （R26）不变。
+- **R33 的规格不变**：系统本来就活、数据动每个 type 就动、无数据则睡觉
+  等待、`monitor.advance` 那层不是本系统 type、glib 与先驱不作依据。
+  待做仍是各数据源的实时到达接入标准 `SourceBar` + replay CLI。
+- **引用限定**：R29 里 `~/gits/hub/ibOptions` 的两处时区实例只是事实
+  线索，不是架构依据，IANA / 拒绝固定 offset 的结论不变。
+- **本轮范围**：只记裁定与同步稳定文档；**不删、不改 `src/`、不加依赖、
+  不写 probe、不新增待裁决项**。决策区仍 **0 项**。
+
+## 2026-11-10 (R33 — 系统本来就是活的；现行规格)
 
 - **owner 09:57 / 09:59 / 10:04 / 10:09 四条逐字裁定**在 `docs/RULINGS.md` R33。
   一句话：*`api provider / data sources → history + live data → sourcebar_gate
