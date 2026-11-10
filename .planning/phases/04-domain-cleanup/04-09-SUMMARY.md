@@ -1,6 +1,14 @@
 # Phase 04 Plan 09 — Summary
 
-**Status: DONE (2026-11-10).** Owner 2026-11-09 asked whether Gleam's natural
+> **2026-11-10 更正（R32）：本文 §3–§4 的结论作废。**
+> `probes/parallel-bars/` 把一份 `Desk` 复制进 6 个进程，量出的「0 of 6
+> partial `Desk` 等于单一 owner fold」与「合并 / 所有权取舍」是我造出来的
+> 伪问题；真实结构里 `Desk` 只有一个，每个 `Timeframe` 叶子各自活着（owner
+> 09:45）。本文保留为历史记录，**§5 的官方 BEAM 证据与 §6 的事实更正仍然
+> 成立**。现行规格见 `docs/RULINGS.md` R32 与 `docs/DESIGN.md`
+> 「The structure is a garden」。
+
+**Status: DONE (2026-11-10) — 形状错误，结论已作废。** Owner 2026-11-09 asked whether Gleam's natural
 parallelism really needs "all those actor things", and told me to check the
 official site plus well-known code (Wisp / Lustre). 2026-11-09 was record-only
 (`04-09-PLAN.md`); this is the 2026-11-10 implementation. **Scope: Erlang /
