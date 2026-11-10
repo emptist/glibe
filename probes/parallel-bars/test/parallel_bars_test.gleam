@@ -1,8 +1,13 @@
+//// SUPERSEDED 2026-11-10 (R32) — historical tests for the WRONG shape.
+////
 //// Tests first (R19): pin what "N bars at the same time" actually promises,
 //// and pin the OWNERSHIP fact that N parallel `Desk` values are N partial
-//// views rather than one merged state.
+//// views rather than one merged state. **That "ownership fact" is void**: the
+//// real structure has ONE `Desk` and live `Timeframe` leaves, so there are no
+//// N `Desk` copies to merge. These tests still compile and pass; they measure
+//// the old experiment only, not the design.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-09-PLAN.md`.
+//// Plan: `.planning/phases/04-domain-cleanup/04-09-PLAN.md` (superseded note).
 
 import gleam/list
 import gleam/result

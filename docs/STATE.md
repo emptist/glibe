@@ -11,7 +11,7 @@ sections are kept as history, not as the current answer.
 - **glib 核实**：`glib/src/glib/desk.gleam:11-13`、`broker.gleam:29-34`、`domain/instrument.gleam:76-82` 已落地同一四类型链（含 `accounts` 与 `Dict(Interval, Timeframe)`），`55-02-SUMMARY.md` 标 done；`glib/docs/DESIGN.md:3264-3286` 逐字记了 owner 2026-11-04 的 "instrument with a dictionary of timeframes using interval as key"。但 glib 是 `target = "javascript"`，其 `.planning/HANDOFF-2026-11-03.md:297-305` 自承 runtime 是 single-stream walls，「每个 Timeframe 活着」**未做到**。
 - **撤回 04-09 的错误结论**：`probes/parallel-bars/` 把一份 `Desk` 复制进 6 个进程、返回 6 份 partial `Desk`；由此写出的「0/6 合并 / 所有权决定」是伪问题。R31 该段、`docs/DESIGN.md` 04-09 节、`04-09-SUMMARY.md` §4、README / ROADMAP / PENDING 的相应结论作废；官方 BEAM 证据与 `gleam_otp` 事实更正保留。probe 留作带 `////` 作废注记的历史实验。
 - **当前缺口**：静态链已有，运行时还没有让任何一个 `Timeframe` 活起来（无进程、无行情流、无交易输出）。按 R32 这是往类型里加 field 的正常生长，不是新框架；按 R26 等真实消费方，本轮**不新增生产类型、不改 `src/` 逻辑、不写新 probe**。
-- `docs/PENDING_DECISIONS.md` 决策区仍 0 项。
+- 本轮没有新增待裁决事项。
 
 ## 2026-11-10 (phase 04-09 — BEAM 并行实测 / R31，历史记录；结论见 R32 作废)
 
