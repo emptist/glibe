@@ -238,7 +238,53 @@ record he had AI write down in glib, then check the chain for **gaps**.
   real thing, work backwards to its real ownership (R32); a thing owned by
   nobody goes on `Desk`, the collection shape is chosen by comparing real
   access patterns, and **a relation that fails in both directions is
-  rejected**, exactly as `Market` was.
+  rejected**, exactly as `Market` was. **R37 now supplies the test behind
+  that method** — the next section.
+
+## How to judge a level of the chain (R37)
+
+Owner 2026-11-10, verbatim: *"我举例Desk Market Broker，目的是教你如何思考，
+如何处理系统的type架构，意思是有层次关系的那些types，构成层次关系某一层的type
+必须是跟上下级之间存在两个隶属关系的type其他type不属于这个主干，他们依附于
+某一个type，但是不是隶属关系，如果不依附任何type就放在Desk这个顶级type里面…
+至于为啥interval不应该是Timeframe的field，brokerId不应该是Broker的field，
+而是都作为持有自己的那个type里面，dict的key"*. Full words:
+`docs/RULINGS.md` R37.
+
+- **The example was a lesson in method, not just a verdict.** R36's
+  conclusion stands; the test behind it is now explicit.
+- **The two-ownership test.** A type that forms **one level of the
+  hierarchy** must have **two ownership relations**: it belongs to the level
+  above AND owns the level below. `Desk ▸ Broker ▸ Instrument ▸ Timeframe`
+  satisfies it at every level. `Market` fails in both directions with
+  `Broker`, so it is not a level of the trunk.
+- **Every other type has one of two homes, and attachment ≠ ownership.**
+  Attached to one type **without ownership** → it hangs on that type, is
+  **never inserted between two levels**, and creates no hierarchy. Attached
+  to nothing → **held by `Desk`**, because it at least belongs to our
+  system (*"因为他至少属于我们系统吧"*). That is the reason behind R32's
+  "a thing owned by nobody sits on `Desk`". Where `Asset` / `Exchange` /
+  `Market` actually go still waits for a real consumer (R26); R37 does not
+  decide it now.
+- **Identity lives in the holder's `Dict` key, never in the owned value.**
+  `interval` is not a `Timeframe` field; `brokerId` is not a `Broker`
+  field. `Desk.brokers: Dict(BrokerId, Broker)`, `Broker.instruments:
+  Dict(Symbol, Instrument)`, `Instrument.timeframes: Dict(Interval,
+  Timeframe)` — the owned never names its owner (R22 / R23).
+- **The glib records of his design thinking — a clue, not authority (R33).**
+  `~/gits/hub/tools_ib/glib/docs/NAMING.md:575-589`: *"the owner holds what
+  it owns, and the owned never names its owner"* and *"A collection is not
+  an owner-pointer"* — the `Dict(Interval, Timeframe)` key is the
+  interval's home, **not a copy of a field on the timeframe**.
+  `~/gits/hub/tools_ib/glib/docs/DESIGN.md` §18.2 (`:3269-3299`) carries
+  his 2026-11-04 words *"…they could use dictionary or any collections
+  that are most fit to the requirements, for example, instrument with a
+  dictionary of timeframes using interval as key"* and the per-level
+  collection chosen by real access pattern. glib writes `Desk → brokers`
+  as `List(Broker)`; glibe's `Dict(BrokerId, Broker)` is R32's choice by
+  access pattern, **not a port**.
+- **No refactor.** This is a rule for thinking and judging. `src/` is
+  already this shape; no type, field, key, dependency or probe changes.
 
 ## The pipeline
 
