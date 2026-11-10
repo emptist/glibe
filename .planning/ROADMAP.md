@@ -540,4 +540,30 @@ owner 逐字原话在 `docs/RULINGS.md` R37。他举 Desk/Market/Broker 是**教
   集合按真实访问方式选）。glib 写 `Desk → List(Broker)`；glibe 的
   `Dict(BrokerId, Broker)` 是 R32 的选择，不是搬来的。
 - **执行边界**：判定法则，不重构 `src/`、不改现有 key、不加 type /
-  field / 依赖 / probe；决策区仍 0 项。
+  field / 依赖 / probe；决策区仍 0 项。（10:42 起按 04-10 落代码文档 /
+  测试 / 一个纯读取；结构本身不变。见下一段。）
+
+---
+
+## 04-10 — 裁定进入代码：概念 → type definition → unit test → implementation（2026-11-10 10:42，当前）
+
+owner 逐字原话在 `docs/RULINGS.md` 文末执行注记与
+`.planning/phases/04-domain-cleanup/04-10-PLAN.md`。结果在
+`04-10-SUMMARY.md`。
+
+- **四步各一笔提交**：`////` 模块文档命名 04-10 计划 + 逐项 `///` →
+  不新增 type、只留带 `todo` 的签名 → `test/level_judgement_test.gleam`
+  （RED 68/2）→ 填 `desk.timeframe_under`（GREEN 70/0）。
+- **概念按模块归位**：`desk.gleam` = R33 / R36 / R37（含「Market 尚未定」
+  旧句的更正）；`config.gleam` = R34；`timeframe.gleam` / `symbol.gleam` /
+  `interval.gleam` = R37；`web/server.gleam` = R35。
+- **没有新 type、新 field、新关系**：`Desk ▸ Broker ▸ Instrument ▸
+  Timeframe` 本就是裁定描述的定义，加 type 反而违反 R35「简单是正确的
+  验证码」。唯一新实现是纯读取，不是 R33 作废的 `monitor.advance`。
+- **验证**：`package-interface.json` 两包核对，六个模块文档与函数文档
+  全文渲染、带 04-10 链接；`BUILD_WAE=0` / `TEST=0`（70 passed）/
+  `FORMAT=0` / `guards: all green` / `DOCS=0` / `cmp=0`。
+- **范围不变**：不碰三张目录表、不改 `monitor.gleam`、不预设
+  Asset / Exchange / Market 关系、不加依赖、不写 probe、决策区仍 0 项。
+  真正待做的工作仍是 R33 的实时数据源接入标准 `SourceBar` 入口 +
+  replay CLI；`monitor.gleam` 处置由 owner 定。

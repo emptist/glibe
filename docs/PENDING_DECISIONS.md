@@ -58,6 +58,7 @@
 | SwiftUI View / 简单验证码 | 相似**只在 View 的定义与实现**；view 会更新 = R33 系统本来就活；并发遇到再查官网 + 做几个 demo 对比 = TDD；**简单是正确的验证码**，复杂则 type / 函数 / 模块定义有错 | `docs/RULINGS.md` R35 |
 | 层次关系与断层 | 核对 owner 记忆的 type 系统：链完整无缺少；**Market 与 Broker 双向都不隶属 → 否决**，`Desk ▸ Broker` 无断层；Asset / Exchange / Market 按 R26 开放、Account 已有、Symbol / Interval 是 key；不新增 type / field / 关系 | `docs/RULINGS.md` R36 |
 | 主干判据 / 身份在 key | 构成主干某一层的 type 要有**上下两个隶属关系**；其他 type **依附但不隶属**（不插层）或谁也不依附 → 放 `Desk`；身份在持有者的 Dict key，不在被持有者身上（*"你的左手不知道他是左还是右"*），`interval` / `brokerId` 都不是 field | `docs/RULINGS.md` R37 |
+| 裁定如何落地（10:42） | owner 明示「概念 → type definition → unit test → implementation」完整链条：判据写进 `////` / `///` 代码文档 → 不新增 type → `test/level_judgement_test.gleam`（RED 68/2）→ 填 `desk.timeframe_under` 纯读取（GREEN 70/0）。四笔按逻辑提交；`package-interface.json` 已核对。不是待裁决项，边界不变 | `.planning/phases/04-domain-cleanup/04-10-PLAN.md`、`04-10-SUMMARY.md`、`docs/RULINGS.md` 文末执行注记 |
 | 名字与实体 | `Symbol` 是名字（key），`Instrument` 是被拥有的值；错了就整条改正，不留兼容层 | `docs/RULINGS.md` R22 |
 | 参数块与归属链 | `TimeframeSettings` 不是实体；`Instrument` 只有一本 `Dict(Interval, Timeframe)`；interval 只在 key 里；settings 随 engine 走 | `docs/RULINGS.md` R23 |
 | web 框架 | AI 写 demo 对比决定，不是 owner 裁决 | `docs/RULINGS.md` R24 |

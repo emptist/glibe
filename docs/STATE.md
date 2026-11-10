@@ -4,7 +4,39 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-10 (R34–R37 — 先驱定位、SwiftUI 类比、层次核对与主干判据；当前状态)
+## 2026-11-10 10:42 (04-10 — 裁定已落入代码；当前状态)
+
+- **owner 逐字（10:42）**：*"这些逻辑，需要在设计module以及type的时候，用gleam
+  document的规矩，写进代码文档，之后是unit test 以及填充实际代码完成 test，
+  形成 概念 -> type definition -> unit test -> implementation 完整链条"*。
+  执行注记在 `docs/RULINGS.md` 文末（非新裁定）；计划与结果在
+  `.planning/phases/04-domain-cleanup/04-10-PLAN.md` /
+  `04-10-SUMMARY.md`。
+- **链条四步已按逻辑逐笔提交**：① `////` 模块文档命名 04-10 计划、每个
+  type / function 的 `///` 写清「为什么在这一层」（`desk.gleam`、
+  `config.gleam`、`timeframe.gleam`、`api/symbol.gleam`、
+  `api/interval.gleam`、`web/server.gleam`）；② **不新增 type** —— 现有
+  `Desk ▸ Broker ▸ Instrument ▸ Timeframe` 就是裁定所描述的定义（R35
+  「简单是验证码」），只补带 `todo as "…"` 的签名；③
+  `test/level_judgement_test.gleam` 6 个测试固定 R34 / R36 / R37，
+  **RED = 68 passed / 2 failures**；④ 填 `desk.timeframe_under` 的
+  三行 `result.try` 纯读取，**GREEN = 70 passed, no failures**。
+- **`desk.gleam` 里「Market 尚未确定、以后可能加一层」的旧句已更正**为
+  R36 的否决；`Market` 双向都不隶属，不是开放选项。
+- **反漂移检查**：`gleam docs build` 后，根包 6 个模块的 `////` 与
+  `timeframe_under` 的 `///` 在 `package-interface.json` 中完整渲染
+  （desk 4469 字符 / web server 5193 字符），均含 04-10 计划链接，无
+  `//` 截断；webclient 包接口文档完好。
+- **边界**：没有新增 type / field / relation、没有依赖、没碰三张目录表、
+  没改 `monitor.gleam`、没预设 `Asset` / `Exchange` / `Market` 关系；
+  `timeframe_under` 是纯读取，不是 R33 作废的 `monitor.advance` 那一层。
+  决策区仍 **0 项**。
+- **绿灯**：`BUILD_WAE=0`（0/0）、`TEST=0`（70 passed）、`FORMAT=0`、
+  `guards: all green`（7 fixture 用例）、`DOCS=0`、思考核心镜像 `cmp=0`。
+- **上一节 R34–R37 里「本轮不改 `src/`」只描述 10:18–10:37 的裁定记录
+  轮次**，不是对写代码的永久禁令；裁定内容一条未改。
+
+## 2026-11-10 (R34–R37 — 先驱定位、SwiftUI 类比、层次核对与主干判据；裁定记录轮次)
 
 > **owner 10:26 更正（逐字）**：*"注意我说的seib的结构是对的，ibOptions结构
 > 不好，用settings解决结构问题，按照你的复述，可就变成了seib也不对，他的

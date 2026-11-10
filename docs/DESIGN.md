@@ -289,6 +289,38 @@ Owner 2026-11-10, verbatim: *"我举例Desk Market Broker，目的是教你如�
   access pattern, **not a port**.
 - **No refactor.** This is a rule for thinking and judging. `src/` is
   already this shape; no type, field, key, dependency or probe changes.
+  04-10 added documentation, tests and one pure read — never a new level.
+  See the next section.
+
+## The judgements live in the code (04-10)
+
+Owner 2026-11-10 10:42, verbatim: *"这些逻辑，需要在设计module以及type的时候，
+用gleam document的规矩，写进代码文档，之后是unit test 以及填充实际代码完成
+test，形成 概念 -> type definition -> unit test -> implementation 完整链条"*
+
+R34–R37 were recorded in `docs/` prose. A ruling that no code file names
+drifts, so plan `.planning/phases/04-domain-cleanup/04-10-PLAN.md` carried
+them through R19's full chain, in four commits:
+
+| step | what exists now |
+|---|---|
+| 概念 → 代码文档 | `////` module docs **naming plan 04-10** and `///` on every type / function in `src/glibe/desk.gleam`, `config.gleam`, `timeframe.gleam`, `api/symbol.gleam`, `api/interval.gleam`, `web/server.gleam`. `gleam docs build` renders them into `package-interface.json` — the compiler's own anti-drift artifact. |
+| type definition | **No new type.** `Desk ▸ Broker ▸ Instrument ▸ Timeframe` already IS the definition the rulings describe. Adding one here would fail R35's simplicity check (R26 / R36 / R37). Each type's `///` now says why it is a level, why it only attaches, or why its identity is a key. |
+| unit test | `test/level_judgement_test.gleam`: three brokers (R34), `Desk` holds `Broker` directly with no `Market` level (R36), a keyless `Broker` under two keys and equal `Timeframe`s under two interval keys (R37), plus one pure read and its three closed `LookupError` cases. RED at the `todo` signature: 68 passed / 2 failures. |
+| implementation | `desk.timeframe_under(desk, broker_id, symbol, interval)` — three `result.try` steps following the holders' keys. GREEN: 70 passed, 0 failures, `--warnings-as-errors` 0/0. |
+
+- **What the one function is NOT**: it is a pure READ. R33 rejected
+  `monitor.advance` / `TimeframeAddress` / `IncomingBar` / `MonitorError` as
+  imperative scheduling from a non-Gleam architecture; nothing here
+  advances, subscribes, schedules or keeps state. No address type was added.
+- **A stale sentence was corrected, not preserved**: `desk.gleam`'s old
+  "Market is not a level in this chain yet … adding it is a separate
+  architectural change" is replaced by R36's verdict — both directions were
+  tested and rejected, so `Desk` holds `Broker` directly and there is no gap.
+- **Verification is the interface, not a shell guard**: both packages'
+  `package-interface.json` were inspected; all six module docs and the new
+  function's doc render in full with the 04-10 plan link, no `//`-broken
+  `////` block. See `04-10-SUMMARY.md`.
 
 ## The pipeline
 
