@@ -4,19 +4,28 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-10 (R34 — 两个先驱与多 broker 层；当前状态)
+## 2026-11-10 (R34 — seib 结构对、只缺多 broker 层；ibOptions 结构不好；当前状态)
 
-- **owner 逐字裁定**在 `docs/RULINGS.md` R34。一句话：**seib 与 ibOptions
-  两个先驱都仅支持一个 broker / 数据源**；seib 当时没有 binance
-  （owner 带「我印象中」：仅 IB 一个数据源），**缺的是「多个经纪商数据
-  提供者」这一层**，但「大格局都有了，细节也有了」。ibOptions 的
-  Python + pandas 架构不足取，靠配置解决结构性问题；它**只能看有哪些
-  设置**，正常手工和自动交易涉及的所有细节它都有，但结构不行。
-- **settings 是被压扁的 type**：那些设置本应由 type 定义，被迫做成了
+> **owner 10:26 更正（逐字）**：*"注意我说的seib的结构是对的，ibOptions结构
+> 不好，用settings解决结构问题，按照你的复述，可就变成了seib也不对，他的
+> settings也应该是types。这就乱了。"* 本段初稿把两者并列成同一缺陷，已按
+> 此更正。
+
+- **owner 逐字裁定**在 `docs/RULINGS.md` R34。两者共同的事实只有
+  **都仅支持一个 broker / 数据源**，结构评价完全不同：
+  - **seib 的结构是对的**（owner 10:26 逐字）：「大格局都有了，细节
+    也有了」。它**只缺一层**「多个经纪商数据提供者」——当时没有
+    binance（owner 带「我印象中」：仅 IB 一个数据源）。缺这一层不是
+    结构错误；**seib 不存在「settings 应该是 types」这件事**。
+  - **ibOptions 结构不好**：Python + pandas 架构不足取，靠配置解决
+    结构性问题；它**只能看有哪些设置**，正常手工和自动交易涉及的
+    所有细节它都有，但结构不行。它同样只有一个 broker。
+- **settings 是被压扁的 type（仅 ibOptions，与 seib 无关）**：那些设置本应由 type 定义，被迫做成了
   settings 文件。在 glibe 里，现实事物是 type，某事物的一方面是已有
   Type 定义里的一个 field（R32 / R26）；不搬 ibOptions 的配置形状、
   不预先批量造 type、不预设 `Asset` / `Exchange` / `Market` 关系。
-- **缺的那一层已存在**：`Desk(brokers: Dict(BrokerId, Broker))`
+- **seib 缺的那一层已存在**（补层，不是修 seib 的结构，也不搬 ibOptions
+  的 settings）：`Desk(brokers: Dict(BrokerId, Broker))`
   （`src/glibe/desk.gleam:92-93`），`config.default_config()` 建了
   `binance` / `ib` / `futu` 三个 broker（`src/glibe/config.gleam:87-101`）；
   与 R33「`Desk` 是顶层唯一 Value」及管道头 `api provider / data sources`
