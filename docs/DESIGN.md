@@ -135,6 +135,17 @@ plan and measurements: `.planning/phases/04-domain-cleanup/04-03-PLAN.md`.
 > one defect. That was wrong. **seib's structure was RIGHT** — its only gap
 > was the layer of multiple brokers / data providers. **Only ibOptions has
 > the settings-instead-of-types problem**; seib has no such defect.
+>
+> **Owner 11:10, verbatim:** *"seib是用coffeescript写的，所以并没有python
+> pandas的局限，不存在连类型都搞不清楚的问题…seib和iboptions完全两码事，
+> 前者是我的系统设计，后者是为了迁就语言凑合的，ibOtions虽然五脏俱全，
+> 但是都不对劲。"* **They are two entirely different things**, not two
+> degrees of the same defect. seib is CoffeeScript — the owner's own system
+> design — with **no** Python + pandas limitation and no "cannot tell types
+> apart" problem. ibOptions was a **workaround for the language**: 五脏俱全
+> (every manual / automated trading detail is there) but *"都不对劲"*
+> throughout. My earlier reading ("seib was Python too, just not limited")
+> was wrong. The only shared fact is numeric: one broker each.
 
 Owner 2026-11-10, verbatim: *"很可惜seib当时没有binance，我印象中仅支持一个
 数据源就是ib，所以他缺一层，就是多个经纪商数据提供者，但是大格局都有了，
@@ -143,16 +154,20 @@ Owner 2026-11-10, verbatim: *"很可惜seib当时没有binance，我印象中仅
 那些设置那些事应该是type定义的，被迫搞成了settings之类的文件 … 但是结构
 不行。并且两个先驱都仅支持一个broker"*.
 
-- **The one fact they share: both had ONE broker.** seib had no Binance
-  (the owner's "我印象中" is kept as he said it: IB only); ibOptions likewise.
-  **Their structure is NOT judged alike:**
+- **The one fact they share is numeric: both had ONE broker.** seib had no
+  Binance (the owner's "我印象中" is kept as he said it: IB only); ibOptions
+  likewise. **They are not the same kind of thing (11:10):**
   - **seib's structure was right** — *"大格局都有了，细节也有了"* (owner,
-    verbatim). Its only gap was the **layer of multiple brokers / data
+    verbatim). It is **CoffeeScript, the owner's own system design**: no
+    Python + pandas limitation, no "cannot tell types apart" problem (11:10).
+    Its only gap was the **layer of multiple brokers / data
     providers**: with just one data source, that layer had not appeared in
     reality yet. This is a missing layer, **not a structural error**.
     seib had **no** "settings should have been types" problem; that criticism
-    must never be extended to it.
-  - **ibOptions's structure was not good** (the two bullets below), and it
+    must never be extended to it, nor may seib be described as Python "just
+    not limited".
+  - **ibOptions was a workaround for the language** — 五脏俱全 but
+    *"都不对劲"* throughout (11:10), not merely "structure not good" — and it
     too had a single broker.
   - R33 still holds: seib → glib → glibe is a lineage of ideas, not a proof
     of correctness, and predecessor code is not authority. That seib's

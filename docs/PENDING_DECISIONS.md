@@ -54,11 +54,11 @@
 
 | 事项 | 结论 | 原文位置 |
 |---|---|---|
-| 两个先驱 / 多 broker 层 | 唯一共同事实是**都只有一个 broker**。**seib 结构是对的**，只缺「多个经纪商数据提供者」这一层（缺层不是结构错误）；**seib 没有 settings 问题**。ibOptions 受限于 Python + pandas，结构性关系无法写成 type 才被迫压进 settings，只作需求清单；那些设置在 glibe 是 type 或 field，不批量预造、不预设关系 | `docs/RULINGS.md` R34（含 10:26 / 10:29 更正） |
+| 两个先驱 / 多 broker 层 | **完全两码事**（owner 11:10 定稿）。唯一共同点只是数量上**都只有一个 broker**。**seib = CoffeeScript、owner 的系统设计**：没有 Python/pandas 局限、不存在「连类型都搞不清楚」，结构是对的，只缺「多个经纪商数据提供者」这一层，**没有 settings 问题**；此前把它读成「也是 python、只不过没受限制」是错的。**ibOptions = 为了迁就语言凑合的**（Python + pandas），**五脏俱全但都不对劲**，结构性关系写不成 type 才被迫压进 settings，只作需求清单；那些设置在 glibe 是 type 或 field，不批量预造、不预设关系 | `docs/RULINGS.md` R34（含 10:26 / 10:29 / 11:10 更正） |
 | SwiftUI View / 简单验证码 | 相似**只在 View 的定义与实现**；view 会更新 = R33 系统本来就活；并发遇到再查官网 + 做几个 demo 对比 = TDD；**简单是正确的验证码**，复杂则 type / 函数 / 模块定义有错 | `docs/RULINGS.md` R35 |
 | 层次关系与断层 | 核对 owner 记忆的 type 系统：链完整无缺少；**Market 与 Broker 双向都不隶属 → 否决**，`Desk ▸ Broker` 无断层；Asset / Exchange / Market 按 R26 开放、Account 已有、Symbol / Interval 是 key；不新增 type / field / 关系 | `docs/RULINGS.md` R36 |
 | 主干判据 / 身份在 key | 构成主干某一层的 type 要有**上下两个隶属关系**；其他 type **依附但不隶属**（不插层）或谁也不依附 → 放 `Desk`；身份在持有者的 Dict key，不在被持有者身上（*"你的左手不知道他是左还是右"*），`interval` / `brokerId` 都不是 field | `docs/RULINGS.md` R37 |
-| 制作流程与 04-10 的如实定位 | 「概念 → type definition → unit test → implementation」**就是一个 module 文件的制作流程**：先写描述 → 空架子（没有实际东西）→ test（**设计目标在此**）→ 逐步实现；逐字全文 `docs/RULINGS.md` 文末同名段。**owner 11:05：04-10 没有照此走** —— 代码先有、文档与测试后补，是反向补课（"倒过来整…补充test充门面"），不得包装成流程示例。实际动作：判据写进 `////` / `///` → 不新增 type → `test/level_judgement_test.gleam`（RED 68/2）→ 填 `desk.timeframe_under` 纯读取（GREEN 70/0）；`package-interface.json` 已核对。今后新建 module 必须从描述开始。不是待裁决项，边界不变 | `.planning/phases/04-domain-cleanup/04-10-PLAN.md`、`04-10-SUMMARY.md`、`docs/RULINGS.md` 文末执行注记 |
+| 制作流程与 04-10 的如实定位 | 「概念 → type definition → unit test → implementation」**就是一个 module 文件的制作流程**：先写描述 → 空架子（没有实际东西）→ test（**设计目标在此**）→ 逐步实现；逐字全文 `docs/RULINGS.md` 文末同名段。**owner 11:05：04-10 没有照此走** —— 代码先有、文档与测试后补，是反向补课（"倒过来整…补充test充门面"），不得包装成流程示例。实际动作：判据写进 `////` / `///` → 不新增 type → `test/level_judgement_test.gleam`（RED 68/2）→ 填 `desk.timeframe_under` 纯读取（GREEN 70/0）；`package-interface.json` 已核对。今后新建 module 必须从描述开始。**owner 11:11：`docs/` 下大量文档是「差生补课笔记」，不是权威；流程做对，很多文档不需要；本轮不新建文档，概念进 `////` / `///`、test 定目标、实现最后**。不是待裁决项，边界不变 | `.planning/phases/04-domain-cleanup/04-10-PLAN.md`、`04-10-SUMMARY.md`、`docs/RULINGS.md` 文末执行注记 |
 | 名字与实体 | `Symbol` 是名字（key），`Instrument` 是被拥有的值；错了就整条改正，不留兼容层 | `docs/RULINGS.md` R22 |
 | 参数块与归属链 | `TimeframeSettings` 不是实体；`Instrument` 只有一本 `Dict(Interval, Timeframe)`；interval 只在 key 里；settings 随 engine 走 | `docs/RULINGS.md` R23 |
 | web 框架 | AI 写 demo 对比决定，不是 owner 裁决 | `docs/RULINGS.md` R24 |

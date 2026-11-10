@@ -22,6 +22,13 @@ sections are kept as history, not as the current answer.
   本轮才补 `////` / `///` 与 6 个断言，是**倒过来整**的反向补课；
   只有 `timeframe_under` 一小段走了「`///` + `todo` → test → 实现」。
   以后新建 module 必须从描述开始，禁止先实现后补文档 / 补 test。
+- **11:11 文档体系裁定（逐字在 `docs/RULINGS.md` 11:11 段）**：`docs/` 下
+  大量文档之所以存在，正因没做到「gleam document 领先于测试、测试领先
+  于实际代码」；它们是 owner 发现错误后上课留下的**「差生补课笔记」**，
+  不是设计资产或权威，**流程做对，很多文档不需要**。11:10 把 seib 读成
+  Python 那一误解就是「反着做习惯」的证据，与 11:05 同一根因。纪律：
+  不新建散文文档、已有文档只在改错 / 记逐字裁定 / 记实测时更新、
+  文档量应下降；概念进 `////` / `///`，设计目标进 test，实现最后。
 - **本轮实际做了什么（retrofit）**：① `////` 模块文档命名 04-10 计划、每个
   type / function 的 `///` 写清「为什么在这一层」（`desk.gleam`、
   `config.gleam`、`timeframe.gleam`、`api/symbol.gleam`、
@@ -52,16 +59,25 @@ sections are kept as history, not as the current answer.
 > 不好，用settings解决结构问题，按照你的复述，可就变成了seib也不对，他的
 > settings也应该是types。这就乱了。"* 本段初稿把两者并列成同一缺陷，已按
 > 此更正。
+>
+> **owner 11:10 定稿（逐字在 `docs/RULINGS.md` R34）**：**seib 是
+> CoffeeScript、是 owner 的系统设计**，没有 Python/pandas 局限、不存在
+> 「连类型都搞不清楚」；**ibOptions 是为了迁就语言凑合的**，五脏俱全
+> 但**都不对劲**。**两者完全两码事**，唯一共同点只是数量上都只有一个
+> broker。此前复述像「seib 也是 python 写的、只不过没受限制」，是错的。
 
-- **owner 逐字裁定**在 `docs/RULINGS.md` R34。两者共同的事实只有
-  **都仅支持一个 broker / 数据源**，结构评价完全不同：
+- **owner 逐字裁定**在 `docs/RULINGS.md` R34。数量上唯一的共同点只是
+  **都仅支持一个 broker / 数据源**，性质完全不同：
   - **seib 的结构是对的**（owner 10:26 逐字）：「大格局都有了，细节
-    也有了」。它**只缺一层**「多个经纪商数据提供者」——当时没有
+    也有了」。**CoffeeScript 写的、owner 自己的系统设计**，没有
+    Python/pandas 局限，也不存在「连类型都搞不清楚」（11:10）。
+    它**只缺一层**「多个经纪商数据提供者」——当时没有
     binance（owner 带「我印象中」：仅 IB 一个数据源）。缺这一层不是
     结构错误；**seib 不存在「settings 应该是 types」这件事**。
-  - **ibOptions 结构不好**：Python + pandas 架构不足取，靠配置解决
-    结构性问题；它**只能看有哪些设置**，正常手工和自动交易涉及的
-    所有细节它都有，但结构不行。它同样只有一个 broker。
+  - **ibOptions 是为了迁就语言凑合的**（Python + pandas）：结构性
+    问题被压进配置；正常手工和自动交易的细节需求它都有（**五脏俱全**），
+    但 11:10 定稿是**都不对劲**，整体不足取，**只能看有哪些设置**。
+    它同样只有一个 broker。**与 seib 完全两码事**（11:10）。
 - **settings 是被压扁的 type（仅 ibOptions，与 seib 无关）**：那些设置本应由 type 定义，被迫做成了
   settings 文件。在 glibe 里，现实事物是 type，某事物的一方面是已有
   Type 定义里的一个 field（R32 / R26）；不搬 ibOptions 的配置形状、
