@@ -511,3 +511,30 @@ owner 逐字原话在 `docs/RULINGS.md` R36。
 - **结论：无断层、不新增 type / field / 关系**（R26 / R32 / R34 / R35）。
   「如此等等」= 每个新候选都按 R32 倒推隶属，双向都不隶属就像
   `Market` 一样否决；本轮只读核对，不改 `src/`、决策区仍 0 项。
+
+---
+
+## R37 — 主干层判据 / 依附 ≠ 隶属 / 身份在持有者的 key（2026-11-10，当前）
+
+owner 逐字原话在 `docs/RULINGS.md` R37。他举 Desk/Market/Broker 是**教
+思考方法**，R36 只记结论不够，本段补判据。
+
+- **主干判据**：构成层次某一层的 type，必须**跟上下级存在两个隶属关系**
+  （既隶属上层、又拥有下层）。`Desk ▸ Broker ▸ Instrument ▸ Timeframe`
+  每层满足；`Market` 与 `Broker` 双向都不隶属 → 不是主干的一层。
+- **非主干只有两种去处**：**依附于某 type 但不是隶属** → 附着在该 type
+  上，不插进上下级、不产生层级；**不依附任何 type** → 放 `Desk`
+  （*"因为他至少属于我们系统吧"*，给 R32 补上理由）。
+  `Asset` / `Exchange` / `Market` 具体放哪仍按 R26 等消费方，本条不预定。
+- **身份在持有者的 Dict key**：`interval` 不是 `Timeframe` 的 field，
+  `brokerId` 不是 `Broker` 的 field；分别是 `Instrument.timeframes`、
+  `Desk.brokers` 的 key（`Symbol` 同理）。被持有者不命名持有者。
+- **owner 指路的 glib 思路记录（仅线索，R33）**：
+  `~/gits/hub/tools_ib/glib/docs/NAMING.md:575-589`
+  （"the owner holds what it owns…"、"A collection is not an
+  owner-pointer"）、`~/gits/hub/tools_ib/glib/docs/DESIGN.md` §18.2
+  `:3269-3299`（owner 2026-11-04 关于 interval 作 key 的逐字、每层
+  集合按真实访问方式选）。glib 写 `Desk → List(Broker)`；glibe 的
+  `Dict(BrokerId, Broker)` 是 R32 的选择，不是搬来的。
+- **执行边界**：判定法则，不重构 `src/`、不改现有 key、不加 type /
+  field / 依赖 / probe；决策区仍 0 项。

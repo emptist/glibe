@@ -4,7 +4,7 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-10 (R34–R36 — 先驱定位、SwiftUI 类比、层次核对；当前状态)
+## 2026-11-10 (R34–R37 — 先驱定位、SwiftUI 类比、层次核对与主干判据；当前状态)
 
 > **owner 10:26 更正（逐字）**：*"注意我说的seib的结构是对的，ibOptions结构
 > 不好，用settings解决结构问题，按照你的复述，可就变成了seib也不对，他的
@@ -58,6 +58,21 @@ sections are kept as history, not as the current answer.
   `Market` 关系按 R26 开放、`APIProvider` 与 broker 同物（R26）、
   `Account` 已由 Broker 持有（当前 keyless，等消费方）、`Symbol` /
   `Interval` 是 key 不是层。**当前链无断层，不新增 type / field / 关系**。
+- **R37（主干判据；owner 10:34 逐字）**：举 Desk/Market/Broker 是
+  **教怎么思考 type 架构**，不是只要一个否决结论。构成层次某一层的
+  type **必须跟上下级有两个隶属关系**（既隶属上层、又拥有下层）；
+  其他 type 不属主干：**依附于某 type 但不是隶属**（不插进上下级、
+  不产生层级），**谁也不依附就放 `Desk`**（至少属于我们系统）。
+  **身份在持有者的 Dict key**：`interval` 不是 `Timeframe` 的 field、
+  `brokerId` 不是 `Broker` 的 field，分别是 `Instrument.timeframes` 与
+  `Desk.brokers` 的 key。owner 指路的 glib 思路记录在
+  `~/gits/hub/tools_ib/glib/docs/NAMING.md:575-589`
+  （*"the owner holds what it owns, and the owned never names its owner"*、
+  "A collection is not an owner-pointer"）与
+  `~/gits/hub/tools_ib/glib/docs/DESIGN.md` §18.2 `:3269-3299`
+  （owner 2026-11-04 关于 interval 作 key 的逐字）；glib 文档写
+  `Desk → List(Broker)`，glibe 的 `Dict(BrokerId, Broker)` 是 R32 按
+  访问方式选的，**不是搬来的**。这是判定法则，不重构 `src/`。
 - **本轮范围**：只记裁定、只读核对、同步稳定文档；**不删、不改 `src/`、
   不加依赖、不写 probe、不新增待裁决项**。决策区仍 **0 项**。
 
