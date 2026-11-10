@@ -58,12 +58,28 @@ exists, never a fixed offset (`~/gits/hub/ibOptions/tradingtime.py:24`,
 `simple_auto_trading.py:132`). R30 web display time = **output-side** projection
 of the same `Timestamp` to the analyst's local wall clock (IANA/DST), R29 is the
 **input-side** market calendar — never merge them; CSV stays UTC RFC3339;
-`tzif` not yet a dependency. R31 BEAM 并发 = `process.spawn` + 类型化
-`Subject`，不是待建的受监督 actor 机制（其「0/6 合并」段已作废）。**R32 结构是
-花园**：加一个新事物 = 已有 Type 定义里的一个 field；位置靠倒推「现实中隶属于
-谁」，谁也不隶属就放 `Desk`（`exchanges` 例）；集合用 Dict/List/其他按真实访问
-方式对比研究决定；R26 仍成立。**一个 `Desk`，每个 `Timeframe` 叶子都活着**，
-处理数据、进行交易；没有 N 份 Desk 要合并。
+`tzif` not yet a dependency.
+**R33（2026-11-10，范式纠正，覆盖 R31/R32 的并发框架）**：
+- 系统**本来就活**：`api provider / data sources → history + live data →
+  sourcebar_gate → databar_processing → model ↔ view`；history 与 live 同一条
+  流。**每一个 type 都是活的：数据动它就动，因为定义好了**（纯值重算），
+  不是进程 / actor / 调度 /「让叶子活起来的运行时」。
+- 数据会动是因**订阅了数据源的实时数据**（推送 / 订阅 / 主动获取，各家
+  自己的方式，属输入边界，汇合点只有标准 `SourceBar`）；**没有数据系统就
+  不动了，睡觉等待** —— 静止正常，无需时钟 / 轮询 / 心跳补救。
+- **`Desk` 是顶层唯一的 Value**，逐层嵌套即完整系统；*"在Gleam世界里面，
+  你唯一要做的就是定义types，基本结构对了，什么都有了"*。定义 types 就是全部。
+- `monitor.advance` / `TimeframeAddress` / `IncomingBar` / `MonitorError`
+  **不是本系统 type**（*"哪有这些type"*），是从非 Gleam / 非 functional /
+  非 type 架构带来的命令式调度；用 actor 的根源正是结构没设计对。代码保留
+  为历史，处置由 owner 定，不得作为结构依据。
+- **「叶子」特指 `YinLeaf` / `YangLeaf`**，绝不能指 Timeframe 或结构末端。
+- **glib 不是权威**：可能只记录设计与计划、未必落实，已落实也未必对；
+  唯一权威是 owner 当前陈述。glib 代码只读作背景，不作设计正确/已落实的证据。
+  seib → glib → glibe 是思路沿革，不是正确性证明链。
+- **R32 仍成立**：花园 = 在已有 Type 定义里加一个 field；位置靠倒推隶属，
+  谁也不隶属放 `Desk`；集合 Dict/List 按真实访问对比研究；R26 不预设层级。
+  R31 官网/v0.12 语言事实与 `gleam_otp` 事实更正仍成立，但不描述本系统。
 
 ## Measured facts
 - Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; **no `T(..)` form**;
@@ -78,11 +94,11 @@ of the same `Timestamp` to the analyst's local wall clock (IANA/DST), R29 is the
   124/23 vs bare Mist 82/14. *"Needs no JS library"* is a **dependency** claim.
 - `gleam_otp` **is already a direct root dependency** (`gleam.toml`); saying
   "not introduced" was wrong — what was missing was its use.
-- **`gleam_erlang/process.spawn` + typed `Subject` is the whole parallel-task
-  primitive** (official: no async/await, no futures, no locks). actor = thin
-  long-lived-state wrapper; supervisor = fault tolerance, not parallelism.
-  Wisp has 0 `process.` calls; glisten spawns one process per connection;
-  Lustre's server runtime is exactly one actor.
+- BEAM language facts (R33: **they do NOT describe this system's structure**):
+  `gleam_erlang/process.spawn` + typed `Subject` = parallel-task primitive
+  (no async/await, no futures, no locks); actor = thin long-lived-state
+  wrapper; supervisor = fault tolerance. Wisp 0 `process.` calls; glisten
+  one process per connection; Lustre server runtime exactly one actor.
 - Tests: bool `assert … as "msg"`, `let assert` (never `panic`/`case Bool`);
   negative guard tests use `/tmp` fixtures, never broken real `src/`.
 
@@ -105,22 +121,15 @@ of the same `Timestamp` to the analyst's local wall clock (IANA/DST), R29 is the
   understanding in types; leave the un-thought-out in `todo`, never in `String`.
 
 ## Phase 04 status
-- 04-05 Mist+Wisp web layer on 8610 (`/`, `/desk`, 404). 04-06 unix-time ingest
-  boundary. 04-07 R30 module docs only (no implementation).
-- 04-08 `src/glibe/monitor.gleam`: `TimeframeAddress(BrokerId, Symbol,
-  Interval)` (interval in the ADDRESS, not a `Timeframe` field — R23),
-  `IncomingBar(address, bar)`, `MonitorError` (address + typed lower reason),
-  pure `advance(desk, incoming) -> Result(Desk, MonitorError)`. **One bar advances
-  exactly ONE `Timeframe`** — no fan-out to all intervals; N×M monitoring = N×M
-  addressed steps. `SourceBarRejection` replaces `Error(String)`; `fetch_klines`
-  takes `Symbol`. 64 tests green.
-- 04-09 `probes/parallel-bars/`：6 个带地址 bar → 6 个 BEAM Pid / 0 lock，
-  R19 RED→GREEN 4 passed；R31 记官方 BEAM 证据与 `gleam_otp` 事实更正。
-  **但它把一份 `Desk` 复制进 6 个进程，形状错误；「0/6 合并 / 所有权」是
-  伪问题 → R32 作废**。probe 留作带作废注记的历史实验，不作设计实证。
-- 04-10 R32 落地：撤回 R31 该段、DESIGN 04-09 节、README / STATE /
-  ROADMAP / PENDING / 04-09 历史文档里的错误框架；官方 BEAM 证据保留。
-  **glib 核实**：同一四类型链已在 `glib/src/glib/desk.gleam:11-13`、
-  `broker.gleam:29-34`、`domain/instrument.gleam:76-82` 落地（55-02 done），
-  但 glib 是 JS target、runtime single-stream，「每个 Timeframe 活着」未做到。
-  本轮**未加生产类型、未改 `src/` 逻辑、未写新 probe**；0 待裁决项。
+- **R33（2026-11-10，当前规格）**：系统本来就活，见上面 Rulings 段。
+  04-08 的 `monitor.*` 与 04-09 的 `probes/parallel-bars/` **全部标为历史、
+  非 owner 设计**（`////` / `///` 文档已更正；`src/` 生产代码未删，处置待
+  owner 定）。「glib 核实：已落地」类断言降级为「读过 glib，不作依据」。
+  本轮记裁定 + 撤回 + 清理词汇，**未新增 type / 未写 probe / 未加依赖**；
+  0 待裁决项。64 tests（根）+ 4（probe）green。
+- 04-05 Mist+Wisp web layer on 8610 (`/`, `/desk`, 404). 04-06 unix-time
+  ingest boundary. 04-07 R30 module docs only (no implementation).
+- 历史：04-08 曾造 `monitor.advance` / `TimeframeAddress` / `IncomingBar` /
+  `MonitorError`（`SourceBarRejection` 取代 `Error(String)`、`fetch_klines`
+  收 `Symbol` 仍有效）；04-09 曾做 6 Pid / 0 lock probe。两者的并发框架与
+  「0/6 合并」结论经 R32 / R33 作废，仅留作带日期更正注记的历史记录。
