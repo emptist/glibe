@@ -1,5 +1,11 @@
 # Phase 04 Plan 08 — Summary
 
+> **2026-11-10 更正（R33）：本总结所述工作不是系统设计的一部分。**
+> owner：*"什么monitor.advance 哪有这些type"*。系统本来就活，无需一个
+> 「推进 Value」的调度层；`Desk` 是唯一顶层 Value，每个 type 随数据而动。
+> `monitor.gleam` 那层 type 的处置由 owner 定。下方更早的 R31 更正注记
+> 已被 R33 覆盖。现行规格见 `docs/RULINGS.md` R33。
+>
 > **2026-11-10 更正，原文保留为历史记录**（`docs/RULINGS.md` R31 / 04-09）：
 > 下面「no … `gleam_otp` dependency (Stage F)」是**错的** —— `gleam_otp`
 > 早就是根 `gleam.toml` 的直接依赖；且「并发属 Stage F 受监督 actor」的

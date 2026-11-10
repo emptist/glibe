@@ -1,5 +1,15 @@
 # Phase 04 Plan 09 — Summary
 
+> **2026-11-10 更正（R33）：本文整份实验既非结构实证也非设计实证。**
+> 「用 `process.spawn` 让结构活起来」这个前提本身是错的 —— 系统本来就活，
+> 每个 type 随数据而动；`Desk` 是唯一顶层 Value；没有数据系统就睡觉等待。
+> `monitor.advance` 与 `probes/parallel-bars/` 都不是系统设计的一部分
+> （owner：*"什么monitor.advance 哪有这些type"*）。「叶子」特指
+> `YinLeaf` / `YangLeaf`。§5 官网 / v0.12 语言事实与 §6 `gleam_otp`
+> 事实更正仍成立，但不描述本系统；glib 代码不作权威依据。
+> 现行规格见 `docs/RULINGS.md` R33 与 `docs/DESIGN.md`
+> 「The system is already live」。
+>
 > **2026-11-10 更正（R32）：本文 §3–§4 的结论作废。**
 > `probes/parallel-bars/` 把一份 `Desk` 复制进 6 个进程，量出的「0 of 6
 > partial `Desk` 等于单一 owner fold」与「合并 / 所有权取舍」是我造出来的
