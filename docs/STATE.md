@@ -4,7 +4,7 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-10 (R34 — seib 结构对、只缺多 broker 层；ibOptions 结构不好；当前状态)
+## 2026-11-10 (R34–R36 — 先驱定位、SwiftUI 类比、层次核对；当前状态)
 
 > **owner 10:26 更正（逐字）**：*"注意我说的seib的结构是对的，ibOptions结构
 > 不好，用settings解决结构问题，按照你的复述，可就变成了seib也不对，他的
@@ -36,8 +36,30 @@ sections are kept as history, not as the current answer.
   待做仍是各数据源的实时到达接入标准 `SourceBar` + replay CLI。
 - **引用限定**：R29 里 `~/gits/hub/ibOptions` 的两处时区实例只是事实
   线索，不是架构依据，IANA / 拒绝固定 offset 的结论不变。
-- **本轮范围**：只记裁定与同步稳定文档；**不删、不改 `src/`、不加依赖、
-  不写 probe、不新增待裁决项**。决策区仍 **0 项**。
+- **10:29 因果补正（R34）**：owner 逐字 *"ibOptions受制于Python+Pandas
+  的局限性，才会变成那样"*。**是语言 / 库的局限使结构性关系无法写成
+  type，才被迫压进 settings 文件**；不是随意乱做，更**不是 seib 的缺陷**。
+  受局限的是 ibOptions，结构对的是 seib，只缺现实层次的是 seib ——
+  复述时主语不能串（*"要看仔细"*）。
+- **R35（SwiftUI 类比 / 简单验证码）**：相似**只指 View 的定义与实现**
+  （纯 functional + value types），不是 Swift 整体；Swift 从 view model
+  的 class、model 不限 struct/class/actor 起把简单的事做复杂，数据竞争
+  要大量补救 —— 这在 Gleam 里不可能出现。**SwiftUI 的 view 为什么会
+  更新 = R33**：type 定义好、函数定义对，系统本身就是活的。并发课题
+  遇到再查官网 + 做几个方案 demo 对比解决，即 TDD 落实。
+  *「简单是正确的验证码。如果复杂，基本上可以判断type 函数和模块定义
+  有错误」* —— 复杂是设计出错信号，回去修定义，不加机制。
+- **R36（type 系统与断层核对）**：owner 记忆里的主要 type 系统，glib
+  的记录在 `~/gits/hub/tools_ib/glib/docs/SYSTEM_MODEL.md` §2 `:102-119`
+  与 `domain-hierarchy-2026-10-22.md`（README 只有 `:907` 一行 Phase 32）；
+  **glib 不作依据**（R33）。glibe 现有链逐项对上、**没有缺少**。
+  断层判断：**`Market` 与 `Broker` 两个方向都不隶属 → 否决**，
+  `Desk` 直接持有 Brokers 合乎事实、**无断层**；`Asset` / `Exchange` /
+  `Market` 关系按 R26 开放、`APIProvider` 与 broker 同物（R26）、
+  `Account` 已由 Broker 持有（当前 keyless，等消费方）、`Symbol` /
+  `Interval` 是 key 不是层。**当前链无断层，不新增 type / field / 关系**。
+- **本轮范围**：只记裁定、只读核对、同步稳定文档；**不删、不改 `src/`、
+  不加依赖、不写 probe、不新增待裁决项**。决策区仍 **0 项**。
 
 ## 2026-11-10 (R33 — 系统本来就是活的；现行规格)
 
