@@ -6,6 +6,56 @@ why. For the rulings that bind it see `RULINGS.md`; for the measurements
 behind the remaining decisions see `REVIEW_ROUND5.md` (withdrawn items remain
 in `QUESTIONS.md`).
 
+## The system is already live (R33)
+
+Owner 2026-11-10, verbatim: *"因为我的设计里面本来就是活的呀，api provider /
+data sources ... -> history + live data ... -> sourcebar_gate ->
+databar_processing -> model <-> view 你看这不是活的吗？"*，*"Desk是顶层的
+唯一的一个Value，整个系统都在他里面，然后逐层嵌套，形成完整系统"*，
+*"在Gleam世界里面，你唯一要做的就是定义types，基本结构对了，什么都有了"*，
+以及 *"其实是每一个type都是活的，数据动，他就动，因为你定义好了的"*。
+
+```
+api provider / data sources  →  history + live data  →  sourcebar_gate
+    →  databar_processing  →  model  ↔  view
+```
+
+- **history and live are the same data stream.** There is no separate "live
+  runtime" that switches the system on. A bar entering the pipe IS the event.
+  A chart that redraws when data changes is a `view` projecting the `model`.
+- **Why data moves: it is subscribed.** Owner 2026-11-10: *"数据为什么会动？
+  因为你订阅了数据源的实时数据呀，不管不同的数据源用怎样不同的方式实现
+  实时数据的推送也好订阅也好我们这方面主动去获得也好，总之实时数据会不断
+  到来，如果没有数据，系统也就不动了，睡觉，等待。"* Each provider brings
+  real-time data in its own way (push, subscription, active fetch); that is an
+  input-boundary fact, not an internal mechanism. With no data, nothing is
+  recomputed and the system sleeps — **idle is a normal state, not a defect to
+  repair** with a clock, a poll loop or a heartbeat.
+- **`Desk` is the ONE top-level Value** — `Desk ▸ Broker ▸ Instrument ▸
+  Interval ▸ Timeframe`, with `accounts` beside `instruments` on `Broker`.
+  `config.default_config()` is that value. Defining these types correctly is
+  the whole job; the rest follows from them (R19 / R20 / R23).
+- **Every type is live because it is defined.** Data moves → the values
+  recompute. This is pure functional value flow, not processes, actors,
+  schedulers, subscriptions, or a step called "making leaves alive".
+- **`leaf` / 叶子 means `YinLeaf` and `YangLeaf`** (`src/glibe/leaf.gleam`,
+  `DataLeaf`). It never means a `Timeframe` or a structural end point.
+- **`monitor.gleam` is not part of this design.** `monitor.advance`,
+  `TimeframeAddress`, `IncomingBar` and `MonitorError` were brought in from a
+  non-Gleam / non-functional / non-type architecture. Their disposition is the
+  owner's call; until then they are not a basis for the structure. The 04-08
+  section below is a dated historical record, not the current specification.
+  The same mistake produced the actor question: *"我还觉得很奇怪你用actor做什么，
+  原来是结构都没设计对"*.
+- **`glib` is not authority.** It may record the design or a plan, not an
+  implementation; what exists there may be wrong. The owner's current
+  statement is the only authority. glib source is read as context, never used
+  as proof that a design is right or landed.
+- The R31 / R32 concurrency framing ("`process.spawn` makes the structure
+  alive", "every `Timeframe` leaf alive", "a runtime that makes leaves alive")
+  is void. The garden method (one new field, placed by real ownership, R26)
+  still stands. See `docs/RULINGS.md` R33.
+
 ## The one idea
 
 glib's own docs say a module should hold one class, and say `timeframe.gleam` is
@@ -98,7 +148,7 @@ bar, because only a bar is broadcast, drawn and accepted. That word is a
 | unwritten bar fields | 0 | 0 (deleted 15) | R10 |
 | **target** | `javascript` (dual-target only planned) | **`erlang`, pure** | *"BEAM is great"* — glibe is the future |
 | **foreign source in `src/`** | 14 handwritten `.mjs` | **0 compiled** | *"No handwritten erlangs or even worse JS source files"* |
-| **runtime** | one JS process | **BEAM** | one `Desk`; every `Timeframe` leaf is alive in its own process (R32). `process.spawn` + a typed `Subject`; no shared memory, no lock (R31). A long-lived state owner may use an actor, but parallelism does not require one |
+| **runtime** | one JS process | **BEAM** | one `Desk`; every type is live because data moves through it (R33): `sourcebar_gate → databar_processing → model ↔ view`. No actor, no scheduler, no "make leaves alive" step |
 | **dashboard** | handwritten JS + FFI | Phoenix/Elixir + JS in `apps/` | **unowned AI choice** (`5e91f44`), debt — owner decision pending; `REVIEW_ROUND5.md` §10, `RULINGS.md` R14/R16. The *chart* is the owner's (UC-56/57/60); the framework is not |
 | KDJ window | `w` | **`w`** | same; idib `kdjPeriod = 7` |
 | σ window | includes bar in hand | **includes it** | same |
@@ -256,7 +306,13 @@ implementation. The specification lives in the `////` module docs of
 → `package-interface.json` in both packages carries that link. No conversion
 code, no `tzif` dependency, no new type and no test were added this round.
 
-## One addressed bar, one timeframe (04-08)
+## One addressed bar, one timeframe (04-08) — HISTORICAL, superseded by R33
+
+> **2026-11-10 (R33):** owner: *"什么monitor.advance 哪有这些type"*. The
+> `TimeframeAddress` / `IncomingBar` / `MonitorError` / `advance` layer below
+> is **not part of the design**; it came from a non-Gleam architecture. Kept
+> only as a dated record of work done. The current specification is
+> 「The system is already live (R33)」 above.
 
 The ownership chain could already HOLD many instruments, each with many
 intervals: `Desk(brokers: Dict(BrokerId, Broker))` →
@@ -291,16 +347,17 @@ bar and why (R13).
 This is a type-structure change, not a runtime one: `advance` starts no
 process, opens no socket and holds no clock. `gleam_otp` is already a direct
 dependency of the root package, but this module does not use it. `advance`
-remains the pure per-leaf step; R32 says the garden has ONE `Desk` and each
-`Timeframe` leaf is alive, so there is no N-`Desk` merge problem to solve.
-The remaining runtime work is a live feed and the replay CLI (section below). No `Market` / `Asset` / `Exchange` relation was invented
+remains a pure step; the garden has ONE `Desk` (R32), and R33 voids the
+"each `Timeframe` leaf is alive / N-`Desk` merge" framing entirely — the
+system is already live without this layer. The remaining work is a live feed
+and the replay CLI (section below). No `Market` / `Asset` / `Exchange` relation was invented
 (R26), and neither `SourceBar` nor `Timeframe` gained a field. Six tests in `test/monitor_test.gleam` pin the isolation: the addressed
 timeframe advances while the same instrument's other interval and two other
 brokers' instruments stay identical; two instruments keep their own closes; a
 non-boundary bar only opens a bucket; the same bar closes an hourly but not a
 four-hour bucket; and both failure paths carry the address.
 
-## The structure is a garden (R32) — and 04-09 measured the wrong shape
+## The structure is a garden (R32) — and 04-09 measured the wrong shape (HISTORICAL; R33 supersedes the concurrency framing)
 
 Owner 2026-11-10: *"结构复述正确，不过这是一个花园，不断根据需要往里面加新的
 花盆。实际上就是在Type定义中加新field而已 … 那就倒推他和其他type现实中什么
@@ -316,17 +373,16 @@ the real access pattern, not by habit. Identity stays in the key (R23), one
 fact stays in one place, and R26 still holds: no speculative `Asset` /
 `Exchange` / `Market` level is added ahead of a consumer.
 
-**Concurrency is not a mechanism bolted onto this garden.** One `Desk` holds
-its brokers; each `Broker` holds its instruments and accounts; each
-`Instrument` holds `Dict(Interval, Timeframe)`; and **every one of those
-`Timeframe` leaves is alive**, processing its own bars and making its own
-trading decisions. There is no second `Desk` to merge. The BEAM evidence
-gathered for 04-09 still stands (`04-09-PLAN.md` §2): `process.spawn` + a
-typed `Subject`, no async/await, no futures, no locks, no shared mutable
-memory; an actor is a thin wrapper for state that survives across messages,
-a supervisor is fault tolerance — neither is a prerequisite for parallelism.
-Wisp has zero `process.` calls, glisten spawns one process per connection,
-Lustre's server runtime is exactly one actor. Scope: **Erlang / BEAM only**.
+**R33 replaces this section's concurrency framing.** The garden method stands:
+ONE `Desk`, `Broker` holds instruments and accounts, `Instrument` holds
+`Dict(Interval, Timeframe)`, and a new real thing is one field placed by
+real ownership (R26). But "every `Timeframe` leaf is alive" was wrong wording
+twice over: `leaf` means `YinLeaf` / `YangLeaf`, and liveness is not a
+per-branch process — **every type is live because data moves through it**.
+There is no concurrency mechanism to build, no actor prerequisite, no second
+`Desk` to merge. The BEAM facts gathered for 04-09 (`04-09-PLAN.md` §2) remain
+language facts; they are not a description of this system's structure.
+Scope: **Erlang / BEAM only**.
 
 `probes/parallel-bars/` measured the WRONG shape: it copied that one `Desk`
 into six processes, each returning a whole new `Desk`, and then asked how to
@@ -338,15 +394,13 @@ a language primitive, not the structure.
 
 ## What glibe does not do yet
 
-- **The live runtime** — making each `Timeframe` leaf alive (its own BEAM
-  process, its own bar stream, its own trading decisions), a replay CLI over
-  real klines, the feed that produces `IncomingBar` values, `DataGenerator`
-  retirement, the minute-trading guard (`REVIEW_ROUND5.md` §1). R31 says
-  **no concurrency mechanism has to be built first** — `process.spawn` plus a
-  typed `Subject` is the whole primitive; R32 says making a leaf alive is a
-  field in the garden's types, not a separate framework. Whether a long-lived
-  state owner uses `gleam_otp`'s actor is a per-consumer choice (R26), not a
-  prerequisite.
+- **The real data sources** — connecting each provider's real-time arrival
+  (push, subscription or active fetch, in that provider's own way) to the
+  standard `SourceBar` entry, plus a replay CLI over real klines,
+  `DataGenerator` retirement and the minute-trading guard
+  (`REVIEW_ROUND5.md` §1). This is input-boundary work, not a runtime that
+  "makes the system live": with no data, the system sleeps (R33). No
+  concurrency framework, actor prerequisite or `IncomingBar` layer is implied.
 - **The catalogue tables' identities and relations** — deliberately open
   under R26, not a pending owner ruling. They get types when a consumer
   appears. The web-layer comparison (R24) and adoption (phase 04-05) are both

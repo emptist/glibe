@@ -4,7 +4,35 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-10 (R32 — 结构是花园；当前状态)
+## 2026-11-10 (R33 — 系统本来就是活的；当前状态)
+
+- **owner 09:57 / 09:59 / 10:04 / 10:09 四条逐字裁定**在 `docs/RULINGS.md` R33。
+  一句话：*`api provider / data sources → history + live data → sourcebar_gate
+  → databar_processing → model ↔ view`* 这条管道本来就是活的；**数据动，
+  每一个 type 就动，因为定义好了**。`Desk` 是顶层唯一的 Value，逐层嵌套即
+  完整系统；在 Gleam 里唯一要做的就是定义 types，基本结构对了什么都有了。
+- **数据为什么会动**：订阅了数据源的实时数据；各家推送 / 订阅 / 主动获取
+  用各自的方式，属输入边界事实。**没有数据系统就不动了，睡觉，等待**——
+  静止是正常状态，不需内部时钟、轮询或心跳补救。
+- **撤回三层外来概念**：`monitor.advance` / `TimeframeAddress` /
+  `IncomingBar` / `MonitorError` 不是这个系统的 type（*"哪有这些type"*）；
+  actor 是结构没设计对才去找的补救；「每一个叶子活起来」既用错了「叶子」
+  （特指 `YinLeaf` / `YangLeaf`）也用错了「活」。R31 并发框架、R32
+  「每个 Timeframe 活着 / 让叶子活起来的运行时」措辞一并作废。
+  **R32 花园方法论仍成立**：加 field、倒推隶属、集合对比、R26 不预设层级。
+- **glib 不是权威**：可能只记录了设计与计划、未必落实，已落实的也未必对。
+  唯一权威是 owner 当前陈述；此前「glib 核实：四类型链已落地」类断言降级
+  为「读过 glib，不作依据」，不得作为设计正确或已落实的证据。
+- **本轮范围**：只记裁定、撤回错误结论、清理词汇；**不删生产代码、
+  不新增 type、不写 probe、不加依赖**。`monitor.gleam` 那层的处置由
+  owner 定，在此之前不作为结构依据。决策区仍 0 项。
+
+## 2026-11-10 (R32 — 结构是花园；历史记录，并发框架经 R33 作废)
+
+> **R33 更正**：下面「每一个 Timeframe 都活着」「当前缺口：运行时还没让
+> Timeframe 活起来」「glib 核实：已落地」三处均作废 —— 系统本来就活，
+> 「叶子」特指 `YinLeaf` / `YangLeaf`，glib 不是权威。原文保留为历史。
+> 花园方法论（加 field / 倒推隶属 / 集合对比 / R26）仍然成立。
 
 - owner 09:45 逐字裁定：*"结构复述正确，不过这是一个花园，不断根据需要往里面加新的花盆。实际上就是在Type定义中加新field而已 … 那就倒推他和其他type现实中什么关系呢？隶属于谁呢？如果谁也不隶属，是其他关系，那么可能放在Desk里面就好了，那么用dict还是list还是其他东西放呢？根据需要来对比研究决定。"* 全文在 `docs/RULINGS.md` R32。
 - **结构确认**：`Desk` 只有一个；Desk 里若干 Broker（binance、ib）；每个 Broker 有一组 `Instruments` 和一组 `accounts`；每个 `Instrument` 有 `Dict(Interval, Timeframe)`；**每一个 Timeframe 都活着**，各自处理数据、进行交易。glibe `src/glibe/desk.gleam:74-94` 已有这条静态链，`config.gleam:75-101` 建了 3 broker × 3 品种 × 2 周期。

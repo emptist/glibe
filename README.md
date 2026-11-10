@@ -55,7 +55,7 @@ no dependency added** (`docs/RULINGS.md` R18).
 | **IB Client Portal** | ⚠️ Retired | The handwritten Elixir `ibkr.ex` wrapper had **zero callers** and an undeclared `ibkr_api` dep; it produced 12 build warnings. Removed under *"No handwritten erlangs"*. The FFI contract survives as `ibkr.gleam.disabled` (a design record, not compiled). |
 | **Visualization** | ✅ Settled | **JS chart library (R17)**, generated `.mjs` preferred; hand-written `.mjs` only inside `webclient/` (R16). The client exists so a human can spot anomalies by eye, read trends from charts, inspect tabulated fractal data, and see order issue/fill points (R18). `deprecated/glibe_web` is a Phoenix comparison piece, not the implementation. The BEAM web layer is **Mist + Wisp**, chosen by three measured demos (R24) and adopted in phase 04-05: `GET /` renders the real `Desk` as a table, `GET /desk` returns it as JSON. No Lustre server components, no hand-written JS. |
 | **Web display time** | 📄 Documented (R30) | The web view shows date-times in the analyst's local time with IANA daylight-saving rules; the standard bar stays unix time, the bucket grid stays UTC-aligned and CSV stays UTC RFC3339. Specification in `src/glibe/web/server.gleam`, plan `.planning/phases/04-domain-cleanup/04-07-PLAN.md`. Implementation not started — docs only this round. |
-| **Multi-instrument monitoring** | ✅ Typed (04-08); runtime unstarted | One `IncomingBar` carries a typed `TimeframeAddress(BrokerId, Symbol, Interval)`; the pure `monitor.advance` locates that one `Timeframe`, runs the gate and (on a closed bucket) the full pipeline, and writes back a new `Desk`. Six isolation tests prove other intervals and other brokers stay untouched. **The structure is a garden (R32)**: ONE `Desk`, and every `Timeframe` in an `Instrument`'s `Dict(Interval, Timeframe)` is alive, processing its own bars and making its own trading decisions; adding a real thing is one new field in an existing type, placed by asking what it belongs to. `process.spawn` + a typed `Subject` is the whole BEAM primitive (R31), so no concurrency framework is needed. `probes/parallel-bars/` copied that one `Desk` into six processes; its "merge" conclusion is void (R32). A live feed and a replay CLI remain unstarted. |
+| **The system is already live** | ✅ Ruling (R33) | `api provider / data sources → history + live data → sourcebar_gate → databar_processing → model ↔ view`. `Desk` is the ONE top-level Value; `config.default_config()` is that value. Every type is live because data moves through it — no actor, no scheduler, no "make leaves alive" step. Data arrives because a real-time data source is subscribed (push / subscription / active fetch, each provider its own way); **with no data the system sleeps and waits**, which is normal, not a defect. `leaf` means `YinLeaf` / `YangLeaf` only. The 04-08 `monitor.advance` / `TimeframeAddress` / `IncomingBar` / `MonitorError` layer and the 04-09 `probes/parallel-bars/` experiment are **historical, superseded** — they are not this design. The garden method stands (R32): a new real thing is one new field in an existing type, placed by real ownership (R26). glib source is read as context, never as proof (R33). Real data sources and a replay CLI remain unstarted. |
 | **Guards** | ✅ Added | `scripts/guards.sh --all` — build, test, format, `no_timeframe_mixture`, `no_foreign_source`, plus `test_guards.sh` (7 fixture-based negative tests, no source mutation); also runs in CI |
 
 ## Quick Start
@@ -138,7 +138,7 @@ src/
 │   ├── branch.gleam              # DataBranch — grown one bar at a time, rides a leaf
 │   ├── timeframe.gleam           # Timeframe record + new — NO symbol/interval (RULINGS.md R23)
 │   ├── desk.gleam                # Desk ▸ Broker ▸ Instrument ▸ Interval ▸ Timeframe (R20/R23)
-│   ├── monitor.gleam             # TimeframeAddress + IncomingBar + pure advance (04-08)
+│   ├── monitor.gleam             # HISTORICAL (04-08); not part of the owner's design (R33)
 │   ├── engine.gleam              # The pipeline: gate, processing, leaves, branches, accept
 │   ├── trading/
 │   │   └── strategy.gleam        # The manual verdict (manual_signal)
@@ -149,7 +149,7 @@ src/
 │   └── config.gleam              # AppConfig + default_config (single source of truth)
 ├── probes/
 │   ├── web-layer/                # three measured BEAM web demos (R24 / 04-04)
-│   └── parallel-bars/            # 04-09 historical probe, shape wrong; superseded by R32
+│   └── parallel-bars/            # 04-09 historical probe, wrong shape; void (R32 / R33)
 ├── webclient/                    # separate JS-target Gleam package (own gleam.toml)
 │   └── src/webclient.gleam       # → build/dev/javascript/webclient/webclient.mjs
 ├── deprecated/glibe_web/         # Phoenix LiveView, kept for comparison only

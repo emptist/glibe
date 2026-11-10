@@ -404,4 +404,34 @@ owner 09:45：*"结构复述正确，不过这是一个花园，不断根据需�
   「0/6 合并 / 所有权」结论及写进 R31、DESIGN、README、STATE、PENDING 的
   相应框架作废；官方 BEAM 证据保留。probe 保留为带作废注记的历史实验。
 - 本轮只记录裁定与撤回，**不加生产类型、不改 `src/` 逻辑、不写新 probe**；
-  决策区仍 0 项。让叶子活起来的运行时是后续按 R32「加 field」的按序工作。
+  决策区仍 0 项。~~让叶子活起来的运行时是后续工作~~ **R33 作废**：
+  该系统本来就活，没有「让叶子活起来」这一步。
+
+---
+
+## R33 — 系统本来就是活的（2026-11-10，当前）
+
+owner 09:57 / 09:59 / 10:04 / 10:09 四条逐字原话在 `docs/RULINGS.md` R33。
+
+- **管道本来就是活的**：*`api provider / data sources → history + live data
+  → sourcebar_gate → databar_processing → model ↔ view`*。history 与 live
+  是同一条数据流；`view` 是 `model` 的投影。**每一个 type 都是活的：数据动，
+  它就动，因为定义好了**（纯值随数据重算），不是进程 / actor / 调度 /
+  「让叶子活起来的运行时」。
+- **数据为什么会动**：订阅了数据源的实时数据；推送 / 订阅 / 主动获取各家
+  用自己的方式，属输入边界事实，汇合点只有标准 `SourceBar`（R28）。
+  **没有数据系统就不动了，睡觉，等待** —— 静止正常，无需时钟 / 轮询 /
+  心跳补救。
+- **Desk 是唯一顶层 Value**，逐层嵌套成完整系统（`Desk ▸ Broker ▸
+  Instrument ▸ Interval ▸ Timeframe`，Broker 另有 `accounts`）。
+  *"在Gleam世界里面，你唯一要做的就是定义types，基本结构对了，什么都有了"*。
+- **撤回**：`monitor.advance` / `TimeframeAddress` / `IncomingBar` /
+  `MonitorError` 非本系统 type；actor 是结构没设计对才找的补救；
+  「叶子」特指 `YinLeaf` / `YangLeaf`，此前泛指 Timeframe 的用法作废；
+  R31 并发框架、R32「每个 Timeframe 活着」措辞作废。**R32 花园方法论
+  （加 field / 倒推隶属 / 集合对比 / R26）仍成立**。
+- **glib 不是权威**：可能只记录设计与计划、未必落实，已落实的也未必对；
+  唯一权威是 owner 当前陈述。上面「glib 核实：已落地」类断言全部降级为
+  「读过 glib，不作依据」。seib → glib → glibe 是思路沿革，不是正确性证明链。
+- **本轮范围**：记裁定 + 撤回 + 清理词汇；**不删生产代码、不新增 type、
+  不写 probe、不加依赖**。`monitor.gleam` 的处置由 owner 定。决策区仍 0 项。

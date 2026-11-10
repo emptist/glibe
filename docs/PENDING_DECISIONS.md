@@ -30,9 +30,11 @@
 - 三张目录表与 `Instrument` 的**关系**：按 R26 不定，不预先做一整套 identity 类型化，等真正有消费方时按需逐个加 type。已确认的只有 `Broker ▸ Instrument`。
 - `bucket_ends` 的 `date: String` → `gleam_time.Timestamp`；5 个 `*_from_string` + `panic` 的 codec；日/周/月 bucket 恒 `True` 的旧行为。各自单独计划，按 R13 / R19 / R21 / R23 推进。
 - 真实数据下 SVG / JS 图表能力对比试验：**推迟**到 databar processing 其余部分做完（你 2026-11-07 定的时机）。
-- 实时行情流 / replay CLI / 退役 `data_generator.ex` / `no_minute_trading.sh`：
-  工作，不是裁决。**让每个 `Timeframe` 叶子活着**也属这类工作（R32）；不需要
-  先建受监督 actor 框架（R31）。
+- 各数据源的实时到达接入（推送 / 订阅 / 主动获取，各家用自己的方式）、
+  replay CLI / 退役 `data_generator.ex` / `no_minute_trading.sh`：工作，不是
+  裁决。**不是「让系统活起来」的运行时**（R33：系统本来就活，无数据则睡觉
+  等待），也不需要 actor / 调度框架。`monitor.gleam` 那层 type 的处置由
+  owner 定。
 - 已裁定、不要再看：JS 图表库 + 生成 `.mjs` 优先（R17）、小范围手写 JS（R16）、Phoenix 去留与 `webclient/`（R18）、`Desk` 而非 `Deck`（R20）、`Interval` 九值 + 全名构造子（R21）、SVG 自绘不再是默认路线、WASM 不采用。
 
 ---
@@ -93,11 +95,10 @@ owner 原话（逐字引用、`[user 日期]`、UC 编号）及全部论证在�
 - ~~依该结论采用 A（04-05）~~ 已完成；根包加入 `mist` / `wisp`，
   `src/glibe/web/server.gleam` 服务真实 `Desk`。这是我按 R24 自己该做的决定，
   细节在 `.planning/phases/04-domain-cleanup/04-05-SUMMARY.md`。
-- 实时运行时：真实 klines 的 replay CLI、行情流、退役
-  `data_generator.ex`、`no_minute_trading.sh`。**并发机制不在此列**（R31：
-  `process.spawn` + 类型化 `Subject` 即可，无 actor / supervisor / lock 前置）；
-  但「每个 `Timeframe` 叶子活着」的运行时尚未实现，按 R32 是往类型里加 field
-  的按序工作。
+- 真实数据源的实时到达接入、replay CLI、行情流、退役
+  `data_generator.ex`、`no_minute_trading.sh`：输入边界工作。
+  **没有并发机制 / actor / 调度前置**（R33），也没有「让叶子活起来的运行时」：
+  数据不来系统就睡觉等待，这是正常状态。
 - 真实数据图表对比试验（时机见上面「不需要你决定」）。
 
 - ~~04-06 标准 bar 时间类型化~~ **已完成**（R27–R29）：标准 `SourceBar` 用
@@ -111,8 +112,14 @@ owner 原话（逐字引用、`[user 日期]`、UC 编号）及全部论证在�
 - 04-08 多品种 × 多周期同时监控的类型结构（地址 / 到达 bar / 领域错误 /
   纯 `advance`）：已完成，是 R26 按序工作，**不是待裁决项**，见
   `.planning/phases/04-domain-cleanup/04-08-PLAN.md` 与 `docs/DESIGN.md`。
-- R31 / R32（2026-11-09 / 11-10 owner 指示）：并发不是一整套待建的受监督 actor
-  机制；结构是花园，`Desk` 只有一个，每个 `Timeframe` 叶子各自活着，新事物只是
-  已有 Type 定义里的一个 field。04-09 的「6 份 partial `Desk` / 合并属所有权」
-  结论形状错误，已作废。**不是待裁决项**，全文在 `docs/RULINGS.md` R31 / R32、
-  `docs/DESIGN.md`，以及 `04-09-SUMMARY.md` 顶部的更正注记。
+- R31 / R32（2026-11-09 / 11-10）：并发框架与「每个 `Timeframe` 叶子各自
+  活着」的措辞**已由 R33 作废**；R32 的花园方法论（新事物 = 已有 Type 定义
+  里的一个 field、倒推隶属、集合形状对比、R26 不预设层级）仍然成立。
+  04-09 的「6 份 partial `Desk` / 合并属所有权」结论形状错误，已作废。
+- **R33（2026-11-10 owner 指示）**：系统本来就活 —— *"api provider / data
+  sources → history + live data → sourcebar_gate → databar_processing →
+  model ↔ view"*；`Desk` 是唯一顶层 Value，每一个 type 随数据而动；
+  数据会因订阅实时数据源而不断到来，无数据则睡觉等待；`monitor.advance`
+  等 type 非本系统设计；「叶子」特指 `YinLeaf` / `YangLeaf`；glib 不是权威。
+  **不是待裁决项**，全文在 `docs/RULINGS.md` R33、`docs/DESIGN.md`
+  「The system is already live」。
