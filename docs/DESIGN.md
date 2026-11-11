@@ -203,9 +203,9 @@ Owner 2026-11-10, verbatim: *"很可惜seib当时没有binance，我印象中仅
 - **Boundary.** A long list of settings is not a licence to invent a matching
   set of types in advance (R26 / R32): one setting becomes one field when a
   real consumer appears. The remaining work is still the input boundary
-  (each provider's real-time arrival → standard `SourceBar`) and the replay
-  CLI (R33). R34 changed no `src/` file, added no dependency and wrote no
-  probe. Full verbatim words, the 10:26 correction, the read-only checks and
+  (each provider's real-time arrival → standard `SourceBar`). A historical
+  batch is that same stream's earlier segment, not a replay (R38).
+  R34 changed no `src/` file, added no dependency and wrote no probe. Full verbatim words, the 10:26 correction, the read-only checks and
   the R29 qualification are in `docs/RULINGS.md` R34.
 
 ## No gap in the ownership chain (R36)
@@ -489,8 +489,9 @@ serves the real `config.default_config().desk`: `GET /` is a server-rendered
 table, `GET /desk` is the same `Desk ▸ Broker ▸ Instrument ▸ Interval` chain as
 JSON, any other path is 404. A closed `Route` type, not a path `String`, names
 the endpoints. Run with `gleam run -m glibe/web/server` (port 8610) — the root
-library deliberately keeps no global `main` slot, so the replay CLI is
-still free. Real HTTP requests returned 200 / 200 / 404 with the configured
+library deliberately keeps no global `main` slot. A data source hands one
+standard `SourceBar` at a time to the gate; the stream has no rewind (R38).
+Real HTTP requests returned 200 / 200 / 404 with the configured
 `binance` / `futu` / `ib` brokers and `BTCUSDT` / `SPY` / `SPY_FUTU` names.
 No Lustre server components, no hand-written JS, no new browser asset. See
 `.planning/phases/04-domain-cleanup/04-05-PLAN.md` and its SUMMARY.
@@ -608,8 +609,9 @@ process, opens no socket and holds no clock. `gleam_otp` is already a direct
 dependency of the root package, but this module does not use it. `advance`
 remains a pure step; the garden has ONE `Desk` (R32), and R33 voids the
 "each `Timeframe` leaf is alive / N-`Desk` merge" framing entirely — the
-system is already live without this layer. The remaining work is a live feed
-and the replay CLI (section below). No `Market` / `Asset` / `Exchange` relation was invented
+system is already live without this layer. The remaining work is the input
+boundary: each provider's real-time arrival to the standard `SourceBar` (R33).
+No `Market` / `Asset` / `Exchange` relation was invented
 (R26), and neither `SourceBar` nor `Timeframe` gained a field. Six tests in `test/monitor_test.gleam` pin the isolation: the addressed
 timeframe advances while the same instrument's other interval and two other
 brokers' instruments stay identical; two instruments keep their own closes; a
@@ -655,8 +657,9 @@ a language primitive, not the structure.
 
 - **The real data sources** — connecting each provider's real-time arrival
   (push, subscription or active fetch, in that provider's own way) to the
-  standard `SourceBar` entry, plus a replay CLI over real klines,
-  `DataGenerator` retirement and the minute-trading guard
+  standard `SourceBar` entry (a historical batch is that same stream's
+  earlier segment, not a replay — R38), `DataGenerator` retirement and the
+  minute-trading guard
   (`REVIEW_ROUND5.md` §1). This is input-boundary work, not a runtime that
   "makes the system live": with no data, the system sleeps (R33). No
   concurrency framework, actor prerequisite or `IncomingBar` layer is implied.

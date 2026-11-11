@@ -91,7 +91,8 @@ sections are kept as history, not as the current answer.
   （R26）不变。
 - **R33 的规格不变**：系统本来就活、数据动每个 type 就动、无数据则睡觉
   等待、`monitor.advance` 那层不是本系统 type、glib 与先驱不作依据。
-  待做仍是各数据源的实时到达接入标准 `SourceBar` + replay CLI。
+  待做是把各数据源的实时到达接到标准 `SourceBar` 入口；历史批次是同一条
+  流的前段，不是重放（R38）。
 - **引用限定**：R29 里 `~/gits/hub/ibOptions` 的两处时区实例只是事实
   线索，不是架构依据，IANA / 拒绝固定 offset 的结论不变。
 - **10:29 因果补正（R34）**：owner 逐字 *"ibOptions受制于Python+Pandas

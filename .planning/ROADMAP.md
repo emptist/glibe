@@ -582,5 +582,6 @@ owner 逐字原话在 `docs/RULINGS.md` 文末执行注记与
   `FORMAT=0` / `guards: all green` / `DOCS=0` / `cmp=0`。
 - **范围不变**：不碰三张目录表、不改 `monitor.gleam`、不预设
   Asset / Exchange / Market 关系、不加依赖、不写 probe、决策区仍 0 项。
-  真正待做的工作仍是 R33 的实时数据源接入标准 `SourceBar` 入口 +
-  replay CLI；`monitor.gleam` 处置由 owner 定。
+  真正待做的工作仍是 R33 的实时数据源接入标准 `SourceBar` 入口；历史批次
+  按序喂同一对顶层函数，不是第二套实现 / CLI（R38）。
+  `monitor.gleam` 处置由 owner 定。

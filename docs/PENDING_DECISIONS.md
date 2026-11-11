@@ -31,9 +31,10 @@
 - `bucket_ends` 的 `date: String` → `gleam_time.Timestamp`；5 个 `*_from_string` + `panic` 的 codec；日/周/月 bucket 恒 `True` 的旧行为。各自单独计划，按 R13 / R19 / R21 / R23 推进。
 - 真实数据下 SVG / JS 图表能力对比试验：**推迟**到 databar processing 其余部分做完（你 2026-11-07 定的时机）。
 - 各数据源的实时到达接入（推送 / 订阅 / 主动获取，各家用自己的方式）、
-  replay CLI / 退役 `data_generator.ex` / `no_minute_trading.sh`：工作，不是
-  裁决。**不是「让系统活起来」的运行时**（R33：系统本来就活，无数据则睡觉
-  等待），也不需要 actor / 调度框架。`monitor.gleam` 那层 type 的处置由
+  退役 `data_generator.ex` / `no_minute_trading.sh`：工作，不是裁决；
+  历史批次是同一条流的前段，不是重放（R38）。**不是「让系统活起来」的
+  运行时**（R33：系统本来就活，无数据则睡觉等待），也不需要 actor /
+  调度框架。`monitor.gleam` 那层 type 的处置由
   owner 定。
 - ibOptions 的 settings 清单**不是待办清单**：按 R26 / R32，某个设置
   只有在出现真实消费方时才按倒推隶属加一个 field，不预先批量发明
@@ -106,8 +107,9 @@ owner 原话（逐字引用、`[user 日期]`、UC 编号）及全部论证在�
 - ~~依该结论采用 A（04-05）~~ 已完成；根包加入 `mist` / `wisp`，
   `src/glibe/web/server.gleam` 服务真实 `Desk`。这是我按 R24 自己该做的决定，
   细节在 `.planning/phases/04-domain-cleanup/04-05-SUMMARY.md`。
-- 真实数据源的实时到达接入、replay CLI、行情流、退役
-  `data_generator.ex`、`no_minute_trading.sh`：输入边界工作。
+- 真实数据源的实时到达接入、行情流、退役
+  `data_generator.ex`、`no_minute_trading.sh`：输入边界工作；
+  历史批次不是重放（R38）。
   **没有并发机制 / actor / 调度前置**（R33），也没有「让叶子活起来的运行时」：
   数据不来系统就睡觉等待，这是正常状态。
 - 真实数据图表对比试验（时机见上面「不需要你决定」）。

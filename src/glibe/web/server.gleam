@@ -206,7 +206,8 @@ pub fn handle_request(request: Request) -> Response {
 
 /// Start Mist with the Wisp adapter on port 8610. Run with
 /// `gleam run -m glibe/web/server` so the root library keeps no global
-/// `main` slot for Stage F's replay CLI.
+/// `main` slot. A data source hands one standard `SourceBar` at a time to
+/// `engine.sourcebar_gate`; the stream has no rewind (R38).
 pub fn main() -> Nil {
   let secret_key_base = wisp.random_string(64)
   let assert Ok(_) =
