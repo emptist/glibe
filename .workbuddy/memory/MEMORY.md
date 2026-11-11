@@ -100,6 +100,22 @@ function/module**. Open (owner decides): glib `working_databar_archived`/
 `bars_listed` vs glibe `accept`/`bars_accepted`; glibe `Timeframe` still has
 `manual_enter`/`manual_exit`, which owner struck 2026-10-31
 (`glib/src/glib/timeframe.gleam:720-731`).
+**R39 (2026-11-12, the whole system)**: ① data arrives → ② a qualified
+`SourceBar` becomes `working_databar` → ③ **all** computation/processing/
+decisions happen **in that working databar** → ④ `working_databar_archived`
+→ `databar_list`. One straight line, **no side doors**; this simplicity is
+what makes invention impossible. Test: any step passing the bar as an
+argument between functions has drifted. glib code that matches:
+`sourcebar.to_databar` (one bar born whole; phase 42 deleted the `fold`
+half), `databar_processing` puts it in `working_databar` and every later step
+takes only `Timeframe`, `working_databar_archived(tf)` takes no bar.
+glibe drift (measured, NOT changed — owner decides): `working_databar` is a
+bucket accumulator (`databar.fold_sourcebar` folds many bars into one);
+`engine.databar_processing(tf, databar)` passes the bar through
+`leaves`/`strategy`/`accept`; names `accept`/`bars_accepted` vs
+`working_databar_archived`/`bars_listed`; `manual_enter`/`manual_exit` still
+present. **Do NOT write R39 into `////`/`///` until the code matches** —
+that would recreate docs unrelated to implementation.
 
 ## Measured facts
 - Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; no `T(..)` form;
