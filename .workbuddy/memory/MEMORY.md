@@ -1,11 +1,12 @@
-# MEMORY — glibe (curated; full text in `docs/RULINGS.md`, daily logs)
+# MEMORY — glibe (curated; verbatim rulings in `docs/RULINGS.md`, daily logs)
 
 ## Authority & identity
 **Owner's current statement > Idris spec > legacy code > my inference.**
-`glib/docs/` is hy4's AI prose, not owner's record; never inherit its first
-person or vocabulary (generic "gate", "ladder"/"Rung"). hy4 is a different
-model, banned from glib. Owner's words: `sourcebar_gate` (the only gate),
-**price checker**, **risk manager**. I am space-bunny; user is emptist.
+`glib/docs/` is hy4's AI prose (hy4 = another model, banned from glib); never
+inherit its first person or generic "gate"/"ladder" vocabulary. Owner's words:
+`sourcebar_gate`, **price checker**, **risk manager**. I am space-bunny; user
+is emptist. **glib docs are NOT evidence of glib code** — docs were owner-
+taught, code was AI-written; always compare the two (R38).
 
 ## Direction
 - *"glibe is the future, pure erlang target is the future"*, *"BEAM is great"*,
@@ -13,192 +14,130 @@ model, banned from glib. Owner's words: `sourcebar_gate` (the only gate),
   **Root law: use a type whenever a type is needed in nature** — no universal
   `String` + parser + sh/grep guard to repair it.
 - **glibe does not wait on glib**: take owner rulings + glib's good code directly.
-- Root erlang; `webclient/` the only JS-target package (R16–R18: generated `.mjs`
-  preferred, small hand-written JS allowed only there, Phoenix → `deprecated/`).
-  Web frontend is for human eyes (anomalies, trend charts, fractal tables,
-  order/fill points).
-- **Concurrency is Erlang/BEAM only** (owner 2026-11-09 06:09: *"你去看什么
-  javascript target完全不对路，我们是erlang 和 BEAM专属项目"*). Never use the JS
-  target or promises as a concurrency analogy.
+- Root erlang; `webclient/` the only JS-target package (R16–R18, generated
+  `.mjs` preferred). Web frontend is for human eyes.
+- **Concurrency is Erlang/BEAM only** (owner 2026-11-09: *"我们是erlang 和
+  BEAM专属项目"*). Never use JS target/promises as a concurrency analogy.
 
 ## Before any Gleam judgement
-Load `gleam-language` skill, read `~/.workbuddy/skills/gleam-language/references/gleam-core.md`
-**IN FULL**; `docs/gleam-thinking-core-to-memory.md` is its byte-equal git mirror
-(keep `cmp`-equal). Workflow (R19, binds EVERY AI-authored file in EVERY project):
-`////` module doc **naming the `.planning` item** → types → `///` on every
-type/function → `todo as "…"` → tests → bodies → green. `gleam docs build` →
-`package-interface.json` is the anti-drift check, **no new sh guard**.
-`--warnings-as-errors` is a GREEN gate only; RED skeletons legitimately fail it.
-**A `////` block broken by a `//` line truncates the interface docs** — always
-check both packages' `package-interface.json`.
+Load `gleam-language` skill, read `references/gleam-core.md` **IN FULL**;
+`docs/gleam-thinking-core-to-memory.md` is its byte-equal mirror (keep
+`cmp`-equal). **R19 making process** (one module file, whole process):
+① `////` module doc naming the `.planning` item + `///` on every item →
+② empty skeleton (types/functions only if needed, `todo as "…"` ok, no real
+body) → ③ tests hold the design goal → ④ fill bodies step by step to green.
+`gleam build`/`gleam test` work at skeleton stage; `--warnings-as-errors` is a
+GREEN gate only. `gleam docs build` → `package-interface.json` is the
+anti-drift check; **a `////` block broken by `//` truncates it**; check both
+packages. **11:05**: retrofitting docs/tests onto existing code is NOT this
+process; label it retrofit. **11:11**: `docs/` are "差生补课笔记", not assets —
+never create prose docs to record concepts; doc count should fall.
 
-## Rulings (one-line index; full text + verbatim quotes in `docs/RULINGS.md`)
-R12 `1e-6·bb_m` floor before interpolation. R13 closed sets are types.
-R14 `src/` Gleam only. R15 IB = historic stocks/ETFs; guard fails on
-`@external(javascript,…)` / `target = "javascript"`. R16–R18 JS scope above.
-R19 docs-first/TDD. R20 **`Desk ▸ Broker ▸ Instrument ▸ Timeframe`** must-have
-(owner's "Deck" = spelling drift, not a rename); dashboard = VIEW.
-R21 constructors **named in full, prefixed by the type name** (`IntervalOneDay`);
-letter+digit wire codes (`H4`/`M1`/`"1h"`) only in codec/adapter. R25 a
-professional term (CPU, T+1/T+2 → `TPlus1`/`TPlus2`) is NOT an abbreviation.
-R22 **`Symbol` is a name, never the `Instrument`** — correct wrong things
-cleanly, no alias/compat layer. R23 **`TimeframeSettings` is not an entity**:
-it is `Timeframe.settings`; interval lives in the KEY, never a field; no composite
-`"BTCUSDT_H1"` key, no second dict, no `list.find`. R24 web framework choice
-(Mist+Wisp, 04-05) is **AI demo work, not an owner ruling**. R26 **only
-`Broker ▸ Instrument` is settled**; `Asset`/`Exchange`/`Market` relations stay
-open — add types one at a time when a consumer needs one, no speculative level.
-R27 `SourceBar.timestamp` = `gleam_time.Timestamp` (unix time), never a date
-`String`/wall clock (no "BarClock", no compat). R28 provider native types stay
-native with their own names (`Kline` for Binance) and all wire fields; each has
-`to_sourcebar`; the standard layer is the only union point. R29 `bucket_ends` =
-UTC-aligned unix-second remainder grid (1h 3600, 4h 14400, 3m 180); US 09:30
-open + DST is a market-calendar debt → `tzif` 2.0.0 when a US-equity consumer
-exists, never a fixed offset (`~/gits/hub/ibOptions/tradingtime.py:24`,
-`simple_auto_trading.py:132`). R30 web display time = **output-side** projection
-of the same `Timestamp` to the analyst's local wall clock (IANA/DST), R29 is the
-**input-side** market calendar — never merge them; CSV stays UTC RFC3339;
-`tzif` not yet a dependency.
-**R33（2026-11-10，范式纠正，覆盖 R31/R32 的并发框架）**：
-- 系统**本来就活**：`api provider / data sources → history + live data →
-  sourcebar_gate → databar_processing → model ↔ view`；history 与 live 同一条
-  流。**每一个 type 都是活的：数据动它就动，因为定义好了**（纯值重算），
-  不是进程 / actor / 调度 /「让叶子活起来的运行时」。
-- 数据会动是因**订阅了数据源的实时数据**（推送 / 订阅 / 主动获取，各家
-  自己的方式，属输入边界，汇合点只有标准 `SourceBar`）；**没有数据系统就
-  不动了，睡觉等待** —— 静止正常，无需时钟 / 轮询 / 心跳补救。
-- **`Desk` 是顶层唯一的 Value**，逐层嵌套即完整系统；*"在Gleam世界里面，
-  你唯一要做的就是定义types，基本结构对了，什么都有了"*。定义 types 就是全部。
-- `monitor.advance` / `TimeframeAddress` / `IncomingBar` / `MonitorError`
-  **不是本系统 type**（*"哪有这些type"*），是从非 Gleam / 非 functional /
-  非 type 架构带来的命令式调度；用 actor 的根源正是结构没设计对。代码保留
-  为历史，处置由 owner 定，不得作为结构依据。
-- **「叶子」特指 `YinLeaf` / `YangLeaf`**，绝不能指 Timeframe 或结构末端。
-- **glib 不是权威**：可能只记录设计与计划、未必落实，已落实也未必对；
-  唯一权威是 owner 当前陈述。glib 代码只读作背景，不作设计正确/已落实的证据。
-  seib → glib → glibe 是思路沿革，不是正确性证明链。
-- **R32 仍成立**：花园 = 在已有 Type 定义里加一个 field；位置靠倒推隶属，
-  谁也不隶属放 `Desk`；集合 Dict/List 按真实访问对比研究；R26 不预设层级。
-  R31 官网/v0.12 语言事实与 `gleam_otp` 事实更正仍成立，但不描述本系统。
-**R34–R37（2026-11-10，逐字全文在 `docs/RULINGS.md`）**：
-- **R34 先驱定位（11:10 定稿）**：**两者完全两码事**，唯一共同点只是
-  数量上都只有一个 broker。**seib = CoffeeScript、owner 自己的系统设计**：
-  没有 Python/pandas 局限、**不存在连类型都搞不清楚的问题**；结构是对的，
-  只缺「多个经纪商数据提供者」一层，缺层不是错误；**无 settings 问题**。
-  **ibOptions = 为了迁就语言凑合的**（Python+pandas），**五脏俱全但都不
-  对劲**，结构关系写不成 type 才被迫压进 settings，只作需求清单；那些设置
-  在 glibe 是 type/field。此前复述像「seib 也是 python、只不过没受限制」
-  = 错。缺的那层已在 `Desk(brokers: Dict(BrokerId, Broker))` + 3 broker；
-  不加 provider 层。R29 的 ibOptions 引用只是时区事实线索。
-- **R35 SwiftUI**：相似**只在 View 的定义与实现**（纯 functional +
-  value types）；Swift 其余被 class/actor/数据竞争搞复杂，Gleam 里不可能。
-  **view 为什么会更新 = R33 系统本来就活**。并发课题遇到再查官网 +
-  做几个 demo 对比 = TDD。**「简单是正确的验证码」**：复杂就说明
-  type / 函数 / 模块定义有错，回去改定义，不加机制。
-- **R36 无断层**：链与 owner 记忆逐项对上；**Market 与 Broker 双向都不
-  隶属 → 否决**，`Desk ▸ Broker` 合乎事实。Asset/Exchange/Market 按 R26
-  开放、APIProvider 与 broker 同物、Account 已有、Symbol/Interval 是 key。
-  glib 记录在 `SYSTEM_MODEL.md` §2 / `domain-hierarchy-2026-10-22.md`，
-  README:907 只有 Phase 32 一行；glib 只是线索（R33）。
-- **R37 主干判据**：构成主干某一层的 type 必须**跟上下级有两个隶属关系**；
-  其他 type **依附但不隶属**（不插层、不产生层级）或谁也不依附 → 放
-  `Desk`（至少属于系统）。**身份在持有者的 Dict key**：`interval` 不是
-  Timeframe 的 field、`brokerId` 不是 Broker 的 field；*"你的左手不知道
-  他是左还是右"*。owner 指路：`glib/docs/NAMING.md:575-589`、
-  `glib/docs/DESIGN.md` §18.2 `:3269-3299`（思路记录，非实现依据）。
-  判定法则（10:18–10:37 那轮不改 `src/`，非永久禁令）。
-**04-10 落地（retrofit，不是流程示例；owner 10:42 逐字：*"概念 ->
-type definition -> unit test -> implementation 完整链条"*）**：R33–R37
-从 `docs/` 散文写进 `////` / `///`
-代码文档，模块文档命名 `04-10-PLAN.md`；**不新增 type**（现有链已是定义，
-R35 简单验证码）；`test/level_judgement_test.gleam` 6 测试 RED 68/2；
-`desk.timeframe_under` 三行 `result.try` 纯读取 GREEN 70/0。四笔提交。
-`desk.gleam` 里「Market 尚未定」旧句已更正为 R36 否决。新读取**不是**
-R33 作废的 `monitor.advance` 那层。不新增 type/field/关系/依赖，不碰目录表
-与 `monitor.gleam`，决策区 0 项。执行注记在 `docs/RULINGS.md` 文末。
-**R19 制作流程（owner 10:42 / 10:58 / 11:01 / 11:03 同一条指示；
-「实际完成方式」就是制作流程）**：对象是**一个 module 文件**，四步按序
-① 先写描述（`////` 命名 `.planning` 条目 + `///` 覆盖每项）→ ② 再写
-**空架子**（按需 type / function，可空 / `todo as "…"`，没有实际东西）→
-③ 再写 test，**设计目标在此** → ④ 逐步测试、逐步完成全部合乎 test
-要求的代码。架子阶段 `gleam build` / `gleam test` 就能跑；
-`--warnings-as-errors` 只是 GREEN gate。
-**11:05 批评（逐字 `docs/RULINGS.md` 11:05 段）**：*"你制作一个module的
-过程，实际上完全不是这样走的，所以错误百出。甚至是倒过来整，最后才
-填补文档说明设计意图，补充test充门面。这是乱搞。"* → **04-10 是代码
-先有、文档与测试后补的反向补课，不得包装成流程示例**；今后新建 /
-重做 module 必须从描述开始，禁止先实现后补文档 / 补 test；对既有代码
-的 retrofit 要标明是补课。
+## Rulings (index; verbatim in `docs/RULINGS.md`)
+R12 `1e-6·bb_m` floor. R13 closed sets are types. R14 `src/` Gleam only.
+R15 IB = historic stocks/ETFs; guard fails `@external(javascript,…)`.
+R16–R18 JS scope above. R19 docs-first/TDD (full text above).
+R20 **`Desk ▸ Broker ▸ Instrument ▸ Timeframe`**; dashboard = VIEW.
+R21 constructors named in full, prefixed by type name (`IntervalOneDay`);
+`H4`/`M1`/`"1h"` only in codec/adapter. R25 CPU/T+1 → `TPlus1` is a term,
+not an abbreviation. R22 **`Symbol` is a name, never `Instrument`**; no compat
+layer. R23 **`TimeframeSettings` is not an entity**: it is
+`Timeframe.settings`; interval lives in the KEY; no composite keys, no second
+dict, no `list.find`. R24 Mist+Wisp (04-05) = AI demo, not owner ruling.
+R26 **only `Broker ▸ Instrument` settled**; Asset/Exchange/Market stay open,
+add types one at a time. R27 `SourceBar.timestamp` = `gleam_time.Timestamp`
+(unix), never a date String/wall clock. R28 provider native shapes stay
+native (`Kline`) with all wire fields; each has `to_sourcebar`; standard layer
+is the only union point. R29 `bucket_ends` = UTC-aligned unix-second grid
+(1h 3600, 4h 14400, 3m 180); US 09:30 + DST is market-calendar debt →
+`tzif` when a US-equity consumer exists. R30 web display time =
+**output-side** projection to local wall clock (IANA/DST); R29 =
+**input-side** calendar; never merge; CSV stays UTC RFC3339.
+**R31** BEAM language facts (spawn/Subject, actor, supervisor) — do NOT
+describe this system. **R32** garden = add one field in an existing type,
+placed by real ownership; Dict/List by real access pattern.
+**R33 (paradigm)**: system **is already live**: `api provider / data sources →
+history + live data → sourcebar_gate → databar_processing → model ↔ view`.
+History and live are ONE stream; every type moves because data moves (pure
+value recompute) — no actor/scheduler/clock/poll/heartbeat. `Desk` is the ONE
+top-level Value. Data moves because a source is subscribed; **no data →
+system sleeps and waits**. `monitor.advance`/`TimeframeAddress`/`IncomingBar`/
+`MonitorError` are NOT this system's types (historical code only). 「叶子」
+means `YinLeaf`/`YangLeaf` only. **glib is not authority**.
+**R34**: predecessors are **completely different things**; only shared fact =
+one broker each. **seib = CoffeeScript, owner's own system design**, structure
+RIGHT, no Python/pandas limits, no "types unclear" problem, no settings defect
+— only missing the multiple-brokers/providers layer (already here:
+`Desk(brokers: Dict(BrokerId, Broker))` + 3 brokers; no provider layer).
+**ibOptions = a workaround for Python+pandas**, 五脏俱全但都不对劲: structural
+relations could not be types → flattened into settings; requirements list
+only. R29's ibOptions citation is a time-zone fact clue only.
+**R35 SwiftUI**: similarity ONLY in View definition/implementation (pure
+functional + value types); view updates = R33. Concurrency questions: check
+official docs + demo comparison = TDD. **「简单是正确的验证码」** — complexity
+means type/function/module definitions are wrong; fix definitions, add no
+mechanism. **R36 no gap**: `Market` and `Broker` are not subordinate in
+either direction → rejected; `Desk ▸ Broker` stands. **R37 level test**: a
+main-chain level needs TWO ownership relations (up and down); others attach
+but are not subordinate (no inserted level), or belong to nothing → `Desk`.
+**Identity lives in the holder's Dict key**: `interval` is not a `Timeframe`
+field, `brokerId` is not a `Broker` field — *"你的左手不知道他是左还是右"*.
+**R38 (2026-11-12)**: **the stream has no rewind** (*"长江万里哪有倒退重来
+的道理"*). No `replay`, no 重来一遍, no "replay CLI": history and live are
+earlier/later segments of ONE stream. Names must name real things. When
+referencing glib, **compare its docs against its code**; take only
+implementations fitting current rulings. Measured: `glib/docs/DESIGN.md:61`
+still cites `trading/replay.gleam` ("name struck by law 18"), `:1874` says
+`replay.feed`, but the **code is `trading/ingest.gleam`'s `feed`/`feed_all`**.
+§15 `:1493-1529` = only two top-level data-treating functions
+`sourcebar_gate`/`databar_processing`; `:66` "Batch is that pair run n times
+— not a second implementation". `ingest.feed(tf, bar)` = one bar at a time;
+`live.feed_raw` calls the same `feed`. **Do not port**: publish callbacks,
+`clock.now()`/`period_end`, `sourcebar_buffer`/export, interval→settings
+lookup, `market.exchange`, `io.println`/at-home asserts. glibe already has
+both functions; one arriving bar = call them in order (R35), so **no third
+function/module**. Open (owner decides): glib `working_databar_archived`/
+`bars_listed` vs glibe `accept`/`bars_accepted`; glibe `Timeframe` still has
+`manual_enter`/`manual_exit`, which owner struck 2026-10-31
+(`glib/src/glib/timeframe.gleam:720-731`).
 
 ## Measured facts
-- Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; **no `T(..)` form**;
-  `@external` may coexist with a Gleam fallback body; v1.19.0 emits
-  `.abstr → .beam` (no per-module `.erl`, only the `@@main.erl` runner stub).
-- `float.parse("100")` is `Error(Nil)` — `parse_number` widens Int.
-- `gleam build` does not resolve npm deps (green build ≠ runnable app);
-  dotted `@external` names fail to compile. Mist 6.0.3 = `mist.start` (Wisp
-  doc's `start_http` stale); `wisp/simulate.request(method, path)` builds a real
-  Request; `wisp.Text(body)` is the response body; `gleam run -m <module>`
-  needs no root `main`. Web demos (04-04): Mist+Wisp 72/22 Hex vs +Lustre
-  124/23 vs bare Mist 82/14. *"Needs no JS library"* is a **dependency** claim.
-- `gleam_otp` **is already a direct root dependency** (`gleam.toml`); saying
-  "not introduced" was wrong — what was missing was its use.
-- BEAM language facts (R33: **they do NOT describe this system's structure**):
-  `gleam_erlang/process.spawn` + typed `Subject` = parallel-task primitive
-  (no async/await, no futures, no locks); actor = thin long-lived-state
-  wrapper; supervisor = fault tolerance. Wisp 0 `process.` calls; glisten
-  one process per connection; Lustre server runtime exactly one actor.
-- `package-interface.json`: `modules` is a **dict** name → module; a module's
-  `documentation` and a function's `documentation` are **lists of lines**, not
-  strings — join with `"\n"` before searching, or a keyword check falsely
-  reports the docs as missing/truncated (04-10 measured).
-- Tests: bool `assert … as "msg"`, `let assert` (never `panic`/`case Bool`);
-  negative guard tests use `/tmp` fixtures, never broken real `src/`.
+- Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; no `T(..)` form;
+  `@external` may coexist with a Gleam body; `.abstr → .beam`, no per-module
+  `.erl`. `float.parse("100")` = `Error(Nil)` — `parse_number` widens Int.
+- `gleam build` ≠ runnable app (npm deps unresolved); dotted `@external`
+  names fail. Mist 6.0.3 = `mist.start` (Wisp docs' `start_http` stale);
+  `wisp/simulate.request`; `wisp.Text`; `gleam run -m <mod>` needs no root
+  `main`. `gleam_otp` **is already a root dependency**.
+- `package-interface.json`: `modules` is a **dict**; `documentation` is a
+  **list of lines** — join with `"\n"` before searching.
+- Tests: bool `assert … as "msg"`, `let assert`, never `panic`/`case Bool`;
+  negative guard tests use `/tmp` fixtures.
 
 ## Conventions
 - **No bare `Qn` labels** — cite full path + section title.
-- Pending decisions live **only** in `docs/PENDING_DECISIONS.md`: self-contained,
-  **decisions FIRST**, everything else under `# REFERENCE`; never repeat decided
-  items in the decision section. One-way: **no other document may reference it**
-  (verify repo-wide after any edit). `docs/QUESTIONS.md` = withdrawn items.
-- **Owner 2026-11-09: "注意：.gitignore 及时更新，及时做提交"** — update ignore
-  rules BEFORE generating artifacts; commit each logical step as it lands, never
-  one batch at the end. `.gitignore` has one `build/` rule (any package/depth).
-- Toolchain: `export PATH="/opt/homebrew/bin:$PATH"`; BSD `grep` unreliable —
-  use the Grep tool / Python; capture exit codes with `> log 2>&1; echo "EXIT=$?"`.
-- Green = `gleam build --warnings-as-errors` (0/0) + `gleam test` + `gleam format
+- Pending decisions **only** in `docs/PENDING_DECISIONS.md`: decisions FIRST,
+  rest under `# REFERENCE`; **no other document may reference it**; verify
+  repo-wide after edits. `docs/QUESTIONS.md` = withdrawn.
+- **Owner 2026-11-09: ".gitignore 及时更新，及时做提交"** — update ignore
+  rules BEFORE artifacts; commit each logical step as it lands.
+- Toolchain: `export PATH="/opt/homebrew/bin:$PATH"`; BSD grep unreliable —
+  use Grep tool/Python; capture exit codes `> log 2>&1; echo "EXIT=$?"`.
+- Green = `gleam build --warnings-as-errors` + `gleam test` + `gleam format
   --check src test` + `sh scripts/guards.sh --all` + `gleam docs build` +
-  core mirror `cmp`. Build/test before committing; one logical concern per
-  commit; **do not push unless asked**; never `rm -rf build`.
-- Owner 2026-11-09: *"尽量发挥gleam的特长…一下手就把想明白的逻辑写明白"* — put
-  understanding in types; leave the un-thought-out in `todo`, never in `String`.
-- **Owner 2026-11-10 11:11（文档体系裁定）**：`docs/` 下大量文档之所以
-  存在，正因没做到 *"gleam document 领先于测试，测试领先于实际代码"*；
-  **那些文档是 owner 发现错误后上课留下的「差生补课笔记」**，不是设计
-  资产/权威；**流程做对，很多文档不需要**。11:10 把 seib 读成 Python
-  那次就是「反着做习惯」的证据，与 11:05 同一根因。纪律：**不再为记录
-  概念新建散文文档**，已有文档只在改错/记逐字裁定/记实测时更新，
-  文档量应下降；概念进 `////` / `///`，设计目标进 test，实现最后。
+  core mirror `cmp`; one logical concern per commit; **do not push unless
+  asked**; never `rm -rf build`.
 
-## Phase 04 status
-- **04-10（2026-11-10 10:42，当前）**：R33–R37 补进代码，**是 retrofit
-  而非按流程制作**（`Desk` 等 type 与 `get_*` 早已实现、文档与测试后补；
-  11:05 owner 定性「倒过来整、补充 test 充门面」）。实际动作：
-  `////` / `///` → 不新增 type → 6 个测试 RED 68/2 → `timeframe_under`
-  纯读取 GREEN。**70 tests 根包 + 4（probe）green**，`BUILD_WAE=0/0`、
-  FORMAT/DOCS/GUARDS/CMP 全 0，两包 `package-interface.json` 全文渲染含
-  04-10 链接。计划/结果 `04-10-PLAN.md` / `04-10-SUMMARY.md`，四笔提交
-  `3e7ac3b`→`7594beb`→`2d3aff9`→`44a8142`，文档同步 `5e750e5` /
-  `a0721a9`。工作树 clean，**未 push**。决策区 0 项。
-- **R33（2026-11-10，当前规格）**：系统本来就活，见上面 Rulings 段。
-  04-08 的 `monitor.*` 与 04-09 的 `probes/parallel-bars/` **全部标为历史、
-  非 owner 设计**（`////` / `///` 文档已更正；`src/` 生产代码未删，处置待
-  owner 定）。「glib 核实：已落地」类断言降级为「读过 glib，不作依据」。
-  本轮记裁定 + 撤回 + 清理词汇，**未新增 type / 未写 probe / 未加依赖**；
-  0 待裁决项。64 tests（根）+ 4（probe）green。
-- 04-05 Mist+Wisp web layer on 8610 (`/`, `/desk`, 404). 04-06 unix-time
-  ingest boundary. 04-07 R30 module docs only (no implementation).
-- 历史：04-08 曾造 `monitor.advance` / `TimeframeAddress` / `IncomingBar` /
-  `MonitorError`（`SourceBarRejection` 取代 `Error(String)`、`fetch_klines`
-  收 `Symbol` 仍有效）；04-09 曾做 6 Pid / 0 lock probe。两者的并发框架与
-  「0/6 合并」结论经 R32 / R33 作废，仅留作带日期更正注记的历史记录。
+## Current state (2026-11-12)
+- **70 tests** root + 4 probe green; full gate green; decisions 0; clean tree;
+  **not pushed**.
+- 04-10 = **retrofit** (docs/tests added after code, per 11:05): `////`/`///`
+  in six modules, 6 tests RED 68/2 → `desk.timeframe_under` GREEN 70/0; no
+  new type/field/relation/dependency.
+- **04-11 withdrawn (R38)**: `replay.gleam`/`replay_test.gleam`/`04-11-PLAN.md`
+  deleted (`17376a4`); R38 in `5537127`; vocabulary purge in `9b3e6ed`.
+- Historical, not owner design: `monitor.gleam` (04-08),
+  `probes/parallel-bars/` (04-09). Disposition awaits owner.
+- Remaining real work: connect each provider's **real-time arrival** to the
+  standard `SourceBar` input boundary (a history batch is the same stream,
+  the pair run n times; no second implementation, no CLI).
