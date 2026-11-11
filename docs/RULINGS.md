@@ -1849,4 +1849,79 @@ function(...),所以你如果以为这是限定，那么就很难做，因为只
 - **影响**：`engine.gleam` 的每一步不必被削成单参；需要设置、阈值或
   依赖值时，**在管道调用点传入**，而不是把 bar 当参数，也不是另造
   机制或全局状态。R40 的「无限可伸展」由此更直接：加一步就是加一个
-  调用，参数随这一步自带。本轮只改探针与裁定，**仍未改 `src/glibe/`**。
+  调用，  参数随这一步自带。本轮只改探针与裁定，**仍未改 `src/glibe/`**。
+
+---
+
+## R41 — `|>` 是形状约束，不是排版偏好（2026-11-12 owner 指示）
+
+**owner 原话（逐字）**：*"使用piplines的写法，其实是对gleam能力提升有帮助，
+也让代码更清晰整洁，很多时候参数是什么顺序，return什么，AI是随心所欲
+瞎编的"*
+
+- **裁定**：管道把「首参是 subject、返回是 subject」从**每个函数各自的
+  自由决定**变成**编译器强制的一种形状**。这里说的「能力提升」是
+  **写 Gleam 的人/AI 被结构约束住**，不是 Gleam 语言变强：静态类型检查
+  一直在。没有管道时，同一流程里 N 个函数可以有 N 种签名，每个调用点
+  手工对齐，编译器没有任何理由反对（下面 case D 实测 **exit 0**）——
+  于是参数顺序、返回什么全凭当下瞎编。写进管道后，瞎编立刻是编译
+  错误（case B / C 实测 **exit 1**）。
+  - **判据**：`databar_processing` 的每一步必须是
+    `fn(Timeframe, ...extra) -> Timeframe`（R40-A「参数个数不限」仍成立）。
+    任何一步首参不是 `Timeframe`、或返回值不是 `Timeframe`，**不需要人
+    review，编译器直接拒绝**。加一步只需知道这一个形状，不必读上一步
+    的实现，也不必为它重新发明参数顺序与返回结构。
+  - 与 R0 / R35 同源：让编译器记住形状，正是「type 到家」；
+    「简单是正确的验证码」——管道把整个流程压成一行，复杂说明某一步的
+    **定义**错了，不是需要更多机制。
+  - 这也解释了 R39 偏离清单为什么必须修：不只是名字不好听，是每种
+    自创形状都给下一次瞎编留了一个位置。
+- **编译器测量**（`/tmp/gleam_shape_negative/`，四个独立 package，
+  Gleam 1.19.2 / Erlang；负向 fixture 不进仓库，R19 规定）：
+  | case | 写法 | exit | 编译器逐字 |
+  |---|---|---|---|
+  | A 对照 | `frame \|> step(by: 2) \|> last`，两步都是 `fn(Frame, ...)->Frame` | **0** | `Compiled in 0.55s` |
+  | B 首参瞎编 | `step_wrong(k: Int, frame: Frame)` 写成 `frame \|> step_wrong(2)` | **1** | `error: Type mismatch` `Expected type: Int / Found type: Frame`（`:12:3`），以及 `Expected type: Frame / Found type: Int`（`:12:23`） |
+  | C 返回值瞎编 | `step_returns_int(frame) -> Int` 后接 `\|> next` | **1** | `This function does not accept the piped type` / `The argument is: Int` / `But function expects: Frame`（`:16:32`） |
+  | D 同样瞎编、不写管道 | `let a = step_wrong(2, frame)` → `let b = step_returns_int(a)` → `next(b, a)` | **0** | `Compiled in 0.38s` |
+  - **D 是关键对照**：B / C 的签名原样搬过来，只因为改成手写调用链就
+    全部通过。所以差别不在「Gleam 有没有类型检查」，而在**形状有没有
+    被收敛**。R40 已测的 `#(Timeframe, a)` 返回（`/tmp/gleam_pipe_negative`，
+    `Type mismatch`）是同一类拒绝：返回值旁边多带东西也是瞎编。
+- **现状清点（`file:line` + 该行文本，R38 纪律）** ——
+  `glibe/src/glibe/engine.gleam` 一条流程里 **8 个函数、8 种签名**：
+  - `:68` `sourcebar_gate(` → `:72` 返回
+    `Result(#(Option(DataBar), Timeframe), SourceBarRejection)`，3 参数；
+  - `:91` `databar_processing(timeframe: Timeframe, databar: DataBar) -> Timeframe`；
+  - `:119` `leaves(` → `:122` 返回
+    `#(DataBar, Timeframe, Option(leaf.DataLeaf), Option(leaf.DataLeaf))`
+    四元组；
+  - `:160` `branches(` 收 **5 个**参数（`:161-165`，含 `yin_settled` /
+    `yang_settled` / `exit_size`）→ `Timeframe`；
+  - `:214` `strategy(timeframe: Timeframe, databar: DataBar) -> #(Timeframe, DataBar)`；
+  - `:240` `accept(timeframe: Timeframe, databar: DataBar) -> Timeframe`；
+  - `:255` `bars_accepted(databar_list: List(DataBar)) -> Int`（参数根本
+    不是 `Timeframe`）；
+  - `:268` `last_bar(timeframe: Timeframe) -> DataBar`（返回 bar 而非记录）。
+  - `:94` `let #(databar, timeframe, yin_settled, yang_settled) = leaves(...)`,
+    `:96` `let timeframe = branches(...)`,
+    `:104` `let #(timeframe, databar) = strategy(...)`,
+    `:105` `accept(timeframe, databar)` —— **四次手工解构/重绑定**，
+    把上一步自创的返回结构人肉接到下一步自创的参数表上。
+    这就是「参数是什么顺序、return 什么」被逐个决定的现场。
+- **glib 对照（R38：文档与实现必须对比）**：
+  `glib/src/glib/timeframe.gleam` 的 `:732`
+  `strategy(timeframe: Timeframe) -> Timeframe` 与 `:844`
+  `working_databar_archived(timeframe: Timeframe) -> Timeframe`
+  **已经是正确形状**；但 `:511` `leaves(timeframe) ->
+  #(Timeframe, Option(DataLeaf), Option(DataLeaf))` 仍返回三元组，
+  `:630` `branches(timeframe, yin_leaf_settled, yang_leaf_settled)` 仍把
+  中间结果当参数，`:338` `databar_processing` 还多带一个
+  `publish_model` 回调（R38 不移植清单）。而 R40 已实测
+  `databar_processing`（`:338-490`）**全文零 `|>`**、五次
+  `let timeframe = …` 重绑定。**签名对了一半，没有管道，顺序照样靠手写。**
+- **本轮处置**：只记录、测量与清点，**不改 `src/glibe/`**。把上述 8 个
+  签名收敛成 `fn(Timeframe, ...extra) -> Timeframe`、把四次手工解构
+  消掉、并把 `working_databar` 从桶累积器改回一根整 bar（R39），
+  仍是等 owner 一句话的产品代码改动；R41 给出的理由是：那不是
+  风格选择，是**让编译器替我们防住下一次瞎编**。决策区仍 **0 项**。

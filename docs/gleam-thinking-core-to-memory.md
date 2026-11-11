@@ -158,6 +158,16 @@ use a, b <- my_function                     // → my_function(fn(a,b){ ... })
   bare name is shorthand, NOT a one-argument restriction — every step of a
   pipeline may have as many parameters as it needs, as long as the subject is
   first and the subject is what comes back (measured R40-A).
+- **A pipeline is a SHAPE constraint, not formatting** (owner R41): it fixes
+  every step to `fn(Subject, ...extra) -> Subject`, so inventing the first
+  argument's position or the return type is a compile error, while the SAME
+  invented signatures written as ordinary calls compile (each call site
+  hand-aligned). Measured in four throwaway packages: control 0, wrong first
+  arg 1 (`Expected Int / Found Frame`), wrong return 1 (`This function does
+  not accept the piped type`), no-pipe control 0. The types were always
+  checked; what the pipe adds is one shared shape. Adding a step then needs no
+  knowledge of the previous step's signature. **When a design lets every
+  function invent its own parameter order and return type, an AI will.**
 - Unlabelled args precede labelled ones; labels have no runtime cost.
 - `use` flattens callback nesting; overusing it harms clarity.
 - Module = file path; one per file; **singular in every segment**
