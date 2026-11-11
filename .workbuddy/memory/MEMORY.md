@@ -32,7 +32,7 @@ process — label it retrofit. 11:11 `docs/` = 「差生补课笔记」, not ass
 never create prose docs to record concepts. **Never write a ruling into
 `////`/`///` until the code matches** (R39).
 
-## Rulings R12–R39 (full text: `docs/RULINGS.md`)
+## Rulings R12–R40-A (full text: `docs/RULINGS.md`)
 R12 `1e-6·bb_m` floor · R13 closed sets are types · R14 `src/` Gleam only ·
 R15 IB = historic stocks/ETFs · R16–R18 JS scope · R19 process above.
 **R20** `Desk ▸ Broker ▸ Instrument ▸ Timeframe`, dashboard = VIEW.
@@ -82,22 +82,33 @@ that working databar** → `working_databar_archived` → `databar_list`. One
 straight line, **no side doors**; any step passing the bar as an argument
 has drifted. Matching glib code: `sourcebar.to_databar` (one bar born
 whole), `databar_processing` puts it in `working_databar`, every later step
-takes only `Timeframe`, `working_databar_archived(tf)` takes no bar.
+takes only `Timeframe` as subject (extra params allowed, R40-A),
+`working_databar_archived(tf)` takes no bar.
 **glibe drift (measured, NOT changed — owner decides)**: `fold_sourcebar`
 bucket accumulator, `engine.databar_processing(tf, databar)` passes the bar
 through `leaves`/`strategy`/`accept`, names `accept`/`bars_accepted`, and
 `manual_enter`/`manual_exit` (owner struck 2026-10-31).
 **R40 (11-12)** `databar_processing` body = `timeframe |> f1 |> f2 ...
-|> fN`, infinitely extensible; every step `fn(Timeframe) -> Timeframe`
-because `working_databar` is a field; no step passes the bar as an argument.
+|> fN`, infinitely extensible; every step's FIRST arg and return are
+`Timeframe` because `working_databar` is a field; no step passes the bar as
+an argument. **R40-A (11-12, owner clarification)**: a step may have ANY
+number of extra parameters — positional, labelled, a whole settings type —
+supplied at the pipe site; `function1` was shorthand, not an arity limit.
+Official tour section **"Pipelines"**
+(`tour.gleam.run/everything/#functions-pipelines`): `rocket |> launch(1, 2)`
+= `launch(rocket, 1, 2)`; bare name = one-arg call; `f(1, _)` capture moves
+the piped value to a later arg (language allows; R40 keeps subject first).
 Measured green in `probes/timeframe-pipeline/` on the real `Timeframe`
-(6 tests, R19 RED→GREEN): plain pipe, labelled-arg capture, 1000-step
+(11 tests, R19 RED→GREEN twice): plain pipe, labelled-arg capture, 1000-step
 `list.fold`, `Ok(tf) |> result.try(step)` for fallible steps, field-carried
-fact, `|> working_databar_archived(tf)`. **Gleam refuses only a step
-returning `#(Timeframe, a)`** (type mismatch); `let #(tf, fact) = …`
-compiles but breaks the line — put the fact in a field ⇒ definition
-problem, not a language limit. `opaque` blocks cross-module record update
-but not the pipe of public steps. glib recorded the owner's requirement
+fact, `|> working_databar_archived(tf)`, 2 positional args, 3 labelled args
+in any order, a captured `StepSettings` step folded 1000 times, capture into
+a later arg, and `mixed_line` with all four shapes in one pipe. **Gleam
+refuses only a step RETURNING `#(Timeframe, a)`** (type mismatch); parameter
+count is never a restriction; `let #(tf, fact) = …` compiles but breaks the
+line — put the fact in a field ⇒ definition problem, not a language limit.
+`opaque` blocks cross-module record update but not the pipe of public steps.
+glib recorded the owner's requirement
 (`docs/reference/timeframe-settled-leaf-2026-10-28.md:312-315`,
 `timeframe-cleanup-audit-2026-10-28.md:671`) but its
 `timeframe.gleam` has **zero `|>`** and still returns a 4-tuple at `:421`
@@ -127,7 +138,7 @@ bool `assert … as "msg"`, `let assert`, never `panic`/`case Bool`.
   core mirror `cmp`.
 
 ## State (2026-11-12)
-70 tests root + 4 `parallel-bars` + 6 `timeframe-pipeline` green; full gate
+70 tests root + 4 `parallel-bars` + 11 `timeframe-pipeline` green; full gate
 green (guards / docs / core mirror cmp); decisions 0; **not pushed**.
 04-10 = **retrofit** (`timeframe_under`, 68/2 → 70/0). 04-11 `replay`
 withdrawn (`17376a4`, R38 `5537127`, purge `9b3e6ed`). 04-12 = pipeline
@@ -135,6 +146,7 @@ shape probe + R40. Historical, not owner design: `monitor.gleam`,
 `probes/parallel-bars/`; disposition awaits owner. Remaining real work:
 connect each provider's **real-time arrival** to the standard `SourceBar`
 input boundary (history batch = same stream, the pair run n times; no second
-implementation, no CLI), and rebuild `engine.gleam`'s steps to
-`fn(Timeframe) -> Timeframe` so R39/R40's straight line is the product code
-— a definition change, not a language question.
+implementation, no CLI), and rebuild `engine.gleam`'s steps so the FIRST
+arg and the return are `Timeframe` (extra params are fine, R40-A) and
+R39/R40's straight line is the product code — a definition change, not a
+language question.
