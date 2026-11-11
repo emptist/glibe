@@ -3,35 +3,79 @@
 ////
 //// Plan: `.planning/phases/04-domain-cleanup/04-12-PLAN.md`.
 //// Rulings: `docs/RULINGS.md` R39 (one straight line, everything happens in
-//// `working_databar`), R33 (pure value recompute), R35 (simple is the
-//// verification code), R19 (docs → skeleton → tests → bodies).
+//// `working_databar`), R40 (the pipeline is the body), R33 (pure value
+//// recompute), R35 (simple is the verification code), R19 (docs → skeleton →
+//// tests → bodies).
 ////
 //// The shape the owner named on 2026-11-12:
 ////
 ////   timeframe |> function1 |> function2 |> function3 ... |> functionN
 ////
-//// Every step is `fn(Timeframe) -> Timeframe`. `working_databar` is a FIELD
-//// of `Timeframe`, so no step ever takes a bar as an argument: it reads the
-//// bar out of the record and puts the result back with a record update.
+//// **Owner's clarification, same day (verbatim)**: *"我在举例时候方便起见，
+//// 没有写 function(...),所以你如果以为这是限定，那么就很难做，因为只有单参数fn
+//// 才能像上面那样写，实际上你可有有无数参数，只要第一个是所谓 subject即可，
+//// 具体的看 官方文件，搜索其中的标题包含 piplines 这部分"*.
+////
+//// Official source, `https://tour.gleam.run/everything/#functions-pipelines`,
+//// section **"Pipelines"**, verbatim:
+////
+////   "If the right-hand expression is a function call then then the left-hand
+////    value will be used as the first argument to the call. For example,
+////    `rocket |> launch(1, 2)` would become `launch(rocket, 1, 2)`."
+////
+////   "If the right-hand expression is not a function call then then it will
+////    become one, and the left-hand value will be the sole argument to the
+////    call. For example, `rocket |> launch` would become `launch(rocket)`."
+////
+////   "Gleam code is typically written with the "subject" of the function as
+////    the first argument, to make it easier to pipe. If you wish to pipe to a
+////    different position then a function capture can be used to insert the
+////    argument to the desired position."
+////
+//// So each step is `fn(Timeframe, ...extra) -> Timeframe`: the FIRST
+//// argument is the subject and the result is the subject. `function1` with
+//// no call is only the shorthand for a one-argument step, NOT a restriction.
+//// All other parameters are supplied at the pipe site — positional, labelled,
+//// or a whole configuration type — and none of them is a bar.
+//// `working_databar` is a FIELD of `Timeframe`, so every step reads the bar
+//// out of the record and puts the result back with a record update.
+////
 //// This file measures, on the compiler:
 ////
 ////   1. the pipe chain runs, in order, and every step sees the previous
 ////      step's write to `working_databar`;
 ////   2. one more `|> step` changes no earlier step — extensibility, including
 ////      a `List(fn(Timeframe) -> Timeframe)` folded over N steps;
-////   3. a labelled-argument step and a fallible (`Result`) step, in the forms
+////   3. labelled arguments and a fallible (`Result`) step, in the forms
 ////      Gleam actually allows inside a pipe;
 ////   4. a fact one step hands to the next belongs in a FIELD, not a tuple —
 ////      the tuple shape is the one thing that breaks the pipe;
-////   5. the last step archives the working bar and needs no bar of its own.
+////   5. the last step archives the working bar and needs no bar of its own;
+////   6. steps with two extra positional args, three labelled args in any
+////      order, a whole settings type, and a function capture into a LATER
+////      argument, all stay pipeable — including a mixed-arity straight line.
 ////
 //// `working_databar` is `Option(DataBar)`, so `option.map` keeps every step
 //// total: no `let assert`, no `panic`, no catch-all `case` over a custom type.
 ////
-//// **Measured 2026-11-12**: `gleam build --warnings-as-errors` = 0,
-//// `gleam test` = 6 passed. The answer to "can Gleam write it this way" is
-//// YES. The shape Gleam refuses is a step returning something BESIDE the
-//// record. Negative fixture `/tmp/gleam_pipe_negative`, same real `Timeframe`:
+//// **Measured 2026-11-12**: round one `gleam test` = 6 passed; the
+//// multi-argument clarification went RED (6 passed / 5 failures) and then
+//// GREEN = **11 passed, no failures**, with `gleam build --warnings-as-errors`
+//// = 0, `gleam format --check` = 0, `gleam docs build` = 0. On the REAL
+//// `Timeframe`, all of these compile and run inside one pipe:
+////
+////   tf |> add_weighted(2.0, 1.0)
+////   tf |> with_labels(cap: 10.0, plus: 1.0, by: 2.0)
+////   tf |> bounded(_, StepSettings(..))
+////   tf |> subject_second(2.0, _)
+////
+//// `mixed_line` puts a bare name, a positional call, a labelled call and a
+//// capture in ONE straight line ending in `working_databar_archived`. So the
+//// answer to "can Gleam write it this way" is YES, and a bare `function1`
+//// is only the one-argument shorthand, never a restriction.
+////
+//// The shape Gleam refuses is a step returning something BESIDE the record.
+//// Negative fixture `/tmp/gleam_pipe_negative`, same real `Timeframe`:
 ////
 ////   tf |> tuple_step |> next_step
 ////   error: Type mismatch — "This function does not accept the piped type"
@@ -69,6 +113,12 @@ pub type ProcessingError {
 /// ones the domain already uses; only the record is local to this probe.
 pub type Frame {
   Frame(working_databar: Option(DataBar), yin_leaf_settled: Option(DataLeaf))
+}
+
+/// The parameters a step may need BESIDE the subject. A type, not a bag of
+/// loose scalars: when a type is called for in nature, define the type.
+pub type StepSettings {
+  StepSettings(factor: Float, bias: Float, ceiling: Float)
 }
 
 /// The parameter block one `Timeframe` runs on (R23): one value, not an
@@ -144,14 +194,78 @@ pub fn scale(timeframe: Timeframe, by factor: Float) -> Timeframe {
   on_working(timeframe, fn(bar) { DataBar(..bar, close: bar.close *. factor) })
 }
 
+/// A step with TWO extra positional arguments. The pipe fills only the
+/// first argument; the remaining arguments are written at the call site.
+pub fn add_weighted(
+  timeframe: Timeframe,
+  weight: Float,
+  bias: Float,
+) -> Timeframe {
+  on_working(timeframe, fn(bar) {
+    DataBar(..bar, close: bar.close *. weight +. bias)
+  })
+}
+
+/// A step with THREE labelled arguments. Labels are order-free at the pipe
+/// site, so the caller can name them in any order.
+pub fn with_labels(
+  timeframe: Timeframe,
+  by factor: Float,
+  plus bias: Float,
+  cap ceiling: Float,
+) -> Timeframe {
+  on_working(timeframe, fn(bar) {
+    let computed = bar.close *. factor +. bias
+    let close = case computed >. ceiling {
+      True -> ceiling
+      False -> computed
+    }
+    DataBar(..bar, close:)
+  })
+}
+
+/// A step whose subject is NOT the first argument. The tour's function
+/// capture (`string.append("3", _)`) puts the piped value at the `_`.
+/// Measured for completeness; R40 keeps the subject first.
+pub fn subject_second(offset: Float, timeframe: Timeframe) -> Timeframe {
+  on_working(timeframe, fn(bar) { DataBar(..bar, close: bar.close +. offset) })
+}
+
+/// A step carrying a whole settings type beside the subject. Capturing its
+/// other argument turns it into a `fn(Timeframe) -> Timeframe` value, so a
+/// multi-argument step also folds over N steps.
+pub fn bounded(timeframe: Timeframe, settings: StepSettings) -> Timeframe {
+  on_working(timeframe, fn(bar) {
+    let computed = bar.close *. settings.factor +. settings.bias
+    let close = case computed >. settings.ceiling {
+      True -> settings.ceiling
+      False -> computed
+    }
+    DataBar(..bar, close:)
+  })
+}
+
 /// The body of `databar_processing`: one straight line, no side doors.
-/// Every name in this chain has the same type, `fn(Timeframe) -> Timeframe`;
-/// adding `|> step_n` changes nothing else in the file.
+/// Here every name happens to be `fn(Timeframe) -> Timeframe`; that is a
+/// choice of these three steps, NOT a requirement of `|>` (see `mixed_line`).
+/// Adding `|> step_n` changes nothing else in the file.
 pub fn straight_line(timeframe: Timeframe) -> Timeframe {
   timeframe
   |> step_one
   |> step_two
   |> step_three
+  |> working_databar_archived
+}
+
+/// One straight line with MIXED arities: a bare name, two positional
+/// arguments, three labelled arguments out of order, and a capture into a
+/// later argument. Extra parameters never break the subject-first pipe.
+pub fn mixed_line(timeframe: Timeframe) -> Timeframe {
+  timeframe
+  |> step_one
+  |> add_weighted(2.0, 1.0)
+  |> with_labels(cap: 100.0, plus: 0.5, by: 1.0)
+  |> subject_second(0.5, _)
   |> working_databar_archived
 }
 
