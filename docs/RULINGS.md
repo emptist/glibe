@@ -1710,3 +1710,79 @@ databar，从头到尾所有运算处理决策都在这个databar working中完�
   代码文档** —— 那会再造一次「文档与实现不相干」（owner 本轮第三条）。
   概念进代码文档必须与实现同一步落地。本轮只记裁定与实测，不改
   `src/`、不加 type / field / 依赖 / 测试，决策区仍 **0 项**。
+
+---
+
+## R40 — `databar_processing` 的主体就是 `timeframe` 的管道（2026-11-12 owner 指示）
+
+**owner 原话（逐字）**：*"整个流程的在databar processing 内部的主体就是一个
+简单的gleam经典：timeframe |> function1 |> function2 |> function3 ... |>
+functionN 无限可伸展。为什么timeframe，timeframe里面有working databar，
+gleam能不能这样写呢？要试试看，不能的话，则换成gleam能允许的写法"*；
+补一句：*"glib可能已经这样做了，在我的要求下。"*
+
+- **裁定**：`databar_processing` 内部是**一条管道**，主语是 `Timeframe`，
+  因为 `working_databar` 是它的 field；每个 `functionN` 都是
+  `fn(Timeframe) -> Timeframe`，从 record 里读 working databar、写回
+  record，**没有任何一步把 bar 当参数传**（R39 的判据在此落地）。
+  末尾 `|> working_databar_archived` 不带 bar。加一步就是加一个
+  `|> functionN`，不改任何早先步骤 —— 这就是「无限可伸展」。
+- **语言问题用编译器回答，不用散文**（R35）。测量落在
+  `probes/timeframe-pipeline/`，用**真实的**
+  `glibe/timeframe.Timeframe`，不是仿造的迷你类型：
+  - `gleam build --warnings-as-errors` = **0**，`gleam test` =
+    **6 passed, no failures**，`gleam format --check` = 0，
+    `gleam docs build` = 0。R19 全流程：描述 → 空架子 →
+    RED（0 passed / 6 failures）→ 填实现 → GREEN。
+  - **能写**：`tf |> step_one |> step_two |> step_three |>
+    working_databar_archived`；`option.map` 处理
+    `working_databar: Option(DataBar)`，无 `let assert`、无 `panic`、
+    无 catch-all。带 label 的步骤 `tf |> scale(by: 2.0)` 也直接能接。
+  - **N 步**：`List(fn(Timeframe) -> Timeframe)` +
+    `list.fold(steps, tf, fn(frame, step) { step(frame) })`，
+    1000 步实测通过，record 是唯一的累加器。
+  - **可失败步骤**：普通 `|>` 接不住；Gleam 允许的写法是
+    `Ok(tf) |> result.try(checked_step) |> result.try(...)`，
+    错误是闭集 `ProcessingError`，不是 `String`（R13）。
+  - **Gleam 唯一不接受的形状**：某一步返回 record **旁边还带东西**
+    （`#(Timeframe, a)`）。实测 `/tmp/gleam_pipe_negative`：
+    `error: Type mismatch — "This function does not accept the piped type";
+    The argument is #(Timeframe, Int), but function expects Timeframe`。
+    允许写法 `let #(tf, fact) = step(tf)` 能编译（exit 0），但直线断了；
+    **把 fact 放进 record 的 field** 才能保持管道，探针里
+    `settle_leaf |> read_settled_leaf` 已实测。这不是语言限制，是
+    **定义问题**（R35：定义错了才需要机制）。
+  - **`opaque`**：跨模块 `Timeframe(..tf, …)` 实测失败
+    （`error: Use of private value`），但
+    `tf |> owner.step |> owner.step` 实测 exit 0。若把状态类型改成
+    `opaque`，steps 必须与类型同模块；glibe 现在是 `pub type`，
+    所以 `engine.gleam` 可以单独持有管道。
+- **glib 对照（R38：文档与实现必须对比）**：owner 的要求**确实被记录
+  过**，但**没有落进代码**。
+  - 文档：`glib/docs/reference/timeframe-settled-leaf-2026-10-28.md:312-315`
+    逐字引 owner：*"all functions called inside databar_process() will
+    return the new timeframe value after their work, and finally it becomes
+    pipeline of timeframe"*；`:292-310` 画出
+    `Timeframe |> leaves |> branches |> strategy` 的图；
+    `glib/docs/reference/timeframe-cleanup-audit-2026-10-28.md:671`
+    把「改成 `tf |> leaves |> branches |> strategy`」列为第 6 步；
+    `timeframe-cleanup-audit-review-2026-10-30.md:331` 记为 plan 52-03。
+    `~/.workbuddy/skills/gleam-language/probe/src/q_settled_field.gleam`
+    （2026-10-28）已在迷你类型上编译过 `seeded |> leaves |> branches`。
+  - 实现：`glib/src/glib/timeframe.gleam`（2026-11-05）**全文没有一根
+    `|>`**；`databar_processing`（`:338-490`）是五次
+    `let timeframe = ...` 重绑定；`:421` 仍是
+    `let #(timeframe, yin_leaf_settled, yang_leaf_settled) = leaves(timeframe)`，
+    `:424` `branches(timeframe, yin_leaf_settled, yang_leaf_settled)`；
+    `yin_leaf_settled` 是 `:632-633` 的**函数参数**，不是
+    `Timeframe`（`:76-150`）的 field。**计划从未执行。**
+  - 结论：glib 文档对、代码没做，again；**不移植**它的
+    `publish_model` / at-home asserts / `io.println` / sourcebar_buffer
+    （R38 的不移植清单）。
+- **本轮处置**：只做探针与裁定，不动 `src/glibe/`。`engine.gleam`
+  现在还不能一条管道到底：`leaves` 返回四元组、`strategy` 返回二元组、
+  `accept(tf, databar)` 带 bar；把它们改成
+  `fn(Timeframe) -> Timeframe` 是**定义改动**（R39 偏离清单），
+  不是语言问题，另一步落地。探针 `////` 写的是**探针自己已实现并跑绿
+  的直线**，不是 `engine.gleam` 的说明书 —— 不制造 R39 禁止的
+  「文档与实现不相干」。决策区仍 **0 项**。
