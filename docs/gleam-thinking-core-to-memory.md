@@ -148,7 +148,16 @@ calc(1, multiply: 3, add: 2)                // labelled, order-free, zero cost
 use a, b <- my_function                     // → my_function(fn(a,b){ ... })
 ```
 - **Annotate ALL module functions** (args AND return) — official convention.
-- Subject first for `|>`; piping into a call puts the left side first.
+- **Subject first for `|>`; a call on the right gets the left side as its FIRST
+  argument, and any number of remaining arguments are written at the call
+  site.** Official tour "Pipelines"
+  (`tour.gleam.run/everything/#functions-pipelines`):
+  `rocket |> launch(1, 2)` = `launch(rocket, 1, 2)`; a bare right-hand name
+  becomes a one-argument call (`rocket |> launch` = `launch(rocket)`);
+  `f(1, _)` function capture sends the piped value to a later argument. A
+  bare name is shorthand, NOT a one-argument restriction — every step of a
+  pipeline may have as many parameters as it needs, as long as the subject is
+  first and the subject is what comes back (measured R40-A).
 - Unlabelled args precede labelled ones; labels have no runtime cost.
 - `use` flattens callback nesting; overusing it harms clarity.
 - Module = file path; one per file; **singular in every segment**

@@ -1722,11 +1722,16 @@ gleam能不能这样写呢？要试试看，不能的话，则换成gleam能允�
 补一句：*"glib可能已经这样做了，在我的要求下。"*
 
 - **裁定**：`databar_processing` 内部是**一条管道**，主语是 `Timeframe`，
-  因为 `working_databar` 是它的 field；每个 `functionN` 都是
-  `fn(Timeframe) -> Timeframe`，从 record 里读 working databar、写回
-  record，**没有任何一步把 bar 当参数传**（R39 的判据在此落地）。
-  末尾 `|> working_databar_archived` 不带 bar。加一步就是加一个
-  `|> functionN`，不改任何早先步骤 —— 这就是「无限可伸展」。
+  因为 `working_databar` 是它的 field；每个 `functionN` 的**第一个参数**
+  是 `Timeframe`、**返回值**是 `Timeframe`（参数个数不限，见 R40-A 的更正），
+  从 record 里读 working databar、写回 record，**没有任何一步把 bar 当
+  参数传**（R39 的判据在此落地）。末尾 `|> working_databar_archived`
+  不带 bar。加一步就是加一个 `|> functionN`，不改任何早先步骤 ——
+  这就是「无限可伸展」。
+  - **2026-11-12 更正**：本条初稿写成「每个 `functionN` 都是
+    `fn(Timeframe) -> Timeframe`」，把 owner 举例时省略的
+    `function(...)` 误读成单参数限定。**这是错的**，全文以 R40-A 为准；
+    初稿留在此处只为记录错误本身，不再作为判据。
 - **语言问题用编译器回答，不用散文**（R35）。测量落在
   `probes/timeframe-pipeline/`，用**真实的**
   `glibe/timeframe.Timeframe`，不是仿造的迷你类型：
@@ -1737,7 +1742,8 @@ gleam能不能这样写呢？要试试看，不能的话，则换成gleam能允�
   - **能写**：`tf |> step_one |> step_two |> step_three |>
     working_databar_archived`；`option.map` 处理
     `working_databar: Option(DataBar)`，无 `let assert`、无 `panic`、
-    无 catch-all。带 label 的步骤 `tf |> scale(by: 2.0)` 也直接能接。
+    无 catch-all。带 label 的步骤 `tf |> scale(by: 2.0)` 也直接能接
+    （R40-A 把这一点扩展到任意多个参数）。
   - **N 步**：`List(fn(Timeframe) -> Timeframe)` +
     `list.fold(steps, tf, fn(frame, step) { step(frame) })`，
     1000 步实测通过，record 是唯一的累加器。
@@ -1781,8 +1787,66 @@ gleam能不能这样写呢？要试试看，不能的话，则换成gleam能允�
     （R38 的不移植清单）。
 - **本轮处置**：只做探针与裁定，不动 `src/glibe/`。`engine.gleam`
   现在还不能一条管道到底：`leaves` 返回四元组、`strategy` 返回二元组、
-  `accept(tf, databar)` 带 bar；把它们改成
-  `fn(Timeframe) -> Timeframe` 是**定义改动**（R39 偏离清单），
+  `accept(tf, databar)` 带 bar；把它们改成「首参与返回都是 `Timeframe`
+  的步骤」是**定义改动**（R39 偏离清单；参数个数不限，R40-A），
   不是语言问题，另一步落地。探针 `////` 写的是**探针自己已实现并跑绿
   的直线**，不是 `engine.gleam` 的说明书 —— 不制造 R39 禁止的
   「文档与实现不相干」。决策区仍 **0 项**。
+
+---
+
+## R40-A — 管道步骤的参数个数不限（2026-11-12 owner 澄清）
+
+**owner 原话（逐字）**：*"timeframe |> step_one |> step_two |> step_three
+|> working_databar_archived 这个地方，我在举例时候方便起见，没有写
+function(...),所以你如果以为这是限定，那么就很难做，因为只有单参数fn才能像
+上面那样写，实际上你可有有无数参数，只要第一个是所谓 subject即可，具体的看
+官方文件，搜索其中的标题包含 piplines 这部分"*
+
+- **官方出处**（按 owner 指定搜标题）：Gleam Language Tour
+  `https://tour.gleam.run/everything/#functions-pipelines`，章节标题
+  **"Pipelines"**（单页 `https://tour.gleam.run/functions/pipelines/` 同文）。
+  逐字引：
+  - *"If the right-hand expression is a function call then then the left-hand
+    value will be used as the first argument to the call. For example,
+    `rocket |> launch(1, 2)` would become `launch(rocket, 1, 2)`."*
+  - *"If the right-hand expression is not a function call then then it will
+    become one, and the left-hand value will be the sole argument to the
+    call. For example, `rocket |> launch` would become `launch(rocket)`."*
+  - *"Gleam code is typically written with the "subject" of the function as
+    the first argument, to make it easier to pipe. If you wish to pipe to a
+    different position then a function capture can be used to insert the
+    argument to the desired position."*
+    （tour 的例子：`"1" |> string.append("2") |> string.append("3", _)
+    |> io.println`）
+- **裁定**：R40 里的 `function1` 只是**省略调用括号的简写**，不是单参数
+  限定。每一步的形状是 `fn(Timeframe, ...extra) -> Timeframe`：第一个参数
+  是 subject、返回值是 subject；`...extra` 可以有任意多个，位置参数、
+  label、整个配置 type 都行，在管道调用点给出。R39 的判据不变：
+  **没有任何一个参数是 bar**，bar 只在 `working_databar` field 里。
+  subject 放第一个是官方与 owner 的约定；function capture 能把值送到
+  非首位，语言允许，但 R40 的直线仍以 subject 首位为准。
+  R40 的「Gleam 唯一不接受的形状」只针对**返回值**旁边多带东西，
+  参数个数从来不是限制。
+- **实测**（R19 全流程：描述 → 空架子 → RED `6 passed / 5 failures` →
+  GREEN **11 passed, no failures**；`gleam build --warnings-as-errors` = 0，
+  `gleam format --check` = 0，`gleam docs build` = 0）。全部落在
+  `probes/timeframe-pipeline/` 的**真实** `Timeframe` 上：
+  - `tf |> add_weighted(2.0, 1.0)`：
+    `fn(Timeframe, Float, Float) -> Timeframe`，两个额外位置参数，
+    close = `1.5 * 2 + 1 = 4.0`；
+  - `tf |> with_labels(cap: 10.0, plus: 1.0, by: 2.0)` 与
+    `|> with_labels(by: 2.0, cap: 3.0, plus: 1.0)`：三个 label 任意
+    顺序，分别得 `4.0` 与 `3.0`（每个 label 都真的进了 body）；
+  - `tf |> bounded(_, StepSettings(factor: 1.0, bias: 1.0,
+    ceiling: 2000.0))`：额外参数是**一个 type**，capture 后成为
+    `fn(Timeframe) -> Timeframe`，`list.repeat(step, 1000)` 折叠得
+    `1001.5`；
+  - `tf |> subject_second(2.0, _)`：tour 的 function capture 把
+    `Timeframe` 送到非首位，close = `3.5`（语言允许，仅作测量）；
+  - `mixed_line`：一根管道里同时有裸名、位置参数、label、capture，
+    末尾仍是 `|> working_databar_archived`，归档 bar 的 close = `8.0`。
+- **影响**：`engine.gleam` 的每一步不必被削成单参；需要设置、阈值或
+  依赖值时，**在管道调用点传入**，而不是把 bar 当参数，也不是另造
+  机制或全局状态。R40 的「无限可伸展」由此更直接：加一步就是加一个
+  调用，参数随这一步自带。本轮只改探针与裁定，**仍未改 `src/glibe/`**。
