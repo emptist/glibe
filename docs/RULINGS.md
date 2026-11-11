@@ -1660,3 +1660,53 @@ docs目录下的文档为什么存在，就是因为你没做到这种 gleam doc
   旧词；历史 review / 旧日志 / 本文件旧条目保留原文（不篡改历史记录）。
   不新建文档、不新增 type / function / field / 依赖、不加测试，
   决策区仍 **0 项**。
+
+## R39 — 整个系统就是这一条直线（2026-11-12 owner 指示）
+
+**owner 原话（逐字）**：*"数据来到我们的系统，合格的sourcebar变成working
+databar，从头到尾所有运算处理决策都在这个databar working中完成，之后他
+就被working databar archieved，这就是整个的系统，没有任何旁门左道。
+我把整个复杂的策略交易系统设计成如此简洁清晰的流程，完全杜绝了任何
+瞎编的可能性，可惜AI还是瞎编"*
+
+- **裁定：系统的完整定义，四步，一条直线，没有旁门左道。**
+  ① 数据到达 → ② **合格的** `SourceBar` 变成 `working_databar` →
+  ③ 从指标、叶子、分支到策略的**所有运算 / 处理 / 决策**都在
+  **这个 working databar 中**完成 → ④ `working_databar_archived`
+  （归档进 `databar_list`）。名字是 owner 的：`working_databar`、
+  `working_databar_archived`。**这就是整个系统**；`replay`（R38）、
+  `monitor.*`（R33）、actor / 调度 / 时钟 / 发布回调 / 第二套批量
+  实现，全是旁门左道。这条直线本身就是「杜绝瞎编」的机制。
+- **判据**：一处运算若不在 working databar 中完成，或需要把 bar
+  **当参数在步骤间传递**，就已偏离这条直线（R35 简单验证码）。
+- **glib 实现里符合这条的部分（对比文档后取实现；R38）**：
+  - `src/glib/sourcebar.gleam:428 to_databar(bar, idx)`：**一根**合格的
+    sourcebar 整根变成一根 `DataBar`；`timeframe.gleam:25` 记录
+    2026-10-11 phase 42 删掉了 fold 半边 —— *"a bar is born whole on
+    arrival, and a source bar that repeats the bar in hand is not a
+    second half of anything"*。
+  - `timeframe.gleam:351`：`databar_processing` 第一步把 bar 放进
+    `working_databar: Some(databar)`；之后 indicator / leaves /
+    branches / strategy **每步只接 `Timeframe`**，从 record 里的
+    working_databar 读、写回 record（`:369-427`、`:732-765`）。
+  - `:844-851 working_databar_archived(timeframe)`：**不带 bar 参数**，
+    归档的就是 record 里那根，写 `databar_list` 并把 working 置 None
+    （三态 `None → Some → None`）。
+- **glibe 现状偏离清单（实测；本轮一律不改，等 owner 一句话）**：
+  1. `working_databar` 被当成**未收盘桶累积器**：
+     `src/glibe/databar.gleam:114 fold_sourcebar(working, bar)` 把多根
+     sourcebar 折成一根（high / low / volume 累加）—— 正是 glib
+     phase 42 已删的那半边，与「一根合格 sourcebar 整根出生」不符。
+     （R27 / R29 的 `SourceBar.timestamp` 与 `bucket_ends` unix 网格
+     裁定不变，本条不质疑它们。）
+  2. `engine.databar_processing(tf, databar)` 把 bar **当参数**穿过
+     `leaves(tf, databar)` → `strategy(tf, databar)` →
+     `accept(tf, databar)`；各步不在 working databar 中读写。
+  3. 归档叫 `accept(tf, databar)`，不是 `working_databar_archived(tf)`；
+     `bars_accepted` 不是 `bars_listed`。
+  4. `Timeframe` 仍带 `manual_enter` / `manual_exit`（owner 2026-10-31
+     逐字否决，见 R38）。
+- **纪律**：**结构按这条直线改对之前，不把这段话写进 `////` / `///`
+  代码文档** —— 那会再造一次「文档与实现不相干」（owner 本轮第三条）。
+  概念进代码文档必须与实现同一步落地。本轮只记裁定与实测，不改
+  `src/`、不加 type / field / 依赖 / 测试，决策区仍 **0 项**。
