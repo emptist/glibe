@@ -32,7 +32,7 @@ process — label it retrofit. 11:11 `docs/` = 「差生补课笔记」, not ass
 never create prose docs to record concepts. **Never write a ruling into
 `////`/`///` until the code matches** (R39).
 
-## Rulings R12–R40-A (full text: `docs/RULINGS.md`)
+## Rulings R12–R41 (full text: `docs/RULINGS.md`)
 R12 `1e-6·bb_m` floor · R13 closed sets are types · R14 `src/` Gleam only ·
 R15 IB = historic stocks/ETFs · R16–R18 JS scope · R19 process above.
 **R20** `Desk ▸ Broker ▸ Instrument ▸ Timeframe`, dashboard = VIEW.
@@ -113,6 +113,17 @@ glib recorded the owner's requirement
 `timeframe-cleanup-audit-2026-10-28.md:671`) but its
 `timeframe.gleam` has **zero `|>`** and still returns a 4-tuple at `:421`
 — docs ≠ code again. `src/glibe/` unchanged this round.
+**R41 (11-12)** `|>` is a SHAPE constraint, not formatting (owner: AI
+invents parameter order / return types). Every step fixed to
+`fn(Timeframe, ...extra) -> Timeframe`; static types always existed, what a
+pipe adds is ONE shared shape, so a wrong first arg or return is a compile
+error. Four throwaway packages `/tmp/gleam_shape_negative`: control 0,
+wrong first arg 1 (`Expected Int / Found Frame`), wrong return 1
+(`does not accept the piped type`), SAME invented signatures with ordinary
+calls 0. `engine.gleam` measured: 8 functions / 8 signatures
+(`:68/:91/:119/:160/:214/:240/:255/:268`), 4 hand-written destructurings
+(`:94/:96/:104/:105`). glib `:732/:844` already have the right shape but
+`databar_processing` has zero `|>`. `src/glibe/` still unchanged.
 
 ## Measured facts
 Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; no `T(..)`; `@external`
@@ -142,7 +153,7 @@ bool `assert … as "msg"`, `let assert`, never `panic`/`case Bool`.
 green (guards / docs / core mirror cmp); decisions 0; **not pushed**.
 04-10 = **retrofit** (`timeframe_under`, 68/2 → 70/0). 04-11 `replay`
 withdrawn (`17376a4`, R38 `5537127`, purge `9b3e6ed`). 04-12 = pipeline
-shape probe + R40. Historical, not owner design: `monitor.gleam`,
+shape probe + R40 / R40-A / R41. Historical, not owner design: `monitor.gleam`,
 `probes/parallel-bars/`; disposition awaits owner. Remaining real work:
 connect each provider's **real-time arrival** to the standard `SourceBar`
 input boundary (history batch = same stream, the pair run n times; no second
