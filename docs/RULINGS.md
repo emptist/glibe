@@ -1595,3 +1595,68 @@ docs目录下的文档为什么存在，就是因为你没做到这种 gleam doc
   把 11:10 的事实改准、把 11:11 的裁定记下，并把 R34 的区分落进
   `src/glibe/config.gleam` / `src/glibe/desk.gleam` 的 `////` 代码文档。
   不改 type / field / 关系、不加依赖、不写 probe，决策区仍 **0 项**。
+
+## R38 — 单向流没有 replay；参考 glib 必须文档与实现对比（2026-11-12 owner 指示）
+
+**owner 原话（逐字，五条，同一条指示）**：
+
+1. *"glib中有代码，你可以看他是不是符合我的要求，符合就可以参考，不要自己瞎编一套，尤其是timeframe里面的各种函数"*
+2. *"replay连名字都不对，glibe哪有什么需要re-play的东西。太荒唐了。"*
+3. *"glib的问题跟所有AI写的东西的问题一样，所以文档跟实现不相干经常有，需要对比，文档写对了是因为我教的，代码写成什么样，AI自己都不清楚"*
+4. *"stream不可能有倒回去重来一遍的道理，长江万里哪有倒退重来的道理"*
+5. *"replay不知道你们两个谁抄谁，反正是错的。对的部分可能没有抄"*
+
+- **裁定：glibe 是单向流，没有 replay / 倒带 / 重来一遍。** R33 的管道
+  `api provider / data sources → history + live data → sourcebar_gate →
+  databar_processing → model ↔ view` 只往前：history 与 live 是**同一条流的
+  前后段**，不是一个可重放的序列。owner 2026-09-10 的逐字线索
+  *"这就是 stream，只知道当下和过去，不知道后来"*（glib
+  `docs/DESIGN.md:71`，仅作线索）。名字必须按现实事物命名；`replay` 把
+  离线批处理词带进了单向流。**「replay CLI」这个长期待办词同错**：历史
+  kline 不是重放，是同一条流的上游数据。
+- **撤回**：`src/glibe/replay.gleam`、`test/replay_test.gleam`、
+  `.planning/phases/04-domain-cleanup/04-11-PLAN.md` 全部删除（`17376a4`），
+  `ReplayError` / `BarRejected` / `replay_from` 一并消失；前三笔 04-11
+  提交判为错误方向，不保留为历史代码。**不改名重做、不补 `feed` 之类
+  包装函数**：glibe 已有两个入口，一根 bar 到达就是依次调用它们
+  （R35「简单是正确的验证码」）。
+- **glib 文档与实现的对比实测（只作线索，不作依据；R33）**：
+  - `glib/docs/DESIGN.md:61-63` 仍写 `trading/replay.gleam:45`，并自注
+    *"the module's name is struck by law 18"*；`:1874` 仍写 "called from
+    `replay.feed`"。**实现里该文件不存在**：实际是
+    `src/glib/trading/ingest.gleam` 的 `feed` / `feed_all`。文档里的
+    replay 是被划掉的旧名，实现早已改名 —— **文档不作实现证据**。
+  - `glib/docs/DESIGN.md:1493-1529` §15（owner 2026-09-22 逐字）：只有
+    两个顶层 data-treating 函数 `sourcebar_gate` / `databar_processing`；
+    `:66` *"Batch is that pair run n times — not a second implementation"*。
+    → 04-11 造的正是这句禁止的「第二套实现 + 批量入口」。
+  - `glib/src/glib/trading/ingest.gleam:57-81`：`feed(tf, bar) -> Timeframe`
+    **一根一喂**，`feed_all = list.fold(..., feed)`；`live.gleam:74` 最终
+    也调同一个 `feed` → 符合 R33「history 和 live 同一条流」。
+  - **不符合 glibe 裁定、不搬**：`publish: fn(Timeframe) -> Nil` 回调与
+    `web.publish_*`（R33 view 是纯值投影）、`clock.now()` + `period_end`
+    （R27 标准 `SourceBar` 是 unix time，不读系统时钟）、
+    `sourcebar_buffer` / `sourcebar_export`（离线导出）、按 interval 查表的
+    `IntervalSettings`（R23 settings 是 `Timeframe` 的 field）、
+    `instrument.market.exchange`（R26 / R37）、`io.println` 与
+    `is_product_version` 断言。
+- **「对的部分」实测（glibe 现状 vs glib 实现；不擅自改，待 owner 定）**：
+  - **已对上**：`engine.sourcebar_gate` / `engine.databar_processing` 两个
+    名字与顺序（indicator → leaves → branches → strategy → 归档）与 §15
+    一致；`Result` 闭集拒绝（R13）、interval 由 holder 传（R37）、unix
+    网格（R27 / R29）是 glibe 后续裁定，比 glib 的 clock 更符合要求。
+  - **命名差异**：glib `working_databar_archived` / `bars_listed` ↔ glibe
+    `accept` / `bars_accepted`；glib `indicator.compute_bar` +
+    `single_bar_test` ↔ glibe `indicator.run`（且无 UC-60 单 bar 检验）。
+  - **glibe 多出来的字段**：`Timeframe` 仍带 `manual_enter` /
+    `manual_exit`，而 `glib/src/glib/timeframe.gleam:720-731` 记录 owner
+    2026-10-31 逐字否决（*"based on this to invent fields is not expected
+    behaviour … keep things clean"*）。以上属结构 / 命名改动，本轮不动。
+- **纪律**：① 名字按现实命名，单向流里不出现 replay / 重放 / 倒带；
+  ② 参考 glib 必须**文档与实现对照**，只取符合 owner 当前裁定的实现；
+  ③ 批次 = 那对顶层函数按序跑 n 次，不是第二套实现、不是 CLI、不是
+  新模块；④ 不为凑流程造 type / function。
+- **本轮处置**：删 3 文件、清理当前状态文档与代码文档里的 "replay CLI"
+  旧词；历史 review / 旧日志 / 本文件旧条目保留原文（不篡改历史记录）。
+  不新建文档、不新增 type / function / field / 依赖、不加测试，
+  决策区仍 **0 项**。
