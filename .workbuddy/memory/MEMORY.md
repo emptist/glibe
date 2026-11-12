@@ -32,7 +32,7 @@ process — label it retrofit. 11:11 `docs/` = 「差生补课笔记」, not ass
 never create prose docs to record concepts. **Never write a ruling into
 `////`/`///` until the code matches** (R39).
 
-## Rulings R12–R41 (full text: `docs/RULINGS.md`)
+## Rulings R12–R43 (full text: `docs/RULINGS.md`)
 R12 `1e-6·bb_m` floor · R13 closed sets are types · R14 `src/` Gleam only ·
 R15 IB = historic stocks/ETFs · R16–R18 JS scope · R19 process above.
 **R20** `Desk ▸ Broker ▸ Instrument ▸ Timeframe`, dashboard = VIEW.
@@ -125,6 +125,41 @@ calls 0. `engine.gleam` measured: 8 functions / 8 signatures
 (`:94/:96/:104/:105`). glib `:732/:844` already have the right shape but
 `databar_processing` has zero `|>`. `src/glibe/` still unchanged.
 
+**R42 (11-12, ownership + the skeleton IS the design)**: glibe = 抄 glib
+作业 + JS→Erlang target 改编 + owner 裁定修正，**不另造设计**；glib 文档是
+那边的 AI 记的，常与代码脱节 → 抄 owner 要求，不抄没落实的代码；那边无
+doc-first TDD，不能一起抄。`timeframe.gleam` = `Timeframe` type + 全部相关 fn
+(glib `timeframe.gleam:32-35`，R43 核验后改正)；**`engine.gleam` 删除**（AI 造的机制模块，
+生产代码无人 import，`:19-21` 自认 import-cycle 理由不成立）；
+`scripts/no_timeframe_mixture.sh` 删除（grep 钉死错误划分）。
+**空架子即设计**：先 `////`/`///` + type 关系 + 签名 in/out types 对齐，
+`gleam build`/`gleam test` 就照出缺口，**一行干活代码都不用写**；倒推
+upstream → 正推回 timeframe → 一路到 `Desk`；连最初 unit test 也是空的。
+`Desk` = top type / 根 / 中心控制室，**上面不再有东西**（设计要求，无其他
+原因）；所有声控 app / web / 桌面 / 分析决策 type 从它展开。倒推查出的真
+缺口 = WRITE 半边 `put_timeframe_under`（与只读 `timeframe_under` 对称）。
+实测：架子 build exit 1（4 个 `Unknown record field` manual_enter/exit 全在
+`engine.gleam:222-228`）→ 归位后 build exit 0 且零行新实现 → RED
+64 passed/19 failures → **GREEN 83 passed, no failures**，WAE=0，全门禁绿；
+`package-interface.json` 9 模块 doc 完整、`engine` 已消失。skill
+`gleam-document-led-tdd`（用户级）随开发增量完善，只写已实测段落。
+
+**R43 (11-12 07:51, 空架子与反复推敲的准确含义)**：空架子的对象是 glib
+只记下（如是我闻）没落实（信受奉行）的 owner 设计；只写 `////`/`///` +
+type 关系 + in/out types 就把系统完整呈现，**无需一行实代码**，如是我闻
+即成信受奉行。**「反复推敲」= 反复对照 owner 设计 + 自己的思考，核验
+空架子搭得对不对，判据：用词是否准确、有无自己瞎编的东西**；**不是**
+测试之间互相推翻的流程 —— 我 skill 里那条预写是误读，已删。理由：无实
+代码 → 系统轻灵 → 一次载入 token 限量内、不挂一漏万；架构对了再逐个
+落实代码，很快都做对。**前提不可外推**：*"我早已把整个系统设计成熟了。
+否则你不容易这样做"* —— 这是抄成熟设计，不是从零发明设计的通用方法。
+本轮首次应用是**写完实现后的追溯核验**（非空架子阶段推敲，后者仍未
+实测）：`bars_listed`/`to_databar`/`UC-62`/两处 doc 区间都有出处；查出
+glib "What stays…" 在 `timeframe.gleam:32-35` 而非 `:28-31`（5 处文档
+误标）、`:23-25` 过宽应收紧 `:25`（3 处）、PLAN §3 残留已删的
+`databar.of_sourcebar`；全部改正。**实测：引用/用词漂移能活过全绿 build
+与 test，只有回读设计才能发现。**
+
 ## Measured facts
 Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; no `T(..)`; `@external`
 may coexist with a Gleam body; `.abstr → .beam`; `float.parse("100")` =
@@ -149,15 +184,17 @@ bool `assert … as "msg"`, `let assert`, never `panic`/`case Bool`.
   core mirror `cmp`.
 
 ## State (2026-11-12)
-70 tests root + 4 `parallel-bars` + 11 `timeframe-pipeline` green; full gate
-green (guards / docs / core mirror cmp); decisions 0; **not pushed**.
-04-10 = **retrofit** (`timeframe_under`, 68/2 → 70/0). 04-11 `replay`
-withdrawn (`17376a4`, R38 `5537127`, purge `9b3e6ed`). 04-12 = pipeline
-shape probe + R40 / R40-A / R41. Historical, not owner design: `monitor.gleam`,
-`probes/parallel-bars/`; disposition awaits owner. Remaining real work:
-connect each provider's **real-time arrival** to the standard `SourceBar`
-input boundary (history batch = same stream, the pair run n times; no second
-implementation, no CLI), and rebuild `engine.gleam`'s steps so the FIRST
-arg and the return are `Timeframe` (extra params are fine, R40-A) and
-R39/R40's straight line is the product code — a definition change, not a
-language question.
+**83 tests root** + 4 `parallel-bars` + 11 `timeframe-pipeline` green; full
+gate green (WAE / format / guards 4 case / docs root+webclient+2 probes /
+core mirror cmp); decisions 0; **not pushed**. 04-13 = R39/R40/R41 落地：
+`engine.gleam` + `no_timeframe_mixture.sh` 删除，函数归位 `timeframe.gleam`
+（直线管道，五步 `fn(Timeframe) -> Timeframe`），`sourcebar.to_databar`
+归位、`fold_sourcebar` 删除，`desk.put_timeframe_under` 新增，
+`manual_enter/exit` 删除、`*_leaf_settled` 新增；两个旧 monitor 测试按 R39
+改断言。04-10 = retrofit；04-11 replay 撤回；04-12 形状探针 + R40/R41。
+Historical, not owner design: `monitor.gleam`, `probes/parallel-bars/`;
+disposition awaits owner. Remaining real work: connect each provider's
+**real-time arrival** to `timeframe.sourcebar_gate` (history batch = same
+pair n times; no second implementation, no CLI); R42 的「空 test 架子」与
+R43 的「**空架子阶段**对照设计核验并因此改名/删瞎编」尚未实测，留待下轮
+（「测试互相推翻」是已被 R43 纠正的误读，不再作为待办）。
