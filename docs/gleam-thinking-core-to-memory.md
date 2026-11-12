@@ -354,8 +354,16 @@ types → `///` + annotated signatures → `todo as "..."` bodies → **unit tes
 The `///` comment IS the spec; the test asserts the promise; the body delivers
 it. A plan with no link from the code file is a toy and drifts unnoticed.
 Measured 1.19.2: skeleton builds with **0 errors / 4 warnings** (2 `Todo found`,
-2 unused args) and `gleam test` is RED (`todo` crashes, prints file:line);
-`--warnings-as-errors` therefore fails in the RED phase and is the GREEN gate.
+2 unused args) and `gleam test` is RED (`todo` crashes, prints file:line).
+`gleam build --warnings-as-errors` is a **FIXED gate, including the skeleton
+phase**: it fails with the Todo / empty-use list; read every diagnostic to its
+line, and filling one body removes one. Never classify a class of warnings as
+"expected skeleton shape" (owner R48) — the ONLY warning that exposed an
+AI-invented type was a single `Unused function argument`. The flag exists on
+`build` alone; `check` / `test` / `docs` / `format` have none. An `_name`
+parameter is a discard name and **cannot be referenced in the body** (measured:
+`Found a discard name`), so bulk-silencing hints destroys the signal instead
+of fixing it.
 `gleam docs build` renders `////` and `///` into HTML **and**
 `package-interface.json` as `"documentation"` strings — the compiler's own,
 machine-readable anti-drift artifact; no grep guard is needed. Tests use
