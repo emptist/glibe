@@ -20,8 +20,10 @@
 //// he used himself, so `YinLeaf` / `YangLeaf` stay as he said them.
 ////
 //// The leaf's own fields are not listed: per R32 they are added when the
-//// leaf step has a real consumer. R19: a documented type is a valid
-//// skeleton item.
+//// leaf step has a real consumer. `timeframe.leaves` writes these two
+//// constructors into `Timeframe.growing_yin_leaf`, `growing_yang_leaf`,
+//// `yin_leaf_settled` and `yang_leaf_settled`; `timeframe.branches`
+//// reads the settled fields off the record.
 ////
 //// R19 status: skeleton. No function here yet.
 

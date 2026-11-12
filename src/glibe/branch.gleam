@@ -22,8 +22,9 @@
 ////
 //// The branch's own fields are NOT listed. R1 names `end_bar` / `exit_bar`
 //// and R4 names `start_bar`; per R26 / R32 a field is added when its real
-//// consumer exists, one at a time. R19: a documented type is a valid
-//// skeleton item.
+//// consumer exists, one at a time. `timeframe.branches` writes these two
+//// constructors into `Timeframe.growing_yin_branch`,
+//// `growing_yang_branch`, `yin_branch_list` and `yang_branch_list`.
 ////
 //// R19 status: skeleton. No function here yet.
 
