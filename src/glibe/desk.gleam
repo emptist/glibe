@@ -77,6 +77,40 @@
 //// `gleam docs build` renders these comments into
 //// `package-interface.json`, so the judgements above are part of the
 //// compiled interface — not prose kept somewhere else that nobody reads.
+////
+//// **Backwards design pass, 04-13 (owner 2026-11-12 07:25, verbatim)**:
+//// *"倒推出 timeframe >> instrument >> broker >> desk 整个链条，以及各自
+//// 需要提供的funtions服务"*. A bar cannot stop at `Timeframe`: `Desk` is the
+//// ONE top-level Value (R33), so the chain needs BOTH halves at every level
+//// — read down the holder's keys, write the new value back up:
+//// ```
+//// Desk        get_broker / put_broker
+////             timeframe_under (read)  |  put_timeframe_under (write)
+//// Broker      get_instrument / put_instrument
+//// Instrument  get_timeframe / put_timeframe
+//// Timeframe   sourcebar_gate / databar_processing
+//// ```
+//// `put_*` returns a NEW value; nothing mutates, nothing is scheduled. The
+//// missing WRITE half is what made the system look as if it needed a
+//// `monitor.advance` — it never did (R33). `put_timeframe_under` is added as
+//// a documented skeleton in this pass, with its design goal held by a test.
+////
+//// **Desk is the central control room (owner 2026-11-12 07:29, verbatim)**:
+//// *"Desk就是中心控制室，所有的声控app，web或者桌面端，以及分析决策等等
+//// type都会从这里直接或者逐层展开出来"*. Every voice app, web page, desktop
+//// client and analysis / decision type grows out of THIS value, either
+//// directly or level by level — a dashboard is a VIEW of it, never an owner
+//// above it (R20). A design cannot be got right in one leap, but a written
+//// skeleton with every type relation in place IS the whole design: *"你写好
+//// 空架子，就理顺了所有关系，连一行真正干活的代码都不用写，系统就完全
+//// 设计对了。这才是 gleam document leading TDD"*. That is why this module
+//// and `timeframe.gleam` carry documented `todo` signatures before any body.
+////
+//// **Desk is the TOP type / the root (owner 2026-11-12 07:32, verbatim)**:
+//// *"他上面不再有东西，这是设计要求，没有其他原因。你系统一定要有一个
+//// 顶部的东西的"*. Nothing sits above this type. That is a design
+//// requirement, not a conclusion drawn from something else: a system must
+//// have one top. No further proof, mechanism or justification is added here.
 
 import gleam/dict.{type Dict}
 import gleam/result
@@ -294,4 +328,33 @@ pub fn timeframe_under(
   use broker <- result.try(get_broker(desk, broker_id))
   use instrument <- result.try(get_instrument(broker, symbol))
   get_timeframe(instrument, interval)
+}
+
+/// **The WRITE half of `timeframe_under`: put one recomputed `Timeframe` back
+/// where it came from and return a NEW `Desk`.**
+///
+/// The same three keys walk down the ownership chain; each level rebuilds its
+/// holder with `put_*`, so nothing is mutated and no second dictionary is
+/// consulted. A failure at any level is that level's `LookupError` variant.
+///
+/// This is the service one arriving bar needs at the top (R33): read with
+/// `timeframe_under`, run the two `Timeframe` functions, then write back here.
+/// It is not a scheduler, not an `IncomingBar` message and not a third
+/// data-treating function (R38) — it only puts a value back under its keys.
+///
+/// Plan: `.planning/phases/04-domain-cleanup/04-13-PLAN.md` §8. This `///`
+/// is the specification the 04-13 test asserts; the body is filled to green.
+pub fn put_timeframe_under(
+  desk: Desk,
+  broker_id: BrokerId,
+  symbol: Symbol,
+  interval: Interval,
+  timeframe: Timeframe,
+) -> Result(Desk, LookupError) {
+  use broker <- result.try(get_broker(desk, broker_id))
+  use instrument <- result.try(get_instrument(broker, symbol))
+  use _existing <- result.try(get_timeframe(instrument, interval))
+  let instrument = put_timeframe(instrument, interval, timeframe)
+  let broker = put_instrument(broker, symbol, instrument)
+  Ok(put_broker(desk, broker_id, broker))
 }
