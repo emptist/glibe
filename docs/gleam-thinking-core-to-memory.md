@@ -99,7 +99,7 @@ pub type Person { Person(name: String, age: Int) }    // record variant
 pub type Shape { Circle(radius: Float)                // union
                  Rect(width: Float, height: Float) }
 pub opaque type PositiveInt { PositiveInt(inner: Int) } // constructors private
-pub fn new(i: Int) -> PositiveInt {                    // smart constructor
+pub fn clamp_positive(i: Int) -> PositiveInt {          // no `new` (owner R49)
   case i >= 0 { True -> PositiveInt(i) False -> PositiveInt(0) }
 }
 pub type Never { Never(Never) }                        // uninhabitable
@@ -189,6 +189,14 @@ use a, b <- my_function                     // → my_function(fn(a,b){ ... })
   (`identifier.to_string`); name the encoding (`date_to_rfc3339`). Fallible
   names are domain-specific (`parse_json`, `enqueue`); `try_` only for a
   result-returning twin of an existing function. Never `monadic_bind`.
+- **No `new` (owner R49, 2026-11-12):** *"gleam里面很少需要这个所谓的new，
+  python之类语言的垃圾，几乎见到new的地方必定是bug存在的地方"*. `new` /
+  `create` / `make` / `data` / `helper` / `manager` name a mechanism, not a
+  birth; **there is no container exemption**. A value is built where it is
+  owned, and a birth function — if one is genuinely needed — says WHICH
+  birth. Measured: `timeframe.new(settings)` existed only to receive an
+  invented parameter; deleting field + function left the other 8 signatures
+  and 10 fields byte-identical.
 
 ## 6. Errors — no exceptions, ever
 ```gleam
