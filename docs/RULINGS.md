@@ -2506,3 +2506,74 @@ WAE 会给每条 unused argument 一个 hint：`_settings`。实测
 skill `gleam-document-led-tdd`、05-01-PLAN §5.3 / §6、
 `docs/STATE.md`、工作区记忆与当日日志。**`src/` 与 `test/` 未改一行**，
 不用 `_` 洗信号。决策区仍 **0 项**；**未 push**。
+
+---
+
+## R49 — `new` 是 Python 式垃圾；见到即当 bug（2026-11-12 12:39 owner 裁定）
+
+**owner 原话（逐字）：**
+> *"为了这个毫无用处的field你确实编造了一个毫无用处的function叫做 new，而不
+> 知道gleam里面很少需要这个所谓的new，python之类语言的垃圾，几乎见到new的
+> 地方必定是bug存在的地方。"* [user 2026-11-12]
+
+### 1. 实测：`new` 是为那个 field 编造出来的
+
+R46 前 `timeframe.gleam:79-83`：
+
+```gleam
+/// A `Timeframe` born from its parameter block. There is no composite key,
+/// no second settings dictionary and no `list.find` (R23).
+pub fn new(settings: TimeframeSettings) -> Timeframe {
+  todo as "05-01: one record, no key inside it"
+}
+```
+
+它**唯一**的工作就是收一个不存在于设计里的参数；没有第二个调用方，`///`
+里写的还是「它不是什么」。R46 删掉的清单是：字段一行、import 一行、
+`READS` 里一个名字、**`new()` 一个函数**；其余 8 个函数签名、10 个字段
+一字未动。**一个无用的 field 需要一个 `new` 来喂它，一个 `new` 又让这个
+field 看起来有来处** —— 两者互相指认，正是 R46 / R48 说的循环论证，多出来
+的第三个部件就是 `new` 这个 Python 式出生函数。
+
+### 2. 裁定：见到 `new` 就当 bug，没有 container 豁免
+
+- Gleam 里几乎没有 `new` 的位置：值是**构造**出来的，不是被某个
+  `new()`「初始化」出来的；构造发生在**拥有它的地方**，不需要一个专门
+  的、不说出「哪一次出生」的函数。
+- `new` / `create` / `make` / `data` / `helper` / `manager` 命名的是机制，
+  不是领域事实。出生函数若真有必要，**必须说出是哪一次出生**；说不出就
+  不存在。
+- **作废 core / SKILL.md 里那句「A container may be `new`」**：豁免一开，
+  AI 就把它当许可证。今后**每一个 `new` 都先按 bug 查**，直到证明不是。
+- 已改：`gleam-language/references/gleam-core.md` §3 示例
+  `pub fn new(i: Int) -> PositiveInt` → `clamp_positive(...)`，§5 新增
+  「No `new`」条目；`gleam-language/SKILL.md` 的 `<do_not>` 条目去掉豁免
+  并写入本裁定；仓库镜像 `docs/gleam-thinking-core-to-memory.md` 同步
+  （`cmp` 一致）。
+
+### 3. 主动核验（本轮把尺子量到现行树）
+
+- 现行 `src/` / `test/` 里 **`new` 零出现**（R46 已删净）；全部 38 个
+  `pub fn` 逐个看过，没有第二个 `new` / `create` / `make` 出生函数。
+- **但找到同类的第二处**：`src/glibe/config.gleam` 的 `////` 写着
+  *"and R33 names `config.default_config()` as that one Value"*。回读
+  R33（`:1090-1108`）的四段 **owner 逐字原话**，里面只命名了 `Desk`，
+  **没有一个函数名**；`default_config()` 出自 R33 的**裁定正文（AI 散文）**。
+  这与 R47 抓到的 `NoSuch*` / `idx` 是同一类假 verbatim，已改成如实标注
+  词源；`default_config()` 本身保留（R33 裁定正文给出的系统起点值），
+  但不再冒充 owner 逐字。
+- 同文件还把 `default_config()` 称作 "this constructor"，并在 `///` 里
+  写成 "A constructor literal, not a parsed config" —— 一个返回 `Desk`
+  的函数不是 constructor literal。按 R47「`///` 能否译成谁读 / 写哪个
+  具体值」改成：返回唯一顶层 `Desk`，body 是 Gleam 字面量，无 parser、
+  无 `new` 式出生函数。**这是本轮 `new` 主题带出的 Python 式措辞残留。**
+
+### 4. 落地与诚实标注
+
+**Landed in**：`gleam-language` 的 `SKILL.md` 与
+`references/gleam-core.md`、仓库镜像、`src/glibe/config.gleam`、
+本文件 R49、05-01-PLAN §5.4、`docs/STATE.md`、工作区记忆、当日日志、
+skill `gleam-document-led-tdd`。
+**诚实标注**：本轮主动核验仍是在 owner 点出 `new` 之后启动的，查到的
+`config.gleam` 假归属属于**同链条上的连带发现**，不算「无提示自行发现」；
+后者**仍未实测**，不预写成功。决策区仍 **0 项**；**未 push**。

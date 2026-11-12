@@ -32,7 +32,7 @@ docs/tests onto existing code is NOT this process — label it retrofit.
 `docs/` = 「差生补课笔记」, not assets: never create prose docs to record
 concepts. **Never write a ruling into `////`/`///` until the code matches**.
 
-## Rulings R12–R48 (full text: `docs/RULINGS.md`)
+## Rulings R12–R49 (full text: `docs/RULINGS.md`)
 R12 `1e-6·bb_m` floor · R13 closed sets are types · R14 `src/` Gleam only ·
 R15 IB = historic stocks/ETFs · R16–R18 JS scope · R19 process above.
 **R20** `Desk ▸ Broker ▸ Instrument ▸ Timeframe`, dashboard = VIEW.
@@ -144,6 +144,20 @@ shape」全改；warning 不许按类别整包豁免，不许拿条数当奖励�
 是 **discard name**，body 不能引用（实测 `Found a discard name`），
 `add(_a: 1)` 语法错；按 hint 批量加 `_` 会把瞎编 type 唯一报警静音，
 **src/test 一行不改**。`docs/` 从不是词源，也**不是关系**的证据。
+**R49 (11-12 12:39)** *「为了这个毫无用处的field你确实编造了一个毫无用处
+的function叫做 new … gleam里面很少需要这个所谓的new，python之类语言的
+垃圾，几乎见到new的地方必定是bug存在的地方」*。⇒ R46 前
+`timeframe.new(settings)` 唯一工作就是收那个不存在的参数，删除清单里
+它和 field / import 一起消失，其余 8 签名 10 字段一字未动 ⇒ **无用
+field 与 `new` 互相指认**。裁定：Gleam 的值在拥有它的地方构造；出生
+函数若真有必要必须说出「哪一次出生」；**每个 `new` 先按 bug 查，无
+container 豁免**。改 core §3 示例 `pub fn new` → `clamp_positive`、
+§5 新增 No-new、`gleam-language/SKILL.md` 去豁免、镜像 cmp 一致。
+主动量现行树：`new` **零出现**、38 个 `pub fn` 无第二处；但抓到
+`config.gleam` 的 `////` 把 **AI 裁定正文**写成「R33 owner 逐字命名
+`default_config()`」（R33 四段逐字只命名 `Desk`，无任何函数名）——
+与 R47 的 `NoSuch*`/`idx` 同类假 verbatim，已改标词源；并把把函数称作
+"constructor" 的 Python 措辞改掉。**连带发现，非无提示自行发现**。
 
 ## Measured facts
 Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; no `T(..)`; `@external`

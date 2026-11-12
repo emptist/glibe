@@ -21,6 +21,13 @@ sections are kept as history, not as the current answer.
   成绩单也不许整包归类为「expected skeleton shape」。R19 / core §14 /
   skill 里「warnings 合法 / 只是 GREEN gate」全部作废。`_` 是 discard
   name（body 不能引用），禁止用它批量静音；`src/` / `test/` 本轮未改一行。
+- **R49：`new` 是 Python 式垃圾，见到即当 bug，无 container 豁免**。
+  现行 `src/` / `test/` 的 `new` 零出现（R46 已删净）；core §3 那个
+  `pub fn new(...)` 示例已改成 `clamp_positive`，§5 新增「No `new`」，
+  `gleam-language/SKILL.md` 的豁免作废，镜像 `cmp` 一致。主动核验另抓到
+  `config.gleam` 把 AI 裁定正文写成「R33 owner 逐字命名 `default_config()`」
+  —— R33 四段逐字原话只命名 `Desk`、无任何函数名，已如实改标词源；
+  同时改掉把这个函数称作 "constructor" 的 Python 式措辞。
 - **当前 `src/` = 11 个模块、零行实代码**：`////` / `///`、type 关系、
   全标注签名，函数体一律 `todo as "..."`。空 unit test 只固定 in / out
   types（R42 07:39）。`Desk` 是唯一顶层 Value；链的 read / write 服务
