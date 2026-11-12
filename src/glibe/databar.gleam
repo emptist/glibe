@@ -27,11 +27,11 @@
 import gleam/time/timestamp.{type Timestamp}
 import glibe/trading/signal.{type Signal}
 
-/// One bar of the system. `idx` is the bar's index — the owner's word in
-/// R1 / R4 (`working_databar.idx`, `start_bar.idx`), starting at 0; it is
-/// not a count of anything here. `signal` is the decision written on this
-/// very bar (`"buy"` / `"sell"` / `""`, R10 / R11; every decision is made
-/// IN the working databar, R39). Everything computed in
+/// One bar of the system. `idx` is the bar's index, starting at 0; R1 / R4
+/// record `working_databar.idx` and `start_bar.idx` in the recognition rule.
+/// It is not a count of anything here. `signal` is the decision written on
+/// this very bar (`"buy"` / `"sell"` / `""`, R10 / R11; every decision is
+/// made IN the working databar, R39). Everything computed in
 /// `databar_processing` lands on this bar.
 pub type DataBar {
   DataBar(

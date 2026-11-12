@@ -10,7 +10,9 @@
 //// as that one Value. R42: *"但是他上面不再有东西"* — nothing sits above
 //// `Desk`, so there is no `AppConfig` wrapping it, no second dictionary
 //// and no settings table. R23 struck the composite-string key tables
-//// (`"BTCUSDT_H1"`, `list.find`, `get_symbol`, `config_get_tfs`).
+//// (`"BTCUSDT_H1"`, `list.find`, `get_symbol`, `config_get_tfs`); R46
+//// struck the settings concept itself, so there is no parameter block
+//// for this constructor either.
 ////
 //// Core §2.7: data already written as Gleam source needs no parser. A
 //// constructor literal is the config; `from_string` + `panic` over a file

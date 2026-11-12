@@ -73,10 +73,13 @@ pub opaque type AccountId {
 }
 
 /// One lookup failed. One variant per business-domain failure, carrying the
-/// key that was asked for — never `Error(String)` (R20 / R13). The
-/// `NoSuch*` wording is the owner's own: R23 names `NoSuchSettings` when
-/// striking the parallel settings dictionary. There is no `NoSuchSettings`
-/// here because settings are a field of `Timeframe` (R23).
+/// key that was asked for — never `Error(String)` (R20 / R13). One variant
+/// per fallible `get_*` below; each names the key it was asked for.
+/// The `NoSuch*` spelling is a structural naming convention here, NOT an
+/// owner quote: `NoSuchSettings` appears only in AI's R23 text describing
+/// a deleted lookup (R46 tightened provenance to owner verbatim words).
+/// There is no `NoSuchSettings` here because the whole settings concept is
+/// struck: no settings type, no settings field, no lookup for one.
 pub type LookupError {
   /// No broker under this key.
   NoSuchBroker(BrokerId)

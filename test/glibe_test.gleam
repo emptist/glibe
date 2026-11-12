@@ -20,7 +20,6 @@ import glibe/binance/kline.{type Kline}
 import glibe/config
 import glibe/databar.{type DataBar}
 import glibe/desk.{type BrokerId, type Desk, type LookupError}
-import glibe/indicator_settings.{type TimeframeSettings}
 import glibe/timeframe.{type Timeframe}
 
 pub fn main() {
@@ -66,12 +65,6 @@ pub fn birth_shape_test() {
 pub fn price_checker_shape_test() {
   let _check: fn(SourceBar) -> Result(SourceBar, SourceBarRejection) =
     sourcebar.validate
-  Nil
-}
-
-/// R23: settings travel WITH the engine; they are not a second dictionary.
-pub fn timeframe_birth_shape_test() {
-  let _new: fn(TimeframeSettings) -> Timeframe = timeframe.new
   Nil
 }
 

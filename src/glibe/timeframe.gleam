@@ -7,14 +7,22 @@
 //// every transition of it.
 ////
 //// READS: `Interval`, `SourceBar`, `SourceBarRejection`, `DataBar`,
-//// `TimeframeSettings`, `DataLeaf`, `DataBranch`.
+//// `DataLeaf`, `DataBranch`.
 //// WRITES: `Timeframe` — the working databar, the archived bars, and the
 //// intermediate facts that keep the pipeline a straight line.
 ////
-//// R23: `settings` is a FIELD of `Timeframe`, not a second dictionary and
-//// not a separate entity. R37: there is NO `interval`, NO `symbol` and NO
-//// `market_type` field — the interval is the KEY in
-//// `Instrument.timeframes`, and a timeframe does not know its own name.
+//// R37: there is NO `interval`, NO `symbol` and NO `market_type` field —
+//// the interval is the KEY in `Instrument.timeframes`, and a timeframe
+//// does not know its own name. R23: no composite string keys, no second
+//// dictionary, no `list.find`.
+////
+//// R46 (owner, verbatim): *"TimeframeSettings 是AI搞出来的东西，我不知道是
+//// 什么玩意"*, *"问题是他做什么，谁用他，为什么存在"*. There is NO
+//// settings type, NO settings field and NO birth function taking one.
+//// An `indicator_settings.gleam` module existed here and is deleted. When
+//// a calculation needs a parameter, that parameter becomes a field of the
+//// type that really owns it, added when its real consumer appears
+//// (R26 / R32 / R34) — not a placeholder bag invented in advance.
 ////
 //// R39 (owner, verbatim): *"数据来到我们的系统，合格的sourcebar变成working
 //// databar，从头到尾所有运算处理决策都在这个databar working中完成，之后他
@@ -43,12 +51,12 @@ import glibe/api/interval.{type Interval}
 import glibe/api/sourcebar.{type SourceBar, type SourceBarRejection}
 import glibe/branch.{type DataBranch}
 import glibe/databar.{type DataBar}
-import glibe/indicator_settings.{type TimeframeSettings}
 import glibe/leaf.{type DataLeaf}
 
-/// One symbol at one interval — but it stores NEITHER. `settings` travels
-/// with the engine; `working_databar` is the bar being dealt with;
-/// `databar_list` holds the settled bars, newest first.
+/// One symbol at one interval — but it stores NEITHER. `working_databar`
+/// is the bar being dealt with; `databar_list` holds the settled bars,
+/// newest first. R46: no settings field — a parameter arrives only with
+/// its real consumer (R26 / R32).
 ///
 /// The four growing twins are the owner's "four twins" (R1); `YinBranch` /
 /// `YangBranch` are his words (R2), and R4 names `growing_yang_branch` and
@@ -62,7 +70,6 @@ import glibe/leaf.{type DataLeaf}
 /// relations, not the maths.
 pub type Timeframe {
   Timeframe(
-    settings: TimeframeSettings,
     working_databar: Option(DataBar),
     databar_list: List(DataBar),
     growing_yin_leaf: Option(DataLeaf),
@@ -74,12 +81,6 @@ pub type Timeframe {
     yin_leaf_settled: Option(DataLeaf),
     yang_leaf_settled: Option(DataLeaf),
   )
-}
-
-/// A `Timeframe` born from its parameter block. There is no composite key,
-/// no second settings dictionary and no `list.find` (R23).
-pub fn new(settings: TimeframeSettings) -> Timeframe {
-  todo as "05-01: one record, no key inside it"
 }
 
 /// The price checker's gate: ONE arriving `SourceBar`. A qualified bar is
