@@ -31,7 +31,7 @@ docs/tests onto existing code is NOT this process — label it retrofit.
 `docs/` = 「差生补课笔记」, not assets: never create prose docs to record
 concepts. **Never write a ruling into `////`/`///` until the code matches**.
 
-## Rulings R12–R46 (full text: `docs/RULINGS.md`)
+## Rulings R12–R47 (full text: `docs/RULINGS.md`)
 R12 `1e-6·bb_m` floor · R13 closed sets are types · R14 `src/` Gleam only ·
 R15 IB = historic stocks/ETFs · R16–R18 JS scope · R19 process above.
 **R20** `Desk ▸ Broker ▸ Instrument ▸ Timeframe`, dashboard = VIEW.
@@ -117,6 +117,15 @@ same invented signatures as ordinary calls 0.
 `timeframe.new` 及其空 test；不留占位参数包、不改名。参数随真实消费方
 按 R26/R32 一个一个落进真正拥有它的 type。**AI 记在 RULINGS 里的
 裁定不是词源**：owner 在 R23 里是**质问**这个名字，不是命名它。
+**R47 (11-12 12:03)** *「如果我不提出来，你能不能根据逻辑自己发现问题
+呢？」* / *「这是什么玩意你自己看得懂不？」*。⇒ **看不懂**：那句 `///`
+是 4 句否定 + 1 句作废断言 + 0 句事实；同模块 `////` 还写着「挂 `///`
+即合法骨架」「无行为是设计如此」两句**自我豁免**。判据早齐，缺的是
+**触发点**：前两轮只做词源审计、没做所指审计。写 `////`/`///` 后必须能
+译成「谁读 / 写哪个具体值」，译不出即瞎编；禁止免检措辞。R43 的
+「空架子轻灵」= 实现空、关系明确；空壳 = 关系本身为空，勿混。全绿
+编译连空洞文档也放过。**本轮仍是 owner 点出后的开卷自检，无提示
+自行发现尚未实测。**
 
 ## Measured facts
 Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; no `T(..)`; `@external`

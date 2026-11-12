@@ -2271,3 +2271,66 @@ function(...),所以你如果以为这是限定，那么就很难做，因为只
 `.planning/phases/05-doc-tdd/05-01-PLAN.md` §1 / §3 / §4 / §5.1、
 `docs/STATE.md`、`docs/PENDING_DECISIONS.md`。
 决策区仍 **0 项**；**未 push**。
+
+## R47 — 自检必须自己触发；`///` 要能译成「谁读写哪个值」（2026-11-12 12:03 owner 质问）
+
+**owner 逐字**：
+
+> *"像这种情况，如果我不提出来，你能不能根据逻辑自己发现问题呢？你模块里面只有一个type，这个type说是 the numbers a timeframe run on 这是什么玩意你自己看得懂不？"*
+
+### 1. 那句文档不是描述，是辩护
+
+被删的 `indicator_settings.gleam` 的 `///` 原文：*"The numbers one
+`Timeframe` runs on. Not an entity: no identity, no collection of its own,
+no settings table. It travels WITH the engine (R23); the holder's Dict key
+carries the interval."* —— 四句「它不是什么」+ 一句已由 R46 作废的断言
++ **零句可指认的事实**。哪个数、谁读、谁写、何时变，一个都答不出。
+**看不懂**。更严重的是同一模块 `////` 里两句自我豁免：*"an empty type
+with a `///` doc is a valid skeleton item"*、*"No function here on
+purpose: a parameter block has no behaviour of its own"* —— 我亲手写下
+「它没有行为」，再用「设计如此」把它合法化，正好绕过了「无行为 →
+无消费方 → 不该存在」这个本该立刻触发的推理。
+
+### 2. 回答：判据早齐，缺的是触发点
+
+**逻辑上完全能，且不需要 owner 提供任何新事实；但按当时的流程实际不会
+触发。** R34（本档案、我自己记下的）明写 ibOptions 用 settings 解决结构
+性问题是 Python+pandas 的局限、不是设计，一个设置应是**已有 type 的一个
+field**，我却造了专门装 settings 的 type —— 当天记下、当天违反；R32
+「新东西 = 已有 Type 里加一个 field」，零字段的 type 不是 field 是空壳；
+R26 无真实消费方不预先发明；R13 根法反向读 = nature 里没有的东西不定义
+type；R35「简单是正确的验证码」，1 type / 0 field / 0 fn 不是简单，是空。
+**R43 的「空架子轻灵」= 实现为空、关系明确；那个 type = 关系本身为空**，
+两者被我混为一谈。R43 核验当时只做了**词源审计**（名字出处、引用行号、
+假 verbatim），没做**所指审计**；所有检查都向外（owner 用词 / 编译器 /
+引用），没有一步向内指向这个东西本身。
+
+**补的不是新判据、不是新机制**（R44 项目层不设 guard sh，也不写补课
+散文），而是把 R43 核验扩一格：
+
+- 每写完一个 `////` / `///`，必须能译成**「谁在什么场合读 / 写哪个具体
+  值」**；译不出来的句子就是瞎编，当场删，不等 owner 点名。
+- 对**每个** type / fn 主动跑三问，出处指向 owner 逐字原话；「只有 type、
+  0 fn、0 真实消费方」是红旗，不是轻灵。
+- **禁止自我豁免措辞**：「挂了 `///` 即合法骨架」「没有行为是设计如此」
+  不得作为空壳的理由，理由必须写成具体的读者 / 写者。
+- 全绿 `gleam check` / `build` / `docs build` 与完整渲染的 `////`，
+  **连文档句子空洞也照样通过**；编译器检查类型一致性，不检查名字有无
+  所指、文档有无内容（R46 已记，此处精确到文档文本）。
+
+### 3. 当场自检（本轮，owner 提示之后）
+
+按上述判据量剩余 11 个模块：`DataBar`（8 字段，被 `working_databar` /
+`databar_list` 持有、`sourcebar.to_databar` 出生）、`YinLeaf` / `YangLeaf`、
+`YinBranch` / `YangBranch`（owner 逐字命名，被 `Timeframe` 的 growing /
+settled 字段持有）、`Signal`、`Kline`、`Interval`、`Symbol`、`SourceBar`
+均有可指认的持有者或出生点，**无第二个纯空壳**。但 `databar.gleam:20-25`
+仍留着同一句「`///` doc 即合法骨架 / No function on purpose」，本轮改掉，
+换成具体的读者 / 写者。
+
+**诚实标注**：这一轮仍是 **owner 点出之后**的开卷自检，不能算「无提示
+自行发现」。后者**尚未实测**，不预写成功；留待下一轮由实际发生来填。
+
+**Landed in**：`src/glibe/databar.gleam`、
+`~/.workbuddy/skills/gleam-document-led-tdd/SKILL.md`、
+05-01-PLAN §5.2、本文件。决策区仍 **0 项**；**未 push**。

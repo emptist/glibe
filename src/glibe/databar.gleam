@@ -17,12 +17,14 @@
 //// `gleam_time.Timestamp`, an absolute unix instant, never a date string.
 //// R28: OHLCV are what the standard layer consumes with unified meaning.
 ////
-//// The computed fields are NOT listed here. Per R32 / R26 they are added as
-//// fields when the real computing step exists; listing them now would
-//// transcribe the old implementation instead of the design. R19: a type
-//// with a `///` doc is a valid skeleton item.
-////
-//// R19 status: skeleton. No function here on purpose.
+//// R47: this module holds the TYPE only because its birth belongs to the
+//// source (`sourcebar.to_databar`) and every computed result is written ON
+//// this bar by the pipeline steps in `timeframe.gleam` — a concrete reader
+//// and writer for every field. An empty type is not made legitimate by
+//// having a `///` doc, nor by calling its lack of behaviour "by design":
+//// each doc sentence must name a value and who reads or writes it.
+//// Computed fields arrive one at a time with their real consumer (R26/R32),
+//// so listing them now would transcribe the old implementation.
 
 import gleam/time/timestamp.{type Timestamp}
 import glibe/trading/signal.{type Signal}
