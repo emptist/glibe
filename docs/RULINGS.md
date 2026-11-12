@@ -1925,3 +1925,169 @@ function(...),所以你如果以为这是限定，那么就很难做，因为只
   消掉、并把 `working_databar` 从桶累积器改回一根整 bar（R39），
   仍是等 owner 一句话的产品代码改动；R41 给出的理由是：那不是
   风格选择，是**让编译器替我们防住下一次瞎编**。决策区仍 **0 项**。
+
+---
+
+## R42 — 抄作业、模块归属、空架子即设计、Desk 为顶（2026-11-12 owner 连续指示）
+
+**owner 原话（逐字，按时间）**：
+
+1. 07:01 *"在 databar_processing 内部使用这样的写法，要求你先把设计搞对，
+   然后把框架的document和框架本身搭好，这一步是思考要做什么，涉及少量
+   如何做（参数和return），接下来写好unittests，接下来填充每一个function
+   达到设计意图"*；*"你本来对于timeframe module的定义和制作根本是一塌
+   糊涂，却想要一步登天套上正确的pipline写法去验证gleam语法是否正确，
+   不仅毫无意义而且是荒唐颠倒… 并且给出的鬼例子什么Result作为subject
+   完全瞎编"*
+2. 07:04 *"首先 engine.gleam 是什么鬼"*；07:05 *"timeframe.gleam 定义
+   Timeframe type以及相关的fn，你那个是什么鬼东西"*
+3. 07:18 *"glibe本来就是抄作业，抄glib的，仅仅要求将JS target改编成
+   erlang target，抄作业抄成这样也是没有谁了。好的没有抄，坏的都差不多
+   囊括了。不能单独看代码，那边的AI记录的东西跟他编写的代码经常脱节。
+   Gleam文档领先的TDD完全没有"*
+4. 07:20 *"当你着手去做timeframe模块时，你先把文档写好，然后就能发现，
+   你必须先定义好上游模块，这些空架子模块，gleam完全允许，所以这样
+   倒推正推都能把缺口补齐，设计搞对"*；07:21 *"先做空架子，type关系
+   定义好，然后就能发现缺少什么type的模块和函数了"* /
+   *"gleam build会告诉你缺少什么"*
+5. 07:25 *"等你倒追查出你需要Desk模块的时候就完全对了。也就是说你倒推出
+   timeframe >> instrument >> broker >> desk 整个链条，以及各自需要提供
+   的funtions服务"*
+6. 07:29 *"Desk就是中心控制室，所有的声控app，web或者桌面端，以及分析
+   决策等等type都会从这里直接或者逐层展开出来。但是你要一下子设计对
+   很难，可是你写好空架子，就理顺了所有关系，连一行真正干活的代码都
+   不用写，系统就完全设计对了。这才是 gleam document leading TDD"*
+7. 07:32 *"Desk 从type上面来看，也可以说是 top type，也可以说是根，随便
+   怎么理解，但是他上面不再有东西，这是设计要求，没有其他原因。你系统
+   一定要有一个顶部的东西的"*
+8. 07:35 *"这个skill慢慢随着开发完善，不要去一次写好，那是瞎编"*；
+   07:39 *"最初的空架子，unit test 跟对应的 type fn 也都一样是空的，
+   仅仅要求将 in out types 搞对；这一步gleam test or gleam build就已经
+   能发现设计问题"*
+
+- **裁定：glibe = 抄 glib 的作业 + 唯一改编 JS target → Erlang target
+  + owner 裁定修正。不另造设计。** 抄之前必须**文档与实现对照**：glib
+  文档是那边的 AI 记的，常与它写的代码脱节；抄的是 owner 的要求，不是
+  抄没落实的代码（`timeframe-cleanup-audit-2026-10-28.md:665-671` 要求
+  settled 进 field，`timeframe.gleam:630` 仍当参数传 —— 抄前者）。
+  glib 完全没有 doc-first TDD，这一条不能一起抄。
+- **模块归属**：`timeframe.gleam` = `Timeframe` type + 全部相关 fn，与
+  `glib/src/glib/timeframe.gleam:32-35` 一致（行号回读 glib 源码后改正）。
+  `engine.gleam` 是 AI 造的
+  机制型模块（生产代码无人 import，其 `:19-21` 自己承认拆分的
+  import-cycle 理由不成立），**删除**；
+  `scripts/no_timeframe_mixture.sh` 是用 grep 把错误划分钉成门禁的
+  守卫，**删除**（core §5 官方反模式 *"Do not fragment modules"*）。
+- **空架子即设计**：写好 `////` / `///`、把 type 关系与签名的
+  **in / out types** 对齐，`gleam build` / `gleam test` 就能照出缺口；
+  此时**一行干活的代码都不用写**。倒推 upstream → 正推回 timeframe →
+  一路到 `Desk`，每层补齐它该提供的 read / write 服务。连最初的
+  unit test 也是空的，只要求 in/out types 对。
+- **`Desk` 是 top type / 根 / 中心控制室，上面不再有东西**——设计要求
+  本身，无其他原因；所有声控 app / web / 桌面端 / 分析决策 type 从它
+  直接或逐层展开。倒推查出的真缺口是它的 **WRITE 半边**。
+- 制作顺序（R19 严格执行）：文档 → 空架子 → build/test 暴露设计问题
+  → 写断言 → 逐个填 body 到 GREEN。skill
+  `gleam-document-led-tdd`（用户级）**随开发增量完善**，只写已实测
+  的段落，不预写未发生的轮次。
+
+- **本轮实测（file:line / exit code）**：
+  - 架子阶段 `gleam build` **exit 1**：4 个 `Unknown record field`
+    (`manual_enter` / `manual_exit`)，全在 `engine.gleam:222-228`；
+    编译器同时列出新 `Timeframe` 的 11 个字段。架子本身只有 todo /
+    unused-arg warning。
+  - 写 `////` 倒推发现的上游缺口：`sourcebar.to_databar` 不存在（错放
+    为 `databar.of_sourcebar`，旁边还有 `fold_sourcebar` 桶）；
+    `indicator` / `leaf` / `branch` / `trading/strategy` /
+    `trading/signal` 五个模块 `////` 数为 0；`desk.gleam` 只有只读
+    `timeframe_under`，没有回写服务。
+  - 归位后 `gleam build` **exit 0**，此时**零行新实现**（新函数仍全是
+    `todo`）。
+  - RED：`gleam test` = **64 passed / 19 failures**，每个失败都是带
+    file:line 的 `todo`。GREEN：**83 passed, no failures**，
+    `gleam build --warnings-as-errors` = 0。
+  - 全门禁：format check 0；guards 0（`test_guards.sh` 7 → 4 case，
+    删掉的是错误守卫的 case）；根包 / webclient / 两 probe 的 docs
+    全 0；`parallel-bars` 4 passed、`timeframe-pipeline` 11 passed；
+    核心镜像 `cmp` = 0；`package-interface.json` 9 个模块的 `////`
+    完整渲染，`glibe/engine` 已不在接口里。
+
+- **产品代码落地**（R39 / R40 / R41 不再是「等一句话」）：
+  - `timeframe.gleam`：`sourcebar_gate(tf, interval_key, incoming) ->
+    Result(Timeframe, SourceBarRejection)`；`databar_processing(tf)`
+    主体 = `tf |> indicator |> leaves |> branches |> strategy |>
+    working_databar_archived`，五步全是 `fn(Timeframe) -> Timeframe`；
+    另有 `bars_listed`。删 `manual_enter` / `manual_exit`，加
+    `yin_leaf_settled` / `yang_leaf_settled`。
+  - `databar.gleam` 删 `of_sourcebar` / `fold_sourcebar`，只剩 type；
+    `sourcebar.gleam` 拿回 `to_databar`（source 的法律），
+    `sourcebar → databar` 单向 import，环消失。
+  - `desk.gleam` 新增 `put_timeframe_under`（read 半边的对称 write）。
+  - `monitor.gleam` 仅两行调用点适配（R33 历史代码、处置待 owner
+    不变）；两个旧 monitor 测试按 R39 改断言：未闭合 bar 被忽略，
+    不再开桶。
+  - 决策区仍 **0 项**；**未 push**。
+
+## R43 — 空架子让「如是我闻」成为「信受奉行」；反复推敲是核验架子，不是测试互相推翻（2026-11-12 07:51 owner 指示）
+
+**owner 逐字（07:51，两条连发）**：
+
+> *"等你用空架子去落实我的那些设计思路，也就是glib仅写如是我闻，
+> 没有信受奉行的部分，你会发现不需要动脑筋去构造实际代码，就已经把
+> 系统设计清晰完整的呈现出来，作为AI的智商，也能非常容易理解，
+> 这时候所有的如是我闻就成了信受奉行了。所以反复推敲是指反复对照
+> 我的设计结合你的思考去推敲现有的空架子搭建的是否正确，包括用词
+> 是否准确，是否有自己瞎编的东西。这时候因为没有写实代码，整个系统
+> 非常轻灵，你能一下子看完记住，并且容易思考，因为一下子都在你的
+> token限量范围内载入完成了，不会挂一漏万。整体架构对了，再去逐个
+> 落实代码，很快就都做对了。"*
+>
+> *"这样做的原因是，我早已把整个系统设计成熟了。否则你不容易这样做。"*
+
+**裁定**：
+
+- **空架子的作用对象是 glib 的「如是我闻」**：那边只把 owner 的设计
+  记进文档（如是我闻），没有落实到代码（信受奉行）。用空架子去落实
+  这些设计 —— 写 `////` / `///`、type 关系、in/out types、签名 ——
+  **不需要构造任何实际代码**，系统就被清晰完整地呈现出来，AI 也容易
+  理解；此刻「如是我闻」即成「信受奉行」。R42 的「抄要求，不抄没落实
+  的代码」在此有了具体做法：抄的对象是设计要求，落实的方式是空架子。
+- **「反复推敲」的准确含义（纠正 04-13 与 skill 里的写法）**：是
+  **反复对照 owner 的设计、结合自己的思考，去核验现有空架子搭得对不对**，
+  判据包括 **用词是否准确**、**有没有自己瞎编的东西**。它不是「写一个
+  test 拉出若干部件、下一个 test 推翻前一个」那种流程描述 —— 后者是
+  我在用户级 skill `gleam-document-led-tdd` 的待补条目里对 07:45 指示
+  的**误读**，已按本条更正（删去预写的流程，只留 owner 定义与已实测
+  事实）。07:45 说的「会推翻之前的东西」是可能的结果，不是推敲的定义。
+- **为什么这样有效**：没有实代码，系统非常轻灵，可以一次看完、一次
+  记住、容易思考；**整个架子一次性落在 token 限量内载入完成，不会
+  挂一漏万**。整体架构对了，再逐个落实代码，很快就都做对。
+- **前提（不可外推）**：*"我早已把整个系统设计成熟了。否则你不容易
+  这样做。"* 这套做法成立是因为设计已经成熟、glibe 是抄作业；它**不是**
+  从零发明设计的通用方法论。空架子的推敲是「对照一个已存在的正确
+  设计」，不是「用架子试探出设计」。
+
+**本轮实测（R43 判据的第一次应用，如实标注性质）**：
+
+- 这是**写完实现之后**对 04-13 的 `////` / `///` 文档做的**追溯核验**，
+  **不是**空架子阶段的推敲；后者尚未实测，仍留待下轮。
+- 核验方式是逐条回 glib 源码/文档对照用词与行号，结论：
+  - 有出处、**不是瞎编**：`bars_listed`（`glib/src/glib/timeframe.gleam:827`）、
+    `sourcebar.to_databar`（`glib/src/glib/sourcebar.gleam:428`，且其
+    `timeframe.gleam:25` 明写 "the **source's** law, not the bar's"）、
+    `UC-62`（`glib/src/glib/timeframe.gleam:710/:767/:776`）、
+    `:665-671`（`glib/docs/reference/timeframe-cleanup-audit-2026-10-28.md`
+    §7.2.1 流程 1–6，含 "`tf |> leaves |> branches |> strategy`"）、
+    `:312-315`（`glib/docs/reference/timeframe-settled-leaf-2026-10-28.md`
+    "finally it becomes pipeline of timeframe"）、`:630` 处 `branches` 仍带
+    两个 settled 参数（文档要求与代码实况的偏离属实）。
+  - **用词/引用不准，已改正**：*"What stays is what names the record"*
+    在 `glib/src/glib/timeframe.gleam:32-35`，04-13 的
+    `src/glibe/timeframe.gleam`、`docs/RULINGS.md` R42、
+    `.planning/phases/04-domain-cleanup/04-13-PLAN.md` §2/§5、
+    `.workbuddy/memory/MEMORY.md` R42 原先都误标为 `:28-31`（那三行是
+    表格里的 `branch_json` / `recognised_this_bar` / `export_accumulate`）。
+    另 `:23-25` 过宽（含 `indicator` 行），收紧为 `:25`。
+  - 核验时 `04-13-PLAN.md` §3 写的是 `databar.of_sourcebar(...)`，那是本轮
+    **已删除**的旧名；已改为产品代码实际使用的 `sourcebar.to_databar`。
+- 决策区仍 **0 项**；**未 push**。

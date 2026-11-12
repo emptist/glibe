@@ -246,7 +246,7 @@ sections are kept as history, not as the current answer.
   `advance(desk, incoming) -> Result(Desk, MonitorError)`. One bar advances
   exactly one `Timeframe`; no fan-out to all intervals.
 - `SourceBarRejection` closed set replaces five `Error("…")` arms in
-  `sourcebar.validate`; `engine.sourcebar_gate` propagates it.
+  `sourcebar.validate`; `timeframe.sourcebar_gate` propagates it.
   `binance.fetch_klines` now takes `Symbol`, not `String` (R22); its return
   type is unchanged and no provider↔broker relation was invented (R26).
 - Six new tests in `test/monitor_test.gleam`: addressed timeframe advances,
@@ -355,7 +355,7 @@ speculative relations. Full text: `docs/RULINGS.md` R26.
 | ownership | `Desk ▸ Broker ▸ Instrument ▸ Interval ▸ Timeframe`, **one** dictionary on `Instrument` | `src/glibe/desk.gleam` (R23) |
 | `Timeframe` | carries `settings`; **no** `symbol` / `interval` / `market_type` | `src/glibe/timeframe.gleam` (R23) |
 | config | `AppConfig` holds a typed `Desk`; the two `List(#(String, …))` tables, `"BTCUSDT_H1"` and both `list.find` accessors are **gone** | `src/glibe/config.gleam` (R23) |
-| engine | `sourcebar_gate(tf, interval, bar)`; `databar_processing(tf, bar)` reads `tf.settings` | `src/glibe/engine.gleam` (R23) |
+| `Timeframe` pipeline | `sourcebar_gate(tf, interval_key, bar) -> Result(Timeframe, SourceBarRejection)`; `databar_processing(tf)` = `tf |> indicator |> leaves |> branches |> strategy |> working_databar_archived` | `src/glibe/timeframe.gleam` (R39/R40/R41/R42) |
 | open owner rulings | **0** | `docs/RULINGS.md` R22–R25 closed all four |
 
 **Owner's direction this day:** a name is not the thing; wrong things are
