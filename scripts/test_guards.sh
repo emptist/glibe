@@ -7,15 +7,20 @@
 # expected red/green result is asserted here. No broken code ever lives in the
 # repository, not even for a moment.
 #
-# The guard scripts derive ROOT from their own location, so copying them into a
-# fixture tree makes them inspect that tree. No guard needs a test-only branch.
+# 04-13: `no_timeframe_mixture.sh` and its three cases are GONE. That guard
+# used grep to enforce an AI-invented split (`engine.gleam` holding every
+# Timeframe transition, `timeframe.gleam` allowed only `new`). Owner 07:05:
+# "timeframe.gleam 定义 Timeframe type以及相关的fn". A guard that polices a
+# module boundary is evidence the boundary was never expressed in the design;
+# it is deleted, not replaced. `gleam build --warnings-as-errors` and
+# `gleam test` remain the GREEN gate.
 set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TMP="$(mktemp -d /tmp/glibe_guard_fixture.XXXXXX)"
 trap 'case "$TMP" in /tmp/glibe_guard_fixture.*) rm -rf -- "$TMP";; esac' EXIT
 
 mkdir -p "$TMP/scripts"
-cp "$ROOT/scripts/no_foreign_source.sh" "$ROOT/scripts/no_timeframe_mixture.sh" "$TMP/scripts/"
+cp "$ROOT/scripts/no_foreign_source.sh" "$TMP/scripts/"
 
 reset_fixture() {
   rm -rf -- "$TMP/src" "$TMP/gleam.toml"
@@ -57,10 +62,9 @@ expect_fail() {
   echo "  ok    $label"
 }
 
-# --- positive controls ----------------------------------------------------
+# --- positive control -----------------------------------------------------
 reset_fixture
 expect_pass "clean tree — no_foreign_source" no_foreign_source.sh
-expect_pass "clean tree — no_timeframe_mixture" no_timeframe_mixture.sh
 
 # --- no_foreign_source.sh -------------------------------------------------
 reset_fixture
@@ -75,13 +79,4 @@ reset_fixture
 printf 'target = "javascript"\n' >> "$TMP/gleam.toml"
 expect_fail "gleam.toml declaring the javascript target" no_foreign_source.sh "declares the javascript target"
 
-# --- no_timeframe_mixture.sh ----------------------------------------------
-reset_fixture
-printf 'pub fn extra() -> Nil { Nil }\n' >> "$TMP/src/glibe/timeframe.gleam"
-expect_fail "timeframe.gleam gaining a second function" no_timeframe_mixture.sh "holds functions that belong"
-
-reset_fixture
-printf 'pub type Timeframe { Timeframe(y: Int) }\n' > "$TMP/src/glibe/engine.gleam"
-expect_fail "a second module declaring pub type Timeframe" no_timeframe_mixture.sh "declared in more than one place"
-
-echo "test_guards: 7 cases passed — fixtures only, real src/ untouched"
+echo "test_guards: 4 cases passed — fixtures only, real src/ untouched"
