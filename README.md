@@ -3,6 +3,8 @@
 Erlang-target Gleam. This branch is `doc-tdd`: a **framework rebuild in
 types**, not a working system yet.
 
+**Starting a new session? Read `docs/HANDOFF.md` first.**
+
 The design lives in the code's own `////` module docs and `///` item docs —
 not in prose documents. Every function body is `todo as "..."`.
 

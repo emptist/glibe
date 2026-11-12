@@ -2,204 +2,116 @@
 
 ## Authority & identity
 **Owner's current statement > spec > legacy code > my inference.** I am
-space-bunny; user is emptist. `glib/docs/` = hy4's AI prose (different model,
-banned from glib): never adopt its first person or generic "gate"/"ladder"
+space-bunny; user is emptist. `glib/docs/` = hy4's AI prose (a different
+model, banned from glib): never adopt its first person or "gate"/"ladder"
 vocabulary. Owner's words: `sourcebar_gate`, **price checker**, **risk
-manager**. **glib docs are NOT evidence of glib code** (R38): compare docs
-against code; take only implementations fitting current rulings. glib is not
-authority. AI's own recorded ruling is not owner vocabulary either (R46).
+manager**. glib docs are NOT evidence of glib code (R38). **AI's own recorded
+ruling is not owner vocabulary** (R46 / R49).
 
 ## Direction
 - *"glibe is the future, pure erlang target is the future"*, *"BEAM is great"*;
-  no handwritten Erlang/JS sources → `src/` Gleam only; root target erlang,
-  `webclient/` the only JS package (R16–R18). **Concurrency = Erlang/BEAM
-  only**; never a JS-target/promise analogy. Web frontend for human eyes.
+  `src/` Gleam only, root target erlang, `webclient/` the only JS package
+  (R16–R18). **Concurrency = BEAM only.** Web frontend for human eyes.
 - **Root law: use a type whenever a type is needed in nature** — no universal
   `String` + parser + `panic` + sh/grep guard to repair it.
-- glibe does not wait on glib: take owner rulings + glib's good code directly.
+- 「简单是正确的验证码」: complexity means definitions are wrong; fix them,
+  add no mechanism.
 
 ## Process (R19, mandatory)
-Load `gleam-language` skill, read `references/gleam-core.md` **IN FULL** before
-any Gleam judgement; `docs/gleam-thinking-core-to-memory.md` is its byte-equal
-mirror (keep `cmp`-equal). **One module file, whole process**: ① `////` module
-doc naming the `.planning` item + `///` on every item → ② empty skeleton
-(types/functions only if needed, `todo as "…"`, no real body) → ③ unit tests
-hold the design goal → ④ fill bodies step by step to green.
-`gleam build --warnings-as-errors` is a **FIXED gate from the first skeleton**
-(R48), never classify a warning class as "expected shape". `gleam docs build` → `package-interface.json` is the
-anti-drift check (**a `////` block broken by `//` truncates it**). Retrofitting
-docs/tests onto existing code is NOT this process — label it retrofit.
-`docs/` = 「差生补课笔记」, not assets: never create prose docs to record
-concepts. **Never write a ruling into `////`/`///` until the code matches**.
+Load `gleam-language` skill + read `references/gleam-core.md` **IN FULL**
+before any Gleam judgement; `docs/gleam-thinking-core-to-memory.md` is its
+byte-equal mirror (keep `cmp`-equal). One module, whole process:
+① `////` naming the `.planning` item + `///` on every item →
+② empty skeleton (`todo as "…"`) → ③ unit tests hold the design goal →
+④ fill bodies to green.
+`gleam build --warnings-as-errors` is a **FIXED gate from the first
+skeleton** (R48); never exempt a warning class. `gleam docs build` →
+`package-interface.json` is the anti-drift check (a `////` block broken by
+`//` truncates it). Retrofitting docs/tests ≠ this process.
+`docs/` = 差生补课笔记, not assets; never write prose docs to record
+concepts. **Never write a ruling into `////`/`///` until the code matches.**
+R47: every `////`/`///` must translate to 「谁读/写哪个具体值」; no
+self-exemption wording. **R50 extends this to the whole file: one file must
+translate to ONE ownership relation.**
 
-## Rulings R12–R49 (full text: `docs/RULINGS.md`)
+## Rulings index (full text: `docs/RULINGS.md`)
 R12 `1e-6·bb_m` floor · R13 closed sets are types · R14 `src/` Gleam only ·
-R15 IB = historic stocks/ETFs · R16–R18 JS scope · R19 process above.
-**R20** `Desk ▸ Broker ▸ Instrument ▸ Timeframe`, dashboard = VIEW.
-**R21** full constructor names (`IntervalOneDay`); `H4`/`"1h"` only in
-codec/adapter; R25 `TPlus1`/`CPU` are terms.
-**R22** `Symbol` is a name, never `Instrument`. **R23** interval lives in the
-KEY; no composite keys, second dict or `list.find`. ⚠ R23 §3's "keep
-`TimeframeSettings` as a parameter block" is **struck by R46**.
-R24 Mist+Wisp = AI demo · R26 Asset/Exchange/Market open, add types one at
-a time. **R27** `SourceBar.timestamp` = `gleam_time.Timestamp` (unix).
-**R28** provider native shapes (`Kline`, all wire fields) + own
-`to_sourcebar`; standard layer is the only union point. **R29** `bucket_ends`
-= UTC unix-second grid; US 09:30 + DST = market-calendar debt → `tzif` when
-a US-equity consumer exists. **R30** web local wall clock = **output-side**
-projection; R29 = **input-side** calendar; never merge; CSV stays UTC RFC3339.
-R31 BEAM language facts ≠ this system · R32 garden = add one field by real
-ownership.
-**R33 (paradigm)** system **is already live**: `api provider / data sources →
-history + live data → sourcebar_gate → databar_processing → model ↔ view`;
-history+live = ONE stream; pure value recompute — no actor/scheduler/clock/
-poll/heartbeat; `Desk` is the ONE top-level Value; no data → sleeps and waits.
-`monitor.advance`/`TimeframeAddress`/`IncomingBar`/`MonitorError` are
-historical only; 「叶子」 = `YinLeaf`/`YangLeaf`.
-**R34** seib = **CoffeeScript, owner's own design**, structure RIGHT, only
-missing the multi-provider layer (already here). ibOptions = Python+pandas
-workaround, 五脏俱全但都不对劲: structural relations flattened into settings;
-requirements list only. **R35** SwiftUI similarity ONLY in View
-definition/implementation; concurrency → official docs + demo = TDD.
-**「简单是正确的验证码」** — complexity means definitions are wrong; fix them,
-add no mechanism. **R36** Market/Broker not subordinate either way → no gap.
-**R37** a main-chain level needs TWO ownership relations (up+down); others
-attach or → `Desk`. **Identity lives in the holder's Dict key**:
-`interval` is not a `Timeframe` field, `brokerId` not a `Broker` field —
-*"你的左手不知道他是左还是右"*.
-**R38** **the stream has no rewind** (*"长江万里哪有倒退重来的道理"*): no
-`replay`, no "replay CLI"; names must name real things. One arriving bar =
-call the pair in order → **no third function**.
-**R39** qualified `SourceBar` → `working_databar` → **all** computation/
-processing/decisions happen **in that working databar** →
-`working_databar_archived` → `databar_list`. One straight line, **no side
-doors**; any step passing the bar as an argument has drifted.
-`sourcebar.to_databar` (one bar born whole); `working_databar_archived(tf)`
-takes no bar; `bars_listed` not `bars_accepted`.
-**R40 / R40-A** `databar_processing` body = `timeframe |> f1 |> f2 ... |>
-fN`, infinitely extensible; every step `fn(Timeframe, ...extra) -> Timeframe`
-(ANY number of extra args, subject FIRST and returned); no step passes the bar.
-Official tour "Pipelines": `rocket |> launch(1, 2)` = `launch(rocket, 1, 2)`;
-bare name = one-arg call; `f(1, _)` capture moves the piped value later.
-Measured green in `probes/timeframe-pipeline/` (11 tests, RED→GREEN twice).
-Gleam refuses only a step RETURNING `#(Timeframe, a)`; parameter count is
-never a restriction — a fact reaching a later step belongs in a FIELD.
-**R41** `|>` is a SHAPE constraint, not formatting (owner: AI invents
-parameter order / return types). Four throwaway packages
-`/tmp/gleam_shape_negative`: control 0, wrong first arg 1, wrong return 1,
-same invented signatures as ordinary calls 0.
-**R42** glibe = 抄 glib 作业 + JS→Erlang 改编 + owner 裁定修正, **不另造设计**；
-`timeframe.gleam` = `Timeframe` type + 全部相关 fn (glib `:32-35`)；
-**`engine.gleam` 删除**；`no_timeframe_mixture.sh` 删除。**空架子即设计**：
-`////`/`///` + type 关系 + 签名 in/out 对齐，`gleam build` 就照出缺口，
-**一行干活代码都不用写**；倒推 upstream → 正推回 timeframe → 一路到
-`Desk`；连最初 unit test 也是空的。`Desk` = top type / 根 / 中心控制室，
-**上面不再有东西**。倒推查出的真缺口 = WRITE 半边 `put_timeframe_under`。
-**R43** 空架子把 glib 只「如是我闻」的设计变成「信受奉行」。
-**「反复推敲」= 反复对照 owner 设计核验空架子，判据：用词是否准确、
-有无自己瞎编的东西**；**不是**测试之间互相推翻。理由：无实代码 → 系统
-轻灵 → 一次载入 token 限量内；**前提**：*"我早已把整个系统设计成熟了"*。
-实测：引用/用词漂移能活过全绿 build 与 test，只有回读设计才能发现。
-**R44** `doc-tdd` 分支系统性重建：旧代码仅是历史遗迹
-(`deprecated/2026-11-12-pre-doc-tdd/`, 79 files)，只读、不作依据、不参与
-编译。**过去红绿数字无意义**；`gleam check`/`build` 是**设计探针报缺口**。
-**项目层不再有 guard sh**（CI 那行也删）：只认编译器自身命令 +
-`package-interface.json`；行为层（及时提交）靠纪律。实测 `gleam check`、
-`gleam export package-interface --out`、`gleam docs build`、
-`gleam format --check`。
-**R45** *「你的旧实现搞他干嘛」* / *「你现在把types搞清楚，其他的东西从我的
-用词当中去获取即可」*。清场后**不得翻 deprecated 当词库**；名字只从 owner
-逐字用词 + 裁定取，没命名的按 R26/R32 留空。⚠ 本条曾把 R23
-`TimeframeSettings` 列为「合法来源」，**已被 R46 推翻**。R43 判据含
-**引用是否真逐字**，不得把 AI 转述标成 `owner, verbatim`。
-**R46 (11-12 11:46)** `TimeframeSettings` 是 AI 造的，owner 不认识：
-*「我不知道是什么玩意」*、*「问题是他做什么，谁用他，为什么存在」*。
-⇒ 删除 `indicator_settings.gleam`、`Timeframe.settings` 字段、
-`timeframe.new` 及其空 test；不留占位参数包、不改名。参数随真实消费方
-按 R26/R32 一个一个落进真正拥有它的 type。**AI 记在 RULINGS 里的
-裁定不是词源**：owner 在 R23 里是**质问**这个名字，不是命名它。
-**R47 (11-12 12:03)** *「如果我不提出来，你能不能根据逻辑自己发现问题
-呢？」* / *「这是什么玩意你自己看得懂不？」*。⇒ **看不懂**：那句 `///`
-是 4 句否定 + 1 句作废断言 + 0 句事实；同模块 `////` 还写着「挂 `///`
-即合法骨架」「无行为是设计如此」两句**自我豁免**。判据早齐，缺的是
-**触发点**：前两轮只做词源审计、没做所指审计。写 `////`/`///` 后必须能
-译成「谁读 / 写哪个具体值」，译不出即瞎编；禁止免检措辞。R43 的
-「空架子轻灵」= 实现空、关系明确；空壳 = 关系本身为空，勿混。全绿
-编译连空洞文档也放过。**本轮仍是 owner 点出后的开卷自检，无提示
-自行发现尚未实测。**
-**R48 (11-12 12:27)** *「timeframe里面怎么可能有一个自己的settings？怎么
-可以讲得通？」* / *「把warnings当作奖励，也是AI特有的美德，所以你要用
-gleam warnings-as-error 这个开关」*。⇒ ① **关系讲不通**：R23 §1
-`:699-701` 的 AI 推理「一个 interval 一份 → 是 Timeframe 的字段」把
-key 里的事实塞回 value（R37 左手不知道左右）；R33 纯值不运行，参数属
-管道步骤（R40-A）或 Desk；R34/R32 一个设置 = 已有 type 的一个 field；
-R46 diff 证明是**名字倒逼出落脚处**。R23 §3 那句「Timeframe 持有
-settings」已划掉。② `--warnings-as-errors` **只在 `gleam build`**
-（逐个读 help 实测），`check`/`test`/`docs`/`format` 都没有；核心卡片
-§10/§13/§14 早写着它，CI 没挂、本地没跑过。当前骨架实跑 **exit 1 /
-`error: 85 warnings generated.`**（30 Todo + 52 unused arg + 3 private
-constructor）；已加进 CI。③ **作废免检牌**：R19「warnings 合法 / WAE
-只是 GREEN gate」、core §14 同句、skill 第 3/6 步「expected skeleton
-shape」全改；warning 不许按类别整包豁免，不许拿条数当奖励。④ `_a`
-是 **discard name**，body 不能引用（实测 `Found a discard name`），
-`add(_a: 1)` 语法错；按 hint 批量加 `_` 会把瞎编 type 唯一报警静音，
-**src/test 一行不改**。`docs/` 从不是词源，也**不是关系**的证据。
-**R49 (11-12 12:39)** *「为了这个毫无用处的field你确实编造了一个毫无用处
-的function叫做 new … gleam里面很少需要这个所谓的new，python之类语言的
-垃圾，几乎见到new的地方必定是bug存在的地方」*。⇒ R46 前
-`timeframe.new(settings)` 唯一工作就是收那个不存在的参数，删除清单里
-它和 field / import 一起消失，其余 8 签名 10 字段一字未动 ⇒ **无用
-field 与 `new` 互相指认**。裁定：Gleam 的值在拥有它的地方构造；出生
-函数若真有必要必须说出「哪一次出生」；**每个 `new` 先按 bug 查，无
-container 豁免**。改 core §3 示例 `pub fn new` → `clamp_positive`、
-§5 新增 No-new、`gleam-language/SKILL.md` 去豁免、镜像 cmp 一致。
-主动量现行树：`new` **零出现**、38 个 `pub fn` 无第二处；但抓到
-`config.gleam` 的 `////` 把 **AI 裁定正文**写成「R33 owner 逐字命名
-`default_config()`」（R33 四段逐字只命名 `Desk`，无任何函数名）——
-与 R47 的 `NoSuch*`/`idx` 同类假 verbatim，已改标词源；并把把函数称作
-"constructor" 的 Python 措辞改掉。**连带发现，非无提示自行发现**。
+R15 IB = historic stocks/ETFs · R16–18 JS scope · R19 process above ·
+**R20** `Desk ▸ Broker ▸ Instrument ▸ Timeframe`, dashboard = VIEW ·
+**R21** full constructor names; wire codes only in codec ·
+**R22** `Symbol` is a name, never `Instrument` ·
+**R23** interval lives in the KEY; no composite keys / second dict /
+`list.find` · R24 Mist+Wisp = AI demo · R25 `TPlus1`/`CPU` are terms ·
+R26 Asset/Exchange/Market open, add types one at a time ·
+**R27** `SourceBar.timestamp` = `gleam_time.Timestamp` ·
+**R28** provider native shapes (`Kline`) + own `to_sourcebar`; standard
+layer is the only union point · **R29** `bucket_ends` = UTC unix-second grid ·
+**R30** web wall clock = OUTPUT-side projection; CSV stays UTC ·
+R31 BEAM language facts ≠ this system · R32 add one field by real ownership ·
+**R33** system IS ALREADY LIVE: one stream, pure value recompute, no actor /
+scheduler / clock / poll; `Desk` is the ONE top-level Value ·
+**R34** seib = CoffeeScript, owner's own design, structure RIGHT; ibOptions
+= Python+pandas workaround, 五脏俱全但都不对劲 ·
+**R35** SwiftUI similarity ONLY in View definition ·
+**R36** Market/Broker not subordinate either way → no gap ·
+**R37** a chain level needs TWO ownership relations; **identity lives in the
+holder's Dict key**; *「你的左手不知道他是左还是右」* ·
+**R38** the stream has NO rewind; one arriving bar = call the pair in
+order, no third function · **R39** qualified `SourceBar` →
+`working_databar` → ALL computation in it → archived → `databar_list`;
+no side doors; `sourcebar.to_databar`, `bars_listed` not `bars_accepted` ·
+**R40/R40-A/R41** `databar_processing` = `timeframe |> f1 |> … |> fN`,
+each step `fn(Timeframe, ...extra) -> Timeframe`, subject FIRST and
+returned; `|>` is a SHAPE constraint ·
+**R42** glibe = 抄 glib 作业 + owner 裁定修正, 不另造设计;
+`timeframe.gleam` = `Timeframe` + 全部相关 fn; no `engine.gleam`;
+`Desk` = top/root, **上面不再有东西**; 空架子即设计, 连最初 unit test
+也是空的 · **R43** 「反复推敲」= 反复对照 owner 设计核验空架子
+（用词准确 / 有无瞎编）, 不是测试互相推翻; 全绿编译不检查名字出处 ·
+**R44** `doc-tdd` 系统性重建; 旧代码是历史遗迹, 红绿数字无意义;
+项目层无 guard sh, 只认编译器命令 + `package-interface.json` ·
+**R45** 清场后不得翻 deprecated 当词库; 名字只从 owner 逐字 + 裁定取 ·
+**R46** `TimeframeSettings` 是 AI 造的 → 删 module / field / `new` / test ·
+**R47** `////`/`///` 必须能译成谁读写哪个具体值; 禁止免检措辞;
+**无提示自行发现尚未实测** ·
+**R48** `--warnings-as-errors` 只在 `gleam build`; 固定门禁, 不许按类别
+豁免, 不许 `_` 批量静音; WAE 报的是逐条待实现清单 ·
+**R49** `new`/`create`/`make` 先按 bug 查, 无 container 豁免; 值在拥有
+它的地方构造; R33 逐字只命名 `Desk`, 没命名任何函数 ·
+**R50** 一个模块只读写它自己那一层**持有的** Dict（`Broker` 有两个）;
+**Desk 上面不再有 module** → 删 `config.gleam`; 恒为一个 Desk, 无
+`DeskId`; id types 集中成零 import 叶子; `timeframe_under` /
+`put_timeframe_under` / `LookupError` 删除; **R42「真缺口 = WRITE 半边」
+作废**; core §5 反的是按设计模式切, 不是按业务域归属切.
 
 ## Measured facts
 Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; no `T(..)`; `@external`
-may coexist with a Gleam body; `.abstr → .beam`. Mist 6.0.3 `mist.start`;
-`wisp.Text`; `wisp/simulate.request`; `gleam run -m <mod>` needs no root
-`main`. `package-interface.json`: `modules` is a **dict**, `documentation`
-a **list of lines** — join with `"\n"`. Tests: bool `assert … as "msg"`,
-`let assert`, never `panic`/`case Bool`.
+may coexist with a Gleam body; `.abstr → .beam`. **`pub opaque`
+constructor used from another module → `error: Use of private value`;
+mutual imports → `error: Import cycle`** (R50 probe). Mist 6.0.3
+`mist.start`; `wisp.Text`; `gleam run -m <mod>` needs no root `main`.
+`package-interface.json`: `modules` is a dict, `documentation` a list of
+lines. Tests: `assert … as "msg"`, `let assert`, never `panic`/`case Bool`.
 
 ## Conventions
 - **No bare `Qn` labels** — cite full path + section title.
-- Pending decisions **only** in `docs/PENDING_DECISIONS.md`: decisions FIRST,
-  rest under `# REFERENCE`; **no other document may reference it**.
+- Pending decisions **only** in `docs/PENDING_DECISIONS.md`: decisions
+  FIRST, rest under `# REFERENCE`; no other document may reference it.
 - **Owner 2026-11-09: ".gitignore 及时更新，及时做提交"** — ignore rules
   BEFORE artifacts; one logical concern per commit; **do not push unless
   asked**; never `rm -rf build`.
-- Toolchain: `export PATH="/opt/homebrew/bin:$PATH"`; BSD grep unreliable →
-  Grep tool/Python; capture exit codes.
-- **R44 起项目层没有 guard sh**。空架子阶段用 `gleam check` / `build` /
-  `format --check src test` / `docs build` /
-  `export package-interface --out` 当**设计探针**（报缺口不报分数）；
-  `gleam build --warnings-as-errors` **从空架子起就是固定门禁**（R48，
-  已进 CI）：骨架阶段必红，逐条读到行，不许整包豁免、不许用 `_` 洗信号；
-  只存在于 `gleam build`，`check` 顶替不了。
-  core mirror `cmp` 是 skill 与仓库镜像的字节一致性检查，不是门禁脚本。
+- Toolchain: `export PATH="/opt/homebrew/bin:$PATH"`; capture exit codes.
+- R44 起项目层没有 guard sh。设计探针: `gleam check` / `build` /
+  `format --check src test` / `docs build` / `export package-interface`.
+  `gleam build --warnings-as-errors` 从空架子起就是固定门禁（CI 已挂）:
+  骨架阶段必红, 逐条读到行, 不许整包豁免或 `_` 洗信号。
+  core mirror `cmp` 不是门禁脚本。
 
-## State (2026-11-12, doc-tdd)
-分支 **`doc-tdd`**（就地新建，未 push）；04-13 及以前的实现整体封存为历史
-遗迹。旧 README（464 行，教人跑已删的 guard sh）移入 `notes/`，根目录换成
-15 行索引；CI 删 `sh scripts/guards.sh --all`。
-**`src/` = 空架子、零行实代码**：`////` / `///` + type 关系 + 全标注签名，
-函数体全 `todo`；`test/glibe_test.gleam` 空 unit test 只固定 in/out types。
-`desk.gleam` 持整条链与 read/write 服务（不拆 broker/instrument 模块），
-`timeframe.gleam` 持直线与管道全部 fn（不设 engine / indicator / strategy
-模块），输出侧 view 边界写在 `desk.gleam` 的 `////`（不造 web/server）。
-设计探针：`gleam check` / `build` / `format --check` / `docs build` /
-`export package-interface --out` 均 exit 0，`////` 完整渲染。
-**R43 空架子阶段核验本轮首次实测**（05-01 §5）：删 1 个自造占位构造子、
-2 处假引用/假断言、5 个自造模块名，补 4 处出处；`Timeframe` 的 growing /
-settled 字段回查 R1/R2/R4 后确认是 owner 设计，**保留**。但同轮漏掉了
-`TimeframeSettings`（R46 补删）—— **全绿编译不检查名字的出处**。
-**仍留白（R26/R32）**：`DataBar` 计算字段、leaf/branch 内部字段、`Kline`
-线格式字段、`SourceBarRejection` 具体原因、`Account` 字段。
-**未收敛**：`gleam.toml` 旧依赖表、`webclient/` 旧实现。
-决策区 0；**未 push**；按逻辑原子提交，不 push。
+## State (2026-11-13, doc-tdd, 未 push)
+`src/` = **14 个模块空架子、零行实代码**; `test/` 9 个空 shape test。
+链按 R50 分层: `id`/`account`（零 import）→ `instrument` → `broker` →
+`desk`; `config.gleam` 已删。WAE 故意红（逐条待实现清单）。
+**仍留白（R26/R32）**: `DataBar` 计算字段、leaf/branch 内部字段、
+`Kline` 线格式字段、`SourceBarRejection` 具体原因、`Account` 字段。
+**未收敛**: `gleam.toml` 旧依赖表、`webclient/` 旧实现。
+决策区 **0 项**。
