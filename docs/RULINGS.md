@@ -722,8 +722,10 @@ interval does not"*。glibe 造出第二本字典 + 复合串表 + 两个查找�
   > *"用type解决type问题，不是绕圈子费力不讨好"* [user 2026-10-26]
 
 即：`interval` 只在 **key** 里，`Timeframe` 不自带；`symbol` 只在
-`Broker.instruments` 的 **key** 里，`Timeframe` 不自带；settings 随 engine 走。
-「被拥有者不指认拥有者」这句是 AI prose，此处只按 owner 上面的原话执行。
+`Broker.instruments` 的 **key** 里，`Timeframe` 不自带。
+「被拥有者不指认拥有者」与「settings 随 engine 走」**都是 AI prose**（后者
+出自 `glib/docs/DESIGN.md` §18.4，不是 owner 原话），此处只按 owner 上面的
+原话执行；**「settings 随 engine 走」已由 R46 整条作废**。
 
 ### 3. 裁定（验收标准，不留兼容层）
 
@@ -736,9 +738,14 @@ interval does not"*。glibe 造出第二本字典 + 复合串表 + 两个查找�
 - `config.gleam` 的 `symbols` 与 `timeframe_settings` 两张表删除；归属直接
   用类型值表达，不再有 `"BTCUSDT_H1"`、`list.find`、`get_symbol`、
   `config_get_tfs`。
-- `indicator_settings.TimeframeSettings` 保留为**值**（参数包），但明确写进
+- ~~`indicator_settings.TimeframeSettings` 保留为**值**（参数包），但明确写进
   模块文档：它不是实体、没有 id、没有自己的字典或配置表，唯一归宿是
-  `Timeframe.settings`。不改名、不新造名字 —— owner 没说过的名字就是发明。
+  `Timeframe.settings`。不改名、不新造名字 —— owner 没说过的名字就是发明。~~
+  **2026-11-12 11:46 由 R46 整条作废**：这一句自相矛盾 —— 一边说
+  「owner 没说过的名字就是发明」，一边留下一个 owner 从没说过、并且本条
+  开头正在**质问**的名字。owner 逐字：*"TimeframeSettings 是AI搞出来的
+  东西，我不知道是什么玩意"*。R23 上面其余各条（identity 在 key、无复合
+  串表、无第二本字典、无 `list.find`、删 `NoSuchSettings`）不受影响。
 - 落地计划：`.planning/phases/04-domain-cleanup/04-03-PLAN.md`。
 
 ---
@@ -2177,10 +2184,13 @@ function(...),所以你如果以为这是限定，那么就很难做，因为只
   等真实消费方出现再加一个 field，不猜名字。
 - **不等于「删掉所有没逐字出现过的词」**：Gleam 语法必需的结构名（类型
   容器名、codec 名、runner 入口）是结构 necessity，不是领域概念；
-  `docs/RULINGS.md` 里 owner 原话记录过的领域词（R1「four twins」、
+  `docs/RULINGS.md` 里 **owner 原话**记录过的领域词（R1「four twins」、
   R2 `YinBranch` / `YangBranch`、R4 `growing_yang_branch` /
-  `growing_yin_leaf`、R23 `TimeframeSettings`、R28 `Kline`）是合法来源，
-  与旧实现无关。
+  `growing_yin_leaf`、R28 `Kline`）是合法来源，与旧实现无关。
+  ~~R23 `TimeframeSettings`~~ **此项由 R46 删除**：R23 里 owner 是在
+  **质问**这个名字，不是命名它；把「裁定档案中出现过的字符串」当成
+  owner 用词，是本条最严重的误用。**合法词源只有 owner 逐字原话**，
+  裁定正文里 AI 自己写的名字不算。
 - **R43 判据在此落地**：核验「用词是否准确、有没有自己瞎编的东西」，
   包括**引用是否真的逐字** —— 不得把 AI 的转述标成 `owner, verbatim`。
   第一次空架子阶段核验的逐条记录见
@@ -2188,8 +2198,76 @@ function(...),所以你如果以为这是限定，那么就很难做，因为只
   构造子、两处假引用 / 假断言、五个自造模块名，补四处出处；
   **没有删掉任何 owner 命名的领域概念**（`Timeframe` 的 growing /
   settled 字段一度想删，回查 R1 / R2 / R4 后确认是设计，保留）。
+  **2026-11-12 11:46 更正（R46）**：这句只对当时查过的 8 项成立，
+  不是对全系统的结论；第 9 项 `TimeframeSettings` 是自造概念且被漏掉。
 
 **Landed in**：`src/glibe/` 12 个模块的 `////` / `///`；
 `.planning/phases/05-doc-tdd/05-01-PLAN.md` §4 / §5；
 `~/.workbuddy/skills/gleam-document-led-tdd/SKILL.md`。
+决策区仍 **0 项**；**未 push**。
+
+---
+
+## R46 — 一个 type 存在的理由只能是「他做什么、谁用他、为什么存在」；`TimeframeSettings` 整条作废（2026-11-12 11:46 owner 裁定）
+
+**owner 逐字（两条，同一轮）**：
+
+> *"TimeframeSettings 是AI搞出来的东西，我不知道是什么玩意"*
+
+> *"问题是他做什么，谁用他，为什么存在"*
+
+### 1. 三问实测（`doc-tdd` 上，删除前）
+
+- **他做什么**：`src/glibe/indicator_settings.gleam` 只有 1 个 type +
+  1 个**零字段**构造子 + **0 个 fn**，无行为、无数据。旧实现里它是
+  12 个数字（5 个 SMA 窗口、KDJ 3 参、`bb_multiplier`、
+  `sma_for_bbm`、`branch_exit_leaf_size`），来源是从 ibOptions 的
+  `settings*.py` 搬来的清单（R34），不是 glibe 领域里的东西。
+- **谁用他**：全仓库仅 3 处引用，且全是空架子的**类型标注** ——
+  `Timeframe.settings` 字段、`timeframe.new(settings)` 参数、
+  `test/glibe_test.gleam` 的一条空 shape test。**零真实消费方**：
+  `indicator` / `leaves` / `branches` / `strategy` 全为 `todo`，
+  `config.default_config()` 不接收它，`desk` 不为它提供任何 lookup。
+  R23 当年删掉的并行 settings 字典 + `config_get_tfs` 是它唯一真消费方。
+- **为什么存在**：**AI 把自己的裁定当成了 owner 的词**。R23（11-09）
+  owner 是**质问**：*"TimeframeSettings这是什么type？现实中存在这个type
+  吗？跟Timeframe什么关系？又是在绕圈子？"*；本档案 R23 §3 却写下
+  「保留为参数包，不改名」，且同一句紧接「owner 没说过的名字就是发明」
+  —— 自相矛盾。R45 今早进一步把「R23 `TimeframeSettings`」列成
+  「owner 原话记录过的领域词 / 合法来源」。**AI 散文 → 裁定档案 →
+  词源**，三跳之后一个被质问的名字被洗白成设计。
+
+### 2. 裁定
+
+- **删除，不是改名、不是留空壳**：`indicator_settings.gleam` 整个 module、
+  `Timeframe.settings` 字段、`timeframe.new`（其唯一存在理由就是收这个
+  参数）、对应空 unit test，一并删除；`desk.gleam` / `config.gleam` /
+  `test/glibe_test.gleam` 里相关说法同步改正。
+- **「参数包」「settings 类型」在本系统中没有位置**。R34：ibOptions 用
+  settings 文件解决结构问题是 Python+pandas 的局限，不是设计。某个计算
+  真需要参数时，按 **R26 / R32** 随真实消费方一个一个落进**真正拥有它
+  的 type 的 field**；现在填就是转录旧实现或瞎编。
+- **词源的边界收紧**：`docs/RULINGS.md` 里**只有 owner 逐字原话**是词源；
+  裁定正文中 AI 写下的名字、glib 的文档、AI 的转述、`.planning/` 下旧
+  AI 笔记、deprecated 里的旧实现，**都不是**。特别是 owner 在问句里
+  提到的名字，是**质问对象**，不是命名；AI 描述「旧代码里有个 X 要删」
+  时出现的 X 同理（`NoSuchSettings` 即此类，`desk.gleam` 曾把它误标成
+  owner 用词，同轮改正）。R45 那条「裁定记录过的领域词合法」按此读。
+  已知残留：`.planning/` 下 12 份旧笔记仍写着 `TimeframeSettings`，
+  因被本档案与 STATE 的历史段落引用而未移动，只作历史、不作词源。
+- **判据扩充（R43 / R45 的补充）**：核验空架子时，对每个 type 与 fn
+  逐条问 *「他做什么，谁用他，为什么存在」*，并且**出处必须能指到 owner
+  逐字原话**，不能指到自己写过的裁定行。引用/名字漂移能活过全绿
+  `gleam check` / `build` / `docs build`——编译器不检查名字的出处。
+- **R23 其余各条不受影响**：identity 在持有者 key、无复合串表、
+  无第二本字典、无 `list.find`、删 `NoSuchSettings` 依然有效；
+  作废的只是 §2 的「settings 随 engine 走」（AI prose）与 §3 的
+  「保留为参数包」。R45 中「第一次核验没有删掉任何 owner 命名的
+  领域概念」一句只在其查过的 8 项内成立，已加更正。
+
+**Landed in**：`src/glibe/timeframe.gleam`（`////` 写入本裁定、
+删字段 / 删 `new`）、`src/glibe/desk.gleam`、`src/glibe/config.gleam`、
+`test/glibe_test.gleam`、删除 `src/glibe/indicator_settings.gleam`、
+`.planning/phases/05-doc-tdd/05-01-PLAN.md` §1 / §3 / §4 / §5.1、
+`docs/STATE.md`、`docs/PENDING_DECISIONS.md`。
 决策区仍 **0 项**；**未 push**。

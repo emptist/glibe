@@ -12,10 +12,11 @@ sections are kept as history, not as the current answer.
 - **项目层没有 guard sh**，CI 也删掉了 `scripts/guards.sh --all`（R44）。
   项目层只保留 Gleam 编译器自己的命令；`package-interface.json` 是编译器
   的防漂移产物，不是脚本。行为纪律（及时提交）不靠脚本探测。
-- **当前 `src/` = 12 个模块、零行实代码**：`////` / `///`、type 关系、
+- **当前 `src/` = 11 个模块、零行实代码**：`////` / `///`、type 关系、
   全标注签名，函数体一律 `todo as "..."`。空 unit test 只固定 in / out
   types（R42 07:39）。`Desk` 是唯一顶层 Value；链的 read / write 服务
   集中在 `desk.gleam`；`timeframe.gleam` 持有直线与管道全部 fn。
+  **R46 删掉了第 12 个模块** `indicator_settings.gleam`。
 - **设计探针（报缺口，不报分数）**：`gleam check` exit 0、无设计缺口，
   输出仅 `Todo` / unused-arg / unused-private-constructor warning；
   `gleam build` / `gleam format --check src test` exit 0；
@@ -23,12 +24,18 @@ sections are kept as history, not as the current answer.
   12 个模块的 `////` 全部完整渲染、无 `//` 截断。
 - **R43 首次空架子阶段核验已实测**，逐条记录在
   `.planning/phases/05-doc-tdd/05-01-PLAN.md` §5；裁定见 R44 / R45。
-- **仍留白（R26 / R32，故意）**：`TimeframeSettings` 字段、`DataBar`
-  计算字段、leaf / branch 内部字段、`Kline` 线格式字段、
-  `SourceBarRejection` 的具体拒绝原因、`Account` 字段。
+  **11:46 第二轮（§5.1）**：owner 追问 *「他做什么，谁用他，为什么存在」*，
+  查出第一轮漏掉的 `TimeframeSettings` 是自造概念 —— 我曾在 R23 §3
+  把自己写的「保留为参数包」当词源，又在 R45 把它列为合法来源。
+  已按 **R46** 删除 module / field / `new` / 空 test；**词源收紧为 owner
+  逐字原话**，裁定正文里 AI 写的名字不算。全绿编译不检查名字出处。
+- **仍留白（R26 / R32，故意）**：`DataBar` 计算字段、leaf / branch
+  内部字段、`Kline` 线格式字段、`SourceBarRejection` 的具体拒绝原因、
+  `Account` 字段。settings **不是留白，是被否决的东西**（R46）。
 - **未收敛**：`gleam.toml` 依赖表仍是旧列表；`webclient/`（R16–R18
-  唯一 JS target 包）与 `README.md` 仍是旧实现。三者等各自消费方 /
-  框架定型后单独处理，本轮不动。
+  唯一 JS target 包）仍是旧实现。两者等各自消费方 / 框架定型后单独处理，
+  本轮不动。根目录 `README.md` 已换成 15 行索引（旧 464 行移入
+  `deprecated/2026-11-12-pre-doc-tdd/notes/`）。
 - 决策区仍 **0 项**；**未 push**。
 
 ## 2026-11-10 10:42 (04-10 — 裁定已落入代码；历史状态)
@@ -380,7 +387,7 @@ speculative relations. Full text: `docs/RULINGS.md` R26.
 | docs | **exit 0**; 6 touched modules carry the `04-03-PLAN` link; empty module docs **15 of 24** | `gleam docs build` + `package-interface.json` |
 | `Symbol` | an opaque **name** with a 2-function codec; no instrument fields | `src/glibe/api/symbol.gleam` (R22) |
 | ownership | `Desk ▸ Broker ▸ Instrument ▸ Interval ▸ Timeframe`, **one** dictionary on `Instrument` | `src/glibe/desk.gleam` (R23) |
-| `Timeframe` | carries `settings`; **no** `symbol` / `interval` / `market_type` | `src/glibe/timeframe.gleam` (R23) |
+| `Timeframe` | ~~carries `settings`~~ **R46 整条作废**；**no** `symbol` / `interval` / `market_type`，也没有 settings | `src/glibe/timeframe.gleam` (R23 / R46) |
 | config | `AppConfig` holds a typed `Desk`; the two `List(#(String, …))` tables, `"BTCUSDT_H1"` and both `list.find` accessors are **gone** | `src/glibe/config.gleam` (R23) |
 | `Timeframe` pipeline | `sourcebar_gate(tf, interval_key, bar) -> Result(Timeframe, SourceBarRejection)`; `databar_processing(tf)` = `tf |> indicator |> leaves |> branches |> strategy |> working_databar_archived` | `src/glibe/timeframe.gleam` (R39/R40/R41/R42) |
 | open owner rulings | **0** | `docs/RULINGS.md` R22–R25 closed all four |

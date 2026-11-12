@@ -21,7 +21,7 @@
 | 上一轮的问题 | 你的裁定 | 落地 |
 |---|---|---|
 | `Symbol` 与 `Instrument` 是否同一东西 / 要不要 `InstrumentId` | **`Symbol` 永不是 `Instrument`**；名字不是实体。不统一、不设别名、不建中间层 | `src/glibe/api/symbol.gleam` 重写；`= Instrument =` 那句与 9 个从未被读的字段整句删除（R22） |
-| `config.gleam` 两张复合字符串表按什么形状搬迁 / `TimeframeSettings` 是什么 | **彻底纠正，不绕圈子**。`TimeframeSettings` 不是实体，是 `Timeframe` 的参数块 | 两张表、`"BTCUSDT_H1"`、两个 `list.find` 访问器、第二本 settings 字典全部删除；`Timeframe` 不再自带 `symbol` / `interval` / `market_type`；`AppConfig` 直接持有 `Desk`（R23） |
+| `config.gleam` 两张复合字符串表按什么形状搬迁 / `TimeframeSettings` 是什么 | **彻底纠正，不绕圈子**。（11-12 11:46 更正：owner 逐字 *「TimeframeSettings 是AI搞出来的东西，我不知道是什么玩意」* —— 它不是参数块，是 AI 造的名字，见 **R46**） | 两张表、`"BTCUSDT_H1"`、两个 `list.find` 访问器、第二本 settings 字典全部删除；`Timeframe` 不再自带 `symbol` / `interval` / `market_type`；`AppConfig` 直接持有 `Desk`（R23）。**R46 追加**：`indicator_settings.gleam`、`Timeframe.settings`、`timeframe.new` 一并删除 |
 | web 层框架（Mist / Wisp / Lustre） | **由我写 demo 对比测试决定**，不是 owner 裁决项 | R24；三个 demo 已跑完，结论与实测数字在 `docs/DESIGN.md`、`04-04-SUMMARY.md` |
 | `TPlus1` / `TPlus2` 是否改名 | **保持原名**。行业公认术语不是线路码 | R25；R21 §3 的「等他一句话」关闭，不再追问 |
 
@@ -61,7 +61,7 @@
 | 主干判据 / 身份在 key | 构成主干某一层的 type 要有**上下两个隶属关系**；其他 type **依附但不隶属**（不插层）或谁也不依附 → 放 `Desk`；身份在持有者的 Dict key，不在被持有者身上（*"你的左手不知道他是左还是右"*），`interval` / `brokerId` 都不是 field | `docs/RULINGS.md` R37 |
 | 制作流程与 04-10 的如实定位 | 「概念 → type definition → unit test → implementation」**就是一个 module 文件的制作流程**：先写描述 → 空架子（没有实际东西）→ test（**设计目标在此**）→ 逐步实现；逐字全文 `docs/RULINGS.md` 文末同名段。**owner 11:05：04-10 没有照此走** —— 代码先有、文档与测试后补，是反向补课（"倒过来整…补充test充门面"），不得包装成流程示例。实际动作：判据写进 `////` / `///` → 不新增 type → `test/level_judgement_test.gleam`（RED 68/2）→ 填 `desk.timeframe_under` 纯读取（GREEN 70/0）；`package-interface.json` 已核对。今后新建 module 必须从描述开始。**owner 11:11：`docs/` 下大量文档是「差生补课笔记」，不是权威；流程做对，很多文档不需要；本轮不新建文档，概念进 `////` / `///`、test 定目标、实现最后**。不是待裁决项，边界不变 | `.planning/phases/04-domain-cleanup/04-10-PLAN.md`、`04-10-SUMMARY.md`、`docs/RULINGS.md` 文末执行注记 |
 | 名字与实体 | `Symbol` 是名字（key），`Instrument` 是被拥有的值；错了就整条改正，不留兼容层 | `docs/RULINGS.md` R22 |
-| 参数块与归属链 | `TimeframeSettings` 不是实体；`Instrument` 只有一本 `Dict(Interval, Timeframe)`；interval 只在 key 里；settings 随 engine 走 | `docs/RULINGS.md` R23 |
+| 归属链 | `Instrument` 只有一本 `Dict(Interval, Timeframe)`；interval 只在 key 里。**R46 作废**：`TimeframeSettings` 与「settings 随 engine 走」都是 AI 造的，不是 owner 设计 | `docs/RULINGS.md` R23 / R46 |
 | web 框架 | AI 写 demo 对比决定，不是 owner 裁决 | `docs/RULINGS.md` R24 |
 | 术语 vs 线路码 | CPU / T+1 / T+2 公认术语保留；`H4` / `M1` / `"1h"` 只在 codec/adapter | `docs/RULINGS.md` R25 |
 | 目录表与关系 | 只有 `Broker ▸ Instrument` 已确认；`Asset` / `Exchange` / `Market` 之间及与 `Instrument` 的关系**不定**，按需逐个加 type，不预先造一整套 | `docs/RULINGS.md` R26 |
