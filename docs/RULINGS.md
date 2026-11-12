@@ -2577,3 +2577,152 @@ skill `gleam-document-led-tdd`。
 **诚实标注**：本轮主动核验仍是在 owner 点出 `new` 之后启动的，查到的
 `config.gleam` 假归属属于**同链条上的连带发现**，不算「无提示自行发现」；
 后者**仍未实测**，不预写成功。决策区仍 **0 项**；**未 push**。
+
+---
+
+## R50 — 一个模块只读写它自己那一层；系统里永远只有一个 Desk（2026-11-12 深夜，owner 在 `src/glibe/desk.gleam` 留下的 12 条 `<{human: ...}>` review 评论）
+
+### 1. owner 逐字（按文件顺序）
+
+- 模块头：*"1) most of the code should not be here"*；
+  *"2) there will always be only one desk in the system"*。
+- `BrokerId` 上：*"try put all id types in one file/module, to avoid
+  circular, and to make it easier to check"*。
+- 九处 *"should be in its own file"*：`Account` / `Instrument` /
+  `Broker` 三个 type，`broker_id` / `account_id`，
+  `get_instrument` / `put_instrument` / `get_timeframe` / `put_timeframe`。
+- `timeframe_under` 上：*"what is this for? no fn definition unless it is
+  called somewhere; even if it is called, it should be defined in its
+  belonging to module"*。
+- `put_timeframe_under` 上：*"what? you ask a desk to do the things that
+  should be done by the instrument? are you mad?"*。
+- 追问：*"那些问题都很明显，我不说你自己看不出来混乱不堪的模块内容
+  吗？"*
+
+### 2. 裁定
+
+1. **归属规则**：一个模块只读写**它自己那一层持有的 Dict**；函数跟着
+   它读写的 Dict 的持有者走。`Broker` 按 R33 / R36 持有 `instruments`
+   和 `accounts` **两个** Dict，两者都属于这一层，不因此拆模块。
+   `get_account` / `put_account` owner 没有逐条点名，按同一条规则归
+   `broker.gleam`（它们读写 `Broker.accounts`）——**这是把 owner 的
+   规则再走一级，不是新造名字**。
+2. **Desk 恒为一个**：无 `DeskId`、无第二个 Desk、无 Desk 集合、
+   无 `AppConfig`；`config.default_config()` 是唯一出生点（R33 / R49）。
+3. **删除 `timeframe_under` 与 `put_timeframe_under`**。前者零调用方，
+   后者让根做叶子的活。**R42「倒推查出的真缺口 = WRITE 半边
+   `put_timeframe_under`」整句作废**：那不是缺口。R38「一条到来的
+   bar 按序调用 pair，没有第三个函数」本来就已经否掉它；每层调用
+   **自己**的 read / write pair。
+4. **所有 id 集中**到 `id.gleam`，且该模块**零 import**。
+   **`LookupError` 删除**（见下方 §6 自查）：它是横跨四层的错误联合
+   类型，`NoSuch*` 从来不是 owner 用词（R47），四个 `get_*` 改为
+   `Result(value, Nil)`。
+
+### 3. 两条编译器事实（`/tmp/glibe_split_probe`，Gleam 1.19.2 实测）
+
+| 探针 | 编译器原文 | 结论 |
+|---|---|---|
+| `opaque` 构造子在别的模块被调用 | `error: Use of private value` … *"does define `BrokerId`, but it is private and cannot be accessed by other modules"* | `broker_id` / `account_id` 必须与 id type **同模块** |
+| `a.gleam` ↔ `b.gleam` 互相 import | `error: Import cycle` … *"Gleam doesn't support dependency cycles like these, please break the cycle to continue."* | id 必须抽成**叶子**模块，否则 `desk ↔ broker` 成环 |
+
+所以 owner 那句 *"to avoid circular"* 不是偏好，是编译期硬约束。
+
+### 4. 为什么我没能自己看出来（诚实）
+
+`desk.gleam` 的 `////` 里我自己写着 `WRITES: Desk, Broker,
+Instrument, Account...`——**一个模块读写四个层级，这行字本身就是证据**，
+我写了却没拿它去量这个文件。R47 的判据只用在「单条 `///` 能否译成
+谁读写哪个具体值」，**没有用在「一个文件能否译成一条归属关系」**；
+R42 我又给自己写过「链的各级服务集中在 `desk.gleam`」并援引
+core §5 *"Do not fragment modules"* 当免检牌。该条官方反模式针对的是
+**按设计模式切**（controllers / services / types / utilities），
+不是按业务域归属切——属误读。
+**本轮仍是 owner 点出之后的开卷自检；「无提示自行发现」仍未实测，
+不预写成功。**
+
+### 5. 落地与实测
+
+`src/glibe/` 新增 `id.gleam`（2 type / 2 fn）、`account.gleam`（1 type）、
+`instrument.gleam`（1 type / 2 fn）、`broker.gleam`（1 type / 4 fn）；
+`desk.gleam` **233 行 → 56 行**（1 type / 2 fn），模块文档 62 → 35 行，
+其余裁定的出处移回本文件。`test/glibe_test.gleam` 把钉着被删函数的
+`desk_chain_shape_test` 换成 `chain_levels_shape_test` +
+`identity_shape_test`。仍是零行实代码。
+
+`gleam check` 0 · `gleam test` 0（9 passed）·
+`gleam format --check src test` 0 · `gleam docs build` 0 ·
+`gleam export package-interface --out` 0（14 模块 `////` 全渲染）·
+`gleam build --warnings-as-errors` **exit 1 / 73 warnings**
+（27 `Todo` + 43 `Unused function argument` + 3 `Unused private
+constructor`）。R49 时是 85（30 / 52 / 3）：拆分层少 2 个 Todo +
+9 个参数（删掉两个穿透函数），删 `config.gleam` 再少 1 个 Todo，
+**没有一条 warning 被 `_` 静音**。
+
+### 6. 二次自查（owner 追问：*"移出去的那些都放到那些模块了，
+### 自己多检查思考哦，不要又是一锅粥"*）
+
+**归属实测**（`package-interface.json` + import 图，单向无环）：
+
+| 模块 | 自己持有 | 读写的 Dict | import |
+|---|---|---|---|
+| `id.gleam` | `BrokerId` / `AccountId` + 两个边界构造 | 无 | **零** |
+| `account.gleam` | `Account` | 无 | **零** |
+| `instrument.gleam` | `Instrument` + `get/put_timeframe` | `Instrument.timeframes` | `api/interval`, `timeframe` |
+| `broker.gleam` | `Broker` + 四个 `get/put_*` | `instruments`, `accounts` | `account`, `api/symbol`, `id`, `instrument` |
+| `desk.gleam` | `Desk` + `get/put_broker` | `Desk.brokers` | `broker`, `id` |
+
+`config.gleam` 不在此表内 —— 见 §7，它已被删除。
+
+**自己查出并修掉两处**（owner 未点名）：
+
+1. **`LookupError` 不该存在**。第一遍拆分时把它塞进 `id.gleam`，
+   那是又一小锅粥：它不是 id type，却横跨四层；更要紧的是
+   `get_broker` 的返回类型允许返回 `NoSuchTimeframe(..)`——
+   **格式正确、语义荒唐、无人反对**（core §2.2）。R37 说调用者
+   本来就持有 key，错误里再带一次 key 是冗余；core §6「failure
+   has nothing to say → `Nil`」；项目里 `api/interval.from_string`
+   已是这个形状。⇒ 删除该 type，四个 `get_*` 改 `Result(v, Nil)`，
+   `id.gleam` 变回「只有 id types、零 import」。
+   **对照**：`SourceBarRejection` 是有具体原因的闭集错误，保留不动。
+2. **规则措辞不准**。R50 §2 原写「一个模块只读写**一个** Dict」，
+   但 `Broker` 按 R33 / R36 持有两个。改成「它自己那一层**持有的**
+   Dict」。规则本身没变，是措辞曾经把设计说窄了。
+
+复验：`check` 0 · `test` 9 passed（另删了 `config_shape_test`）·
+`format --check` 0 · `docs build` 0 · `package-interface` 0 ·
+**WAE 73（27 / 43 / 3）**。删掉一个 pub type 不改变 warning 数，
+少的那 1 条来自 `default_config()` 的 Todo —— 说明 WAE 报的是
+**还没写的函数体**，不是类型数量。
+
+### 7. `config.gleam` 整体删除（owner 追问 *"desk -> config? ????"*，
+### *"config 用来做什么的，你不知道？desk上面没有其他model你不知道？
+### 瞎编什么鬼？"*）
+
+**这是同一个错误换了个方向**。前六项我修的是「Desk 管了下面各层的
+活」，这一项是「有个 module 管在 Desk **上面**」：`config.gleam`
+`import glibe/desk`，`default_config() -> Desk`，自己没有 type、不读写
+任何 Dict —— 它就是 R23 已经否掉的 `AppConfig` 那类东西，只是没叫
+那个名字。R42 逐字 *"但是他上面不再有东西，这是设计要求"*；
+R50 逐字 *"there will always be only one desk in the system"*。
+只有一个 Value，就不需要一个「配置层」去生产它；R49 也说值在
+**拥有它的地方**构造，不另设出生函数。
+
+**我还编了一句关系**：`desk.gleam` 的 `////` 写着
+`config.default_config() returns that one Value` —— 让根去指认谁
+构造它，正是 R37「被持有者不指认持有者」的反面，也是 owner 那句
+`"desk -> config?"` 抓到的东西。同一句在 `id.gleam` 里也有一份。
+
+**处置**：`git rm src/glibe/config.gleam`；删
+`test/glibe_test.gleam` 的 `import glibe/config` 与
+`config_shape_test`（那是它唯一的「调用方」，还是一条空 shape
+test，与 R50 删掉的 `timeframe_under` 同形）；两句文档关系删除，
+改成「nothing sits above it to construct it」。**R49 里
+「`default_config()` 本身保留」这句作废**：它当年是裁定了词源，
+没有检查这个模块有没有存在理由。
+
+**依赖方向**：`config → desk` 是 import 方向，不是 `desk → config`。
+上一条回复我写「…→ `desk` → `config`，单向无环」时把**从叶子到根
+的组装顺序**写成了箭头，读起来像根依赖上层 —— 表述错误，已更正。
+
+决策区仍 **0 项**；**未 push**。

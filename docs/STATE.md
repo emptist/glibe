@@ -6,6 +6,19 @@ sections are kept as history, not as the current answer.
 
 ## 2026-11-12 (doc-tdd — 系统性重建；当前状态)
 
+- **R50（owner 在 `desk.gleam` 留 12 条 review 评论后追加两轮追问）= 当前结构**：
+  一个模块只读写它自己那一层**持有的** Dict；`desk.gleam` 233 → 56 行，
+  只留 `Desk` + `get/put_broker`。新增 `id`（零 import 叶子）、
+  `account`、`instrument`、`broker`；删 `timeframe_under` /
+  `put_timeframe_under` / `LookupError` / **`config.gleam`**。
+  **R42「Desk 上面不再有东西」也管模块，不只管 type**：唯一的一个
+  `Desk` 不需要配置层去生产它。依赖单向：
+  `id`/`account` → `instrument` → `broker` → `desk`，无环。
+  逐字原话与实测见 `docs/RULINGS.md` R50、05-01-PLAN §5.5。
+- **当前 `src/` = 14 个模块、零行实代码**；`test/` 9 个空 shape test。
+  门禁：`check` 0 · `test` 0 · `format --check` 0 · `docs build` 0 ·
+  `export package-interface` 0 · `build --warnings-as-errors` **故意红**
+  （骨架阶段逐条待实现清单，详见下条 R48）。
 - **分支 `doc-tdd`，不 push。** 旧 `src/` / `test/` / `scripts/` / `probes/`
   与补课笔记整体移入 `deprecated/2026-11-12-pre-doc-tdd/`（79 files）；
   它们只读，不是依据（R44 / R45）。旧红 / 绿数字不再衡量任何东西。
@@ -28,16 +41,18 @@ sections are kept as history, not as the current answer.
   `config.gleam` 把 AI 裁定正文写成「R33 owner 逐字命名 `default_config()`」
   —— R33 四段逐字原话只命名 `Desk`、无任何函数名，已如实改标词源；
   同时改掉把这个函数称作 "constructor" 的 Python 式措辞。
-- **当前 `src/` = 11 个模块、零行实代码**：`////` / `///`、type 关系、
-  全标注签名，函数体一律 `todo as "..."`。空 unit test 只固定 in / out
-  types（R42 07:39）。`Desk` 是唯一顶层 Value；链的 read / write 服务
-  集中在 `desk.gleam`；`timeframe.gleam` 持有直线与管道全部 fn。
-  **R46 删掉了第 12 个模块** `indicator_settings.gleam`。
+  **⚠ R50 已把整个 `config.gleam` 删除**，本条只记录当时的词源核验；
+  「`default_config()` 保留」那句作废。
+- **（R50 前，历史）`src/` 曾 = 11 个模块、零行实代码**：`////` / `///`、
+  type 关系、全标注签名，函数体一律 `todo as "..."`。空 unit test 只
+  固定 in / out types（R42 07:39）。当时链的 read / write 服务错误地
+  集中在 `desk.gleam`，已由 R50 分层；`timeframe.gleam` 仍持有直线与
+  管道全部 fn。R46 删掉了 `indicator_settings.gleam`。
 - **设计探针（报缺口，不报分数）**：`gleam check` exit 0、无设计缺口，
   输出仅 `Todo` / unused-arg / unused-private-constructor warning；
   `gleam build` / `gleam format --check src test` exit 0；
   `gleam docs build` exit 0；`gleam export package-interface --out` exit 0，
-  12 个模块的 `////` 全部完整渲染、无 `//` 截断。
+  当时 12 个模块的 `////` 全部完整渲染、无 `//` 截断（R50 后为 14 个）。
 - **R43 首次空架子阶段核验已实测**，逐条记录在
   `.planning/phases/05-doc-tdd/05-01-PLAN.md` §5；裁定见 R44 / R45。
   **11:46 第二轮（§5.1）**：owner 追问 *「他做什么，谁用他，为什么存在」*，

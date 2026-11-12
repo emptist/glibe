@@ -13,13 +13,16 @@
 //// R19 status: skeleton. No working line here.
 
 import gleeunit
+import glibe/account.{type Account}
 import glibe/api/interval.{type Interval}
 import glibe/api/sourcebar.{type SourceBar, type SourceBarRejection}
 import glibe/api/symbol.{type Symbol}
 import glibe/binance/kline.{type Kline}
-import glibe/config
+import glibe/broker.{type Broker}
 import glibe/databar.{type DataBar}
-import glibe/desk.{type BrokerId, type Desk, type LookupError}
+import glibe/desk.{type Desk}
+import glibe/id.{type AccountId, type BrokerId}
+import glibe/instrument.{type Instrument}
 import glibe/timeframe.{type Timeframe}
 
 pub fn main() {
@@ -74,20 +77,33 @@ pub fn bars_listed_shape_test() {
   Nil
 }
 
-/// R42 / R33: the whole chain is read down and written back as one Value,
-/// with the keys supplied by the caller.
-pub fn desk_chain_shape_test() {
-  let _read: fn(Desk, BrokerId, Symbol, Interval) ->
-    Result(Timeframe, LookupError) = desk.timeframe_under
-  let _write: fn(Desk, BrokerId, Symbol, Interval, Timeframe) ->
-    Result(Desk, LookupError) = desk.put_timeframe_under
+/// R42 / R50: EACH level owns the read / write pair of the ONE Dict it
+/// holds. A function that crosses from `Desk` straight down to `Timeframe`
+/// does not belong to any level, so it does not exist (R50 / R38).
+pub fn chain_levels_shape_test() {
+  let _desk_read: fn(Desk, BrokerId) -> Result(Broker, Nil) = desk.get_broker
+  let _desk_write: fn(Desk, BrokerId, Broker) -> Desk = desk.put_broker
+  let _broker_instrument_read: fn(Broker, Symbol) -> Result(Instrument, Nil) =
+    broker.get_instrument
+  let _broker_instrument_write: fn(Broker, Symbol, Instrument) -> Broker =
+    broker.put_instrument
+  let _broker_account_read: fn(Broker, AccountId) -> Result(Account, Nil) =
+    broker.get_account
+  let _broker_account_write: fn(Broker, AccountId, Account) -> Broker =
+    broker.put_account
+  let _instrument_read: fn(Instrument, Interval) -> Result(Timeframe, Nil) =
+    instrument.get_timeframe
+  let _instrument_write: fn(Instrument, Interval, Timeframe) -> Instrument =
+    instrument.put_timeframe
   Nil
 }
 
-/// R33: `default_config()` returns the ONE top-level Value, with nothing
-/// above it — not an `AppConfig`.
-pub fn config_shape_test() {
-  let _config: fn() -> Desk = config.default_config
+/// R50 / R13: the ONLY ways to build the two opaque keys live in the same
+/// module as the keys. Measured: an `opaque` constructor used from another
+/// module is `error: Use of private value`.
+pub fn identity_shape_test() {
+  let _broker_key: fn(String) -> BrokerId = id.broker_id
+  let _account_key: fn(String) -> AccountId = id.account_id
   Nil
 }
 
