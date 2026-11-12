@@ -2305,20 +2305,43 @@ purpose: a parameter block has no behaviour of its own"* —— 我亲手写下
   签名与 10 个字段一字未动**。不是「Timeframe 需要 settings」，是为
   了让那个名字有落脚处才往 Timeframe 塞 field —— 与 R32「真实事物
   → 倒推隶属 → 加 field」方向相反，是循环论证。
-- **`gleam check` 过关不需要编造消费方**（owner 推测「必然是编了什么
-  用他的 function」，实测否）。R46 前 9 个函数体全是 `todo`；
-  `new(settings)` 的参数从未被读，只产生 `Unused function argument`
-  **警告**；`pub type` 的字段是公开接口，编译器假定外部可能读，
-  「字段零读者」**不产生任何诊断**。当前骨架实测警告 = 30 `Todo`
-  + 52 `Unused function argument` + 3 `Unused private constructor`，
-  **0 条 field-never-read、0 error**：`DataBar` 的 8 个字段与
-  `Timeframe` 的 10 个字段此刻同样全无读者。core §1 保证的是
-  **inconsistencies**，不是 **meaning**；自洽的空壳恰好最不产生
-  inconsistency。core §2 第 2 问「错误但合式的值能否到达消费者」
-  在此是 **0 消费者**，连反对的机会都没有；`do_not` 的「别把值
-  停在 record 里两步后取」在此连「两步后」都没有。2026-10-26
-  已因「为管道造一个无不变式的 record」被抓过（core 表首行），
-  本次是同病复发。
+- **`gleam check` 确实报告了空用**（12:19 owner 追问后实测更正：
+  先前写的「过关不需要编造消费方」只说对一半，容易被读成「编译器
+  什么都没报」）。`timeframe.gleam` 的引用共三处：`import
+  glibe/indicator_settings.{type TimeframeSettings}`、`Timeframe.settings`
+  字段、`new(settings: TimeframeSettings)` 参数（另加 `//// READS` 里
+  一个名字，不参与编译）。把 R46 前三个文件临时恢复后实跑
+  `gleam check`：exit 0、822 行、0 error，`Checking glibe` 之后
+  第一条就是：
+
+  ```text
+  warning: Unused function argument
+     ┌─ src/glibe/timeframe.gleam:81:12
+  81 │ pub fn new(settings: TimeframeSettings) -> Timeframe {
+     │            ^^^^^^^^ This argument is never used
+  Hint: You can ignore it with an underscore: `_settings`.
+  ```
+
+  紧接 `:82:3` 一条 `Todo found`。全场 31 `Todo` + 53 `Unused
+  function argument` + 3 `Unused private constructor`。**import 行
+  没有 `Unused import`**（类型名确实出现在字段 / 参数标注里，算用上）；
+  `indicator_settings.gleam` **在整份日志里零行** —— `pub` 构造子
+  从未被构造也不报，那 3 条 private-constructor 来自 `Symbol` /
+  `BrokerId` / `AccountId` 的 `opaque` 封印。
+- **为什么报了却没发现**：骨架阶段所有 body 都是 `todo`，所以
+  53 条 unused argument 全属「预期形状」—— core §14 与 R42 流程
+  明写 *「todo / unused-argument warnings 是 expected skeleton
+  shape, not failures」*。`settings` 那条被归进噪声直接过滤，
+  连 `_settings` 这个 hint 都没照做。**不是编译器没报，是流程把
+  信号定义成可忽略。** 反向判据：每个 `todo` 函数都喊了，唯独
+  那个瞎编 type 一声不吭 —— **骨架里静默的模块比报警的模块更可疑**。
+- 其余机制不变：`pub type` 字段零读者不产生诊断；当前骨架
+  30 `Todo` + 52 `Unused function argument` + 3 `Unused private
+  constructor`、0 error，`DataBar` 8 字段与 `Timeframe` 10 字段
+  同样全无读者。core §1 保证 **inconsistencies** 不保证 **meaning**；
+  core §2 第 2 问在此是 **0 消费者**；`do_not`「别把值停在 record
+  里两步后取」连「两步后」都没有。2026-10-26 已因「为管道造一个
+  无不变式的 record」被抓过（core 表首行），本次是同病复发。
 - **推论（owner：*「无论采用什么手段都没办法让AI做一丁点有用的
   事情」*）**：在「AI 可现场发明概念」的前提下成立。R43 的前提与
   core *「让AI思考不现实 / Thinking is not my job」* 指向同一件事：
