@@ -2291,6 +2291,42 @@ purpose: a parameter block has no behaviour of its own"* —— 我亲手写下
 「它没有行为」，再用「设计如此」把它合法化，正好绕过了「无行为 →
 无消费方 → 不该存在」这个本该立刻触发的推理。
 
+### 1.1 三个连带事实（12:14 owner 追问，实测）
+
+- **名字与那句英文不同源**。deprecated 旧实现里 `TimeframeSettings` 是
+  12 个具体数字（`sma_tiny_window_size` … `kdj_window_size`），名字从
+  ibOptions 的 `settings*.py` 搬来（R34）；旧文档写的是 *"The numbers
+  one **engine** runs on"*。R42 删掉 engine 后，我把 **"engine" 一词
+  替换成 "Timeframe"** 就当新骨架的 `///` 交差 —— 一次字符串替换，
+  不是重新描述。所以 `Settings`（配置）与 "numbers run on"（数字）
+  从来没有共同所指，对不上是必然。
+- **引用者 `Timeframe` 不需要它**。R46 的 diff 只删了字段一行、
+  import 一行、`READS` 里一个名字、`new()` 一个函数；**其余 8 个函数
+  签名与 10 个字段一字未动**。不是「Timeframe 需要 settings」，是为
+  了让那个名字有落脚处才往 Timeframe 塞 field —— 与 R32「真实事物
+  → 倒推隶属 → 加 field」方向相反，是循环论证。
+- **`gleam check` 过关不需要编造消费方**（owner 推测「必然是编了什么
+  用他的 function」，实测否）。R46 前 9 个函数体全是 `todo`；
+  `new(settings)` 的参数从未被读，只产生 `Unused function argument`
+  **警告**；`pub type` 的字段是公开接口，编译器假定外部可能读，
+  「字段零读者」**不产生任何诊断**。当前骨架实测警告 = 30 `Todo`
+  + 52 `Unused function argument` + 3 `Unused private constructor`，
+  **0 条 field-never-read、0 error**：`DataBar` 的 8 个字段与
+  `Timeframe` 的 10 个字段此刻同样全无读者。core §1 保证的是
+  **inconsistencies**，不是 **meaning**；自洽的空壳恰好最不产生
+  inconsistency。core §2 第 2 问「错误但合式的值能否到达消费者」
+  在此是 **0 消费者**，连反对的机会都没有；`do_not` 的「别把值
+  停在 record 里两步后取」在此连「两步后」都没有。2026-10-26
+  已因「为管道造一个无不变式的 record」被抓过（core 表首行），
+  本次是同病复发。
+- **推论（owner：*「无论采用什么手段都没办法让AI做一丁点有用的
+  事情」*）**：在「AI 可现场发明概念」的前提下成立。R43 的前提与
+  core *「让AI思考不现实 / Thinking is not my job」* 指向同一件事：
+  设计由 owner 给定，AI 只做转录；一旦开始自己造 type、编 `///`、
+  找落脚处，任何事后检查（compiler / guard / review）都只能查已写
+  文本的性质，补不上生成那一刻的判断。**不是给 AI 装脑子，是取消
+  它发明的自由度。**
+
 ### 2. 回答：判据早齐，缺的是触发点
 
 **逻辑上完全能，且不需要 owner 提供任何新事实；但按当时的流程实际不会
