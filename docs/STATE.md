@@ -12,6 +12,15 @@ sections are kept as history, not as the current answer.
 - **项目层没有 guard sh**，CI 也删掉了 `scripts/guards.sh --all`（R44）。
   项目层只保留 Gleam 编译器自己的命令；`package-interface.json` 是编译器
   的防漂移产物，不是脚本。行为纪律（及时提交）不靠脚本探测。
+- **`gleam build --warnings-as-errors` 是固定门禁（R48），已写入 CI**；
+  逐个查过 help，这个 flag **只在 `gleam build`**，`check` / `test` /
+  `docs` / `format` 都没有，不能用 `gleam check` 顶替。核心卡片 §10/§13/§14
+  早就写着它，此前 CI 未挂、本地未跑。当前骨架实跑 **exit 1**，末尾
+  `error: 85 warnings generated.`（30 `Todo` + 52 unused argument +
+  3 private constructor）：是**逐条待实现清单**，必须读到具体行，既不是
+  成绩单也不许整包归类为「expected skeleton shape」。R19 / core §14 /
+  skill 里「warnings 合法 / 只是 GREEN gate」全部作废。`_` 是 discard
+  name（body 不能引用），禁止用它批量静音；`src/` / `test/` 本轮未改一行。
 - **当前 `src/` = 11 个模块、零行实代码**：`////` / `///`、type 关系、
   全标注签名，函数体一律 `todo as "..."`。空 unit test 只固定 in / out
   types（R42 07:39）。`Desk` 是唯一顶层 Value；链的 read / write 服务
@@ -451,5 +460,6 @@ guard.~~
 
 R44：项目层不再有 `guard sh`，这段连同它描述的三件门槛一起作废。空架子阶段
 只把 `gleam check` / `build` / `docs build` / `package-interface` 当设计探针
-用来暴露缺口；`--warnings-as-errors` 是将来填完 body 之后的 GREEN 闸门。
-行为层（例如提交是否及时）由纪律约束，脚本探测不到。
+用来暴露缺口。~~`--warnings-as-errors` 是将来填完 body 之后的 GREEN 闸门。~~
+**R48 更正**：这句正是「把 warnings 当奖励」的免检牌，已作废；WAE 从
+空架子起就是固定门禁。行为层（例如提交是否及时）由纪律约束，脚本探测不到。

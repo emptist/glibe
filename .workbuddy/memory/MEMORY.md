@@ -24,14 +24,15 @@ any Gleam judgement; `docs/gleam-thinking-core-to-memory.md` is its byte-equal
 mirror (keep `cmp`-equal). **One module file, whole process**: ① `////` module
 doc naming the `.planning` item + `///` on every item → ② empty skeleton
 (types/functions only if needed, `todo as "…"`, no real body) → ③ unit tests
-hold the design goal → ④ fill bodies step by step to green. `--warnings-as-errors`
-is a GREEN gate only. `gleam docs build` → `package-interface.json` is the
+hold the design goal → ④ fill bodies step by step to green.
+`gleam build --warnings-as-errors` is a **FIXED gate from the first skeleton**
+(R48), never classify a warning class as "expected shape". `gleam docs build` → `package-interface.json` is the
 anti-drift check (**a `////` block broken by `//` truncates it**). Retrofitting
 docs/tests onto existing code is NOT this process — label it retrofit.
 `docs/` = 「差生补课笔记」, not assets: never create prose docs to record
 concepts. **Never write a ruling into `////`/`///` until the code matches**.
 
-## Rulings R12–R47 (full text: `docs/RULINGS.md`)
+## Rulings R12–R48 (full text: `docs/RULINGS.md`)
 R12 `1e-6·bb_m` floor · R13 closed sets are types · R14 `src/` Gleam only ·
 R15 IB = historic stocks/ETFs · R16–R18 JS scope · R19 process above.
 **R20** `Desk ▸ Broker ▸ Instrument ▸ Timeframe`, dashboard = VIEW.
@@ -126,6 +127,23 @@ same invented signatures as ordinary calls 0.
 「空架子轻灵」= 实现空、关系明确；空壳 = 关系本身为空，勿混。全绿
 编译连空洞文档也放过。**本轮仍是 owner 点出后的开卷自检，无提示
 自行发现尚未实测。**
+**R48 (11-12 12:27)** *「timeframe里面怎么可能有一个自己的settings？怎么
+可以讲得通？」* / *「把warnings当作奖励，也是AI特有的美德，所以你要用
+gleam warnings-as-error 这个开关」*。⇒ ① **关系讲不通**：R23 §1
+`:699-701` 的 AI 推理「一个 interval 一份 → 是 Timeframe 的字段」把
+key 里的事实塞回 value（R37 左手不知道左右）；R33 纯值不运行，参数属
+管道步骤（R40-A）或 Desk；R34/R32 一个设置 = 已有 type 的一个 field；
+R46 diff 证明是**名字倒逼出落脚处**。R23 §3 那句「Timeframe 持有
+settings」已划掉。② `--warnings-as-errors` **只在 `gleam build`**
+（逐个读 help 实测），`check`/`test`/`docs`/`format` 都没有；核心卡片
+§10/§13/§14 早写着它，CI 没挂、本地没跑过。当前骨架实跑 **exit 1 /
+`error: 85 warnings generated.`**（30 Todo + 52 unused arg + 3 private
+constructor）；已加进 CI。③ **作废免检牌**：R19「warnings 合法 / WAE
+只是 GREEN gate」、core §14 同句、skill 第 3/6 步「expected skeleton
+shape」全改；warning 不许按类别整包豁免，不许拿条数当奖励。④ `_a`
+是 **discard name**，body 不能引用（实测 `Found a discard name`），
+`add(_a: 1)` 语法错；按 hint 批量加 `_` 会把瞎编 type 唯一报警静音，
+**src/test 一行不改**。`docs/` 从不是词源，也**不是关系**的证据。
 
 ## Measured facts
 Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; no `T(..)`; `@external`
@@ -147,7 +165,9 @@ a **list of lines** — join with `"\n"`. Tests: bool `assert … as "msg"`,
 - **R44 起项目层没有 guard sh**。空架子阶段用 `gleam check` / `build` /
   `format --check src test` / `docs build` /
   `export package-interface --out` 当**设计探针**（报缺口不报分数）；
-  `gleam build --warnings-as-errors` 只属于填完 body 后的 GREEN 闸门。
+  `gleam build --warnings-as-errors` **从空架子起就是固定门禁**（R48，
+  已进 CI）：骨架阶段必红，逐条读到行，不许整包豁免、不许用 `_` 洗信号；
+  只存在于 `gleam build`，`check` 顶替不了。
   core mirror `cmp` 是 skill 与仓库镜像的字节一致性检查，不是门禁脚本。
 
 ## State (2026-11-12, doc-tdd)

@@ -731,9 +731,14 @@ interval does not"*。glibe 造出第二本字典 + 复合串表 + 两个查找�
 
 - `Instrument` **只**持有 `timeframes: Dict(Interval, Timeframe)`。删除
   `settings` 字典、`put_settings` / `get_settings`、`NoSuchSettings`。
-- `Timeframe` 持有 `settings`，删除 `symbol` / `interval` / `market_type`
-  三个向上指认的字段。`sourcebar_gate` 的 interval 由**选中这台 Timeframe
-  的调用方**传入（key 本来就在它手里）；`databar_processing` 不再另收
+- ~~`Timeframe` 持有 `settings`，删除 `symbol` / `interval` / `market_type`
+  三个向上指认的字段。~~ **2026-11-12 12:30 由 R48 整条作废**：「一个
+  Timeframe 持有自己的 settings」讲不通，理由见 R48 §1；本条的依据是
+  §1 末段 AI 散文（抄 glib `timeframe.gleam:76-78` 和
+  `DESIGN.md §18.4`「settings travel with the engine」），不是 owner 原话。
+  **本条仍然有效的部分**：删除 `symbol` / `interval` / `market_type` 三个
+  向上指认的字段；`sourcebar_gate` 的 interval 由**选中这台 Timeframe 的
+  调用方**传入（key 本来就在它手里）；`databar_processing` 不另收
   settings 参数。
 - `config.gleam` 的 `symbols` 与 `timeframe_settings` 两张表删除；归属直接
   用类型值表达，不再有 `"BTCUSDT_H1"`、`list.find`、`get_symbol`、
@@ -1532,7 +1537,10 @@ implementing 是指一个module文件的实际完成方式 实际完成方式，
      覆盖每个 type / function（以及测试）。概念与判据写在这里。
   2. **再写架子，没有实际东西**：按需定义 type（可空）、function
      签名（可空 / `todo as "…"`）。此时 `gleam build` / `gleam test`
-     就能跑；warnings 合法，`--warnings-as-errors` 只是 **GREEN gate**。
+     就能跑。**`gleam build --warnings-as-errors` 是固定门禁（R48）**：
+     骨架阶段它必红，红的内容是逐条 `Todo` / 空用，必须读到具体行；
+     不许把某一类 warning 预先归类为「expected skeleton shape」而整包
+     豁免，也不许拿 warning 数量当工作量。
   3. **再写 test —— 设计目标在此**：测试把设计目标写成可执行的
      `assert` / `let assert`，每条测试也有 `///` 文档。此时 RED。
   4. **逐步测试、逐步完成全部合乎 test 要求的代码**：一次填一个
@@ -2393,3 +2401,108 @@ settled 字段持有）、`Signal`、`Kline`、`Interval`、`Symbol`、`SourceBa
 **Landed in**：`src/glibe/databar.gleam`、
 `~/.workbuddy/skills/gleam-document-led-tdd/SKILL.md`、
 05-01-PLAN §5.2、本文件。决策区仍 **0 项**；**未 push**。
+
+---
+
+## R48 — 「自己的 settings」讲不通；warning 不是奖励，WAE 是固定门禁（2026-11-12 12:27 owner 裁定）
+
+**owner 原话（逐字）：**
+> *"如果是当作一个字段放在timeframe里面，请问timeframe里面怎么可能有一个
+> 自己的settings？怎么可以讲得通？至于说把warnings当作奖励，也是AI特有的
+> 美德，所以你要用 gleam warnings-as-error 这个开关，具体你去看 gleam
+> --help"* [user 2026-11-12]
+
+### 1. 「Timeframe 持有自己的 settings」在关系上讲不通
+
+R46 删掉了这个 type 和字段，但**只处理了名字出处，没处理关系**。R23 §1
+末段（`:699-701`）保存着我当时的推理原文：
+
+> *"这包数字是**某个 interval 的那台 Timeframe 跑起来用的参数**，一个
+> interval 一份，因此只能是 `Timeframe` 的一个字段"*
+
+这句话本身就是 R23 开头被 owner 质问的「绕圈子」，四层都站不住：
+
+1. **和 R37 / R23 §2 直接矛盾**：`interval` **只在** `Instrument.timeframes`
+   这个 Dict 的 **key** 里，`Timeframe` 不知道自己是哪个 interval（「左手
+   不知道他是左还是右」）。一个按 interval 区分的参数，不可能属于一个
+   不知道自己 interval 的值。「一个 interval 一份」恰恰证明它在 key 那一侧，
+   不是塞回 value。我把「向上指认的字段」换了个名字又请回来了。
+2. **和 R33 矛盾**：`Timeframe` 是纯值，一根 bar 到达就重算；它不「跑」
+   任何东西。跑的是 `databar_processing` 里的步骤（indicator / leaves /
+   branches / strategy）。参数属于**那些步骤** —— R40-A 明写步骤可以有任意
+   额外参数、在 pipe 现场提供 —— 或在真是全局常量时属于 `Desk`（R42）。
+   让值自带一份「关于自己怎么被算」的说明书，是把配置和状态混进同一个
+   值里，且每个重算出的新值都要复制一遍。
+3. **和 R34 / R32 矛盾**：ibOptions 把结构关系压进 `settings*.py` 是
+   Python + pandas 的**局限**，不是设计；正确形状是一个设置 = **已有 type
+   的一个 field**（R32 花园）。我造的却是「专门装设置的 type → 再塞进
+   `Timeframe`」，等于把被否决的配置层重新发明一遍，还多一层自指。
+4. **因果是反的**：R46 的 diff 只删了字段一行、import 一行、`READS` 里
+   一个名字和 `new()`；其余 **8 个签名、10 个字段一字未动**。不是
+   `Timeframe` 需要它，是**我为了让一个名字有落脚处，往 `Timeframe` 塞了
+   一个 field** —— 关系由名字倒推出来，不是由现实倒推出来。
+
+「怎么讲得通」的答案是**讲不通**；当时让它看上去讲得通的，只有 `///`
+里四句「它不是什么」和 `////` 里「空 type 挂 `///` 即合法骨架」那张免检牌
+（R47）。R23 §3 那句「`Timeframe` 持有 `settings`」已由本条整条划掉。
+
+### 2. `--warnings-as-errors`：查过 help 之后的实测
+
+`gleam --help`（1.19.2）全局只有 `-h` / `-V`。逐个查子命令，
+**`--warnings-as-errors` 只存在于 `gleam build`**：
+
+```
+gleam build --help:
+      --warnings-as-errors
+          Consider the build failed if the package contains any warnings
+```
+
+`check` / `test` / `docs build` / `format` / `dev` / `compile-package` 的
+help 里**都没有**这个开关。所以要让 warning 变成失败，唯一入口是
+`gleam build --warnings-as-errors`；`gleam check` 再干净也替代不了它。
+core §10 `:281`、§13 `:346`、§14 `:358` 三处早就写着这个命令 —— **卡片
+写对了，CI 里没有，本地一次都没跑过**。
+
+当前骨架实跑：`exit 1`，806 行，末尾
+`error: 85 warnings generated. / Your project was compiled with the
+--warnings-as-errors flag.` 85 条逐条印的是
+`30 Todo found` + `52 Unused function argument` +
+`3 Unused private constructor`。**这个数字不是成绩单**：它是 WAE 之后
+编译器交出的、必须逐条读到行的清单；每填一个 body 少一条，全部填完才
+归零。骨架阶段红是如实状态，不是失败判定，但**不许整包豁免**。
+
+### 3. 作废「warning 合法」这张免检牌
+
+以下都是我写下的、把 warning 归类为可忽略的文本，本条一并作废：
+- 本文件 R19 第 2 步「warnings 合法，`--warnings-as-errors` 只是
+  **GREEN gate**」（已改）；
+- `gleam-language/references/gleam-core.md` §14 末句「therefore fails in
+  the RED phase and is the GREEN gate」（已改）；
+- skill `gleam-document-led-tdd` 第 3 步「Todo and unused-argument
+  warnings are the expected skeleton shape, not failures」、第 6 步
+  「GREEN gate, never a RED gate」（已改）。
+
+R47 §1.1 实测过：`TimeframeSettings` 那个瞎编 type 唯一的报警就是
+`timeframe.gleam:81:12 Unused function argument: settings`；我把 53 条同类
+warning 整体归类为「expected shape」，信号就没了。**编译器报了，流程把它
+定义成可忽略** —— 这就是 owner 说的「把 warnings 当作奖励」。WAE 之后
+不再由我分类：任何 warning 都是构建失败，CI 里也挂这个开关（不是 guard
+sh，是编译器自己的 flag，符合 R44）。
+
+### 4. `_` 前缀是陷阱，不是解法（实测）
+
+WAE 会给每条 unused argument 一个 hint：`_settings`。实测
+`/tmp/underscore_probe`（Gleam 1.19.2）：把参数写成 `_a` 后，body 里引用
+`_a` 报 `error: Syntax error / Found a discard name`；labelled 调用写成
+`add(_a: 1)` 同样是语法错误。**`_name` 是 discard name，body 里永远不能
+引用**，填实现时必须改回名字。所以按 hint 批量加 `_` 不是「消除问题」，
+是**把一个空用信号永久静音** —— 若 R46 之前这么做了，那个瞎编 type 连
+最后一条报警都不会有。禁止用 `_` 让一个还不知道「做什么 / 谁用 / 为什么
+存在」的东西变干净；先跑 R47 三问，再决定是留参数还是删东西。
+
+**Landed in**：`.github/workflows/test.yml`（加
+`gleam build --warnings-as-errors`）、本文件 R19 / R23 §3 / R48、
+`gleam-language/references/gleam-core.md` §14 及其仓库镜像、
+skill `gleam-document-led-tdd`、05-01-PLAN §5.3 / §6、
+`docs/STATE.md`、工作区记忆与当日日志。**`src/` 与 `test/` 未改一行**，
+不用 `_` 洗信号。决策区仍 **0 项**；**未 push**。
