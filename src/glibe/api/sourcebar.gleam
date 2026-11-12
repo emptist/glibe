@@ -44,6 +44,16 @@
 //// at the output edge, not a second time value: no date `String`, no local
 //// offset field, no wall-clock reading type belongs on `SourceBar`, and
 //// `interval.bucket_ends` stays on the absolute unix grid.
+////
+//// **Birth of the working databar (R39 / plan 04-13).** `to_databar` is the
+//// ONE conversion from a qualified `SourceBar` to a whole `DataBar`, and it
+//// lives HERE because that is the SOURCE's law (owner 2026-10-12, recorded
+//// in `glib/src/glib/timeframe.gleam:25`), not the bar's and not a
+//// pipeline step. glibe had it as `databar.of_sourcebar` with a
+//// `fold_sourcebar` bucket beside it; phase 42 deleted that half — *"a bar
+//// is born whole on arrival, and a source bar that repeats the bar in hand
+//// is not a second half of anything"*. Keeping the conversion here also
+//// makes `sourcebar → databar` a one-way import, with no cycle.
 
 import gleam/dynamic/decode
 import gleam/int
@@ -51,6 +61,8 @@ import gleam/result
 import gleam/string
 import gleam/time/calendar
 import gleam/time/timestamp.{type Timestamp}
+import glibe/databar.{type DataBar, DataBar}
+import glibe/trading/signal.{NoSignal}
 
 /// **The standard bar.** `timestamp` is an absolute unix time; none of the
 /// other fields say anything about when or where the bar came from.
@@ -149,6 +161,54 @@ pub fn validate(bar: SourceBar) -> Result(SourceBar, SourceBarRejection) {
           }
       }
   }
+}
+
+/// **One qualified source bar becomes ONE whole working databar.**
+///
+/// `idx` is fixed here — the bar is born knowing the position it will take in
+/// `databar_list`, which is how many bars have been listed before it (R39:
+/// the head bar's `idx` + 1). Every computed field starts at its honest
+/// neutral seed, so the first listed bar does not print a zero that looks
+/// like a measurement. Nothing is folded, accumulated or repaired.
+///
+/// This is the SOURCE's half of the boundary; `timeframe.sourcebar_gate`
+/// decides whether the arriving bar is qualified and calls it.
+pub fn to_databar(bar: SourceBar, idx: Int) -> DataBar {
+  DataBar(
+    idx: idx,
+    timestamp: bar.timestamp,
+    open: bar.open,
+    high: bar.high,
+    low: bar.low,
+    close: bar.close,
+    volume: bar.volume,
+    sma_tiny: 0.0,
+    sma_small: 0.0,
+    sma_medium: 0.0,
+    sma_large: 0.0,
+    sma_huge: 0.0,
+    bb_m: 0.0,
+    bb_u3: 0.0,
+    bb_l3: 0.0,
+    bb_u2: 0.0,
+    bb_u1: 0.0,
+    bb_l1: 0.0,
+    bb_l2: 0.0,
+    sigma_n: 0,
+    sigma_mean: 0.0,
+    sigma_m2: 0.0,
+    k: 50.0,
+    d: 50.0,
+    j: 50.0,
+    m: 50.0,
+    kdj_h: bar.high,
+    kdj_h_idx: idx,
+    kdj_l: bar.low,
+    kdj_l_idx: idx,
+    yin_leaf_cma: 0.0,
+    yang_leaf_cma: 0.0,
+    signal: NoSignal,
+  )
 }
 
 /// **Convert a provider wire label into a unix time.** This is the conversion

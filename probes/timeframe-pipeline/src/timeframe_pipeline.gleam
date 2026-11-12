@@ -142,7 +142,7 @@ pub fn settings() -> indicator_settings.TimeframeSettings {
 /// One qualified `SourceBar` born whole as one `DataBar` (R39). Neither a
 /// bucket nor a fold: one bar is the whole of the working databar.
 pub fn born_bar() -> DataBar {
-  databar.of_sourcebar(
+  sourcebar.to_databar(
     sourcebar.SourceBar(
       timestamp: timestamp.from_unix_seconds(0),
       open: 1.0,

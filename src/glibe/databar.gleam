@@ -1,23 +1,36 @@
-//// The bar the streaming system works with — computed from SourceBar + indicators.
-//// Used by timeframe, SMA, KDJ, Bollinger, Leaf, Branch.
+//// The bar the streaming system works with — a `SourceBar` born whole, plus
+//// the indicators computed on it.
 ////
-//// Plan: `.planning/phases/04-domain-cleanup/04-06-PLAN.md`.
-//// Ruling: `docs/RULINGS.md` R27 (a bar's time is a unix-time `Timestamp`).
+//// Plans: `.planning/phases/04-domain-cleanup/04-06-PLAN.md`,
+//// `.planning/phases/04-domain-cleanup/04-13-PLAN.md`.
+//// Rulings: `docs/RULINGS.md` R27 (a bar's time is a unix-time `Timestamp`),
+//// R39 (one qualified source bar becomes ONE whole working databar), R13
+//// (a closed set is a type).
+////
+//// **Birth belongs to the SOURCE, not to the bar.** `sourcebar.to_databar`
+//// in `glibe/api/sourcebar.gleam` is the one conversion. Owner 2026-10-12,
+//// recorded in `glib/src/glib/timeframe.gleam:25`: a raw bar becoming a
+//// `DataBar` is the source's law, not the bar's and not a pipeline step;
+//// phase 42 deleted the `fold` half — *"a bar is born whole on arrival, and
+//// a source bar that repeats the bar in hand is not a second half of
+//// anything"*. glibe had put the conversion here as `of_sourcebar` and kept
+//// a `fold_sourcebar` bucket accumulator beside it. Both are gone (R39):
+//// this module holds ONLY the shape of a `DataBar`, and importing it one way
+//// from `sourcebar.gleam` keeps the dependency a DAG.
 ////
 //// `timestamp` is an absolute instant, not a provider's date spelling. It is
 //// formatted only at the output edge (`export/csv.gleam`).
 ////
 //// Every field here is a measurement something computed. A bar carries no
-//// verdict (those are derived in `trading/strategy`); it carries no leaf index
-//// it cannot name (those come back when a bar can name the leaf it sits in).
-//// Fields that no step ever wrote were removed — an uncomputed number printed
-//// is a lie the reader cannot tell from a zero.
+//// verdict except the `Signal` a strategy wrote on it, and no leaf index it
+//// cannot name. Fields that no step ever wrote were removed — an uncomputed
+//// number printed is a lie the reader cannot tell from a zero.
 
-import gleam/float
 import gleam/time/timestamp.{type Timestamp}
-import glibe/api/sourcebar.{type SourceBar}
-import glibe/trading/signal.{type Signal, NoSignal}
+import glibe/trading/signal.{type Signal}
 
+/// One bar of the working stream. `idx` is its position in `databar_list`
+/// (0 = the first bar), fixed at birth by `sourcebar.to_databar`.
 pub type DataBar {
   DataBar(
     idx: Int,
@@ -63,61 +76,5 @@ pub type DataBar {
     yang_leaf_cma: Float,
     // Strategy signal — a closed set, so a type (RULINGS.md R13)
     signal: Signal,
-  )
-}
-
-/// **A source bar becomes the first bar of a bucket.** All indicators start at
-/// their neutral seed so the first accepted bar of a run is honest, not a zero
-/// masquerading as a measurement.
-pub fn of_sourcebar(bar: SourceBar, idx: Int) -> DataBar {
-  DataBar(
-    idx:,
-    timestamp: bar.timestamp,
-    open: bar.open,
-    high: bar.high,
-    low: bar.low,
-    close: bar.close,
-    volume: bar.volume,
-    sma_tiny: 0.0,
-    sma_small: 0.0,
-    sma_medium: 0.0,
-    sma_large: 0.0,
-    sma_huge: 0.0,
-    bb_m: 0.0,
-    bb_u3: 0.0,
-    bb_l3: 0.0,
-    bb_u2: 0.0,
-    bb_u1: 0.0,
-    bb_l1: 0.0,
-    bb_l2: 0.0,
-    sigma_n: 0,
-    sigma_mean: 0.0,
-    sigma_m2: 0.0,
-    k: 50.0,
-    d: 50.0,
-    j: 50.0,
-    m: 50.0,
-    kdj_h: bar.high,
-    kdj_h_idx: idx,
-    kdj_l: bar.low,
-    kdj_l_idx: idx,
-    yin_leaf_cma: 0.0,
-    yang_leaf_cma: 0.0,
-    signal: NoSignal,
-  )
-}
-
-/// **Fold a source bar into the one already open.** The bucket keeps its first
-/// open, grows its high and low, takes the latest close, and adds the volume.
-/// Nothing about the indicators changes here — they are computed once the bucket
-/// closes, on the final bar.
-pub fn fold_sourcebar(working: DataBar, bar: SourceBar) -> DataBar {
-  DataBar(
-    ..working,
-    timestamp: bar.timestamp,
-    high: float.max(working.high, bar.high),
-    low: float.min(working.low, bar.low),
-    close: bar.close,
-    volume: working.volume + bar.volume,
   )
 }
