@@ -4,7 +4,34 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-10 10:42 (04-10 — 裁定已落入代码；当前状态)
+## 2026-11-12 (doc-tdd — 系统性重建；当前状态)
+
+- **分支 `doc-tdd`，不 push。** 旧 `src/` / `test/` / `scripts/` / `probes/`
+  与补课笔记整体移入 `deprecated/2026-11-12-pre-doc-tdd/`（79 files）；
+  它们只读，不是依据（R44 / R45）。旧红 / 绿数字不再衡量任何东西。
+- **项目层没有 guard sh**，CI 也删掉了 `scripts/guards.sh --all`（R44）。
+  项目层只保留 Gleam 编译器自己的命令；`package-interface.json` 是编译器
+  的防漂移产物，不是脚本。行为纪律（及时提交）不靠脚本探测。
+- **当前 `src/` = 12 个模块、零行实代码**：`////` / `///`、type 关系、
+  全标注签名，函数体一律 `todo as "..."`。空 unit test 只固定 in / out
+  types（R42 07:39）。`Desk` 是唯一顶层 Value；链的 read / write 服务
+  集中在 `desk.gleam`；`timeframe.gleam` 持有直线与管道全部 fn。
+- **设计探针（报缺口，不报分数）**：`gleam check` exit 0、无设计缺口，
+  输出仅 `Todo` / unused-arg / unused-private-constructor warning；
+  `gleam build` / `gleam format --check src test` exit 0；
+  `gleam docs build` exit 0；`gleam export package-interface --out` exit 0，
+  12 个模块的 `////` 全部完整渲染、无 `//` 截断。
+- **R43 首次空架子阶段核验已实测**，逐条记录在
+  `.planning/phases/05-doc-tdd/05-01-PLAN.md` §5；裁定见 R44 / R45。
+- **仍留白（R26 / R32，故意）**：`TimeframeSettings` 字段、`DataBar`
+  计算字段、leaf / branch 内部字段、`Kline` 线格式字段、
+  `SourceBarRejection` 的具体拒绝原因、`Account` 字段。
+- **未收敛**：`gleam.toml` 依赖表仍是旧列表；`webclient/`（R16–R18
+  唯一 JS target 包）与 `README.md` 仍是旧实现。三者等各自消费方 /
+  框架定型后单独处理，本轮不动。
+- 决策区仍 **0 项**；**未 push**。
+
+## 2026-11-10 10:42 (04-10 — 裁定已落入代码；历史状态)
 
 - **owner 逐字（10:42）**：*"这些逻辑，需要在设计module以及type的时候，用gleam
   document的规矩，写进代码文档，之后是unit test 以及填充实际代码完成 test，
@@ -408,9 +435,14 @@ KDJ window is `w+1` (glib `w`); D uses alpha ½ (glib's is dead); σ excludes th
 bar in hand; lower bands still clamped; `kdj_d_period` still a field;
 `window_kdj_size` not yet renamed to `kdj_window_size`. These are Stage D, next.
 
-## What "green" means
+## What "green" means —— 2026-11-12 R44 作废，保留作历史
 
-A stage is done only when all three are true: `gleam build` clean, `gleam test`
+~~A stage is done only when all three are true: `gleam build` clean, `gleam test`
 green, and `sh scripts/guards.sh --all` green. A stage that cannot be verified
 is not done — that rule is why the guard scripts exist before the work they
-guard.
+guard.~~
+
+R44：项目层不再有 `guard sh`，这段连同它描述的三件门槛一起作废。空架子阶段
+只把 `gleam check` / `build` / `docs build` / `package-interface` 当设计探针
+用来暴露缺口；`--warnings-as-errors` 是将来填完 body 之后的 GREEN 闸门。
+行为层（例如提交是否及时）由纪律约束，脚本探测不到。

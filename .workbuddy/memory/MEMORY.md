@@ -32,7 +32,7 @@ process — label it retrofit. 11:11 `docs/` = 「差生补课笔记」, not ass
 never create prose docs to record concepts. **Never write a ruling into
 `////`/`///` until the code matches** (R39).
 
-## Rulings R12–R43 (full text: `docs/RULINGS.md`)
+## Rulings R12–R45 (full text: `docs/RULINGS.md`)
 R12 `1e-6·bb_m` floor · R13 closed sets are types · R14 `src/` Gleam only ·
 R15 IB = historic stocks/ETFs · R16–R18 JS scope · R19 process above.
 **R20** `Desk ▸ Broker ▸ Instrument ▸ Timeframe`, dashboard = VIEW.
@@ -160,6 +160,24 @@ glib "What stays…" 在 `timeframe.gleam:32-35` 而非 `:28-31`（5 处文档
 `databar.of_sourcebar`；全部改正。**实测：引用/用词漂移能活过全绿 build
 与 test，只有回读设计才能发现。**
 
+**R44 (11-12 08:16)** `doc-tdd` 分支系统性重建：*「你以前的代码仅能作为
+历史遗迹，什么都没弄对，丢了不可惜」*。旧 `src/`/`test/`/`scripts/`/
+`probes/`/review/session/补课笔记 → `deprecated/2026-11-12-pre-doc-tdd/`
+（79 files），只读、不作依据、不参与编译。**过去的东西绿不绿红不红一点
+用没有**，不再报告旧红绿数字；新阶段 `gleam check`/`build` 是**设计探针
+报缺口**，不是分数。**项目层不再有 guard sh**（CI 那行也删）：只认编译器
+自身命令 + `package-interface.json` 防漂移产物；行为层（及时提交）靠纪律，
+脚本探测不到。熟悉 `gleam --help`；本轮实测 `gleam check`（只类型检查）、
+`gleam export package-interface --out <path>`（直接出接口 JSON）、
+`gleam docs build`、`gleam format --check`。
+**R45 (11-12)** *「你的旧实现搞他干嘛」* / *「你现在把types搞清楚，其他的
+东西从我的用词当中去获取即可」*。清场后**不得翻 deprecated 当词库**；本轮
+唯一对象是 types 关系，其余名字只从 owner 逐字用词 + `RULINGS.md` 裁定取，
+没命名的按 R26/R32 留空。不等于删掉所有未逐字出现的词：语法必需的结构名
+与裁定里记录过的领域词（R1 four twins、R2 `YinBranch`/`YangBranch`、R4
+`growing_yang_branch`、R23 `TimeframeSettings`、R28 `Kline`）合法。
+R43 判据含**引用是否真逐字**，不得把 AI 转述标成 `owner, verbatim`。
+
 ## Measured facts
 Gleam 1.19.2 / OTP 29: `import mod.{type T, Ctor}`; no `T(..)`; `@external`
 may coexist with a Gleam body; `.abstr → .beam`; `float.parse("100")` =
@@ -179,22 +197,31 @@ bool `assert … as "msg"`, `let assert`, never `panic`/`case Bool`.
   asked**; never `rm -rf build`.
 - Toolchain: `export PATH="/opt/homebrew/bin:$PATH"`; BSD grep unreliable →
   Grep tool/Python; capture exit codes.
-- Green = `gleam build --warnings-as-errors` + `gleam test` + `gleam format
-  --check src test` + `sh scripts/guards.sh --all` + `gleam docs build` +
-  core mirror `cmp`.
+- **R44 起项目层没有 guard sh**。空架子阶段用 `gleam check` / `build` /
+  `format --check src test` / `docs build` /
+  `export package-interface --out` 当**设计探针**（报缺口不报分数）；
+  `gleam build --warnings-as-errors` 只属于将来填完 body 后的 GREEN 闸门。
+  core mirror `cmp` 仍是 skill 与仓库镜像的字节一致性检查，不是门禁脚本。
 
-## State (2026-11-12)
-**83 tests root** + 4 `parallel-bars` + 11 `timeframe-pipeline` green; full
-gate green (WAE / format / guards 4 case / docs root+webclient+2 probes /
-core mirror cmp); decisions 0; **not pushed**. 04-13 = R39/R40/R41 落地：
-`engine.gleam` + `no_timeframe_mixture.sh` 删除，函数归位 `timeframe.gleam`
-（直线管道，五步 `fn(Timeframe) -> Timeframe`），`sourcebar.to_databar`
-归位、`fold_sourcebar` 删除，`desk.put_timeframe_under` 新增，
-`manual_enter/exit` 删除、`*_leaf_settled` 新增；两个旧 monitor 测试按 R39
-改断言。04-10 = retrofit；04-11 replay 撤回；04-12 形状探针 + R40/R41。
-Historical, not owner design: `monitor.gleam`, `probes/parallel-bars/`;
-disposition awaits owner. Remaining real work: connect each provider's
-**real-time arrival** to `timeframe.sourcebar_gate` (history batch = same
-pair n times; no second implementation, no CLI); R42 的「空 test 架子」与
-R43 的「**空架子阶段**对照设计核验并因此改名/删瞎编」尚未实测，留待下轮
-（「测试互相推翻」是已被 R43 纠正的误读，不再作为待办）。
+## State (2026-11-12, doc-tdd)
+分支 **`doc-tdd`**（就地新建，未 push）；04-13 及以前的实现整体封存为历史
+遗迹，状态以本节为准。79 files → `deprecated/2026-11-12-pre-doc-tdd/`；
+旧 README（464 行，教人跑已删的 guard sh）也移入 `notes/`，根目录换成
+15 行索引；CI 删 `sh scripts/guards.sh --all`。
+**`src/` = 12 个模块、零行实代码**：`////` / `///` + type 关系 + 全标注签名，
+函数体全 `todo`；`test/glibe_test.gleam` 空 unit test 只固定 in/out types。
+`desk.gleam` 持整条链与 read/write 服务（不拆 broker/instrument 模块），
+`timeframe.gleam` 持直线与管道全部 fn（不设 engine / indicator / strategy
+模块），输出侧 view 边界写在 `desk.gleam` 的 `////`（不造 web/server）。
+设计探针：`gleam check` exit 0 无缺口（只 Todo/unused warning）、
+`build` / `format --check` / `docs build` /
+`export package-interface --out` exit 0，12 个模块 `////` 完整渲染。
+**R43 空架子阶段核验本轮首次实测**（05-01 §5）：删 1 个自造占位构造子、
+2 处假引用/假断言、5 个自造模块名，补 4 处出处；`Timeframe` 的 growing /
+settled 字段回查 R1/R2/R4 后确认是 owner 设计，**保留**。skill 两条留白
+（空 test 架子、写实现前核验）已按实测补写。R44/R45 已入 `RULINGS.md`，
+`STATE.md` 顶部新段与作废的 "What green means" 已更新。
+**仍留白（R26/R32）**：`TimeframeSettings` 字段、`DataBar` 计算字段、
+leaf/branch 内部字段、`Kline` 线格式字段、`SourceBarRejection` 具体原因、
+`Account` 字段。**未收敛**：`gleam.toml` 旧依赖表、`webclient/` 旧实现。
+决策区 0；**未 push**；按逻辑原子提交，不 push。

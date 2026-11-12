@@ -2091,3 +2091,105 @@ function(...),所以你如果以为这是限定，那么就很难做，因为只
   - 核验时 `04-13-PLAN.md` §3 写的是 `databar.of_sourcebar(...)`，那是本轮
     **已删除**的旧名；已改为产品代码实际使用的 `sourcebar.to_databar`。
 - 决策区仍 **0 项**；**未 push**。
+
+---
+
+## R44 — doc-tdd 系统性重建：旧代码是历史遗迹，项目层不设 guard sh，旧红绿无意义（2026-11-12 08:16 owner 连续指示）
+
+**owner 逐字（按时间）**：
+
+> *"继续做框架设计哦，你以前的代码仅能作为历史遗迹，什么都没弄对，丢了不可惜，
+> 现在可就地checkout一个新分支了，doc-tdd，完成系统性的重建"*
+
+> *"过时的什么门禁什么test发现多余的就删除或者让不要在添乱，放到过期目录去"*
+
+> *"在你的新设计中，过去的东西绿不绿红不红一点用没有。不用去报告多少绿了多少
+> 红了，没意义的。"*
+
+> *"以后在项目层面都不需要什么guard sh，仅仅行为层面和非gleam compiler可控层面
+> 需要，但是那个玩意也探测不到你行为的过错。比如git commit不及时等等。"*
+
+> *"gleam command有很多工具你可能没用过，glibe的项目文档也没提过，你最好也
+> 熟悉一下，gleam --help"*
+
+**裁定**：
+
+- **旧实现只是历史遗迹**：就地新建 `doc-tdd` 分支做**系统性重建**；旧
+  `src/` / `test/` / `scripts/` / `probes/` / 根目录 review / session 笔记 /
+  `docs/` 补课笔记整体移入 `deprecated/2026-11-12-pre-doc-tdd/`，可读但不
+  参与新设计、不作为命名依据、不参与编译与门禁。本轮只做框架 / types /
+  空架子，一行实代码不写。
+- **过去的红 / 绿不再是证据**：旧代码、旧测试的 RED / GREEN 数量与通过率
+  不衡量新设计的正确性，也不再作为结论汇报。新阶段的 `gleam build` /
+  `gleam check` 是**设计探针**，它报的是**缺口**，不是分数。
+- **项目层不再维护 `guard sh`**：`scripts/guards.sh` /
+  `no_foreign_source.sh` / `test_guards.sh` 及其 CI 调用一并退场。项目层只认
+  Gleam 编译器与类型系统自己能查的东西（`gleam build` / `check` / `test` /
+  `format --check` / `docs build` / `export package-interface`）。
+  `gleam docs build` → `package-interface.json` 是编译器自己的防漂移产物，
+  保留；它不是门禁脚本。**行为层**（例如是否及时 `git commit`）靠纪律，
+  owner 逐字：*"那个玩意也探测不到你行为的过错"*。
+- **熟悉并使用 Gleam 自带命令**：本阶段实测 `gleam check`（只做类型检查、
+  不生成代码）、`gleam export package-interface --out <path>`（直接输出
+  模块 / type / fn 的 JSON 接口，不用去 `build/` 里捞）、`gleam docs build`、
+  `gleam format --check`。`gleam --help` 与 `gleam help <subcommand>` 是
+  入口；`--warnings-as-errors` 属于将来填完 body 之后的 GREEN 闸门，
+  不是空架子阶段的要求。
+
+**本轮实测（如实标注性质：空架子阶段的编译器设计探针）**：
+
+- 79 个文件整体移入 `deprecated/2026-11-12-pre-doc-tdd/`；
+  `.github/workflows/test.yml` 删掉 `sh scripts/guards.sh --all` 与旧注释。
+- 12 个模块、函数体全为 `todo as "..."`，**零行实代码**。
+  `gleam check` = **exit 0，无设计缺口**；输出只有空架子应有的
+  `Todo found` / `Unused function argument` / `Unused private constructor`
+  warning —— 后者正是 `opaque` 封印生效的编译器证据。
+- 空 unit test 只做显式类型绑定（R42 07:39），不调用任何 `todo` body；
+  `gleam build` / `gleam format --check src test` 均 exit 0。
+- `gleam docs build` exit 0；`gleam export package-interface --out` exit 0，
+  **12 个模块的 `////` 全部完整渲染**，没有一处被 `//` 截断。这是编译器
+  自己的防漂移检查，没有新增任何 guard sh。
+- 决策区仍 **0 项**；**未 push**。
+
+---
+
+## R45 — 名字只从 owner 用词取；types 是本轮唯一对象（2026-11-12 owner 纠正）
+
+**owner 逐字（两条）**：
+
+> *"你的旧实现搞他干嘛"*
+
+> *"你现在把types搞清楚，其他的东西从我的用词当中去获取即可"*
+
+**裁定**：
+
+- 清场之后**不得再把 `deprecated/` 里的旧实现翻出来当词库**。字段名、
+  函数名、构造子、模块名一律不从旧代码转录。上一轮把旧 type 定义、旧公开
+  函数名、旧签名读出来提取词汇，是本末倒置；当时据此写进
+  `indicator_settings.gleam`（`SmaForBbm` 与一堆 settings 字段）、
+  `trading/signal.gleam`（`Buy` / `Sell` / `NoSignal`）、
+  `api/interval.gleam`（`all()`）的转录已即时重写。
+- 本轮唯一对象是 **types**：把 type 关系摆对 —— `Desk ▸ Broker ▸
+  Instrument ▸ Timeframe`、身份在持有者 Dict key、闭集是 type、
+  provider 原生形状与标准 `SourceBar` 分离、R39 直线与 R40 管道形状。
+  其余东西（字段、函数、构造子）**只从 owner 逐字用词与
+  `docs/RULINGS.md` 的裁定里取**；owner 没命名的按 R26 / R32 留空，
+  等真实消费方出现再加一个 field，不猜名字。
+- **不等于「删掉所有没逐字出现过的词」**：Gleam 语法必需的结构名（类型
+  容器名、codec 名、runner 入口）是结构 necessity，不是领域概念；
+  `docs/RULINGS.md` 里 owner 原话记录过的领域词（R1「four twins」、
+  R2 `YinBranch` / `YangBranch`、R4 `growing_yang_branch` /
+  `growing_yin_leaf`、R23 `TimeframeSettings`、R28 `Kline`）是合法来源，
+  与旧实现无关。
+- **R43 判据在此落地**：核验「用词是否准确、有没有自己瞎编的东西」，
+  包括**引用是否真的逐字** —— 不得把 AI 的转述标成 `owner, verbatim`。
+  第一次空架子阶段核验的逐条记录见
+  `.planning/phases/05-doc-tdd/05-01-PLAN.md` §5：删掉一个自造占位
+  构造子、两处假引用 / 假断言、五个自造模块名，补四处出处；
+  **没有删掉任何 owner 命名的领域概念**（`Timeframe` 的 growing /
+  settled 字段一度想删，回查 R1 / R2 / R4 后确认是设计，保留）。
+
+**Landed in**：`src/glibe/` 12 个模块的 `////` / `///`；
+`.planning/phases/05-doc-tdd/05-01-PLAN.md` §4 / §5；
+`~/.workbuddy/skills/gleam-document-led-tdd/SKILL.md`。
+决策区仍 **0 项**；**未 push**。
