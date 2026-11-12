@@ -1,3 +1,18 @@
+//// The indicators — ONE pure bar → bar computation: the five SMA series,
+//// KDJ and the Bollinger bands, in that order.
+////
+//// Plan: `.planning/phases/04-domain-cleanup/04-13-PLAN.md` §5 (upstream
+//// contracts found by writing `timeframe.gleam`'s doc first). This module is
+//// an UPSTREAM of `glibe/timeframe`: the pipeline's `indicator` step calls
+//// `run` on `Timeframe.working_databar` with `databar_list` and `settings`,
+//// and writes the resulting bar back into the record. It takes a bar, a list
+//// and a settings value — never the `Timeframe` — so it has no record to
+//// thread and closes no import cycle.
+////
+//// The `////` above is a retrofit: glib had no documentation-first TDD, and
+//// glibe inherited that gap. Only the doc is added here; the function is the
+//// existing, tested computation.
+
 // Indicator pipeline — composes SMA, KDJ, Bollinger
 
 import glibe/bollinger

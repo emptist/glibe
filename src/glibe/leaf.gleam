@@ -1,3 +1,17 @@
+//// The leaves — `YinLeaf` and `YangLeaf`, the two twins every bar belongs
+//// to, grown one bar at a time as a fresh value each bar.
+////
+//// Plan: `.planning/phases/04-domain-cleanup/04-13-PLAN.md` §5 (upstream
+//// contracts). This module is an UPSTREAM of `glibe/timeframe`: the
+//// pipeline's `leaves` step calls `init_*` / `next_*` / `leaf_cma` for the
+//// working bar and writes the growing twins plus the pair that settled on
+//// this bar into the record. A leaf NAMES bars; it never imports or threads
+//// the `Timeframe` that holds them — that is why no cycle exists, and why
+//// `engine.gleam`'s "split to break a cycle" reason was false.
+////
+//// The `////` above is a retrofit of the missing module doc (R19); the
+//// definitions below are the existing, tested ones.
+
 // The leaves — the two twins every bar belongs to, grown one bar at a time as
 // a fresh value each bar. A leaf judges on the `sma_tiny` series, NOT the raw
 // `high`/`low`: a yin leaf dies on a new HIGH `sma_tiny` and corners on a new

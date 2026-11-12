@@ -1,3 +1,16 @@
+//// The signal a bar carries — a closed set, therefore a type, not a `String`.
+////
+//// Plan: `.planning/phases/04-domain-cleanup/04-13-PLAN.md` §5 (upstream
+//// contracts). This module is an UPSTREAM of `glibe/timeframe`: the
+//// pipeline's `strategy` step writes one of these three values onto
+//// `Timeframe.working_databar`, and `glibe/databar` holds it as a field.
+//// `sourcebar.to_databar` seeds every bar with `NoSignal`. The wire
+//// spelling lives here and only here — the boundary codec, not the value
+//// the pipeline reasons about (R13).
+////
+//// The `////` above is a retrofit of the missing module doc (R19); the
+//// definitions below are the existing, tested ones.
+
 // The signal a bar carries — a closed set, therefore a type, not a `String`.
 //
 // *"Gleam is a typed language, don't you know?"* [user 2026-10-12, glib

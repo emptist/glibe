@@ -1,3 +1,17 @@
+//// The branches — the move recognised late and ending late, grown off the
+//// leaf chain of the opposite polarity (`YinBranch` rides yang leaves).
+////
+//// Plan: `.planning/phases/04-domain-cleanup/04-13-PLAN.md` §5 (upstream
+//// contracts). This module is an UPSTREAM of `glibe/timeframe`: the
+//// pipeline's `branches` step calls `next_yang_branch` / `next_yin_branch`
+//// using the settled pair the `leaves` step left IN THE RECORD, and
+//// `strategy` asks `recognised_this_bar` / `exited_branch` of the lists.
+//// Three questions about a branch's four bars live beside the definition,
+//// with no access to the record — so this module never imports `timeframe`.
+////
+//// The `////` above is a retrofit of the missing module doc (R19); the
+//// definitions below are the existing, tested ones.
+
 // The branches — the move recognised late and ending late. A branch rides the
 // leaf chain of the opposite polarity: a `YinBranch` rides yang leaves, a
 // `YangBranch` rides yin leaves.

@@ -1,3 +1,16 @@
+//// The manual strategy — the only strategy that is not the AI's, and the
+//// place a verdict lives.
+////
+//// Plan: `.planning/phases/04-domain-cleanup/04-13-PLAN.md` §5 (upstream
+//// contracts). This module is an UPSTREAM of `glibe/timeframe`: the
+//// pipeline's `strategy` step asks `manual_signal` for the word and writes
+//// it onto `Timeframe.working_databar`. The step reads the branch lists and
+//// the working bar from the record; this module judges nothing about a
+//// `Timeframe` and imports none — the two booleans are its whole input.
+////
+//// The `////` above is a retrofit of the missing module doc (R19); the
+//// definition below is the existing, tested one.
+
 // The manual strategy — the only strategy that is not the AI's, and the place
 // a verdict lives.
 //
