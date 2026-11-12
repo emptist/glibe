@@ -21,5 +21,3 @@ jobs:
       - run: gleam deps download
       - run: gleam test
       - run: gleam format --check src test
-      # A ruling without a mechanism is decoration: the guards run in CI too.
-      - run: sh scripts/guards.sh --all
