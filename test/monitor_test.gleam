@@ -6,7 +6,7 @@
 //// with many intervals, monitored at the same time" actually promises.
 
 import gleam/list
-import gleam/option.{Some}
+import gleam/option.{None}
 import gleam/time/timestamp
 import glibe/api/interval
 import glibe/api/sourcebar.{type SourceBar, SourceBar}
@@ -127,21 +127,22 @@ pub fn two_instruments_are_monitored_independently_test() {
   assert spy_bar.close == 300.0 as "the second instrument kept its own close"
 }
 
-/// A bar that does not close a bucket still advances its own timeframe: it
-/// leaves a working bar and settles nothing.
-pub fn non_boundary_bar_opens_a_bucket_without_settling_test() {
+/// A bar that does not close a period is IGNORED and held NOWHERE (R39):
+/// `working_databar` is not a bucket accumulator. This assertion replaced the
+/// 04-08 one that expected a half-built bar to wait for the next arrival.
+pub fn non_boundary_bar_is_ignored_and_held_nowhere_test() {
   let d0 = config.default_config().desk
   let addr = address("binance", "BTCUSDT", interval.IntervalOneHour)
   let assert Ok(d1) =
     monitor.advance(d0, arriving(addr, quote("2024-01-15 09:30:00", 100.0)))
   let tf = timeframe_at(d1, "binance", "BTCUSDT", interval.IntervalOneHour)
   assert tf.databar_list == [] as "a bar inside the hour settles nothing"
-  let assert Some(_) = tf.working_databar
-    as "the bar is held in the working bucket"
+  assert tf.working_databar == None
+    as "no bucket is opened; nothing waits for a later arrival"
 }
 
 /// The interval belongs to the ADDRESS, not to the bar: the very same bar
-/// closes an hourly bucket at 09:00 but not a four-hour one.
+/// closes an hourly period at 09:00 but not a four-hour one.
 pub fn the_interval_is_part_of_the_address_test() {
   let d0 = with_four_hour(config.default_config().desk)
   let hourly = address("binance", "BTCUSDT", interval.IntervalOneHour)
@@ -154,12 +155,12 @@ pub fn the_interval_is_part_of_the_address_test() {
       timeframe_at(d2, "binance", "BTCUSDT", interval.IntervalOneHour).databar_list,
     )
     == 1
-    as "09:00 closes the hourly bucket"
+    as "09:00 closes the hourly period"
   let four = timeframe_at(d2, "binance", "BTCUSDT", interval.IntervalFourHour)
   assert four.databar_list == []
-    as "the SAME bar at 09:00 does not close a four-hour bucket"
-  let assert Some(_) = four.working_databar
-    as "the four-hour timeframe holds the bar instead"
+    as "the SAME bar at 09:00 does not close a four-hour period"
+  assert four.working_databar == None
+    as "the four-hour timeframe ignores it rather than holding a bucket"
 }
 
 /// An address with no configured instrument fails as a typed error that

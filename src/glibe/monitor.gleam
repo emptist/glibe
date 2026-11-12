@@ -26,13 +26,16 @@
 //// type, placed by asking what it belongs to; no `Market` / `Asset` /
 //// `Exchange` relation is invented here (R26).
 
-import gleam/option.{None, Some}
 import gleam/result
 import glibe/api/interval.{type Interval}
 import glibe/api/sourcebar.{type SourceBar, type SourceBarRejection}
 import glibe/api/symbol.{type Symbol}
 import glibe/desk.{type BrokerId, type Desk}
-import glibe/engine
+
+// 04-13 adaptation only: `engine.gleam` was an AI-invented split and is gone;
+// the two top-level data-treating functions live in `glibe/timeframe`. This
+// historical module's design ruling (R33) is unchanged.
+import glibe/timeframe as tf
 
 /// The address of ONE `Timeframe` inside a `Desk`. Three typed keys in
 /// the order the ownership chain is walked — no composite `"BTCUSDT_H1"`
@@ -82,14 +85,11 @@ pub fn advance(
     desk.get_timeframe(instrument, address.interval)
     |> result.map_error(fn(error) { AddressNotMonitored(address, error) }),
   )
-  use #(settled, gated) <- result.try(
-    engine.sourcebar_gate(timeframe, address.interval, incoming.bar)
+  use gated <- result.try(
+    tf.sourcebar_gate(timeframe, address.interval, incoming.bar)
     |> result.map_error(fn(rejection) { BarRejected(address, rejection) }),
   )
-  let advanced = case settled {
-    Some(bar) -> engine.databar_processing(gated, bar)
-    None -> gated
-  }
+  let advanced = tf.databar_processing(gated)
   let instrument = desk.put_timeframe(instrument, address.interval, advanced)
   let broker = desk.put_instrument(broker, address.symbol, instrument)
   Ok(desk.put_broker(desk, address.broker, broker))

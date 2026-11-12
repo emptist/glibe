@@ -1,6 +1,6 @@
 import gleam/float
 import gleam/list
-import gleam/option.{None, Some}
+import gleam/option.{Some}
 import gleam/time/timestamp
 import gleeunit
 import glibe/api/asset
@@ -11,7 +11,6 @@ import glibe/api/symbol
 import glibe/config
 import glibe/databar
 import glibe/desk
-import glibe/engine
 import glibe/indicator
 import glibe/indicator_settings
 import glibe/kdj
@@ -346,12 +345,11 @@ pub fn bollinger_band_ordering_law_test() {
 // Ingest boundary — the hourly-bar bug and the reject-don't-repair rule
 // ============================================================================
 
-/// R23: `interval` lives ONLY in the key, so the caller that selected the
-/// `Timeframe` hands it to the gate. One and the same `Timeframe` value closes
-/// at 09:00 under `IntervalOneHour` and does not under `IntervalFourHour`
-/// (09:00 is not on a four-hour boundary). Day/week/month buckets are
-/// deliberately not used here — they still end on every bar, a separate debt
-/// recorded in the 04-03 plan.
+/// R23 / R39: `interval` lives ONLY in the key, so the caller that selected
+/// the `Timeframe` hands it to the gate. One and the same `Timeframe` value
+/// puts one whole bar in hand at 09:00 under `IntervalOneHour` and ignores it
+/// under `IntervalFourHour` (09:00 is not on a four-hour boundary). The gate
+/// writes `working_databar`; it hands no bar out to a caller.
 pub fn the_gate_is_given_the_interval_by_the_caller_test() {
   let raw =
     SourceBar(
@@ -363,12 +361,16 @@ pub fn the_gate_is_given_the_interval_by_the_caller_test() {
       volume: 10,
     )
   let tf = timeframe.new(settings())
-  let assert Ok(#(Some(_), _)) =
-    engine.sourcebar_gate(tf, interval.IntervalOneHour, raw)
+  let assert Ok(hourly) =
+    timeframe.sourcebar_gate(tf, interval.IntervalOneHour, raw)
     as "an hourly bucket ends on minute 00"
-  let assert Ok(#(None, _)) =
-    engine.sourcebar_gate(tf, interval.IntervalFourHour, raw)
+  let assert Some(bar) = hourly.working_databar as "one whole bar is in hand"
+  assert bar.idx == 0 as "the first bar's position is 0"
+  let assert Ok(four_hour) =
+    timeframe.sourcebar_gate(tf, interval.IntervalFourHour, raw)
     as "the same value under a four-hour key does not close at 09:00"
+  assert four_hour == tf
+    as "a period that has not ended is ignored and held nowhere"
 }
 
 /// The bucket test now closes an hourly bar on the minute the boundary hands
