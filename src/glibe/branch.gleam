@@ -23,18 +23,16 @@
 //// R11: `enter_bar` / `exit_bar` ARE the manual enter and exit; there is
 //// no second strategy and no provisional field for either (R38 / R39).
 ////
-//// The four bar names and the function names are the ones in
-//// `glib/src/glib/branch.gleam`, taken only after comparing that
-//// implementation with the rulings above (R38 / R42). Each
-//// `todo as "..."` says what its body has to write (R19);
-//// `gleam build --warnings-as-errors` reports each one until it is written.
 //// R6 (owner, verbatim): *"closing is a length test, never a price test"* —
 //// `branch_size` and `leaf.leaf_size` are counts of bars, never prices.
-//// R5 / R6 name the closing count `branch_exit_leaf_size`; it is the
-//// parameter `next_yang_branch` / `next_yin_branch` compare the riding
-//// leaf's length against. `timeframe.branches` is the caller that passes
-//// it to either function (R40-A lets a pipeline step carry extra
-//// arguments, given at the pipe call site).
+//// R5 / R6 name the closing count `branch_exit_leaf_size`. That count is
+//// THIS module's rule, so it lives here: `branch_exit_leaf_size()` is read
+//// by `timeframe.branches` and handed to `next_yang_branch` /
+//// `next_yin_branch`, which compare the riding leaf's length against it.
+//// No step of the pipeline carries it as an extra argument, and no other
+//// layer owns a branch's closing rule (R50). Each `todo as "..."` says
+//// what its body has to write (R19); `gleam build --warnings-as-errors`
+//// reports each one until it is written.
 
 import gleam/option.{type Option}
 import glibe/databar.{type DataBar}
@@ -168,8 +166,8 @@ pub fn exited_branch(
 /// `previous` is the leaf that settled this bar, read only to take the new
 /// branch's `start_bar` from its `corner_bar` (R4 / R5); `riding` is the
 /// leaf whose length closes the branch (R6); `branch_exit_leaf_size` is
-/// that count of bars, named by R5 / R6 and supplied by the caller at the
-/// pipe call site (R40-A).
+/// that count of bars, named by R5 / R6 and read by `timeframe.branches`
+/// from `branch_exit_leaf_size()` in this module.
 pub fn next_yang_branch(
   growing: Option(DataBranch),
   databar: DataBar,
@@ -195,4 +193,13 @@ pub fn next_yin_branch(
   branch_exit_leaf_size: Int,
 ) -> #(Option(DataBranch), Option(DataBranch)) {
   todo as "05-01: birth on recognition, close when leaf_size >= branch_exit_leaf_size, carry a growing branch unchanged"
+}
+
+/// How many bars the riding leaf may live before the branch closes (R5 /
+/// R6: `>=`, a length test, never a price test). This is THIS module's rule:
+/// `timeframe.branches` reads it and hands the value to
+/// `next_yang_branch` / `next_yin_branch`. No pipeline step carries it as
+/// an extra argument and no other layer owns a branch's closing rule (R50).
+pub fn branch_exit_leaf_size() -> Int {
+  todo as "05-01: the leaf length at which a branch is recognised as dead"
 }

@@ -12,15 +12,17 @@
 ////
 //// R19 status: skeleton. No working line here.
 
+import gleam/option.{type Option}
 import gleeunit
 import glibe/account.{type Account}
 import glibe/api/interval.{type Interval}
 import glibe/api/sourcebar.{type SourceBar, type SourceBarRejection}
 import glibe/api/symbol.{type Symbol}
-import glibe/binance/kline.{type Kline}
+import glibe/binance/kline.{type BinanceKline}
 import glibe/broker.{type Broker}
 import glibe/databar.{type DataBar}
 import glibe/desk.{type Desk}
+import glibe/ib/sourcebar as ib_sourcebar
 import glibe/id.{type AccountId, type BrokerId}
 import glibe/instrument.{type Instrument}
 import glibe/timeframe.{type Timeframe}
@@ -110,6 +112,56 @@ pub fn identity_shape_test() {
 /// R28 / R27: each provider has its own native shape and its own one exit
 /// into the standard layer; the standard layer is the only meeting point.
 pub fn provider_exit_shape_test() {
-  let _exit: fn(Kline) -> Result(SourceBar, Nil) = kline.to_sourcebar
+  let _exit: fn(BinanceKline) -> Result(SourceBar, Nil) = kline.to_sourcebar
+  Nil
+}
+
+/// Owner 2026-11-13: IB serves ONLY five seconds, so IB's own module
+/// accumulates ONE arriving bar at a time into ONE
+/// `growing_target_sourcebar`, with the three states of `working_databar`.
+/// Nine target grades — one per `Interval` constructor — and no `List` of
+/// saved bars. The target grade is in the FUNCTION NAME, so no `Interval`
+/// parameter can claim a grade that disagrees with the bars in hand.
+/// The compiler checks all nine shapes here.
+pub fn ib_composition_shape_test() {
+  let _one_minute: fn(Option(SourceBar), ib_sourcebar.IbSourceBar) ->
+    #(Option(SourceBar), Option(SourceBar)) =
+    ib_sourcebar.five_second_to_one_minute
+  let _three_minute: fn(Option(SourceBar), ib_sourcebar.IbSourceBar) ->
+    #(Option(SourceBar), Option(SourceBar)) =
+    ib_sourcebar.five_second_to_three_minute
+  let _fifteen_minute: fn(Option(SourceBar), ib_sourcebar.IbSourceBar) ->
+    #(Option(SourceBar), Option(SourceBar)) =
+    ib_sourcebar.five_second_to_fifteen_minute
+  let _thirty_minute: fn(Option(SourceBar), ib_sourcebar.IbSourceBar) ->
+    #(Option(SourceBar), Option(SourceBar)) =
+    ib_sourcebar.five_second_to_thirty_minute
+  let _one_hour: fn(Option(SourceBar), ib_sourcebar.IbSourceBar) ->
+    #(Option(SourceBar), Option(SourceBar)) =
+    ib_sourcebar.five_second_to_one_hour
+  let _four_hour: fn(Option(SourceBar), ib_sourcebar.IbSourceBar) ->
+    #(Option(SourceBar), Option(SourceBar)) =
+    ib_sourcebar.five_second_to_four_hour
+  let _one_day: fn(Option(SourceBar), ib_sourcebar.IbSourceBar) ->
+    #(Option(SourceBar), Option(SourceBar)) =
+    ib_sourcebar.five_second_to_one_day
+  let _one_week: fn(Option(SourceBar), ib_sourcebar.IbSourceBar) ->
+    #(Option(SourceBar), Option(SourceBar)) =
+    ib_sourcebar.five_second_to_one_week
+  let _one_month: fn(Option(SourceBar), ib_sourcebar.IbSourceBar) ->
+    #(Option(SourceBar), Option(SourceBar)) =
+    ib_sourcebar.five_second_to_one_month
+  Nil
+}
+
+/// Owner 2026-11-13: composition is DISPATCHED at the `Instrument` layer,
+/// because the `Interval` key lives there and `Instrument` knows which
+/// timeframe gets which grade. It reads that key's
+/// `Timeframe.growing_target_sourcebar`, calls ONE `five_second_to_*`,
+/// and writes the recomputed `Instrument` back. ONE arriving bar in, ONE
+/// recomputed Value out, at most ONE finished standard bar emitted.
+pub fn instrument_composition_shape_test() {
+  let _dispatch: fn(Instrument, Interval, ib_sourcebar.IbSourceBar) ->
+    #(Option(SourceBar), Instrument) = instrument.compose_ib_realtime_bar
   Nil
 }

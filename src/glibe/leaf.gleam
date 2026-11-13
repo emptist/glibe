@@ -20,11 +20,13 @@
 //// *"closing is a length test, never a price test"* — `leaf_size` counts
 //// bars, it never compares two prices.
 ////
-//// `corner_bar` and the function names are the ones in
-//// `glib/src/glib/leaf.gleam`, taken only after comparing that
-//// implementation with the rulings above (R38 / R42). Each
-//// `todo as "..."` says what its body has to write (R19);
-//// `gleam build --warnings-as-errors` reports each one until it is written.
+//// WHO READS THESE FUNCTIONS: `timeframe.leaves` calls `next_yin_leaf` /
+//// `next_yang_leaf` and writes the settled leaf into a field; `timeframe.branches`
+//// calls `leaf_size` / `leaf_depth` / `leaf_cma` and `cma_recurrence` to
+//// measure the riding leaf and to write its numbers onto the working bar
+//// (R39). `timeframe.strategy` reads the corner bar. Each `todo as "..."`
+//// says what its body has to write (R19); `gleam build --warnings-as-errors`
+//// reports each one until it is written.
 
 import gleam/option.{type Option}
 import glibe/databar.{type DataBar}

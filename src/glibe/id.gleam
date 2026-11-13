@@ -51,3 +51,17 @@ pub fn broker_id(spelling: String) -> BrokerId {
 pub fn account_id(spelling: String) -> AccountId {
   todo as "05-01: a holder's key, not the account's own field"
 }
+
+/// `BrokerId` read back at a boundary. The constructor is `opaque`, so
+/// this half of the codec must sit in the SAME module as the type (R50 §3,
+/// measured `error: Use of private value`); a caller outside cannot
+/// destructure it. `broker_id` and this function are the two directions of
+/// the one key.
+pub fn broker_id_to_string(id: BrokerId) -> String {
+  todo as "05-01: read the spelling out of the opaque broker key"
+}
+
+/// `AccountId` read back at a boundary; the same `opaque` rule as above.
+pub fn account_id_to_string(id: AccountId) -> String {
+  todo as "05-01: read the spelling out of the opaque account key"
+}
