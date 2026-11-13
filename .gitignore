@@ -17,8 +17,3 @@ node_modules/
 # Editors / OS
 *.swp
 .DS_Store
-
-# CodeBuddy project-local settings are personal, never committed.
-# .codebuddy/CODEBUDDY.md, rules/, skills/, commands/ ARE committed —
-# WorkBuddy reads the same directory, so this is the shared entry point.
-.codebuddy/settings.local.json
