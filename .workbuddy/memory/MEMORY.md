@@ -107,11 +107,18 @@ lines. Tests: `assert … as "msg"`, `let assert`, never `panic`/`case Bool`.
   骨架阶段必红, 逐条读到行, 不许整包豁免或 `_` 洗信号。
   core mirror `cmp` 不是门禁脚本。
 
-## State (2026-11-13, doc-tdd, 未 push)
-`src/` = **14 个模块空架子、零行实代码**; `test/` 9 个空 shape test。
+## State (2026-11-14, doc-tdd, 未 push)
+`src/` = **15 个模块**（`package-interface` 实测 `modules: 15`），函数体
+仍多为 `todo`; `test/` 9 个空 shape test + **1 个真断言**。
 链按 R50 分层: `id`/`account`（零 import）→ `instrument` → `broker` →
-`desk`; `config.gleam` 已删。WAE 故意红（逐条待实现清单）。
-**仍留白（R26/R32）**: `DataBar` 计算字段、leaf/branch 内部字段、
-`Kline` 线格式字段、`SourceBarRejection` 具体原因、`Account` 字段。
+`desk`; `config.gleam` 已删。WAE 仍红（69 `Todo`，R48 逐条清单）。
+**R19 第一个 body 已填**: `kline.to_sourcebar`（RED 11/1 → GREEN
+12 passed）。构造子作一等函数不接受 labelled argument，9 arm 各自构造。
+**「仍留白」清单（11-12 §5.1）已失效**: 5 项里 4 项早落进骨架
+（`DataBar` / leaf / branch 字段、`BinanceKline` 12 字段、
+`SourceBarRejectionUnqualified`）；仅 `Account` 仍是零字段占位
+（`account.gleam:27-29`，R26/R32 刻意等消费方）。**Kline 线格式不是
+设计留白** —— Binance 官方 12 字段照抄即可（R28），别拿它向 owner
+要逐字；provider 的数据问题查 provider 手册，不靠推理。
 **未收敛**: `gleam.toml` 旧依赖表、`webclient/` 旧实现。
 决策区 **0 项**。

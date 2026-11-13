@@ -4,7 +4,37 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-12 (doc-tdd — 系统性重建；当前状态)
+## 2026-11-14 07:41 (当前状态)
+
+- **`src/` = 15 个模块**（`gleam export package-interface` 实测
+  `modules: 15`）；11-12 记录的「14 个」少了 `ib/sourcebar.gleam`。
+- **「仍留白」清单已失效**：11-12 的 5 项里 4 项早已落进骨架 ——
+  `DataBar`（`databar.gleam:60-`）、`YinLeaf` / `YangLeaf` 3 字段、
+  `YinBranch` / `YangBranch` 4+ 字段、`BinanceKline` 12 字段、
+  `SourceBarRejectionUnqualified`。只有 `Account` 仍是
+  `account.gleam:27-29` 的零字段占位，那是 R26 / R32 等真实消费方的
+  **刻意决定**，不是待 owner 给的词。下一段「仍留白」是历史记录。
+- **Kline 线格式不是设计留白**：Binance 官方 `GET /api/v3/klines`
+  响应 12 字段（Open time / Open / High / Low / Close / Volume / Close
+  time / Quote asset volume / Number of trades / Taker buy base asset
+  volume / Taker buy quote asset volume / Ignore）与
+  `binance/kline.gleam:103-116` **逐项对应、顺序一致**。线格式
+  integer-ms → `Timestamp`（R27）、string 数字 → `Float`、
+  `Number of trades` → `Int`、`Ignore` → `String`。照抄，不设计。
+  R28「provider 原生形状各自保留」。
+- **R19 第一个 body 已填**：`kline.to_sourcebar`。RED `11 passed /
+  1 failure`（崩在 `kline.gleam:242` 的 todo）→ GREEN
+  `12 passed, no failures`。编译器实测：构造子作为一等函数时**不接受
+  labelled argument**，故 9 个 arm 各自带 label 构造。`volume: Float →
+  Int` 在 provider 出口以 `float.truncate` 落地（R28：转换只发生在
+  出口）；`open_time` 已是 `Timestamp`，不再折 epoch。
+- 门禁：`check` 0 · `test` 0（12 passed）· `format --check src test` 0 ·
+  `docs build` 0 · `export package-interface` 0；
+  **`build --warnings-as-errors` 仍 exit 1**（192 warnings，
+  `Todo found` 70 → **69**，零静音）。这是逐条待实现清单，不是成绩单（R48）。
+- 决策区 **0 项**；**未 push**。
+
+## 2026-11-12 (doc-tdd — 系统性重建；历史状态)
 
 - **R50（owner 在 `desk.gleam` 留 12 条 review 评论后追加两轮追问）= 当前结构**：
   一个模块只读写它自己那一层**持有的** Dict；`desk.gleam` 233 → 56 行，
