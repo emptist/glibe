@@ -32,7 +32,11 @@ sections are kept as history, not as the current answer.
   `docs build` 0 · `export package-interface` 0；
   **`build --warnings-as-errors` 仍 exit 1**（192 warnings，
   `Todo found` 70 → **69**，零静音）。这是逐条待实现清单，不是成绩单（R48）。
-- 决策区 **0 项**；**未 push**。
+- 决策区 **0 项**。**2026-11-14 已普通 push**（fast-forward，无任何
+  force 参数）：`fb0082a..757cf63`，本地 HEAD、远端
+  `refs/heads/doc-tdd`、`origin/doc-tdd` 三者一致。下面 11-12 历史节
+  那句「分支 `doc-tdd`，不 push」是**当时的状态，不是规则**；owner
+  2026-11-14 逐字与查证见 `docs/RULINGS.md` 相应执行注记。
 
 ## 2026-11-12 (doc-tdd — 系统性重建；历史状态)
 

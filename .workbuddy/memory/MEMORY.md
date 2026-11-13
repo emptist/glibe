@@ -98,8 +98,12 @@ lines. Tests: `assert … as "msg"`, `let assert`, never `panic`/`case Bool`.
 - Pending decisions **only** in `docs/PENDING_DECISIONS.md`: decisions
   FIRST, rest under `# REFERENCE`; no other document may reference it.
 - **Owner 2026-11-09: ".gitignore 及时更新，及时做提交"** — ignore rules
-  BEFORE artifacts; one logical concern per commit; **do not push unless
-  asked**; never `rm -rf build`.
+  BEFORE artifacts; one logical concern per commit; never `rm -rf build`.
+- **Owner 2026-11-14: "push本身又不是什么破坏性动作，哪有什么约定不能push，
+  你不要push --force就行了"** — 普通 fast-forward `git push` 直接做、
+  不请示；`--force` / `--force-with-lease` / 任何改写远端历史的操作
+  **必须先问**。原先的「do not push unless asked」是 AI 注记冒充 owner
+  约定，已删（逐字与查证见 `docs/RULINGS.md` 2026-11-14 执行注记）。
 - Toolchain: `export PATH="/opt/homebrew/bin:$PATH"`; capture exit codes.
 - R44 起项目层没有 guard sh。设计探针: `gleam check` / `build` /
   `format --check src test` / `docs build` / `export package-interface`.
@@ -107,7 +111,7 @@ lines. Tests: `assert … as "msg"`, `let assert`, never `panic`/`case Bool`.
   骨架阶段必红, 逐条读到行, 不许整包豁免或 `_` 洗信号。
   core mirror `cmp` 不是门禁脚本。
 
-## State (2026-11-14, doc-tdd, 未 push)
+## State (2026-11-14, doc-tdd, 已 push 到 origin/doc-tdd)
 `src/` = **15 个模块**（`package-interface` 实测 `modules: 15`），函数体
 仍多为 `todo`; `test/` 9 个空 shape test + **1 个真断言**。
 链按 R50 分层: `id`/`account`（零 import）→ `instrument` → `broker` →

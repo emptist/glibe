@@ -15,7 +15,9 @@
 
 ## 1. 状态（实测，非估计）
 
-- 分支 **`doc-tdd`**，**未 push**。工作树在本轮提交后干净。
+- 分支 **`doc-tdd`**，2026-11-14 **已普通 push** 到 `origin/doc-tdd`
+  （fast-forward，无 force）；工作树干净。本 §1 其余数字是 2026-11-13
+  快照，当前实测见 `docs/STATE.md` 2026-11-14 节。
 - `src/` = **14 个 Gleam 模块、零行实代码**（函数体全 `todo as "…"`）。
 - `test/` = **9 个空 shape test**，只钉 in/out types，无断言、不调用 `todo`。
 - 待裁决 **0 项**（`docs/PENDING_DECISIONS.md`）。
@@ -58,7 +60,7 @@ R48 由 owner 点名启用，原话 *「把warnings当作奖励，也是AI特有
 构造子），填一个 body 少一条。R48 已作废「warnings 是预期骨架形状」
 这类免检牌，并禁止用 `_` 前缀批量静音（实测 `_a` 是 discard name，
 body 引用会报 `Found a discard name`）。
-**它不是成绩单，是逐条待实现清单。** 本分支未 push、CI 的 push 触发
+**它不是成绩单，是逐条待实现清单。** 本分支已 push（2026-11-14）、CI 的 push 触发
 只有 master/main，所以现在没拦住东西；**开 PR 到 master 会红**。
 
 ---
@@ -158,4 +160,6 @@ line here yet; nonsense」*，已恢复原句。
 6. `docs/STATE.md` 顶部
 
 **提交**：本轮核验与交接随最后一个 commit 落地；
-`git log --oneline -8` 可看按逻辑分的原子提交。**不 push。**
+`git log --oneline -8` 可看按逻辑分的原子提交。push 边界见
+`docs/RULINGS.md` 2026-11-14 执行注记：普通 fast-forward push 直接做，
+任何 force / 改写远端历史的操作先问 owner。

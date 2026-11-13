@@ -2755,3 +2755,29 @@ owner 2026-11-13 的 5 条逐字原话，原存于
 第 4 条中间的 `…` 是原记录自带的省略，按 R43 不补全、不当完整逐字。
 原文件另有两个不带引号的 AI 注记（「照逐字落，不自行推断…」、
 「每次改动后回显…校对稿」），不是 owner 逐字，按 R43 / R47 不归位。
+
+## 2026-11-14 — owner 逐字：push 不是破坏性动作（执行注记，非新裁定）
+
+**owner 原话（逐字，2026-11-14）**：
+
+- *"push本身又不是什么破坏性动作，哪有什么约定不能push，你不要push
+  --force就行了。等你想用force的时候保管不回问我自己就上了，然后就灾难了"*
+
+**查证**：owner 2026-11-09 的逐字只有 *"注意：.gitignore 及时更新，
+及时做提交"*（`2026-11-09.md:110`），没有不 push 的要求；本文件此前
+9 处「未 push」都是状态描述，不是裁定。`MEMORY.md` Conventions 里的
+「do not push unless asked」是 AI 自己加在同一条后面的注记，被当成
+owner 约定反复引用 —— 按 R46 / R49，AI 自己记录的裁定不是 owner
+词汇，已删。owner 还点破了方向反了：真正破坏性的 `--force` 反倒
+可能不问就上。
+
+**执行边界**：普通 fast-forward `git push` 直接做、不逐次请示；任何
+改写远端历史的操作（`--force`、`--force-with-lease`、rebase 后强推、
+删除远端分支）必须先问 owner，不得自行上。**这不是新裁定**：不新增
+编号、不新增待裁决项、不据此改动 `src/` / `test/`。
+
+**实测**：`git merge-base --is-ancestor fb0082a HEAD` 为真 → 远端是本地
+祖先；`git push --dry-run origin doc-tdd` 预演 `fb0082a..757cf63`；
+普通 `git push origin doc-tdd` 后本地 HEAD、远端 `refs/heads/doc-tdd`、
+`origin/doc-tdd` 三者同为 `757cf6367682299414a1d69ab7267089cfdcd2cd`。
+全程无任何 force 参数。
