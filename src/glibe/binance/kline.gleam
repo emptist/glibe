@@ -92,10 +92,16 @@
 //// kept, and each gains a reader in this module when its consumer exists
 //// (R26 / R32).
 ////
-//// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
+//// R19 status (2026-11-14): the one body of this module, `to_sourcebar`,
+//// is filled and pinned by a test. No `todo` remains here.
 
+import gleam/float
 import gleam/time/timestamp.{type Timestamp}
-import glibe/api/sourcebar.{type SourceBar}
+import glibe/api/sourcebar.{
+  type SourceBar, SourceBarFifteenMinute, SourceBarFourHour, SourceBarOneDay,
+  SourceBarOneHour, SourceBarOneMinute, SourceBarOneMonth, SourceBarOneWeek,
+  SourceBarThirtyMinute, SourceBarThreeMinute,
+}
 
 /// One Binance kline, in the provider's own shape, graded by its variant.
 /// It is not the standard `SourceBar` and not a `DataBar`.
@@ -235,9 +241,65 @@ pub type BinanceKline {
 ///
 /// Failure has nothing to say here, so the error type is `Nil` (core §6);
 /// a real reason becomes a domain error type when its consumer exists
-/// (R13 / R26). Epoch-ms is folded to unix `Timestamp` here (R27 / R9).
-/// This function must name every grade, so a tenth span becomes an
+/// (R13 / R26). `open_time` already arrives as a `Timestamp` (R27), so this
+/// exit carries it across unchanged instead of folding an epoch a second
+/// time. `volume` arrives as a `Float` while the standard bar holds an `Int`,
+/// so the exit truncates it here — R28 puts every conversion at this exit
+/// only. This function names every grade, so a tenth span becomes an
 /// `Inexhaustive patterns` error here (R13).
 pub fn to_sourcebar(kline: BinanceKline) -> Result(SourceBar, Nil) {
-  todo as "05-01: case over the nine BinanceKline grades, fold epoch-ms to unix, take the standard OHLCV, build the matching SourceBar variant"
+  let instant = kline.open_time
+  let open = kline.open
+  let high = kline.high
+  let low = kline.low
+  let close = kline.close
+  let volume = float.truncate(kline.volume)
+  Ok(case kline {
+    BinanceKlineOneMinute(..) ->
+      SourceBarOneMinute(
+        timestamp: instant,
+        open:,
+        high:,
+        low:,
+        close:,
+        volume:,
+      )
+    BinanceKlineThreeMinute(..) ->
+      SourceBarThreeMinute(
+        timestamp: instant,
+        open:,
+        high:,
+        low:,
+        close:,
+        volume:,
+      )
+    BinanceKlineFifteenMinute(..) ->
+      SourceBarFifteenMinute(
+        timestamp: instant,
+        open:,
+        high:,
+        low:,
+        close:,
+        volume:,
+      )
+    BinanceKlineThirtyMinute(..) ->
+      SourceBarThirtyMinute(
+        timestamp: instant,
+        open:,
+        high:,
+        low:,
+        close:,
+        volume:,
+      )
+    BinanceKlineOneHour(..) ->
+      SourceBarOneHour(timestamp: instant, open:, high:, low:, close:, volume:)
+    BinanceKlineFourHour(..) ->
+      SourceBarFourHour(timestamp: instant, open:, high:, low:, close:, volume:)
+    BinanceKlineOneDay(..) ->
+      SourceBarOneDay(timestamp: instant, open:, high:, low:, close:, volume:)
+    BinanceKlineOneWeek(..) ->
+      SourceBarOneWeek(timestamp: instant, open:, high:, low:, close:, volume:)
+    BinanceKlineOneMonth(..) ->
+      SourceBarOneMonth(timestamp: instant, open:, high:, low:, close:, volume:)
+  })
 }

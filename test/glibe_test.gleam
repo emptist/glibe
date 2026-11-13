@@ -5,14 +5,16 @@
 //// 也都一样是空的，仅仅要求将 in out types 搞对；这一步gleam test or
 //// gleam build就已经能发现设计问题"*.
 ////
-//// So there are NO assertions here and NO call to a `todo` body. Each test
-//// binds a function to an explicitly annotated type: if a signature drifts
-//// away from the design, the compiler rejects this file. At this stage
-//// THAT is the test. Real assertions arrive together with the bodies.
+//// The shape tests bind a function to an explicitly annotated type: if a
+//// signature drifts away from the design, the compiler rejects this file.
+//// Real assertions arrive together with the bodies (R19); the first one,
+//// `binance_kline_to_sourcebar_test`, arrived 2026-11-14 with the first
+//// filled body.
 ////
-//// R19 status: skeleton. No working line here.
+//// R19 status: one assertion live; the remaining tests still pin types only.
 
 import gleam/option.{type Option}
+import gleam/time/timestamp
 import gleeunit
 import glibe/account.{type Account}
 import glibe/api/interval.{type Interval}
@@ -164,4 +166,41 @@ pub fn instrument_composition_shape_test() {
   let _dispatch: fn(Instrument, Interval, ib_sourcebar.IbSourceBar) ->
     #(Option(SourceBar), Instrument) = instrument.compose_ib_realtime_bar
   Nil
+}
+
+/// R28 / R27: one native Binance kline becomes the standard bar of THAT SAME
+/// grade. The grade is read off the variant, never handed in by a caller. The
+/// absolute instant and OHLCV are carried across; the provider-only fields
+/// stay on the native value and reach no consumer. Binance's own wire shape is
+/// `GET /api/v3/klines` (12 fields, in order): Open time, Open, High, Low,
+/// Close, Volume, Close time, Quote asset volume, Number of trades, Taker buy
+/// base asset volume, Taker buy quote asset volume, Ignore.
+pub fn binance_kline_to_sourcebar_test() {
+  let instant = timestamp.from_unix_seconds(1_499_040_000)
+  let native =
+    kline.BinanceKlineOneMinute(
+      open_time: instant,
+      open: 0.0163479,
+      high: 0.8,
+      low: 0.015758,
+      close: 0.015771,
+      volume: 148_976.11427815,
+      close_time: timestamp.from_unix_seconds(1_499_644_799),
+      quote_asset_volume: 2434.19055334,
+      number_of_trades: 308,
+      taker_buy_base_asset_volume: 1756.87402397,
+      taker_buy_quote_asset_volume: 28.46694368,
+      ignore: "0",
+    )
+  let assert Ok(bar) = kline.to_sourcebar(native)
+  assert bar
+    == sourcebar.SourceBarOneMinute(
+      timestamp: instant,
+      open: 0.0163479,
+      high: 0.8,
+      low: 0.015758,
+      close: 0.015771,
+      volume: 148_976,
+    )
+    as "same grade; the absolute instant and OHLCV are carried across"
 }
