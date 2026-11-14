@@ -27,8 +27,14 @@ no `idx`: a provider's closed candle does not know its position until
 walk.
 
 Do not guess from a name: `bars_listed` does not count, `last_bar` reads the
-head, and `exited_branch` does not search. `DEVELOPER_GUIDE.md` has the full
-list inventory, the three exceptions to the rule, and a table saying how to
+head, and `exited_branch` does not search.
+
+The chart is **not** drawn backwards. Each output boundary reverses its list
+once (the page's initial paint, or the export on quit); every live bar then
+travels alone over SSE and the chart grows by one `series.update`.
+Chronological order is a projection of the one newest-first list, never a
+second stored copy — see `DEVELOPER_GUIDE.md` §6. The guide also has the full
+list inventory, the exceptions and boundary cases, and a table saying how to
 fill each remaining `todo`.
 
 - Plan item: `.planning/phases/05-doc-tdd/05-01-PLAN.md`

@@ -4,7 +4,45 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-15 07:31 (当前状态)
+## 2026-11-15 07:42 (当前状态)
+
+- **本轮仍只写文档，`src/` / `test/` 一行未改**：回答 owner 07:42 的问题
+  「倒叙 List 怎样画图、`reverse` 是不是低效」。结论是问句里那个
+  **第二个关键措施 = 输出侧投影 + 单条增量流**：引擎只保存倒序那一份，
+  顺序是它在输出边界的一次投影，之后每根 bar 只发一根、输出端只做
+  O(1) 追加。owner 写的是 `revert`，官方函数名是 `list.reverse`；按
+  「动词跟 function 走」，文档只用 `reverse`。
+- **查证（glib 代码，非 glib `docs/`）**：`list.reverse` 全库 **7 处**
+  （`trading/ingest.gleam:164` 页面初始绘制、`trading/export.gleam:24`
+  退出导出、`trading/live.gleam:130` 有界窗口、`census.gleam:172/213/363`
+  报告、`execution/risk_manager.gleam:358` 固定条数结果），**无一处挂在
+  每根 bar 的 `databar_processing` 路径上**。实时链路：
+  `timeframe.gleam:448` → `web/server.gleam:57/62`（只取
+  `working_databar` 一根）→ `:110`/`server_ffi.mjs:429` SSE 发一根 →
+  `priv/index.html:768` `appendBar` → `:691-705` 每条 series 一次
+  `series.update`。初始绘制 `priv/index.html:736-737` 也是
+  `bars.forEach(appendBar)`，前端 `:644` 明写 *"No `setData` anywhere"*；
+  `server_ffi.mjs:20` *"not a second source of bars"*——顺序数据没有第二份。
+- **效率算术**：若按 oldest-first 存，每根写入 `list.append`、取上一根
+  `list.last`、保图表顺序 reverse，各 O(n)，N 根累计 **O(N²)**；现在是
+  prepend / 读头 / 广播一根各 O(1)，N 根 **O(N)** + 初始绘制 / 导出各
+  一次 O(N)。reverse 确是 O(n)（官方逐字），但它挂在**「人打开一次页面 /
+  退出一次导出」**的频率上，不在**「数据到达 N 次」**的频率上。
+- **与既有裁定的关系（不是新裁定）**：R30「标准层与显示层分开 … 显示层
+  是它的一个投影 … 不得为了显示把标准类型改回日期字符串」的同构应用
+  ——不得为了画图把存储改回顺序；R20 `dashboard = VIEW`、R33 一条流 /
+  纯值重算、R38 流没有倒带共同保证新 bar 天然按时间到达、输出端只管
+  追加。`DEVELOPER_GUIDE.md` 新增 **§6**，原 §6–§10 顺延为 §7–§11，
+  §7(b) 从「例外」改述为「§6 措施在文件边界的形态」；`README.md` 加
+  *The chart is not drawn backwards* 一段。
+- owner 逐字、7 处 reverse 的逐条查证、6 步实时链路见
+  `docs/RULINGS.md`「2026-11-15 07:42」执行注记；**不新增 R 编号、
+  不新增待裁决项**。§6 新增的 20 条 `file:line` 按路径约定全部解析成功
+  并抽查内容吻合。历史节、append-only 日志原文不改写。
+- 决策区仍 **0 项**；未定只剩 `Symbol` 变体归属。WAE 那 76 条 `Todo`
+  仍是下一批按 R19 逐条填的清单。
+
+## 2026-11-15 07:31 (历史状态)
 
 - **本轮只写面向开发者的文档，`src/` / `test/` 一行未改**：新建
   **`DEVELOPER_GUIDE.md`**（根，10 节），改写 `README.md`，

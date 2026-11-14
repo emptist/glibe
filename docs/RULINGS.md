@@ -3064,3 +3064,94 @@ singly-linked list，`[x, ..rest]` prepend O(1)。
   append；`.workbuddy/memory/MEMORY.md` State 同步。
 - **`src/` / `test/` 一行未改**；`docs/PENDING_DECISIONS.md`、
   `.planning/` 阶段计划不动。
+
+---
+
+## 2026-11-15 07:42 — owner 逐字：倒叙 List 怎样给图表用、`reverse` 为什么不是低效（执行注记，不新增编号、不新增待裁决项）
+
+**owner 原话（逐字）**：*"等你弄完了，问你一个问题，如果list的data都是按照
+时间顺序倒过来放的，那么在系统中，是不是有时候要用revert来把他顺过来
+才好用呢？那样不还是低效率吗？比如画图，你怎不能倒过来制作chart吧？
+这里面涉及另一个系统效率设计的关键措施。"*
+
+### 术语落点
+
+owner 写的是 `revert`；官方 stdlib 的函数名是 `list.reverse`
+（`gleam_stdlib` v1.0.5 `gleam/list`，逐字见 07:31 注记 /
+`DEVELOPER_GUIDE.md` §2），本项目与 glib 里都没有名为 `revert` 的函数。
+按「动词跟 function 走」，代码与本文只用 `reverse`。**这不是更正 owner
+用词，是把术语落到真实函数上。**
+
+### 查证（glib 代码，不是 glib 的 `docs/`）
+
+owner 已声明 *"其中AI是否100%按照我设计去实现我也不知道"*，故下面是
+代码事实，不是「glib 全对」的宣告。
+
+1. `grep -rn "list.reverse" ../glib/src --include='*.gleam'` 实测 **7 处**：
+   `census.gleam:172/213/363`、`execution/risk_manager.gleam:358`、
+   `trading/live.gleam:130`、`trading/ingest.gleam:164`、
+   `trading/export.gleam:24`。**没有一处在每根 bar 的
+   `databar_processing` 路径上**：`:164` 是 replay 跑完后的页面初始绘制
+   一次，`:24` 是退出写导出文件一次，其余是离线报告 / 有界窗口 /
+   固定条数检查结果。
+2. `glib/trading/ingest.gleam:151-154` 注释逐字：*"The bars go
+   **newest-first inside the engine** (DESIGN §15) but are handed over
+   oldest-first, because the chart extends forward in time. Reversing is
+   not treatment — every value is exactly what `working_databar_archived`
+   stored."*
+3. **实时链路（每根 bar）**：`glib/timeframe.gleam:448`
+   `publish_model(timeframe)` → `glib/web/server.gleam:57` / `:62`
+   只取 `model.working_databar` 一根（`None -> Nil`，被拒的 bar 不占任何
+   字段）→ `:110` `broadcast_chart` →
+   `glib/web/server_ffi.mjs:429` SSE `chart_data` 发一根 →
+   `glib/priv/index.html:768` `appendBar` → `:691-705` 每条 series 各一次
+   `series.update`。`server_ffi.mjs:417-419` 逐字：*"send ONE finished
+   DataBar over SSE `chart_data` (not an array) … history and live are
+   indistinguishable because both flow through sourcebar_gate."*
+4. **初始绘制走同一个函数**：`glib/priv/index.html:736-737`
+   `paintDatabars(bars) { bars.forEach(appendBar) }`；`:644` 逐字
+   *"No `setData` anywhere"*（bulk load 会 REPLACE 整条 series，抹掉已画的
+   调试证据）；`glib/trading/ingest.gleam:1-8` 逐字 *"history is the same
+   stream as live … no bulk seed, no `setData`, and no second pipeline"*。
+5. **没有第二份顺序数据**：`glib/web/server_ffi.mjs:20` 逐字 *"What the
+   ENGINE has archived, per symbol — not a second source of bars"*；
+   `:32-38` 的 `gleam_list_to_array` 是那一次遍历；JS 数组尾部 `push`
+   与 `series.update` 都是 O(1)。
+6. 输出侧容器由用途决定：`glib/sourcebar_export.gleam:26-27` 逐字
+   *"one positional JSON array, oldest-first … the file is read whole,
+   sequentially, once, which is what an array is for."* 计算侧用链表
+   （头部 O(1)），输出侧用数组（顺序读一次）。
+
+### 判据与结论（不是新裁定）
+
+- **是，要顺过来；但不是「每次画都 reverse」。** 问句里的「另一个关键
+  措施」= **输出侧投影 + 单条增量流**：引擎只保存倒序那一份；顺序是它在
+  输出边界的一次投影；之后每根 bar 只发一根、输出端只做 O(1) 追加。
+- **效率算术**：若引擎按 oldest-first 存，每根 bar 写入 `list.append`
+  O(n)、取「上一根」`list.last` O(n)、为保持图表顺序还得 reverse O(n)，
+  N 根累计 **O(N²)**；现在是 prepend O(1) + 读头 O(1) + 广播一根 O(1)，
+  N 根 **O(N)**，外加初始绘制 / 导出各一次 O(N)。reverse 本身确是 O(n)
+  （官方逐字），但它挂在**「人打开一次页面 / 退出一次导出」**的频率上，
+  不在**「数据到达 N 次」**的频率上。
+- **与既有裁定的关系**：R30 正文定的是「标准层与显示层分开 … 同一个
+  绝对时刻在标准层只存一份，显示层是它的一个投影 … 不得为了显示把标准
+  类型改回日期字符串」。**顺序是同一条原则的同构应用**——不得为了画图
+  把存储改回顺序。R20 `dashboard = VIEW`、R33（一条流、纯值重算、无
+  actor / scheduler / clock / poll）、R38（流没有倒带）共同保证新 bar
+  天然按时间先后到达，输出端只管追加。代码侧对应
+  `src/glibe/desk.gleam:32-35` / `src/glibe/api/interval.gleam:30-31`。
+- **本注记不是新裁定，不新增 R 编号、不新增待裁决项、不改 `src/` /
+  `test/`。** 07:31 注记里把「输出侧一次性 reverse」列为「三类例外 (b)」
+  是当时的分类；按 owner 本条，它升格为**第二个关键措施**。
+
+### 落地
+
+- `DEVELOPER_GUIDE.md`：路径约定补 `glib/priv/` 与 `glib/web/*.mjs`；
+  新增 **§6**（边界一次 reverse / 单条增量流链路 / 效率算术 / 与 R30
+  同构）；§3.1、§5、§8 的交叉引用更新；§7(b) 从「例外」改述为「§6
+  措施在文件边界的形态」；原 §6–§10 顺延为 §7–§11。
+- `README.md`：英文小节加一段 *The chart is not drawn backwards*，指向 §6。
+- `docs/STATE.md` 新增 07:42 当前状态节；`.workbuddy/memory/2026-11-15.md`
+  append；`.workbuddy/memory/MEMORY.md` State 同步。
+- §6 新增的 20 条 `file:line` 按路径约定全部解析成功、抽查内容吻合；
+  `src/` / `test/` 一行未改。历史节与 append-only 日志原文不改写。

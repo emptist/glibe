@@ -160,5 +160,18 @@ prepend/读头 O(1)（即便 VM 优化仍是 O(n)）；`idx` 让长度/跨度/
 `signif_*_leaf_list` / `yin/yang_branch_list` 全部 prepend + 读头；
 三类例外按 owner 判据分类，不宣布 glib 全对。逐字全文与
 file:line 查证见 `docs/RULINGS.md`「2026-11-15 07:31」。
+**owner 07:42（只写文档，`src/`/`test/` 未改）**：问「倒叙 List 怎样画图、
+`reverse` 是否低效」→ **第二个关键措施 = 输出侧投影 + 单条增量流**：
+引擎只存倒序那一份，顺序是边界的一次投影；实时每根 bar 只发一根 SSE
+`chart_data`，前端 `appendBar` + `series.update` O(1) 追加，初始绘制也走
+同一个函数（`No setData` / `not a second source of bars`）。`list.reverse`
+全库 7 处全在边界，无一处挂每根 bar 路径；oldest-first 存会 N 根
+**O(N²)**，现在 **O(N)** + 边界各一次 O(N)——成本挂在「人看一次」而非
+「数据到达 N 次」的频率上。与 **R30**「标准层 / 显示层分开、显示层是
+投影」同构，R20 / R33 / R38 支撑。`DEVELOPER_GUIDE.md` 新增 §6
+（原 §6–§10 顺延 §7–§11），§7(b) 从「例外」升格为「§6 措施在文件
+边界的形态」；`README.md` 加 *The chart is not drawn backwards*。owner
+写 `revert`，官方函数是 `list.reverse`，文档按 function 走只用 `reverse`。
+逐字与 6 步链路查证见 `docs/RULINGS.md`「2026-11-15 07:42」。
 **未收敛**: `gleam.toml` 旧依赖表、`webclient/` 旧实现。
 决策区 **0 项**。

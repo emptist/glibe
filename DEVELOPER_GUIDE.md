@@ -11,9 +11,12 @@
 > `docs/gleam-thinking-core-to-memory.md`）→ 本文。
 
 **路径约定**：`glib/foo.gleam:N` 指参照实现 `../glib/src/glib/foo.gleam`
-第 N 行；`glibe/foo.gleam:N` 指本项目 `src/glibe/foo.gleam` 第 N 行；
-`test/…` 与 `docs/…` 相对本项目根。表格里只有 `:N` 的行号，承该表标题
-所指的同一个文件。参照实现只读、不是规格、不是词库（R44 / R45）。
+第 N 行；`glib/web/server_ffi.mjs:N` 指
+`../glib/src/glib/web/server_ffi.mjs`；`glib/priv/index.html:N` 指
+`../glib/priv/index.html`；`glibe/foo.gleam:N` 指本项目
+`src/glibe/foo.gleam` 第 N 行；`test/…` 与 `docs/…` 相对本项目根。
+表格里只有 `:N` 的行号，承该表标题所指的同一个文件。参照实现只读、
+不是规格、不是词库（R44 / R45）。
 
 ---
 
@@ -84,7 +87,7 @@ cannot drift"*。实测记录是 **1001 根 bar 上 0 次 disagreement**。
 - 已列根数：`:827` `bars_listed` = `list.first(...).idx + 1`，空表 `0`
 - 「上一根」：`:280`（判重）、`:601`（`last_bar`）、`glib/kdj.gleam:38`、
   `glib/leaf.gleam:129`，全是 `list.first`
-- 顺序反转只发生在**输出侧一次**，见 §6(b)。
+- 顺序反转只发生在**输出侧一次**，见 §6 与 §7(b)。
 
 ### 3.2 为什么 `DataBar` 有 `idx`，`SourceBar` 没有
 
@@ -141,7 +144,7 @@ glib 里随流增长的 List 都是这个形状，没有例外。下表所有裸
 
 `glibe` 骨架里对应的字段是 `src/glibe/timeframe.gleam:110`
 `databar_list`、`:115-116` `yin_branch_list` / `yang_branch_list`。
-骨架的函数体多数还是 `todo`，但 **`todo` 的文字已经写明这个形状**（见 §7），
+骨架的函数体多数还是 `todo`，但 **`todo` 的文字已经写明这个形状**（见 §8），
 将来填 body 时不许再把它改成 `list.length` / `list.find` / `list.append`。
 
 ---
@@ -156,14 +159,105 @@ glib 里随流增长的 List 都是这个形状，没有例外。下表所有裸
 | 一段跨度 / 窗口大小 | `idx` 相减 | 扫表数元素 | §3.2 表 |
 | 判定「本 bar 是否结束」 | 头一根的 `idx == idx` | `list.find` 全表 | `glib/branch.gleam:267` |
 | 找出窗口内极值 | 缓存 `idx`，仅在离场 bar 恰是极值时重扫一次 | 每根 bar 重扫窗口 | `glib/kdj.gleam:79-95`，注释写 *"Amortised-constant"* |
-| 把历史交给输出端 | 在**唯一一次**写/发布处 `list.reverse` | 每根 bar reverse 或 append | `glib/trading/export.gleam:24`、`glib/trading/ingest.gleam:164` |
+| 把历史交给输出端 | 在**唯一一次**写/发布处 `list.reverse`（§6） | 每根 bar reverse 或 append | `glib/trading/export.gleam:24`、`glib/trading/ingest.gleam:164` |
 
 `gleam-core.md` 里同向的两条禁令：**Do not index a list**（没有 `list.at`）、
 **Do not build a list with `list.append` inside a fold**（quadratic）。
 
 ---
 
-## 6. 三类例外，以及怎么判断「是不是搞错了」
+## 6. 第二个关键措施：输出侧投影 + 单条增量流
+
+owner 2026-11-15 逐字（问题）：*"如果list的data都是按照时间顺序倒过来放的，
+那么在系统中，是不是有时候要用revert来把他顺过来才好用呢？那样不还是
+低效率吗？比如画图，你怎不能倒过来制作chart吧？这里面涉及另一个系统
+效率设计的关键措施。"*
+
+**术语先对齐**：stdlib 里这个函数叫 `list.reverse`（§2 官方逐字），
+glibe / glib 里都没有名为 `revert` 的函数。动词跟 function 走，本文只用
+`reverse`。
+
+### 6.1 是的，要顺过来——但只在边界各一次
+
+`glib/src/glib` 全库 `list.reverse` 共 7 处（2026-11-15 检索），按触发
+频率分类：
+
+| 位置 | 什么时候跑 |
+|---|---|
+| `glib/trading/ingest.gleam:164` | 一次 replay 跑完，页面**初始绘制** |
+| `glib/trading/export.gleam:24` | **退出时写导出文件**一次 |
+| `glib/trading/live.gleam:130` | 一次 poll 窗口 decode 完（有界窗口，§7(a)） |
+| `glib/census.gleam:172` / `:213` / `:363` | 生成离线报告 |
+| `glib/execution/risk_manager.gleam:358` | 固定条数检查结果（§7(c)） |
+
+**没有一处挂在「每根 bar 都跑」的 `databar_processing` 路径上。**
+`glib/trading/ingest.gleam:151-154` 的注释逐字：*"The bars go
+**newest-first inside the engine** (DESIGN §15) but are handed over
+oldest-first, because the chart extends forward in time. Reversing is
+not treatment — every value is exactly what `working_databar_archived`
+stored."* —— reverse 不做计算，只把同一份值换个顺序交出去。
+
+输出侧的形状也由用途决定：`glib/sourcebar_export.gleam:26-27` 逐字
+*"one positional JSON array, oldest-first … the file is read whole,
+sequentially, once, which is what an array is for."* 计算侧用**链表**
+（头部 O(1)），输出侧用**数组**（顺序读一次）。
+
+### 6.2 图表不是「reverse 完画一次」，是「一根一根长出来」
+
+这才是问句里那个措施：**系统里只有一条流，实时每根只发一根，输出端
+只做 O(1) 追加；顺序数据没有第二份。**
+
+| 步 | 位置 | 做了什么 |
+|---|---|---|
+| 1 | `glib/timeframe.gleam:448` | 每根 bar 归档后 `publish_model(timeframe)` 一次 |
+| 2 | `glib/web/server.gleam:57` / `:62` | `publish_model` 只从 `model.working_databar` 取**一根**；`None -> Nil`，被拒的 bar 一个字段都不占，不发 |
+| 3 | `glib/web/server.gleam:110` → `glib/web/server_ffi.mjs:429` | SSE `chart_data` 发 `{symbol, interval, bar}` **一根**；`:417` 逐字 *"send ONE finished DataBar over SSE `chart_data` (not an array)"* |
+| 4 | `glib/priv/index.html:768` → `:658` → `:691-705` | 收一根 → `appendBar` → 每条 series 各一次 `series.update` |
+| 5 | `glib/priv/index.html:736-737` | **初始绘制也是 `bars.forEach(appendBar)`**，与实时走同一个函数 |
+| 6 | `glib/web/server_ffi.mjs:418-419` | *"history and live are indistinguishable because both flow through sourcebar_gate"*；`glib/trading/ingest.gleam:1-8` 逐字 *"history is the same stream as live … no bulk seed, no `setData`, and no second pipeline"* |
+
+前端明确禁用 bulk load：`glib/priv/index.html:644` *"No `setData`
+anywhere"*（bulk load 会 REPLACE 整条 series，抹掉已画的调试证据）；
+`glib/web/server_ffi.mjs:20` 也写死 *"not a second source of bars"*。
+
+所以顺序**不需要在引擎里存第二份**：引擎永远只有倒序链表；chart
+series / JS 数组是它的输出侧投影，靠**尾部追加**增长——JS 数组 `push`
+与 `series.update` 都是 O(1)，恰好是 Gleam `List` 做不到的两件事。
+`glib/web/server_ffi.mjs:32-38` 的 `gleam_list_to_array` 是那一次遍历。
+
+### 6.3 效率算术：成本挂在哪个频率上
+
+| | 引擎按 oldest-first 存 | 现在（倒叙 + 边界一次 reverse） |
+|---|---|---|
+| 每根新 bar 写入 | `list.append` O(n) | prepend O(1) |
+| 每根取「上一根」 | `list.last` O(n) | 读头 O(1) |
+| 每根发给图表 | 要保顺序就得 reverse 整个历史 O(n) | 广播一根 O(1) |
+| N 根累计 | **O(N²)** | **O(N)** + 初始绘制 / 导出各一次 O(N) |
+
+关键不在 reverse 是不是 O(n)——它是。关键是它挂在**「人打开一次
+页面 / 退出一次导出」**的频率上，不是**「数据到达 N 次」**的频率上。
+把 O(n) 从每根 bar 的路径挪到唯一一次边界，正是 §5 最后一行
+「在唯一一次写/发布处 `list.reverse`」的意思。
+
+### 6.4 它在 glibe 的裁定里已经有名字
+
+- **R30**（`docs/RULINGS.md` 正文）定的是「标准层与显示层分开 … 同一个
+绝对时刻在标准层只存一份，显示层是它的一个投影 … 不得为了显示把标准
+类型改回日期字符串」。**顺序是同一条原则的同构应用**：标准层倒序存
+一份，显示层顺序是它的投影；不得为了画图把存储改回顺序。
+- **R20** `dashboard = VIEW`、**R33**（一条流、纯值重算、无 actor /
+scheduler / clock / poll）、**R38**（流没有倒带）——新 bar 天然按时间
+先后到达，输出端只管追加，不需要再排序。
+- 代码侧：`src/glibe/desk.gleam:32-35` 的 `////`（VIEW / projection /
+no clock / no poll）、`src/glibe/api/interval.gleam:30-31` 的 `////`
+（R30 是 OUTPUT-side projection，不改变内部 grid）。
+
+> **一句话**：倒叙是给机器算的，顺序是给人看的；两者只在边界相遇一次，
+> 之后靠单条增量流各自 O(1) 增长。
+
+---
+
+## 7. 例外与边界，以及怎么判断「是不是搞错了」
 
 owner 逐字：*"如果glib AI没有100%这么做，那说明要么搞错了，要么是一个
 非数据类的很小的不会无限增长的list，或许都不应该用list的list。"*
@@ -178,11 +272,13 @@ glib 全对；权威始终是 owner 逐字、代码内文档和编译器。
 `batch_window` 这条罕有路径上跑（`rsv_extrema` 先用缓存 `idx` 挡掉）。
 它们不会随历史变长而变慢，因为走的从来不是整条 `databar_list`。
 
-**(b) 输出侧一次性 `reverse`——故意的、只做一次。**
+**(b) 输出侧一次性 `reverse`——不是例外，是 §6 那个措施在文件 / 发布
+边界的形态。**
 `glib/trading/export.gleam:24`、`glib/trading/ingest.gleam:164` 在**写文件 /
-发布**时各 reverse 一次；`glib/trading/live.gleam:129-131` 更把理由写进注释：
+发布**时各 reverse 一次；`glib/trading/live.gleam:125-130` 更把理由写进注释：
 prepend + 一次 `reverse` 是 O(n)，逐行 `list.append` 是 **O(n²)**。
-这是把 O(n) 从每根 bar 挪到唯一一次边界，不是违反设计。
+这是把 O(n) 从每根 bar 挪到唯一一次边界，不是违反设计。为什么图表
+不需要反复 reverse，见 §6.2。
 
 **(c) 非数据类、小、不随流无限增长——可能压根不该是 `List`。**
 `glib/execution/risk_manager.gleam` 里 `RiskResult.results` 是固定条数的
@@ -204,7 +300,7 @@ prepend + 一次 `reverse` 是 O(n)，逐行 `list.append` 是 **O(n²)**。
 
 ---
 
-## 7. 填 `glibe` 骨架时照这张表
+## 8. 填 `glibe` 骨架时照这张表
 
 `src/` 目前 15 个模块、多数 body 是 `todo`。下表路径全部相对
 `src/glibe/`（测试路径相对项目根）。`////` / `///` 是规格，
@@ -226,7 +322,7 @@ prepend + 一次 `reverse` 是 O(n)，逐行 `list.append` 是 **O(n²)**。
 
 ---
 
-## 8. 为什么文档先导的 TDD 是根本措施
+## 9. 为什么文档先导的 TDD 是根本措施
 
 owner 2026-11-15 逐字：*"在你刚才处理大量代码文件却不曾写多少代码的
 过程中，你应该感悟到了，文档先导的tdd模式会强迫你把gleam document做
@@ -254,7 +350,7 @@ owner 2026-11-15 逐字：*"在你刚才处理大量代码文件却不曾写多�
 
 ---
 
-## 9. 门禁（本文件只写文档，07:12 实测、07:31 复核一致）
+## 10. 门禁（本文件只写文档，07:12 实测、07:31 / 07:42 复核一致）
 
 ```sh
 export PATH="/opt/homebrew/bin:$PATH"
@@ -275,10 +371,11 @@ gleam build --warnings-as-errors  # exit 1：196 = 76 Todo + 117 unused arg
 
 ---
 
-## 10. 本文的边界
+## 11. 本文的边界
 
 - 本文**不新增 R 编号、不新增待裁决项、不改 `src/` 或 `test/`**。
-  owner 逐字全文与查证记录的家是 `docs/RULINGS.md`（2026-11-15 执行注记）。
+  owner 逐字全文与查证记录的家是 `docs/RULINGS.md`（2026-11-15 各条
+  执行注记，含 07:42）。
 - `glib/` 是**参照实现**。owner 明说不知道其中 AI 是否 100% 照设计实现；
   文中每个 file:line 都是读过的代码事实，分类是说明，不是裁定。
 - 文档里出现的 Gleam 片段来自已编译的 `src/glibe/timeframe.gleam:191`
