@@ -28,7 +28,12 @@
 **不需要你决定（我按已定规则继续做）：**
 
 - 三张目录表与 `Instrument` 的**关系**：按 R26 不定，不预先做一整套 identity 类型化，等真正有消费方时按需逐个加 type。已确认的只有 `Broker ▸ Instrument`。
-- `bucket_ends` 的 `date: String` → `gleam_time.Timestamp`；5 个 `*_from_string` + `panic` 的 codec；日/周/月 bucket 恒 `True` 的旧行为。各自单独计划，按 R13 / R19 / R21 / R23 推进。
+- `interval.sourcebar_closed`（11-15 前旧名 `bucket_ends`）的
+  `date: String` → `gleam_time.Timestamp`、5 个 `*_from_string` + `panic`
+  的 codec、日/周/月恒 `True` 的旧行为：这些是**已作废的历史债务**，
+  不是当前待办。`Timestamp` 已在 doc-tdd 骨架落地（R27 / R29），
+  `sourcebar_closed` 的函数体仍是 `todo`，按 R19 / R48 逐条填。
+  命名逐字与判据见 `docs/RULINGS.md` 2026-11-15 执行注记。
 - 真实数据下 SVG / JS 图表能力对比试验：**推迟**到 databar processing 其余部分做完（你 2026-11-07 定的时机）。
 - 各数据源的实时到达接入（推送 / 订阅 / 主动获取，各家用自己的方式）、
   退役 `data_generator.ex` / `no_minute_trading.sh`：工作，不是裁决；

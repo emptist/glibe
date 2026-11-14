@@ -32,8 +32,8 @@
 ////    holds, and `growing_target_sourcebar` is a `Timeframe` field.
 ////    Nothing is handed down. **This is the shape used here.**
 //// ② `timeframe.gleam` — `Interval` would have to be passed DOWN to a
-////    value that cannot know its own name (R37), and the finished bar
-////    has no exit from there.
+////    value that cannot know its own name (R37), and the closed
+////    `SourceBar` has no exit from there.
 //// ③ the input boundary — `growing_target_sourcebar` would leave the
 ////    `Timeframe`, and the key held here would be wasted.
 //// So `Instrument` is the ONE place that knows which timeframe gets which
@@ -51,7 +51,8 @@
 //// nine `Interval` constructors are the whole `case` below; a tenth grade
 //// is a compile error here and in `sourcebar.interval` (R13).
 ////
-//// THIS IS NOT THE BUCKET. R39 struck `fold_sourcebar(working, bar)` for
+//// THIS IS NOT THE `working_databar` ACCUMULATOR. R39 struck
+//// `fold_sourcebar(working, bar)` for
 //// accumulating source bars INSIDE `working_databar`. Here the growing
 //// bar is a DIFFERENT field of a DIFFERENT type; only when the UTC grid
 //// period is reached is ONE whole `SourceBar` emitted for
@@ -103,15 +104,15 @@ pub fn put_timeframe(
 /// key). Writes the new growing value back into that `Timeframe` and puts
 /// the recomputed timeframe back under the same key.
 ///
-/// Returns `#(finished, instrument)`: `finished` is `Some(SourceBar)` ONLY
-/// on the bar whose instant reaches the UTC grid boundary, and is the ONE
+/// Returns `#(closed, instrument)`: `closed` is `Some(SourceBar)` ONLY
+/// on the bar whose `Timestamp` reaches the UTC grid boundary, and is the ONE
 /// whole standard bar handed to `sourcebar.validate`; `None` on every
 /// other bar. `growing_target_sourcebar` has the three states of
 /// `working_databar` — `None → Some(bar) → None` (R39). The call happens
 /// ONCE per arriving bar: no list, no batch, no saved bars (owner
 /// 2026-11-13). A provider that already serves every grade (Binance) has
 /// no such function here — a one-to-one `kline.to_sourcebar` already gives
-/// one finished bar of the right variant (R28).
+/// one closed `SourceBar` of the right variant (R28).
 pub fn compose_ib_realtime_bar(
   instrument: Instrument,
   interval: Interval,

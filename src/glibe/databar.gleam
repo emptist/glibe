@@ -14,14 +14,14 @@
 //// writes its result onto the same bar as its consumer appears (R26 / R32).
 //// WHO READS: `idx` is read by `leaf.leaf_size`,
 //// `branch.recognised_this_bar` (R1 / R4) and `timeframe.bars_listed`;
-//// `timestamp` is read by `interval.bucket_ends` (R27 / R29); `signal` is
-//// read by the view projection of the archived bar (R33 / R30); OHLCV are
-//// read by the indicator step (R28 / R39).
+//// `timestamp` is read by `interval.sourcebar_closed` (R27 / R29); `signal`
+//// is read by the view projection of the archived bar (R33 / R30); OHLCV
+//// are read by the indicator step (R28 / R39).
 ////
 //// R39 (owner, verbatim): *"数据来到我们的系统，合格的sourcebar变成working
 //// databar，从头到尾所有运算处理决策都在这个databar working中完成，之后他
 //// 就被working databar archieved，这就是整个的系统，没有任何旁门左道。"*
-//// One bar, born whole, computed on, archived. No bucket accumulator, no
+//// One bar, born whole, computed on, archived. No `SourceBar` accumulator, no
 //// second bar, no side door. Computed fields arrive on this type one at a
 //// time with their real consumers (R26 / R32).
 ////
@@ -42,7 +42,7 @@
 //// key in `Instrument.timeframes` (R23 / R37; owner: *"你的左手不知道他是
 //// 左还是右"*). `Timeframe.working_databar` is NOT an accumulator (R39).
 ////
-//// R27: `timestamp` is a `gleam_time.Timestamp`, an absolute unix instant,
+//// R27: `timestamp` is a `gleam_time.Timestamp`, an absolute unix value,
 //// never a date string. R28: OHLCV are what the standard layer consumes
 //// with unified meaning.
 ////
@@ -76,10 +76,10 @@ pub fn idx(databar: DataBar) -> Int {
   todo as "05-01: read the index of this bar"
 }
 
-/// `DataBar.timestamp`. `interval.bucket_ends` reads it against the UTC
+/// `DataBar.timestamp`. `interval.sourcebar_closed` reads it against the UTC
 /// unix-second grid (R27 / R29); it is never a spelling to be parsed.
 pub fn timestamp(databar: DataBar) -> Timestamp {
-  todo as "05-01: read the absolute instant of this bar"
+  todo as "05-01: read the absolute Timestamp of this databar"
 }
 
 /// `DataBar.signal`. The decision `timeframe.strategy` wrote on this bar

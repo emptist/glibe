@@ -69,24 +69,24 @@
 //// second accumulator, no actor / clock / poll (R33). The value is named
 //// `growing_target_sourcebar` and its type is `Option(SourceBar)` — the
 //// ONE internal standard bar, already carrying its target grade as a
-//// variant, so no invented container type is needed. A bar that is not
-//// finished is simply not emitted: the only way out is the boundary.
+//// variant, so no invented container type is needed. A `SourceBar` that
+//// has not closed is simply not emitted: the only way out is the boundary.
 ////
 //// THE THREE STATES, ONE BAR AT A TIME. Each function below is called ONCE
 //// per arriving five-second bar and returns
-//// `#(finished_target_sourcebar, growing_target_sourcebar)`:
+//// `#(closed_sourcebar, growing_target_sourcebar)`:
 //// ① `None` growing + a bar arrives → start ONE `SourceBar` of the target
-////    grade from that bar; finished is `None`;
-//// ② `Some(bar)` growing + the bar's instant is still in the SAME UTC grid
-////    period → keep the FIRST open, take MAX high, MIN low, the arriving
-////    close as the LAST close, ADD its volume; finished is `None`;
-//// ③ `Some(bar)` growing + the arriving instant REACHES the target period
-////    boundary → emit that whole bar as `Some(finished)`, and set growing
-////    back to `None`. The arriving bar opens the next period on the next
-////    call, exactly as `working_databar_archived` sets `working_databar`
-////    back to `None` (R39).
-//// `interval.bucket_ends` (R29) is the UTC unix-second grid that says
-//// whether the instant has reached the boundary; the boundary is a
+////    grade from that bar; `closed_sourcebar` is `None`;
+//// ② `Some(bar)` growing + the bar's `Timestamp` is still in the SAME UTC
+////    grid period → keep the FIRST open, take MAX high, MIN low, the arriving
+////    close as the LAST close, ADD its volume; `closed_sourcebar` is `None`;
+//// ③ `Some(bar)` growing + the arriving `Timestamp` REACHES the target period
+////    boundary → emit that whole bar as `Some(closed_sourcebar)`, and set
+////    growing back to `None`. The arriving bar opens the next period on the
+////    next call, exactly as `working_databar_archived` sets
+////    `working_databar` back to `None` (R39).
+//// `interval.sourcebar_closed` (R29) is the UTC unix-second grid that says
+//// whether that `Timestamp` has reached the boundary; the boundary is a
 //// PERIOD, never a count of bars.
 ////
 //// WHO HOLDS `growing_target_sourcebar` (owner 2026-11-13, verbatim):
@@ -100,7 +100,7 @@
 //// the target grade is the variant of the growing `SourceBar` itself
 //// (R37). R39 struck `fold_sourcebar(working, bar)` for accumulating
 //// source bars INSIDE `working_databar`; this is a DIFFERENT field, and
-//// only ONE whole finished `SourceBar` is emitted when the UTC grid
+//// only ONE whole closed `SourceBar` is emitted when the UTC grid
 //// period is reached. That emission ends BEFORE `sourcebar.to_databar`
 //// gives it ONE whole birth, and `databar_processing` receives a
 //// `DataBar` whose period will never change again — which is exactly
@@ -112,8 +112,8 @@
 //// and that could disagree with the bars in hand (R23 / R37, owner:
 //// *"你的左手不知道他是左还是右"*). The caller's `Interval` stays where it
 //// belongs — the key of `Instrument.timeframes` — and meets the bar only
-//// as the comparison `sourcebar.interval(of: bar)` in `sourcebar_gate`. Nine
-//// functions below are the nine constructors of `Interval`; that closed
+//// as the comparison `sourcebar.interval(of: sourcebar)` in `sourcebar_gate`.
+//// Nine functions below are the nine constructors of `Interval`; that closed
 //// set is the whole list, not a guess.
 ////
 //// DESIGN EVIDENCE, NOT A STRUCTURE TO COPY. glib never reached this part
@@ -156,10 +156,10 @@ pub type IbSourceBar {
 
 /// ONE arriving 5-second bar accumulated toward ONE UTC one-minute period.
 /// Reads `growing_target_sourcebar` and this one `arriving` bar; writes
-/// `#(finished, growing)` — `Some(SourceBarOneMinute)` and `None` growing
-/// only when the instant reaches the boundary, otherwise `None` finished
+/// `#(closed, growing)` — `Some(SourceBarOneMinute)` and `None` growing
+/// only when the `Timestamp` reaches the boundary, otherwise `None` closed
 /// and the accumulated `Some(SourceBarOneMinute)`. `None` growing starts a
-/// period with this bar. `sourcebar_gate` reads the finished bar's grade
+/// period with this bar. `sourcebar_gate` reads the closed bar's grade
 /// back with `sourcebar.interval`.
 pub fn five_second_to_one_minute(
   growing_target_sourcebar: Option(SourceBar),

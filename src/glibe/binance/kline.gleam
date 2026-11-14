@@ -248,7 +248,7 @@ pub type BinanceKline {
 /// only. This function names every grade, so a tenth span becomes an
 /// `Inexhaustive patterns` error here (R13).
 pub fn to_sourcebar(kline: BinanceKline) -> Result(SourceBar, Nil) {
-  let instant = kline.open_time
+  let open_time = kline.open_time
   let open = kline.open
   let high = kline.high
   let low = kline.low
@@ -257,7 +257,7 @@ pub fn to_sourcebar(kline: BinanceKline) -> Result(SourceBar, Nil) {
   Ok(case kline {
     BinanceKlineOneMinute(..) ->
       SourceBarOneMinute(
-        timestamp: instant,
+        timestamp: open_time,
         open:,
         high:,
         low:,
@@ -266,7 +266,7 @@ pub fn to_sourcebar(kline: BinanceKline) -> Result(SourceBar, Nil) {
       )
     BinanceKlineThreeMinute(..) ->
       SourceBarThreeMinute(
-        timestamp: instant,
+        timestamp: open_time,
         open:,
         high:,
         low:,
@@ -275,7 +275,7 @@ pub fn to_sourcebar(kline: BinanceKline) -> Result(SourceBar, Nil) {
       )
     BinanceKlineFifteenMinute(..) ->
       SourceBarFifteenMinute(
-        timestamp: instant,
+        timestamp: open_time,
         open:,
         high:,
         low:,
@@ -284,7 +284,7 @@ pub fn to_sourcebar(kline: BinanceKline) -> Result(SourceBar, Nil) {
       )
     BinanceKlineThirtyMinute(..) ->
       SourceBarThirtyMinute(
-        timestamp: instant,
+        timestamp: open_time,
         open:,
         high:,
         low:,
@@ -292,14 +292,42 @@ pub fn to_sourcebar(kline: BinanceKline) -> Result(SourceBar, Nil) {
         volume:,
       )
     BinanceKlineOneHour(..) ->
-      SourceBarOneHour(timestamp: instant, open:, high:, low:, close:, volume:)
+      SourceBarOneHour(
+        timestamp: open_time,
+        open:,
+        high:,
+        low:,
+        close:,
+        volume:,
+      )
     BinanceKlineFourHour(..) ->
-      SourceBarFourHour(timestamp: instant, open:, high:, low:, close:, volume:)
+      SourceBarFourHour(
+        timestamp: open_time,
+        open:,
+        high:,
+        low:,
+        close:,
+        volume:,
+      )
     BinanceKlineOneDay(..) ->
-      SourceBarOneDay(timestamp: instant, open:, high:, low:, close:, volume:)
+      SourceBarOneDay(timestamp: open_time, open:, high:, low:, close:, volume:)
     BinanceKlineOneWeek(..) ->
-      SourceBarOneWeek(timestamp: instant, open:, high:, low:, close:, volume:)
+      SourceBarOneWeek(
+        timestamp: open_time,
+        open:,
+        high:,
+        low:,
+        close:,
+        volume:,
+      )
     BinanceKlineOneMonth(..) ->
-      SourceBarOneMonth(timestamp: instant, open:, high:, low:, close:, volume:)
+      SourceBarOneMonth(
+        timestamp: open_time,
+        open:,
+        high:,
+        low:,
+        close:,
+        volume:,
+      )
   })
 }

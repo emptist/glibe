@@ -43,7 +43,7 @@
 //// 器知道你自己错了"*. So there is NO `interval` field: a number could
 //// disagree with the bar around it, a variant cannot. The period is IN the
 //// type, and only `interval` has to name every grade; every other reader
-//// writes `bar.close` and never learns the grade (R13 / R21).
+//// writes `sourcebar.close` and never learns the grade (R13 / R21).
 ////
 //// THE NINE GRADES ARE A CLOSED SET. They are the nine constructors of
 //// `api/interval.Interval`, the nine keys of `Instrument.timeframes`, and
@@ -86,8 +86,8 @@
 //// `databar_processing`.
 ////
 //// R27 (owner, verbatim): *"date在标准sourcebar中必须时timestamp，unix
-//// time"*. A bar's time is an absolute instant, not a date string, not a
-//// local wall clock; the provider folded its own epoch at its boundary
+//// time"*. A bar's time is an absolute `Timestamp`, not a date string, not
+//// a local wall clock; the provider folded its own epoch at its boundary
 //// (R9).
 ////
 //// R33: history and live data are ONE stream. Both arrive here; there is no
@@ -208,8 +208,8 @@ pub fn interval(of sourcebar: SourceBar) -> Interval {
 /// (R8). This is the ONLY door (R38). Its six fields are reachable on every
 /// variant without a `case`. The bar it reads is already of its final
 /// grade: a checker never changes a period.
-pub fn validate(bar: SourceBar) -> Result(SourceBar, SourceBarRejection) {
-  todo as "05-01: a qualified bar passes; a typed rejection otherwise"
+pub fn validate(sourcebar: SourceBar) -> Result(SourceBar, SourceBarRejection) {
+  todo as "05-01: a qualified sourcebar passes; a typed rejection otherwise"
 }
 
 /// Birth of the working databar: ONE qualified `SourceBar` becomes ONE whole
@@ -218,9 +218,10 @@ pub fn validate(bar: SourceBar) -> Result(SourceBar, SourceBarRejection) {
 /// six fields are read straight off the variant. The `Interval` stays with
 /// the caller as the key of `Instrument.timeframes` (R23 / R37) — this
 /// function writes a bar, never a timeframe's name. Composition ended in
-/// the provider's module BEFORE this birth, so the bar handed to
-/// `databar_processing` is finished and its period is never asked again
-/// (owner 2026-11-13).
-pub fn to_databar(bar: SourceBar, idx: Int) -> DataBar {
-  todo as "05-01: one whole bar born at the source boundary"
+/// the provider's module BEFORE this birth: the `SourceBar` handed here has
+/// already closed, and its period is never asked again (owner 2026-11-13).
+/// `databar_processing` thereafter reads and writes `working_databar`,
+/// not this `SourceBar`.
+pub fn to_databar(sourcebar: SourceBar, idx: Int) -> DataBar {
+  todo as "05-01: one whole closed sourcebar born at the source boundary"
 }

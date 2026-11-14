@@ -28,8 +28,8 @@
 //// databar，从头到尾所有运算处理决策都在这个databar working中完成，之后他
 //// 就被working databar archieved，这就是整个的系统，没有任何旁门左道。"*
 //// Four steps, one straight line, no side doors. `working_databar` has three
-//// states — `None` → `Some(bar)` → `None`; an unclosed period is ignored and
-//// held NOWHERE. There is no bucket accumulator.
+//// states — `None` → `Some(bar)` → `None`; a `SourceBar` that has not closed
+//// is ignored and held NOWHERE. There is no `SourceBar` accumulator.
 ////
 //// BEFORE THIS FILE: what arrives at the system is a data source's OWN
 //// external bar (`binance/kline.BinanceKline`, `ib/sourcebar.IbSourceBar`),
@@ -40,13 +40,13 @@
 //// all nine grades and maps one-to-one with `kline.to_sourcebar`; IB's
 //// realtime stream serves ONLY five seconds, so
 //// `ib/sourcebar.five_second_to_*` accumulates ONE arriving bar at a time
-//// into ONE `growing_target_sourcebar` and emits a finished standard bar
-//// when the UTC grid period is reached (owner 2026-11-13). That
+//// into ONE `growing_target_sourcebar` and emits a closed standard
+//// `SourceBar` when the UTC grid period is reached (owner 2026-11-13). That
 //// accumulation happens in `instrument.gleam` — the layer that holds the
 //// `Interval` key and reads / writes `Timeframe.growing_target_sourcebar`.
 //// The composition FUNCTIONS are defined in the module that owns IB's bar
 //// (R50); a call site is not an owner. `sourcebar.validate` refuses the
-//// finished bar if unqualified
+//// closed `SourceBar` if unqualified
 //// (R8). The key reaches `sourcebar_gate` below because the caller
 //// selected this timeframe by it; `sourcebar.interval` reads the grade
 //// back off the bar's variant and the two are compared. No bar and no
@@ -88,8 +88,8 @@ import glibe/leaf.{type DataLeaf}
 /// know its own name (R37). `Instrument` holds the `Interval` key and is
 /// the layer that reads / writes this field through
 /// `instrument.compose_ib_realtime_bar`; this module never composes and
-/// never reads an `Interval` here. A bar that is not finished is never
-/// passed to `sourcebar_gate` (R39).
+/// never reads an `Interval` here. A `SourceBar` that has not closed is
+/// never passed to `sourcebar_gate` (R39).
 ///
 /// The four growing twins are the owner's "four twins" (R1); `YinBranch` /
 /// `YangBranch` are his words (R2), and R4 names `growing_yang_branch` and
@@ -120,8 +120,8 @@ pub type Timeframe {
 /// The price checker's gate: ONE arriving standard `SourceBar`, already
 /// normalised from a data source's external bar and already qualified
 /// (R28 / R8). It is born whole as `working_databar`; an unqualified one
-/// is refused with a typed reason; an unclosed period is ignored and held
-/// nowhere (R39).
+/// is refused with a typed reason; a `SourceBar` that has not closed is
+/// ignored and held nowhere (R39).
 ///
 /// `interval` is the key the caller already held to reach this timeframe
 /// through `Instrument.timeframes` (R23 / R37). The standard bar carries
@@ -129,7 +129,7 @@ pub type Timeframe {
 /// key and that grade are the two facts this gate can compare. A
 /// `Timeframe` does not know its own name, and no bar carries a period
 /// field. Composition ended upstream (or in a call made here), so this
-/// gate receives ONE finished bar and never accumulates one: owner
+/// gate receives ONE closed `SourceBar` and never accumulates one: owner
 /// 2026-11-13 *"等到了 databar_processing 你按到手的都是弄好的 databar"*.
 /// `bars_listed` supplies the index of the next bar from
 /// `databar_list` (R39).
@@ -138,7 +138,7 @@ pub fn sourcebar_gate(
   interval: Interval,
   sourcebar: SourceBar,
 ) -> Result(Timeframe, SourceBarRejection) {
-  todo as "05-01: one qualified bar born whole into working_databar"
+  todo as "05-01: one qualified sourcebar born whole into working_databar"
 }
 
 /// The whole straight line. Its body is a single pipe of steps, each

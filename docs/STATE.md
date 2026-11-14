@@ -4,7 +4,52 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-14 07:41 (当前状态)
+## 2026-11-15 (当前状态)
+
+- **本轮是命名类推，不是填 body**：`src/` 仍 15 个模块
+  （`package-interface.json` 实测 `modules: 15`），函数体仍多为
+  `todo`。唯一新增测试是 `sourcebar_closed_shape_test`（shape test，
+  不触发 todo）：`gleam test` **15 passed, no failures**（14 → 15），
+  `gleam build` 0。
+- **`interval.bucket_ends` → `interval.sourcebar_closed`**：owner
+  2026-11-15 逐字原则「不要用没有Type定义的名字去替换有Type的名字」、
+  「对于一个kline或者sourcebar来说，完成了就是close了」、
+  「nouns and verbs … go after types and functions」。owner 在
+  `interval.gleam` 留的 `bar_close(s/closed)` 建议连同官方
+  conventions 查证一起处理：官方页无 Bool / 时态规定，且 `bar` 同样
+  无 Type 支撑，故取 `sourcebar_closed`。逐字全文、判据、落实表见
+  `docs/RULINGS.md` 2026-11-15 执行注记。
+- **全面类推覆盖**：`api/interval`、`api/sourcebar`、`databar`、
+  `timeframe`、`instrument`、`ib/sourcebar`、`binance/kline`、
+  `test/glibe_test`。`bucket` / `bar` / `instant` / `finished` /
+  `unclosed` → `SourceBar` / `sourcebar` / `Timestamp` / `open_time`
+  （provider 字段名）/ `closed` / `has not closed`。
+  **保护不动**：`working_databar_archived`（owner 逐字，与 `SourceBar`
+  的 close 是两件事）、`open` / `close` 字段、`start_bar` / `end_bar`
+  等 owner 逐字字段名、provider 原生 `open_time` / `wap` / `count`、
+  `latest close`。`latest_price` 在 Binance / IB bars 中不存在，不引入。
+- **编译器实测**：`let assert Ok(sourcebar)` 与同作用域
+  `sourcebar.SourceBarOneMinute(..)` 共存无遮蔽错误；`open_time:`
+  shorthand 合法；`timestamp: open_time` 的 provider 出口映射合法。
+- **历史文档里的 `bucket_ends` 不改原文**（本文档历史节、R29 原裁定、
+  旧 `.planning` 阶段计划、append-only 日志）：只加 dated 注记
+  （`05-01-PLAN.md` §8 / `docs/RULINGS.md`），当前状态另写本节。
+- 门禁：`format --check src test` 0 · `check` 0 · `test` 0（15 passed）·
+  `docs build` 0 · `export package-interface` 0 · `build` 0；
+  **`build --warnings-as-errors` exit 1**：198 warnings =
+  77 `Todo` + 118 `Unused function argument` + 1 `Unreachable pattern`
+  + 2 `Unused private constructor`，与 11-15 日志的 198 / 77 **逐条相同**
+  → 零静音、零新增 TODO（R48）。`package-interface.json` 的
+  `glibe/api/interval` functions = `from_string` / `sourcebar_closed` /
+  `to_string`，模块文档 41 行完整、无 `//` 截断。
+- 决策区 **0 项**。**未定**：`Symbol` 变体归属、`symbol_to_string` 与
+  官方 `x_to_y` 惯例的冲突（两者需 owner 一句话，不擅自选）。
+  `trading/signal.from_string` / `api/interval.from_string` owner 未点名，
+  且不是本次「无 Type 支撑的名词」问题，本轮不动、不列为待裁决项。
+- 普通 fast-forward push 照 owner 2026-11-14 逐字直接做；任何 force
+  类操作先问。
+
+## 2026-11-14 07:41 (历史状态)
 
 - **`src/` = 15 个模块**（`gleam export package-interface` 实测
   `modules: 15`）；11-12 记录的「14 个」少了 `ib/sourcebar.gleam`。

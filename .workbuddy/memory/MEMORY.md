@@ -45,7 +45,7 @@ R15 IB = historic stocks/ETFs · R16–18 JS scope · R19 process above ·
 R26 Asset/Exchange/Market open, add types one at a time ·
 **R27** `SourceBar.timestamp` = `gleam_time.Timestamp` ·
 **R28** provider native shapes (`Kline`) + own `to_sourcebar`; standard
-layer is the only union point · **R29** `bucket_ends` = UTC unix-second grid ·
+layer is the only union point · **R29** `sourcebar_closed` = UTC unix-second grid（11-15 前旧名 `bucket_ends`）·
 **R30** web wall clock = OUTPUT-side projection; CSV stays UTC ·
 R31 BEAM language facts ≠ this system · R32 add one field by real ownership ·
 **R33** system IS ALREADY LIVE: one stream, pure value recompute, no actor /
@@ -117,16 +117,23 @@ with `_` ("expecting a lowercase name here").
 
 ## State (2026-11-15, doc-tdd, 已 push 到 origin/doc-tdd)
 `src/` = **15 个模块**（`package-interface` 实测 `modules: 15`），函数体
-仍多为 `todo`; `test/` 13 个 shape test + **1 个真断言**（14 passed）。
+仍多为 `todo`; `test/` 14 个 shape test + **1 个真断言**（15 passed）。
 链按 R50 分层: `id`/`account`（零 import）→ `instrument` → `broker` →
 `desk`; `config.gleam` 已删。WAE 仍红（**77 `Todo`**，R48 逐条清单；
 owner review 基线 70，instrument 九 arm +8、symbol 填一 arm −1）。
 **owner 2026-11-14 in-code review 已逐条落实**（原样基线 `2c54535`）：
 `id` 的 `string_to_*` 改名、`sourcebar.interval(of sourcebar:)` 加 label、
 `symbol.string_to_symbol` 与一个 arm 的 body、`instrument` 九 arm case
-骨架。**未定**：`bucket_ends` 命名、`Symbol` 变体归属、
-`symbol_to_string` 与官方惯例的冲突（逐字与编译比较见
-`2026-11-15.md`）。
+骨架。**2026-11-15 命名原则已全面类推**：`bucket_ends` →
+`sourcebar_closed`；`bucket` / `bar` / `instant` / `finished` /
+`unclosed` → 有 Type 或有真实出处的词；`working_databar_archived` /
+`open` / `close` / owner 逐字字段名 / provider 原生字段保护不动；
+`latest_price` 在 Binance 与 IB bars 里不存在，不引入。逐字全文见
+`docs/RULINGS.md` 2026-11-15 执行注记。**未定**：`Symbol` 变体归属、
+`symbol_to_string` 与官方惯例的冲突（需 owner 一句话，不擅自选；逐字与
+编译比较见 `2026-11-15.md`）。`trading/signal.from_string` /
+`api/interval.from_string` owner 未点名、不属本次「无 Type 支撑的名词」
+问题，不动、不列待裁决项。
 **R19 第一个 body 已填**: `kline.to_sourcebar`（RED 11/1 → GREEN
 12 passed）。构造子作一等函数不接受 labelled argument，9 arm 各自构造。
 **「仍留白」清单（11-12 §5.1）已失效**: 5 项里 4 项早落进骨架

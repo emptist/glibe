@@ -14,7 +14,7 @@
 //// R19 status: one assertion live; the remaining tests still pin types only.
 
 import gleam/option.{type Option}
-import gleam/time/timestamp
+import gleam/time/timestamp.{type Timestamp}
 import gleeunit
 import glibe/account.{type Account}
 import glibe/api/interval.{type Interval}
@@ -120,13 +120,22 @@ pub fn identity_shape_test() {
 /// This UNCALLED function is the check: the compiler checks the call site,
 /// so removing or renaming the `of:` label fails the build without ever
 /// running a `todo` body.
-fn grade_call_is_labelled(bar: SourceBar) -> Interval {
-  sourcebar.interval(of: bar)
+fn grade_call_is_labelled(sourcebar: SourceBar) -> Interval {
+  sourcebar.interval(of: sourcebar)
 }
 
 pub fn sourcebar_interval_shape_test() {
   let _grade: fn(SourceBar) -> Interval = sourcebar.interval
   let _call: fn(SourceBar) -> Interval = grade_call_is_labelled
+  Nil
+}
+
+/// R29 / owner 2026-11-15: the boundary reader is named after the
+/// `SourceBar` Type and its `close`, so this pins
+/// `fn(Interval, Timestamp) -> Bool` — no `SourceBar` in the signature,
+/// one `Bool` written out.
+pub fn sourcebar_closed_shape_test() {
+  let _close: fn(Interval, Timestamp) -> Bool = interval.sourcebar_closed
   Nil
 }
 
@@ -189,7 +198,7 @@ pub fn ib_composition_shape_test() {
 /// timeframe gets which grade. It reads that key's
 /// `Timeframe.growing_target_sourcebar`, calls ONE `five_second_to_*`,
 /// and writes the recomputed `Instrument` back. ONE arriving bar in, ONE
-/// recomputed Value out, at most ONE finished standard bar emitted.
+/// recomputed Value out, at most ONE closed `SourceBar` emitted.
 pub fn instrument_composition_shape_test() {
   let _dispatch: fn(Instrument, Interval, ib_sourcebar.IbSourceBar) ->
     #(Option(SourceBar), Instrument) = instrument.compose_ib_realtime_bar
@@ -198,16 +207,16 @@ pub fn instrument_composition_shape_test() {
 
 /// R28 / R27: one native Binance kline becomes the standard bar of THAT SAME
 /// grade. The grade is read off the variant, never handed in by a caller. The
-/// absolute instant and OHLCV are carried across; the provider-only fields
+/// absolute `Timestamp` and OHLCV are carried across; the provider-only fields
 /// stay on the native value and reach no consumer. Binance's own wire shape is
 /// `GET /api/v3/klines` (12 fields, in order): Open time, Open, High, Low,
 /// Close, Volume, Close time, Quote asset volume, Number of trades, Taker buy
 /// base asset volume, Taker buy quote asset volume, Ignore.
 pub fn binance_kline_to_sourcebar_test() {
-  let instant = timestamp.from_unix_seconds(1_499_040_000)
+  let open_time = timestamp.from_unix_seconds(1_499_040_000)
   let native =
     kline.BinanceKlineOneMinute(
-      open_time: instant,
+      open_time:,
       open: 0.0163479,
       high: 0.8,
       low: 0.015758,
@@ -220,15 +229,15 @@ pub fn binance_kline_to_sourcebar_test() {
       taker_buy_quote_asset_volume: 28.46694368,
       ignore: "0",
     )
-  let assert Ok(bar) = kline.to_sourcebar(native)
-  assert bar
+  let assert Ok(sourcebar) = kline.to_sourcebar(native)
+  assert sourcebar
     == sourcebar.SourceBarOneMinute(
-      timestamp: instant,
+      timestamp: open_time,
       open: 0.0163479,
       high: 0.8,
       low: 0.015758,
       close: 0.015771,
       volume: 148_976,
     )
-    as "same grade; the absolute instant and OHLCV are carried across"
+    as "same grade; the absolute Timestamp and OHLCV are carried across"
 }

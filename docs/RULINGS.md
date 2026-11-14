@@ -2781,3 +2781,84 @@ owner 约定反复引用 —— 按 R46 / R49，AI 自己记录的裁定不是 o
 普通 `git push origin doc-tdd` 后本地 HEAD、远端 `refs/heads/doc-tdd`、
 `origin/doc-tdd` 三者同为 `757cf6367682299414a1d69ab7267089cfdcd2cd`。
 全程无任何 force 参数。
+
+---
+
+## 2026-11-15 — owner 逐字：名词跟 Type 走、动词跟 function 走（执行注记，不新增编号）
+
+**owner 原话（逐字，2026-11-15）**：
+
+- *"1） 我仅仅评论了我恰好看到的几个文件中的一小部分内容，全面的类推需要你自己做
+2） bucket这里，体现一个原则，就是不要用没有Type定义的名字去替换有Type的名字，这是bugs的隐形源头；所以这里最好用实际的type名，如果这个函数仅仅是用于 sourcebar 那么就用 sourcebar 不要用 bucket；对于一个kline或者sourcebar来说，完成了就是close了，这一点与 working databar 是否 archived 没有关系，注意你说是否关闭是另一个错误，动词游离于函数名之外，函数名是archived这是精心选择的，因为working_databar 早就closed了，这里working是我们系统让他承担的working还没有做完，做完了就不再working了，archived了。
+3）你原来的命名掩盖了这个事实"*
+- *"一根蜡烛线，他的open就是open的意思，他的close就是close的意思，没有其他意思，不要用started去替换open，也不要用ends去替换close，这些替换叫做无稽之谈，没有根据的术语替换。"*
+- *"有些好的数据源，在一个蜡烛线没有close的时候，用的名字是 latest_price, or latest, they will only name a close price as close, but some will not have a close, just a latest price no matter it is ongoing or is closed, that is lazy but still not incorrect. since the close price is also latest."*
+- *"latest_price is not found in binance and ib bars, so don't worry."*
+- *"in a strict typed language, nouns and verbs should not be used without concerning, they should go after types and functions, so each of the terms you use will not cause trouble and misunderstanding. However, even in a language like Smalltalk, nouns and verbs are still be used very carefully, or even more carefully. for example, Dan Ingles chosed inject,reject,sellect,collect,detect for collection methods, how careful and beautiful. Ohter languages which are loosely designed never consider these."*
+
+以上逐字含 owner 原有的拼写（`sellect` / `chosed` / `Ohter`），按 R43
+不补全、不修饰。**不新增 R 编号、不新增待裁决项**：这是 R19 / R21 / R47
+在命名上的一次收窄，落点是 `src/` / `test/` 已有的骨架与文档；本轮据此
+改了名字与文档，**不改结构、不新增 type / field / 函数**。
+
+### 查证与判据
+
+- owner 在 `src/glibe/api/interval.gleam` 留下的 in-code review 建议
+  `bar_close` / `bar_closes` / `bar_closed`，并要求查官方 naming
+  conventions（该行 `<**human: …**>` 原文与 URL 留在代码里，此处不重抄）。
+  官方 `conventions-patterns-and-anti-patterns/` 页（2026-11-15 WebFetch
+  逐字，见 `.workbuddy/memory/2026-11-15.md`「官方命名惯例」）**没有**
+  Bool / predicate 函数、动词时态或 labelled args 的规定；签名
+  `(Interval, Timestamp) -> Bool` 里也没有 bar。按上面第 1 条，`bar` 同样
+  没有 Type 支撑（glibe 里只有 `SourceBar` / `DataBar`），故取
+  **`sourcebar_closed`**：名词取 Type 名，`close` 是蜡烛线本义且**留在
+  函数名里**。过去分词与 owner 逐字 `working_databar_archived` 同形，两者
+  是不同的值：`SourceBar` 在其周期完成时 closed，而 `working_databar`
+  入场时早已 closed，`archived` 指系统指派给它的 working 做完。
+- **`latest_price` 边界**：owner 明确 Binance 与 IB bars 里都没有这个词 →
+  不引入、不拿它改名。源码里的 `latest close` 出现在 seib `joinNew` 的
+  **设计证据**段（`api/sourcebar.gleam`、`ib/sourcebar.gleam`），是第 3 条
+  说的合法蕴含词，保留。
+- **保护不动**：`working_databar_archived`（owner 逐字，不是 `closed` 的
+  同义词）、`open` / `close` 字段、`start_bar` / `end_bar` / `corner_bar` /
+  `enter_bar` / `exit_bar` / `last_bar`（owner 逐字字段名）、provider 原生
+  `open_time` / `wap` / `count`、`arriving`、`latest close`，以及散文中作
+  「结束」讲的 `ends`（`That accumulation ends…`、`both ends included`）——
+  第 2 条否的是拿 `ends` **替换 `close`**，不是这个英语动词本身。
+
+### 落实（全面类推，不止 owner 恰好看到的几行）
+
+| 原 | 现 | 依据 |
+|---|---|---|
+| `interval.bucket_ends` | `interval.sourcebar_closed` | `bucket` 无 Type；`SourceBar` 有 |
+| 参数 `instant: Timestamp` | `timestamp: Timestamp` | 名词跟 Type 走 |
+| 局部变量 `instant` | `open_time`（provider 字段名） | R28 provider 原生形状 |
+| `finished` / `unclosed` / `finished_target_sourcebar` | `closed` / `has not closed` / `closed_sourcebar` | 第 1 条：完成就是 close |
+| `bar` 参数（`validate` / `to_databar` / test helper / assert） | `sourcebar` | `bar` 无 Type |
+| `THIS IS NOT THE BUCKET` / `No bucket accumulator` | `working_databar` / `SourceBar` accumulator | 同上 |
+| `sourcebar.interval(of: bar)` 文档示例 | `of: sourcebar` | 同上 |
+
+覆盖 `api/interval`、`api/sourcebar`、`databar`、`timeframe`、
+`instrument`、`ib/sourcebar`、`binance/kline`、`test/glibe_test`。
+新增 `sourcebar_closed_shape_test` 钉住 `fn(Interval, Timestamp) -> Bool`
+（RED `Unknown module value: interval.sourcebar_closed` → GREEN
+`15 passed, no failures`）。**编译器实测**：`let assert Ok(sourcebar)` 与
+同作用域的 `sourcebar.SourceBarOneMinute(..)` 共存无遮蔽错误；
+`open_time:` shorthand 合法。
+
+门禁：`format --check src test` 0 · `check` 0 · `test` 0（15 passed）·
+`docs build` 0 · `export package-interface` 0 · `build` 0；
+`build --warnings-as-errors` **exit 1**，198 warnings =
+77 `Todo found` + 118 `Unused function argument` + 1 `Unreachable pattern`
++ 2 `Unused private constructor`，与 11-15 日志的 198 / 77 逐条相同 →
+本轮**零静音、零新增 TODO**（R48）。`package-interface.json`：
+`modules: 15`；`glibe/api/interval` 的 `functions` =
+`from_string` / `sourcebar_closed` / `to_string`，模块 `documentation`
+41 行完整、无 `//` 截断。
+
+### 历史文档不改写
+
+`docs/RULINGS.md` R29 等历史节、`docs/STATE.md` 历史节、
+`.planning/` 旧阶段计划、append-only 日志里的 `bucket_ends` 是**当时的
+记录**，不改原文，只在 `05-01-PLAN.md` §8 与本文档加 dated 注记；
+当前状态节单独更新。

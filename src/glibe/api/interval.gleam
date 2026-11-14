@@ -23,12 +23,20 @@
 //// 2026-11-13: *"转换周期的工作是在SourceBar层面完成的"*, so the change
 //// happens before a `DataBar` exists and `DataBar` needs no variant.
 ////
-//// R29: `bucket_ends` is a UTC unix-second grid. An exchange whose grid is
-//// not UTC-aligned (US equities open 09:30 Eastern, one hour earlier in
-//// summer) is a market-calendar debt: when a consumer for that market
-//// exists it belongs to that market's rules with `tzif`, never to a fixed
-//// offset here. R30: the web view's local wall clock is an OUTPUT-side
-//// projection; it never changes this grid.
+//// R29: `sourcebar_closed` is a UTC unix-second grid. An exchange whose
+//// grid is not UTC-aligned (US equities open 09:30 Eastern, one hour
+//// earlier in summer) is a market-calendar debt: when a consumer for that
+//// market exists it belongs to that market's rules with `tzif`, never to a
+//// fixed offset here. R30: the web view's local wall clock is an
+//// OUTPUT-side projection; it never changes this grid.
+////
+//// NAMING (owner 2026-11-15): the noun comes from the `SourceBar` Type,
+//// the verb is `close`, and neither is `bucket` / `ends` / `started`. The
+//// difference from `timeframe.working_databar_archived` is a difference
+//// of VALUES: a `SourceBar` closes when its period completes, while
+//// `working_databar` was already closed on entry and is archived when the
+//// computation assigned to it is done. Owner's verbatim words are in
+//// `docs/RULINGS.md` (2026-11-15 执行注记).
 ////
 //// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
 
@@ -69,16 +77,24 @@ pub fn from_string(name: String) -> Result(Interval, Nil) {
 }
 
 /// <**human: bar_close or bar_closes or bar_closed might be a better choice, but still need to check gleam official docs on naming convetions https://gleam.run/documentation/conventions-patterns-and-anti-patterns/**>
-/// Whether an absolute instant closes ONE period of this interval on the
-/// UTC unix-second grid (R27 / R29). A provider's composition reads it on
-/// the ONE arriving five-second bar to say whether that instant has reached
-/// the target period boundary: `ib/sourcebar.five_second_to_one_minute`
-/// and its eight siblings are that reader, dispatched by
-/// `instrument.compose_ib_realtime_bar` through the key held here, and
-/// this grid is why their boundary is a PERIOD and not a count of bars.
-/// It is NOT a test of
-/// whether `Timeframe.working_databar` has closed — R39 leaves no
-/// accumulating bar there. No calendar, no offset, no system clock.
-pub fn bucket_ends(interval: Interval, instant: Timestamp) -> Bool {
+/// READS: the `Interval` key of `Instrument.timeframes` and one absolute
+/// `Timestamp`. WRITES: one `Bool` — whether a `SourceBar` of that
+/// interval has closed at that `Timestamp` on the UTC unix-second grid
+/// (R27 / R29).
+///
+/// The readers are `ib/sourcebar.five_second_to_one_minute` and its eight
+/// siblings: each takes ONE arriving five-second bar and uses this grid to
+/// know whether a whole `SourceBar` of the target grade has closed.
+/// `instrument.compose_ib_realtime_bar` dispatches them by the key held
+/// here, which is why the boundary is a PERIOD and not a count of bars.
+///
+/// `sourcebar` names the one Type in this question and `closed` is the
+/// verb IN the name. A candle's `open` means open and its `close` means
+/// close; there is no other word for either. This is NOT
+/// `timeframe.working_databar_archived`: that bar was already closed
+/// before it entered the system, and `archived` names the end of the work
+/// THIS system assigned to it (R39). No calendar, no offset, no system
+/// clock.
+pub fn sourcebar_closed(interval: Interval, timestamp: Timestamp) -> Bool {
   todo as "05-01: UTC unix-second grid; market calendar is a later debt"
 }
