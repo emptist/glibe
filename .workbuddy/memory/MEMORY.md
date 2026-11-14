@@ -92,6 +92,10 @@ mutual imports → `error: Import cycle`** (R50 probe). Mist 6.0.3
 `mist.start`; `wisp.Text`; `gleam run -m <mod>` needs no root `main`.
 `package-interface.json`: `modules` is a dict, `documentation` a list of
 lines. Tests: `assert … as "msg"`, `let assert`, never `panic`/`case Bool`.
+**2026-11-15**: `fn(of: T) -> R` is `Syntax error` — labelled arguments
+are NOT part of a function type, so a type binding cannot pin a label;
+pin it at an uncalled call site instead. A function name may not start
+with `_` ("expecting a lowercase name here").
 
 ## Conventions
 - **No bare `Qn` labels** — cite full path + section title.
@@ -111,11 +115,18 @@ lines. Tests: `assert … as "msg"`, `let assert`, never `panic`/`case Bool`.
   骨架阶段必红, 逐条读到行, 不许整包豁免或 `_` 洗信号。
   core mirror `cmp` 不是门禁脚本。
 
-## State (2026-11-14, doc-tdd, 已 push 到 origin/doc-tdd)
+## State (2026-11-15, doc-tdd, 已 push 到 origin/doc-tdd)
 `src/` = **15 个模块**（`package-interface` 实测 `modules: 15`），函数体
-仍多为 `todo`; `test/` 9 个空 shape test + **1 个真断言**。
+仍多为 `todo`; `test/` 13 个 shape test + **1 个真断言**（14 passed）。
 链按 R50 分层: `id`/`account`（零 import）→ `instrument` → `broker` →
-`desk`; `config.gleam` 已删。WAE 仍红（69 `Todo`，R48 逐条清单）。
+`desk`; `config.gleam` 已删。WAE 仍红（**77 `Todo`**，R48 逐条清单；
+owner review 基线 70，instrument 九 arm +8、symbol 填一 arm −1）。
+**owner 2026-11-14 in-code review 已逐条落实**（原样基线 `2c54535`）：
+`id` 的 `string_to_*` 改名、`sourcebar.interval(of sourcebar:)` 加 label、
+`symbol.string_to_symbol` 与一个 arm 的 body、`instrument` 九 arm case
+骨架。**未定**：`bucket_ends` 命名、`Symbol` 变体归属、
+`symbol_to_string` 与官方惯例的冲突（逐字与编译比较见
+`2026-11-15.md`）。
 **R19 第一个 body 已填**: `kline.to_sourcebar`（RED 11/1 → GREEN
 12 passed）。构造子作一等函数不接受 labelled argument，9 arm 各自构造。
 **「仍留白」清单（11-12 §5.1）已失效**: 5 项里 4 项早落进骨架
