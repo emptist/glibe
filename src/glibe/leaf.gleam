@@ -80,7 +80,7 @@ pub fn corner_bar(leaf: DataLeaf) -> DataBar {
 /// count with `branch_exit_leaf_size` to close a branch (R5 / R6).
 /// No price is read here.
 pub fn leaf_size(leaf: DataLeaf, databar: DataBar) -> Int {
-  todo as "05-01: count from start_bar.idx to databar.idx, both ends included"
+  todo as "05-01: idx arithmetic, both ends included; never walk databar_list"
 }
 
 /// The leaf's magnitude as a share, read off `start_bar` and `corner_bar`.
@@ -91,9 +91,10 @@ pub fn leaf_depth(leaf: DataLeaf) -> Float {
 }
 
 /// One step of a leaf's running mean (R3). `leaf_cma` calls it with the
-/// leaf's `start_bar.idx` and two field readers; it reads `databar.idx`
-/// and the head of `databar_list`. A leaf born this bar returns that bar's
-/// own raw value, never a zero sentinel (R3).
+/// leaf's `start_bar.idx` and two field readers. READS `databar.idx` and
+/// the previous bar's mean off the HEAD of `databar_list` (newest first,
+/// O(1)); WRITES one `Float`. The List is never walked. A leaf born this
+/// bar returns that bar's own raw value, never a zero sentinel (R3).
 pub fn cma_recurrence(
   databar: DataBar,
   databar_list: List(DataBar),
@@ -114,7 +115,7 @@ pub fn leaf_cma(
   databar_list: List(DataBar),
   leaf: DataLeaf,
 ) -> Float {
-  todo as "05-01: pick the twin's mean reader, average the selected moving average over the leaf's own bars"
+  todo as "05-01: pick the twin's mean reader and call cma_recurrence on the head of databar_list"
 }
 
 /// One bar of a yin leaf's life. `timeframe.leaves` reads

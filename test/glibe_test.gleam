@@ -11,7 +11,9 @@
 //// `binance_kline_to_sourcebar_test`, arrived 2026-11-14 with the first
 //// filled body.
 ////
-//// R19 status: one assertion live; the remaining tests still pin types only.
+//// R19 status: two assertions live — `binance_kline_to_sourcebar_test`
+//// (2026-11-14) and `bars_listed_reads_head_idx_test` (2026-11-15). The
+//// remaining tests pin types only.
 
 import gleam/option.{type Option}
 import gleam/time/timestamp.{type Timestamp}
@@ -28,6 +30,7 @@ import glibe/ib/sourcebar as ib_sourcebar
 import glibe/id.{type AccountId, type BrokerId}
 import glibe/instrument.{type Instrument}
 import glibe/timeframe.{type Timeframe}
+import glibe/trading/signal
 
 pub fn main() {
   gleeunit.main()
@@ -75,10 +78,39 @@ pub fn price_checker_shape_test() {
   Nil
 }
 
-/// R39: `bars_listed` counts the archived list, not an "accepted" set.
+/// R39: `bars_listed` reads the HEAD of the archived list, not an
+/// "accepted" set and not a count of the List's cells.
 pub fn bars_listed_shape_test() {
-  let _count: fn(List(DataBar)) -> Int = timeframe.bars_listed
+  let _listed: fn(List(DataBar)) -> Int = timeframe.bars_listed
   Nil
+}
+
+/// A `DataBar` for the archived list. Only `idx` is read by `bars_listed`.
+fn listed_bar(idx: Int) -> DataBar {
+  databar.DataBar(
+    idx: idx,
+    timestamp: timestamp.from_unix_seconds(1_499_040_000),
+    open: 0.0,
+    high: 0.0,
+    low: 0.0,
+    close: 0.0,
+    volume: 0,
+    signal: signal.SignalNoSignal,
+  )
+}
+
+/// Owner 2026-11-15 in-code review: `bars_listed` is NOT a count of the
+/// List. `databar_list` is newest-first by design, so the head bar's
+/// `idx + 1` IS the number of bars listed, reachable in O(1); a Gleam
+/// `List` is a linked list, and `list.length` would walk every cell.
+/// Two cells with head `idx: 41` must answer 42, not 2.
+pub fn bars_listed_reads_head_idx_test() {
+  let newest = listed_bar(41)
+  let older = listed_bar(40)
+  assert timeframe.bars_listed([]) == 0 as "no bar listed yet"
+  assert timeframe.bars_listed([newest]) == 42 as "one cell, head idx 41 -> 42"
+  assert timeframe.bars_listed([newest, older]) == 42
+    as "two cells: head idx + 1, not the List's length"
 }
 
 /// R42 / R50: EACH level owns the read / write pair of the ONE Dict it
@@ -144,7 +176,7 @@ pub fn sourcebar_closed_shape_test() {
 /// to construct one, which the same review still leaves open.
 pub fn symbol_codec_shape_test() {
   let _spelling_in: fn(String) -> Symbol = symbol.string_to_symbol
-  let _spelling_out: fn(Symbol) -> String = symbol.symbol_to_string
+  let _spelling_out: fn(Symbol) -> String = symbol.to_string
   Nil
 }
 

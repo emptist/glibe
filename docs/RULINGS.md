@@ -2862,3 +2862,100 @@ owner 约定反复引用 —— 按 R46 / R49，AI 自己记录的裁定不是 o
 `.planning/` 旧阶段计划、append-only 日志里的 `bucket_ends` 是**当时的
 记录**，不改原文，只在 `05-01-PLAN.md` §8 与本文档加 dated 注记；
 当前状态节单独更新。
+
+---
+
+## 2026-11-15 07:04–07:12 — owner 逐字：`bars_listed` 读头不数表、倒叙归档是针对 Gleam `List` 的刻意设计、`symbol.to_string`（执行注记，不新增编号、不新增待裁决项）
+
+**owner 原话（逐字，2026-11-15）**：
+
+- *"I have just seen your bars_listed, guess it be a function? I commented on
+  that."*
+- owner 在 `src/glibe/databar.gleam` 的 `DataBar.idx` 文档末尾留下的
+  in-code review（逐字，含原有拼写 `funtion`）：
+  *"here you should be careful: the bars_listed if is used anywhere, the
+  funtion should be defined not to count but to calculate by the first one's
+  idx in the databar_list, that is the idx + 1."*
+- *"if you are to count the elements in a gleam list, gleam docs tell you
+  that will be very ineffecient action. list is not an array, and is NOT a
+  list you see in other languages."*
+- *"你可直接将实现写出来，以免以后搞错了"*
+- *"list倒叙归档是我特别设计的，针对gleam list的设计特点。所以凡遇到此类
+  list相关的函数，以及成员的获取，一定要十分仔细，不要设计得好好的却不用，
+  去用非常蠢笨的方法，导致极低效率。"*
+- *"symbol.symbol_to_string will look odd, so the official docs treat it as
+  bad, I haven't noticed the module file name, so that should have been
+  to_string, so it reads symbol.to_string when called"*
+
+以上逐字含 owner 原有拼写（`ineffecient` / `funtion` / `guess it be a
+function`），按 R43 不补全、不修饰。**这不是新 R 编号**：R39 已定
+`bars_listed` 的名字与出处，官方 conventions 早已是项目采用的规则；
+本轮只是把「怎么实现」与「怎么取名」按已定设计落在 `src/` / `test/`，
+决策区仍 **0 项**。
+
+### 查证（代码，不是文档推断）
+
+- **owner 问的 `bars_listed` 确实是函数**：`src/glibe/timeframe.gleam`
+  的 `pub fn bars_listed(databar_list: List(DataBar)) -> Int`，本轮之前
+  body 是 `todo as "05-01: count the settled bars"`，`test/glibe_test.gleam`
+  只有 `bars_listed_shape_test` 绑定签名；`src/` 里**当时没有调用点**，
+  三处文档却写成「counts」（`timeframe.gleam` 函数文档、
+  `databar.gleam` 的 `idx` 文档、test 文档）。措辞与实现方向都错。
+- **glib 代码**（R42 / R43，对照实现而非 AI 散文）：
+  `glib/src/glib/timeframe.gleam:827-833` 的 `bars_listed` 是
+  `case list.first(databar_list) { Ok(bar) -> bar.idx + 1  Error(_) -> 0 }`；
+  `:99` 明写 head bar *"is* the count"*、*"O(1) on a cons list and cannot
+  drift"*；`:848` 的 `working_databar_archived` 是
+  `databar_list: [databar, ..timeframe.databar_list]`，**prepend**，
+  databar_list newest-first；`:280` / `:602` 的「上一根」一律
+  `list.first`。`branch.gleam:271` 的 `exited_branch` 也只读头；
+  `leaf.gleam:113` / `:129` 的 CMA 递推明写 *"O(1) by `list.first`
+  because the list is newest-first"*，替代「走每一根 bar」的旧算法；
+  `leaf.gleam:45-49` / `branch.gleam:96-99` 的 size 是两个 `idx` 相减
+  +1，不遍历。
+- **官方命名惯例**：`x_to_y`；module 名与 type 名相同时**省略前缀**
+  （`identifier.to_string` Good / `identifier_to_string` Bad）。
+  `symbol.gleam` 的 module 就是 type 名，故 `symbol.symbol_to_string`
+  是 Bad 形，应为 `symbol.to_string`。owner 明说自己先前那条 in-code
+  review（*"use symbol_to_string to convert a symbol to a string"*）是
+  *"I haven't noticed the module file name"* —— 按「owner 当前说法 >
+  先前 comment」，本轮据此改名；**该 `<**human: …**>` 行逐字保留在代码
+  里**（与 `interval.gleam` 那条未被采纳的 review 同一处置），不删 owner
+  的字，也不把它当规格。`trading/signal.to_string` /
+  `api/interval.to_string` 已是同一形状。
+
+### 落实
+
+| 落点 | 本轮之前 | 本轮 |
+|---|---|---|
+| `timeframe.bars_listed` | `todo as "count the settled bars"` | `case databar_list { [] -> 0  [newest, ..] -> newest.idx + 1 }`，直接取链表头 O(1)，不 import `gleam/list` |
+| `timeframe.working_databar_archived` todo | "bar **appended** to databar_list" | "bar **prepended** to the HEAD … O(1), newest stays first" |
+| `branch.exited_branch` todo | "read the first branch whose …" 像 `list.find` | "read the HEAD branch in O(1)"；函数文档补「Never `list.find`」 |
+| `branch.branch_size` / `leaf.leaf_size` todo | "count from … idx" | "idx arithmetic … never walk" |
+| `leaf.cma_recurrence` / `leaf_cma` | 文档只说读头 / todo 说 "average … over the leaf's own bars" | 明写 O(1) 头读取、never walk；todo 指向 `cma_recurrence` |
+| `databar.gleam` `idx` 文档 / test 文档 | "counts the archived bars" | "reads this value off the HEAD bar and returns `idx + 1`" |
+| `symbol.symbol_to_string` | `symbol.symbol_to_string` | **`symbol.to_string`**（`//// R19 status` 与 test 绑定同步） |
+| `R19 status` 两处 | 自称「全是 todo」「一个断言」 | 改为「`bars_listed` 已填、其余 todo」「两个断言」 |
+
+**RED → GREEN（R19）**：新增 `bars_listed_reads_head_idx_test`，用
+`idx: 41` 的头 bar + 一根更旧的 bar，断言答案 **42 而不是 List 长度
+2**，另断言空表 **0**；body 仍是 `todo` 时 RED（`15 passed, 1 failures`，
+`todo src/glibe/timeframe.gleam:192`），填入实现后 GREEN
+（`16 passed, no failures`）。这个断言特意让 `list.length` 的实现必红。
+
+**门禁**：`format --check src test` 0 · `check` 0 · `test` 0（16 passed）·
+`docs build` 0 · `export package-interface` 0 · `build` 0；
+`build --warnings-as-errors` **exit 1**，196 warnings =
+76 `Todo found` + 117 `Unused function argument` + 1 `Unreachable pattern`
++ 2 `Unused private constructor`。相对上一轮 198 / 77 / 118：
+填掉 1 个 `Todo`、消掉 1 个 unused argument（该参数现在真被读取），
+其余逐条相同 → **零静音、零新增 TODO**（R48）。
+`package-interface.json`：`modules: 15`；`glibe/api/symbol` functions =
+`string_to_symbol` / `to_string`；`glibe/timeframe` functions 含
+`bars_listed`；`to_string` 与 `bars_listed` 的 `documentation` 完整渲染、
+无 `//` 截断。
+
+**不改写**：`docs/RULINGS.md` R29 / R39 / R43 历史节、`docs/STATE.md`
+历史节、旧 `.planning` 阶段计划、append-only 日志里的 `bucket_ends` /
+`bars_listed` 旧措辞保持原文；只在 `05-01-PLAN.md` §9、本文档与当前
+状态节加 dated 注记。

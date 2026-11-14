@@ -14,7 +14,7 @@
 //// is an adapter concern, not a new type in the model. R13: an identifier is
 //// its own type, opaque so a `String` is not a `Symbol`.
 ////
-//// R19 status: skeleton. ONE arm of `symbol_to_string` now has a working
+//// R19 status: skeleton. ONE arm of `to_string` now has a working
 //// line (owner 2026-11-14: *"you can still use todo here, but it's so
 //// simple why wait?"*). The catch-all arm and its `Todo` warning are
 //// deliberately left by owner (*"now, this will cause a compile warning,
@@ -69,9 +69,9 @@ pub fn string_to_symbol(spelling: String) -> Symbol {
 /// 
 /// <**human: use symbol_to_string to convert a symbol to a string **>
 /// 
-/// The spelling back out, for codecs and view projections only.
-pub fn symbol_to_string(symbol: Symbol) -> String {
-  //pub fn to_string(symbol: Symbol) -> String {
+/// READS the spelling held by this `Symbol` variant. WRITES one `String`
+/// for codecs and view projections only.
+pub fn to_string(symbol: Symbol) -> String {
   case symbol {
     // <**human: you can still use todo here, but it's so simple why wait?**>
     BinanceStockBSymbol(string) -> string

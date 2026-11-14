@@ -117,9 +117,10 @@ with `_` ("expecting a lowercase name here").
 
 ## State (2026-11-15, doc-tdd, 已 push 到 origin/doc-tdd)
 `src/` = **15 个模块**（`package-interface` 实测 `modules: 15`），函数体
-仍多为 `todo`; `test/` 14 个 shape test + **1 个真断言**（15 passed）。
+已填 2 个 body（`kline.to_sourcebar`、`timeframe.bars_listed`）;
+`test/` 14 个 shape test + **2 个真断言**（16 passed）。
 链按 R50 分层: `id`/`account`（零 import）→ `instrument` → `broker` →
-`desk`; `config.gleam` 已删。WAE 仍红（**77 `Todo`**，R48 逐条清单；
+`desk`; `config.gleam` 已删。WAE 仍红（**76 `Todo`** / 196 warnings，R48 逐条清单；
 owner review 基线 70，instrument 九 arm +8、symbol 填一 arm −1）。
 **owner 2026-11-14 in-code review 已逐条落实**（原样基线 `2c54535`）：
 `id` 的 `string_to_*` 改名、`sourcebar.interval(of sourcebar:)` 加 label、
@@ -129,9 +130,16 @@ owner review 基线 70，instrument 九 arm +8、symbol 填一 arm −1）。
 `unclosed` → 有 Type 或有真实出处的词；`working_databar_archived` /
 `open` / `close` / owner 逐字字段名 / provider 原生字段保护不动；
 `latest_price` 在 Binance 与 IB bars 里不存在，不引入。逐字全文见
-`docs/RULINGS.md` 2026-11-15 执行注记。**未定**：`Symbol` 变体归属、
-`symbol_to_string` 与官方惯例的冲突（需 owner 一句话，不擅自选；逐字与
-编译比较见 `2026-11-15.md`）。`trading/signal.from_string` /
+`docs/RULINGS.md` 2026-11-15 执行注记。**owner 07:12 追加裁定**：
+`bars_listed` **不是计数**——`databar_list` 倒叙归档是针对 Gleam
+`List`（单向链表）的刻意设计，凡 list 相关函数与成员获取一律读头部
+O(1)，禁 `list.length` / `list.find` / `list.append`；
+`symbol.symbol_to_string` → **`symbol.to_string`**（module 与 type
+同名时省前缀，调用读作 `symbol.to_string`），owner 先前那条
+`<**human**>` review 逐字留在代码里但不作为规格。逐字与 glib
+代码出处见 `docs/RULINGS.md`「2026-11-15 07:04–07:12」。
+**未定**：只剩 `Symbol` 变体归属（Shape A / B 编译比较见
+`2026-11-15.md`）。`trading/signal.from_string` /
 `api/interval.from_string` owner 未点名、不属本次「无 Type 支撑的名词」
 问题，不动、不列待裁决项。
 **R19 第一个 body 已填**: `kline.to_sourcebar`（RED 11/1 → GREEN

@@ -71,7 +71,8 @@ pub type DataBar {
 }
 
 /// `DataBar.idx`. `leaf.leaf_size` and `branch.recognised_this_bar` read it
-/// (R1 / R4); `timeframe.bars_listed` counts the archived bars by it (R39).
+/// (R1 / R4); `timeframe.bars_listed` reads this value off the HEAD bar of
+/// `databar_list` and returns `idx + 1` — it does not count the List (R39).<**human:here you should be careful: the bars_listed if is used anywhere, the funtion should be defined not to count but to calculate by the first one's idx in the databar_list, that is the idx + 1.**>
 pub fn idx(databar: DataBar) -> Int {
   todo as "05-01: read the index of this bar"
 }

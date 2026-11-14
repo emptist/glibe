@@ -93,7 +93,7 @@ pub fn exit_bar(branch: DataBranch) -> Option(DataBar) {
 /// How many bars the branch spans, `start_bar` to `exit_bar`, both ends
 /// inclusive (R6). A growing branch has no `exit_bar` and no size.
 pub fn branch_size(branch: DataBranch) -> Int {
-  todo as "05-01: count from start_bar.idx to exit_bar.idx, both ends included"
+  todo as "05-01: idx arithmetic, both ends included; never walk the branch lists"
 }
 
 /// The polarity name a view projection reads to label a `YinBranch` or a
@@ -153,11 +153,15 @@ pub fn recognised_start_idx(
 /// `timeframe.strategy` reads `Timeframe.yin_branch_list` /
 /// `yang_branch_list`; the head is the newest ended branch, and `None`
 /// on every other bar keeps one exit from being marked twice.
+///
+/// READS ONLY the head of `branches` — the newest ended branch, archived
+/// first. WRITES `Some(branch)` when that head's `exit_bar.idx` is `idx`,
+/// `None` otherwise. `list.find` is not called.
 pub fn exited_branch(
   branches: List(DataBranch),
   idx: Int,
 ) -> Option(DataBranch) {
-  todo as "05-01: read the first branch whose exit_bar.idx is idx, otherwise None"
+  todo as "05-01: read the HEAD branch in O(1); Some only when its exit_bar.idx is idx, otherwise None"
 }
 
 /// One bar of a `YangBranch`'s life (rides yin leaves, R2).

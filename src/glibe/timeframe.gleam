@@ -67,7 +67,9 @@
 //// live data are ONE stream (R33): a batch is just this same pair of entry
 //// points run n times. R33: no actor, scheduler, clock, poll or heartbeat.
 ////
-//// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
+//// R19 status: skeleton apart from `bars_listed`, whose body reads the
+//// head of `databar_list` (owner 2026-11-15). Every other body is
+//// `todo as "..."`; a todo names the ONE value its body will read / write.
 
 import gleam/option.{type Option}
 import glibe/api/interval.{type Interval}
@@ -176,12 +178,19 @@ pub fn strategy(timeframe: Timeframe) -> Timeframe {
 /// Archive the working databar into `databar_list`. Takes NO bar argument:
 /// the bar archived is the one in the field (R39 / R41).
 pub fn working_databar_archived(timeframe: Timeframe) -> Timeframe {
-  todo as "05-01: Some -> None, bar appended to databar_list"
+  todo as "05-01: Some -> None, bar prepended to the HEAD of databar_list (O(1), newest stays first)"
 }
 
 /// The number of bars listed. R39 fixes this name — *"`bars_accepted` 不是
 /// `bars_listed`"* — and R43 traced it to `glib/src/glib/timeframe.gleam:827`.
-/// It counts `databar_list`, not an "accepted" collection.
+///
+/// READS `idx` off the FIRST `DataBar` of `databar_list` (newest first:
+/// `working_databar_archived` prepends). WRITES one `Int`, that `idx + 1`,
+/// or `0` when the List is empty — the `idx` of the next bar, handed to
+/// `sourcebar.to_databar`. The head is O(1); `list.length` is not called.
 pub fn bars_listed(databar_list: List(DataBar)) -> Int {
-  todo as "05-01: count the settled bars"
+  case databar_list {
+    [] -> 0
+    [newest, ..] -> newest.idx + 1
+  }
 }

@@ -4,7 +4,60 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-15 (当前状态)
+## 2026-11-15 07:12 (当前状态)
+
+- **本轮落了两件 owner 裁定，不是再一轮命名类推**：
+  ① `bars_listed` **真填了 body**（doc-tdd 第二个实现）；
+  ② `symbol.symbol_to_string` → **`symbol.to_string`**。
+  逐字全文、glib 代码查证、落实表见 `docs/RULINGS.md`
+  「2026-11-15 07:04–07:12」执行注记。
+- **`bars_listed` 是函数，不是计数**：`pub fn bars_listed(databar_list:
+  List(DataBar)) -> Int`。owner 的 in-code comment 逐字保留在
+  `databar.gleam` 的 `idx` 文档末尾；实现为
+  `case databar_list { [] -> 0  [newest, ..] -> newest.idx + 1 }`——
+  取链表头 O(1)，不 import `gleam/list`，不调 `list.length`。
+  owner：*"if you are to count the elements in a gleam list, gleam docs
+  tell you that will be very ineffecient action. list is not an array"*，
+  且 *"list倒叙归档是我特别设计的，针对gleam list的设计特点"*。
+  glib 代码佐证：`timeframe.gleam:827` 读头 + `idx+1`、`:848`
+  prepend、`:99` 明写 "O(1) on a cons list"、`:280` / `:602`
+  `list.first`；`branch.gleam:271` 也只读头；`leaf.gleam:113`
+  CMA 递推 O(1)。
+- **「凡遇到此类 list 相关的函数，以及成员的获取」已全面类推**：
+  `working_databar_archived` todo 的 `appended` → `prepended to the HEAD`；
+  `branch.exited_branch` 文档补「Never `list.find`」、todo 改「读 HEAD」；
+  `branch_size` / `leaf_size` todo 改 `idx arithmetic … never walk`；
+  `leaf.cma_recurrence` / `leaf_cma` 明写 O(1) 头读取；
+  `databar.idx` 与 test 文档不再写「counts」。
+- **`symbol.to_string`**：官方 `x_to_y` 惯例规定 module 名与 type 名
+  相同时省略前缀；owner 明说先前那条 in-code review 是
+  *"I haven't noticed the module file name"*。`<**human: …**>` 原文
+  逐字保留在代码里（与 `interval.gleam` 未采纳的 review 同一处置），
+  但不再当规格；`//// R19 status` 与 test 绑定同步。
+  `package-interface.json` 实测 `glibe/api/symbol` functions =
+  `string_to_symbol` / `to_string`。
+- **RED → GREEN**：`bars_listed_reads_head_idx_test` 用 `idx: 41` 的头
+  bar + 更旧的一根，断言 **42 而非 List 长度 2**、空表 **0**；
+  RED `15 passed, 1 failures`（`todo timeframe.gleam:192`）→
+  GREEN `16 passed, no failures`。断言特意让 `list.length` 必红。
+- **R19 status 同步**：`timeframe.gleam` 与 `test/glibe_test.gleam`
+  两处自称「全是 todo」「一个断言」已改为实况。
+- 门禁：`format --check` 0 · `check` 0 · `test` 0（16 passed）·
+  `docs build` 0 · `export package-interface` 0 · `build` 0；
+  **`build --warnings-as-errors` exit 1**：196 warnings = 76 `Todo` +
+  117 `Unused function argument` + 1 `Unreachable pattern` +
+  2 `Unused private constructor`。上一轮 198 = 77 / 118 / 1 / 2，
+  差值恰好是填掉的 1 个 body 与其参数 → 零静音、零新增 TODO（R48）。
+  `package-interface.json`：`modules: 15`，`to_string` 与
+  `bars_listed` 的 documentation 完整、无 `//` 截断。
+- 决策区 **0 项**。**未定**：只剩 `Symbol` 变体归属（Shape A / B
+  编译比较见 `.workbuddy/memory/2026-11-15.md`）。
+  `trading/signal.from_string` / `api/interval.from_string` owner 未点名、
+  不属本轮问题，不动、不列待裁决项。
+- 普通 fast-forward push 照 owner 2026-11-14 逐字直接做；任何 force
+  类操作先问。
+
+## 2026-11-15 06:56 (历史状态)
 
 - **本轮是命名类推，不是填 body**：`src/` 仍 15 个模块
   （`package-interface.json` 实测 `modules: 15`），函数体仍多为
@@ -48,6 +101,11 @@ sections are kept as history, not as the current answer.
   且不是本次「无 Type 支撑的名词」问题，本轮不动、不列为待裁决项。
 - 普通 fast-forward push 照 owner 2026-11-14 逐字直接做；任何 force
   类操作先问。
+
+> **⚠ 2026-11-15 07:12 更正**：本节是 06:56 当时的记录，不是当前答案。
+> 上面「未定」里的 `symbol_to_string` 冲突已由 owner 裁定为
+> `symbol.to_string`；`bars_listed` 也已填入真实 body（不再是 `todo`）。
+> 本节其余原文不动；当前状态见本文档 2026-11-15 07:12 节。
 
 ## 2026-11-14 07:41 (历史状态)
 
