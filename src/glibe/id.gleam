@@ -43,11 +43,13 @@ pub opaque type AccountId {
 
 /// A boundary spelling becomes the key of `Desk.brokers`. The only way in,
 /// because `BrokerId` is opaque.
+/// <**human: this is in fact a string_to_broker_id, isn't it?**>
 pub fn broker_id(spelling: String) -> BrokerId {
   todo as "05-01: a holder's key, not the broker's own field"
 }
 
 /// A boundary spelling becomes the key of `Broker.accounts`.
+/// <**human: this is in fact a string_to_account_id, isn't it?**>
 pub fn account_id(spelling: String) -> AccountId {
   todo as "05-01: a holder's key, not the account's own field"
 }

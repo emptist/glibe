@@ -113,5 +113,6 @@ pub fn compose_ib_realtime_bar(
   interval: Interval,
   arriving: ib_sourcebar.IbSourceBar,
 ) -> #(Option(SourceBar), Instrument) {
+  //<**human: you can still do meaningful basic things with todo here, for example, a case match to todo in each case, so you can find if the args are designed well**>
   todo as "05-01: dispatch by the interval key to one five_second_to_*; read and write growing_target_sourcebar; emit one finished bar on the boundary"
 }

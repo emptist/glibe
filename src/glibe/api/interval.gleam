@@ -68,6 +68,7 @@ pub fn from_string(name: String) -> Result(Interval, Nil) {
   todo as "05-01: wire code to model name"
 }
 
+/// <**human: bar_close or bar_closes or bar_closed might be a better choice, but still need to check gleam official docs on naming convetions https://gleam.run/documentation/conventions-patterns-and-anti-patterns/**>
 /// Whether an absolute instant closes ONE period of this interval on the
 /// UTC unix-second grid (R27 / R29). A provider's composition reads it on
 /// the ONE arriving five-second bar to say whether that instant has reached

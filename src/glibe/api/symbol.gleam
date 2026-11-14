@@ -19,16 +19,61 @@
 /// The spelling a broker uses for an instrument. Opaque: a spelling can only
 /// be made through `from_string`, and is never confused with a plain `String`.
 pub opaque type Symbol {
-  Symbol(spelling: String)
+  /// <**human: variants should be used here, so you should try whether if you should define Symbol types in broker modules, instead of in symbol module：
+  /// in Binance module, perhaps opaque one:
+  /// pub type BinanceSymbol {
+  ///   BinanceStockBSymbol(string: String)
+  ///   BinanceFuturesSymbol(string: String)
+  /// }
+  /// you should compare the two approaches to see which is more suitable for your case
+  /// 
+  /// 
+  /// all the variants below are just examples, not to take the names without careful consideration**>
+  BinanceStockBSymbol(string: String)
+  BinanceFuturesSymbol(string: String)
+  IbStockSymbol(string: String)
+  IbOptionSymbol(string: String)
+  IbForexSymbol(string: String)
+  //Symbol(spelling: String)
 }
 
 /// A broker's spelling becomes a `Symbol`. The wire spelling is boundary
 /// data; the entity is not built here (R22).
+/// <**human: string_to_symbol is a gleam convetion for a function that takes a string and returns a symbol, https://gleam.run/documentation/conventions-patterns-and-anti-patterns/
+/// the following code is just an example, I even don't know if they are correct in syntax, not to take the code without careful consideration**>
+///  
+/// pub fn string_to_symbol(string: String, symbol_type:Symbol.type) -> Symbol {
+///   case symbol_type {
+///       BinanceStockBSymbol -> BinanceStockBSymbol(string)
+///       BinanceFuturesSymbol -> BinanceFuturesSymbol(string)
+///       IbStockSymbol -> IbStockSymbol(string)
+///       IbOptionSymbol -> IbOptionSymbol(string)
+///       IbForexSymbol -> IbForexSymbol(string)
+///   }
+/// }
+/// 
+/// echo symbol.string_to_symbol("SPYBUSDT", BinanceStockBSymbol)
+/// or:
+/// echo symbol.string_to_symbol(symbol_type:IbStockSymbol, string:"SPY")
+/// **>
 pub fn from_string(spelling: String) -> Symbol {
   todo as "05-01: a name is given by the holder, not by the thing"
 }
 
+/// 
+/// <**human: use symbol_to_string to convert a symbol to a string **>
+/// 
 /// The spelling back out, for codecs and view projections only.
-pub fn to_string(symbol: Symbol) -> String {
-  todo as "05-01: project the name at a boundary"
+pub fn symbol_to_string(symbol: Symbol) -> String {
+  //pub fn to_string(symbol: Symbol) -> String {
+  case symbol {
+    // <**human: you can still use todo here, but it's so simple why wait?**>
+    BinanceStockBSymbol(string) -> todo as "will return the string here"
+    BinanceFuturesSymbol(string) -> string
+    IbStockSymbol(string) -> string
+    IbOptionSymbol(string) -> string
+    IbForexSymbol(string) -> string
+    // <**human: now, this will cause a compile warning, I intend this**>
+    _ -> todo as "05-01: project the name at a boundary"
+  }
 }

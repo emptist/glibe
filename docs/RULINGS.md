@@ -2580,7 +2580,7 @@ skill `gleam-document-led-tdd`。
 
 ---
 
-## R50 — 一个模块只读写它自己那一层；系统里永远只有一个 Desk（2026-11-12 深夜，owner 在 `src/glibe/desk.gleam` 留下的 12 条 `<{human: ...}>` review 评论）
+## R50 — 一个模块只读写它自己那一层；系统里永远只有一个 Desk（2026-11-12 深夜，owner 在 `src/glibe/desk.gleam` 留下的 12 条 `<**human: ...**>` review 评论）
 
 ### 1. owner 逐字（按文件顺序）
 

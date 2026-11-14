@@ -185,6 +185,11 @@ pub type SourceBarRejection {
   SourceBarRejectionUnqualified
 }
 
+/// <** human: better use labeled args, while avoiding a bar instead of sourcebar
+/// pub fn interval(of sourcbar: SourceBar) -> Interval {
+///   ...
+/// }
+/// **>
 /// Which interval a bar is — read FROM its variant, never from a field.
 /// `timeframe.sourcebar_gate` reads it to compare the grade of the bar a
 /// provider just wrote with the `Interval` key the caller holds for
