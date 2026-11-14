@@ -199,7 +199,7 @@ pub type SourceBarRejection {
 /// own function name, never from a caller's claim. This function must name
 /// every variant, so a tenth span is an `Inexhaustive patterns` error here
 /// (R13).
-pub fn interval(bar: SourceBar) -> Interval {
+pub fn interval(of sourcebar: SourceBar) -> Interval {
   todo as "05-01: case over the nine variants, one Interval each"
 }
 

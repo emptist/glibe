@@ -104,10 +104,38 @@ pub fn chain_levels_shape_test() {
 
 /// R50 / R13: the ONLY ways to build the two opaque keys live in the same
 /// module as the keys. Measured: an `opaque` constructor used from another
-/// module is `error: Use of private value`.
+/// module is `error: Use of private value`. Owner 2026-11-14 review: these
+/// are `x_to_y` conversions, so they are named `string_to_*`, symmetric
+/// with the existing `*_to_string` readers.
 pub fn identity_shape_test() {
-  let _broker_key: fn(String) -> BrokerId = id.broker_id
-  let _account_key: fn(String) -> AccountId = id.account_id
+  let _broker_key: fn(String) -> BrokerId = id.string_to_broker_id
+  let _account_key: fn(String) -> AccountId = id.string_to_account_id
+  Nil
+}
+
+/// Owner 2026-11-14 review: the grade reader takes a LABELLED argument, and
+/// the value is named `sourcebar`, not the generic `bar`. MEASURED: a
+/// labelled argument is NOT part of a function type — `fn(of: SourceBar) ->
+/// Interval` is `error: Syntax error` — so a type binding cannot pin it.
+/// This UNCALLED function is the check: the compiler checks the call site,
+/// so removing or renaming the `of:` label fails the build without ever
+/// running a `todo` body.
+fn grade_call_is_labelled(bar: SourceBar) -> Interval {
+  sourcebar.interval(of: bar)
+}
+
+pub fn sourcebar_interval_shape_test() {
+  let _grade: fn(SourceBar) -> Interval = sourcebar.interval
+  let _call: fn(SourceBar) -> Interval = grade_call_is_labelled
+  Nil
+}
+
+/// Owner 2026-11-14 review: the boundary projection of a `Symbol`. `Symbol`
+/// is opaque, so this pins the signature only; a real assertion needs a way
+/// to construct one, which the same review still leaves open.
+pub fn symbol_codec_shape_test() {
+  let _spelling_in: fn(String) -> Symbol = symbol.string_to_symbol
+  let _spelling_out: fn(Symbol) -> String = symbol.symbol_to_string
   Nil
 }
 

@@ -8,10 +8,13 @@
 //// never import each other.
 ////
 //// READS: nothing.
-//// WRITES: `BrokerId`, `AccountId` — the two keys. `broker_id` /
-//// `account_id` are here because an `opaque` constructor is invisible
-//// outside its own module, so the only way to build these keys must live
-//// with them (R13, core §3; measured `error: Use of private value`).
+//// WRITES: `BrokerId`, `AccountId` — the two keys.
+//// `string_to_broker_id` / `string_to_account_id` are here because an
+//// `opaque` constructor is invisible outside its own module, so the only
+//// way to build these keys must live with them (R13, core §3; measured
+//// `error: Use of private value`). Both directions are `x_to_y`
+//// conversions (official conventions): `string_to_*` in, `*_to_string`
+//// out. Owner review 2026-11-14 named the missing half.
 ////
 //// NOT here: a lookup-failure type. A missing key has nothing to say —
 //// the caller already holds the key (R37) — so each `get_*` returns
@@ -44,21 +47,21 @@ pub opaque type AccountId {
 /// A boundary spelling becomes the key of `Desk.brokers`. The only way in,
 /// because `BrokerId` is opaque.
 /// <**human: this is in fact a string_to_broker_id, isn't it?**>
-pub fn broker_id(spelling: String) -> BrokerId {
+pub fn string_to_broker_id(spelling: String) -> BrokerId {
   todo as "05-01: a holder's key, not the broker's own field"
 }
 
 /// A boundary spelling becomes the key of `Broker.accounts`.
 /// <**human: this is in fact a string_to_account_id, isn't it?**>
-pub fn account_id(spelling: String) -> AccountId {
+pub fn string_to_account_id(spelling: String) -> AccountId {
   todo as "05-01: a holder's key, not the account's own field"
 }
 
 /// `BrokerId` read back at a boundary. The constructor is `opaque`, so
 /// this half of the codec must sit in the SAME module as the type (R50 §3,
 /// measured `error: Use of private value`); a caller outside cannot
-/// destructure it. `broker_id` and this function are the two directions of
-/// the one key.
+/// destructure it. `string_to_broker_id` and this function are the two
+/// directions of the one key.
 pub fn broker_id_to_string(id: BrokerId) -> String {
   todo as "05-01: read the spelling out of the opaque broker key"
 }

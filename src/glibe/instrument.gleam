@@ -63,7 +63,11 @@
 
 import gleam/dict.{type Dict}
 import gleam/option.{type Option}
-import glibe/api/interval.{type Interval}
+import glibe/api/interval.{
+  type Interval, IntervalFifteenMinute, IntervalFourHour, IntervalOneDay,
+  IntervalOneHour, IntervalOneMinute, IntervalOneMonth, IntervalOneWeek,
+  IntervalThirtyMinute, IntervalThreeMinute,
+}
 import glibe/api/sourcebar.{type SourceBar}
 import glibe/ib/sourcebar as ib_sourcebar
 import glibe/timeframe.{type Timeframe}
@@ -113,6 +117,31 @@ pub fn compose_ib_realtime_bar(
   interval: Interval,
   arriving: ib_sourcebar.IbSourceBar,
 ) -> #(Option(SourceBar), Instrument) {
-  //<**human: you can still do meaningful basic things with todo here, for example, a case match to todo in each case, so you can find if the args are designed well**>
-  todo as "05-01: dispatch by the interval key to one five_second_to_*; read and write growing_target_sourcebar; emit one finished bar on the boundary"
+  // Owner review 2026-11-14 (verbatim): *"you can still do meaningful basic
+  // things with todo here, for example, a case match to todo in each case,
+  // so you can find if the args are designed well"*. The nine arms ARE the
+  // nine `Interval` constructors: an incomplete `case` is a compile error
+  // (R13), so this skeleton is the check that the key and the nine target
+  // grades are ONE closed set. Each arm still names the ONE provider
+  // function it will dispatch to; the read/write pair comes with its body.
+  case interval {
+    IntervalOneMinute ->
+      todo as "05-01: ib_sourcebar.five_second_to_one_minute; read and write growing_target_sourcebar"
+    IntervalThreeMinute ->
+      todo as "05-01: ib_sourcebar.five_second_to_three_minute; read and write growing_target_sourcebar"
+    IntervalFifteenMinute ->
+      todo as "05-01: ib_sourcebar.five_second_to_fifteen_minute; read and write growing_target_sourcebar"
+    IntervalThirtyMinute ->
+      todo as "05-01: ib_sourcebar.five_second_to_thirty_minute; read and write growing_target_sourcebar"
+    IntervalOneHour ->
+      todo as "05-01: ib_sourcebar.five_second_to_one_hour; read and write growing_target_sourcebar"
+    IntervalFourHour ->
+      todo as "05-01: ib_sourcebar.five_second_to_four_hour; read and write growing_target_sourcebar"
+    IntervalOneDay ->
+      todo as "05-01: ib_sourcebar.five_second_to_one_day; read and write growing_target_sourcebar"
+    IntervalOneWeek ->
+      todo as "05-01: ib_sourcebar.five_second_to_one_week; read and write growing_target_sourcebar"
+    IntervalOneMonth ->
+      todo as "05-01: ib_sourcebar.five_second_to_one_month; read and write growing_target_sourcebar"
+  }
 }

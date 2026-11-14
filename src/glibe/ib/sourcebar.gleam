@@ -112,7 +112,7 @@
 //// and that could disagree with the bars in hand (R23 / R37, owner:
 //// *"你的左手不知道他是左还是右"*). The caller's `Interval` stays where it
 //// belongs — the key of `Instrument.timeframes` — and meets the bar only
-//// as the comparison `sourcebar.interval(bar)` in `sourcebar_gate`. Nine
+//// as the comparison `sourcebar.interval(of: bar)` in `sourcebar_gate`. Nine
 //// functions below are the nine constructors of `Interval`; that closed
 //// set is the whole list, not a guess.
 ////

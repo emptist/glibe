@@ -14,10 +14,16 @@
 //// is an adapter concern, not a new type in the model. R13: an identifier is
 //// its own type, opaque so a `String` is not a `Symbol`.
 ////
-//// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
+//// R19 status: skeleton. ONE arm of `symbol_to_string` now has a working
+//// line (owner 2026-11-14: *"you can still use todo here, but it's so
+//// simple why wait?"*). The catch-all arm and its `Todo` warning are
+//// deliberately left by owner (*"now, this will cause a compile warning,
+//// I intend this"*) and are NOT silenced. The shape of `Symbol` itself is
+//// still open — see the owner review notes on the variants below.
 
 /// The spelling a broker uses for an instrument. Opaque: a spelling can only
-/// be made through `from_string`, and is never confused with a plain `String`.
+/// be made through `string_to_symbol`, and is never confused with a plain
+/// `String`.
 pub opaque type Symbol {
   /// <**human: variants should be used here, so you should try whether if you should define Symbol types in broker modules, instead of in symbol module：
   /// in Binance module, perhaps opaque one:
@@ -56,7 +62,7 @@ pub opaque type Symbol {
 /// or:
 /// echo symbol.string_to_symbol(symbol_type:IbStockSymbol, string:"SPY")
 /// **>
-pub fn from_string(spelling: String) -> Symbol {
+pub fn string_to_symbol(spelling: String) -> Symbol {
   todo as "05-01: a name is given by the holder, not by the thing"
 }
 
@@ -68,7 +74,7 @@ pub fn symbol_to_string(symbol: Symbol) -> String {
   //pub fn to_string(symbol: Symbol) -> String {
   case symbol {
     // <**human: you can still use todo here, but it's so simple why wait?**>
-    BinanceStockBSymbol(string) -> todo as "will return the string here"
+    BinanceStockBSymbol(string) -> string
     BinanceFuturesSymbol(string) -> string
     IbStockSymbol(string) -> string
     IbOptionSymbol(string) -> string
