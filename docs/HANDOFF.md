@@ -5,6 +5,8 @@
 > **动手前**：载入 `gleam-language` 技能并**全文**读
 > `~/.workbuddy/skills/gleam-language/references/gleam-core.md`
 > （仓库镜像 `docs/gleam-thinking-core-to-memory.md`，`cmp` 一致，R19）。
+> **list 效率设计与骨架填写**：`DEVELOPER_GUIDE.md`（2026-11-15 起，
+> 导航文件，不是第二份规格）。
 >
 > 首次交接 2026-11-13 00:28，owner 当时最后一句：
 > *「完了，你。一片混乱。写交接文档，开新会话吧。这样做下去毫无意义。」*

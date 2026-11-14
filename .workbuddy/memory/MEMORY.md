@@ -150,5 +150,15 @@ O(1)，禁 `list.length` / `list.find` / `list.append`；
 （`account.gleam:27-29`，R26/R32 刻意等消费方）。**Kline 线格式不是
 设计留白** —— Binance 官方 12 字段照抄即可（R28），别拿它向 owner
 要逐字；provider 的数据问题查 provider 手册，不靠推理。
+**owner 07:31（只写文档，`src/`/`test/` 未改）**：新建根
+`DEVELOPER_GUIDE.md`（10 节：倒叙归档 / `DataBar.idx` vs
+`SourceBar` / 数据 List 一览 / 三类例外 / 骨架 todo 对照表 /
+doc-first TDD 是根本措施），`README.md` 修两处假话并加 list 小节，
+`HANDOFF.md` 加导航。官方 `gleam_stdlib` v1.0.5 `gleam/list` 逐字：
+prepend/读头 O(1)（即便 VM 优化仍是 O(n)）；`idx` 让长度/跨度/
+窗口边界变成相减；glib 里 `databar_list` / `sourcebar_buffer` /
+`signif_*_leaf_list` / `yin/yang_branch_list` 全部 prepend + 读头；
+三类例外按 owner 判据分类，不宣布 glib 全对。逐字全文与
+file:line 查证见 `docs/RULINGS.md`「2026-11-15 07:31」。
 **未收敛**: `gleam.toml` 旧依赖表、`webclient/` 旧实现。
 决策区 **0 项**。

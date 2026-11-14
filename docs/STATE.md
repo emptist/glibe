@@ -4,7 +4,46 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-15 07:12 (当前状态)
+## 2026-11-15 07:31 (当前状态)
+
+- **本轮只写面向开发者的文档，`src/` / `test/` 一行未改**：新建
+  **`DEVELOPER_GUIDE.md`**（根，10 节），改写 `README.md`，
+  `docs/HANDOFF.md` 顶部加一行导航。owner 逐字全文、官方 stdlib
+  引文、glib 代码查证与分类表见 `docs/RULINGS.md`「2026-11-15
+  07:31」执行注记。非新裁定，不新增编号 / 待裁决项。
+- **要叙述的是既有设计，不是新设计**：Gleam `List` 是单向链表，
+  prepend / 读头 O(1)，`length` / `last` / `append` / `reverse` 官方
+  逐字均为 linear time（hexdocs `gleam_stdlib` v1.0.5 `gleam/list`，
+  本轮 WebFetch）。随流增长的历史 List 一律**倒叙归档**、成员获取
+  一律读头；`DataBar` 自带 `idx` 而 `SourceBar` 没有，因为位置只在
+  `sourcebar.to_databar(sourcebar, idx)` 这个系统边界上赋，那个
+  `Int` 既是 `bars_listed` 的结果也是下一根的 `idx`。有了 `idx`，
+  长度、跨度、窗口边界全变成整数相减，不再遍历。
+- **「同理类推」已核实**：`databar_list`、`sourcebar_buffer`、
+  `signif_*_leaf_list`、`yin/yang_branch_list` 在 glib 里**全部**
+  prepend + 头部读取（file:line 见 RULINGS / GUIDE §4）。三类例外
+  按 owner 判据分类：有界窗口（`list.split` / `list.take`）、输出侧
+  **一次性** `list.reverse`、非数据类小 list（execution / view 层，
+  其中 `last_trade_times` 配 `list.find` 更像该用 type / Dict）。
+  `timeframe.gleam:461` / `:469` 的 `list.length` 在开发期
+  at-home test 里，不是生产路径。owner 明说不知道 glib AI 是否
+  100% 照设计实现，故只分类、不宣布 glib 全对。
+- **GUIDE 的核心是「不能按名字猜」**：`bars_listed` 不 count、
+  `last_bar` 读头、`exited_branch` 不 find；并附骨架 `todo` 对照表，
+  把每个待填 body 与 glib 的实测实现对齐。另有一节写文档先导 TDD
+  为何是根本措施（`///` 是规格、`package-interface.json` 是编译器
+  自己的反漂移检查；旧 todo 写 "count the settled bars" 就会把后来
+  的人带去 `list.length`）。
+- **README 两处假话已修**：`Every function body is todo` →
+  `Most … todo`；「设计不在 prose documents 里」改成「规格是代码内
+  `////` / `///`，GUIDE 是导航、不是第二份规格」。
+- 文中 37 条 `file:line` 引用全部解析成功、抽查内容吻合；Gleam
+  片段只取自已编译的 `src/glibe/timeframe.gleam:191` 与 glib 实现。
+- 决策区仍 **0 项**；未定只剩 `Symbol` 变体归属。门禁数字与
+  07:12 相同（`16 passed` / WAE `196 = 76 Todo + 117 unused arg +
+  1 unreachable + 2 unused private ctor`），本轮复核后确认。
+
+## 2026-11-15 07:12 (历史状态)
 
 - **本轮落了两件 owner 裁定，不是再一轮命名类推**：
   ① `bars_listed` **真填了 body**（doc-tdd 第二个实现）；

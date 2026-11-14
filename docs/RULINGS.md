@@ -2959,3 +2959,108 @@ function`），按 R43 不补全、不修饰。**这不是新 R 编号**：R39 �
 历史节、旧 `.planning` 阶段计划、append-only 日志里的 `bucket_ends` /
 `bars_listed` 旧措辞保持原文；只在 `05-01-PLAN.md` §9、本文档与当前
 状态节加 dated 注记。
+
+---
+
+## 2026-11-15 07:31 — owner 逐字：把 list 效率设计写进 README / DEVELOPER GUIDE、`idx` 的原因、所有此类 list 同理类推、文档先导 TDD 是根本措施（执行注记，不新增编号、不新增待裁决项）
+
+**性质**：owner 要求把**既有设计**叙述到两份面向开发者的文档里，并说明
+为什么这样设计。不是新裁定，不改 `src/` / `test/`，不新增 R 编号，
+不新增待裁决项。决策区仍 0 项。owner 对参照实现的前提声明一并照录：
+*"其中AI是否100%按照我设计去实现我也不知道，至少凡是我看到过的错误
+都纠正过来了"*。
+
+### owner 逐字（四条，原样）
+
+1. *"你可以结合glib代码（其中AI是否100%按照我设计去实现我也不知道，
+至少凡是我看到过的错误都纠正过来了）在README和 DEVELOPER GUIDE里面，
+特别叙述一下本系统中若干list的效率设计，和高效率的用法。整体设计是
+非常精巧的。不是粗心大意随便一看文件名瞎猜一下就能用好的。"*
+2. *"为什么databar和sourcebar不一样，databar自带一个idx，原因也是如此。
+这是效率最高的做法。"*
+3. *"注意不仅是 databar_list, 所有的需要反复提取计算长度的list，同理
+类推，都应该倒叙归档，如果glib AI没有100%这么做，那说明要么搞错了，
+要么是一个非数据类的很小的不会无限增长的list，
+或许都不应该用list的list。"*
+4. *"与此弱相关，在你刚才处理大量代码文件却不曾写多少代码的过程中，
+你应该感悟到了，文档先导的tdd模式会强迫你把gleam document做踏实，
+因为不然你将来将没法知道怎么实现那些空架子。这是一个根本性的措施。
+否则都是没有好好写文档的代码文件，逐渐的代码就乱掉了，因为与设计
+思路完全脱节，天马行空放飞自我了。"*
+
+### 查证（本轮实读，非推理）
+
+**官方**：WebFetch `hexdocs.pm/gleam_stdlib/gleam/list.html`（v1.0.5，
+与 `gleam-core.md` §8 的版本一致）。模块头逐字：*"New elements can be
+added and removed from the front of a list in constant time, while adding
+and removing from the end requires traversing and copying the whole list,
+so keep this in mind when designing your programs."*；`length` 逐字
+*"This function has to traverse the list to determine the number of
+elements, so it runs in linear time. This function is natively
+implemented by the virtual machine and is highly optimised."*；
+`append` *"runs in linear time, and it traverses and copies the first
+list"*；`last` / `reverse` 同为 linear time。**即便 VM 优化仍是 O(n)**，
+放进每根 bar 的路径即 O(n²)。`gleam-core.md` §3：`List` 是 immutable
+singly-linked list，`[x, ..rest]` prepend O(1)。
+
+**glib 代码（file:line 均在 `glib/src/glib/` 下）**：
+
+- `timeframe.gleam:97-105`：原 carried count 字段整个删掉，明写 head
+  bar *"is* the count"*、`list.first(databar_list).idx + 1` 是
+  *"O(1) on a cons list and cannot drift"*，实测 1001 根 bar 0 次
+  disagreement；`:96` 字段、`:827` `bars_listed`、`:848` prepend、
+  `:280` / `:601` 一切「上一根」只读头；`:295` 调用点就是
+  `to_databar(sourcebar, bars_listed(timeframe.databar_list))`。
+- `databar.gleam:29-34`：`idx` 定义逐字 *"a bar knows where it stands,
+  so a structure can name a **bar** instead of a number and still measure
+  a size or a span in O(1)"*；`sourcebar.gleam:115` 起九个变体逐字
+  核对过，字段只有 `date` 与 OHLCV，**没有 `idx`**。
+- 「同理类推」的其余数据 List：`timeframe.gleam:146-149`
+  `sourcebar_buffer`（`sourcebar_export.gleam:45` prepend，
+  `trading/export.gleam:24` 出口一次 reverse）、`:127-128`
+  `signif_*_leaf_list`（`:549` / `:555` prepend）、`:144-145`
+  `yin/yang_branch_list`（`:690` / `:694` prepend，`:746` 经
+  `branch.exited_branch` 读头）。**全部倒叙归档**。
+- `idx` 把数数换成相减：`leaf.gleam:45-49` `leaf_size`、
+  `branch.gleam:96-99` `branch_size`、`leaf.gleam:119`
+  `cma_recurrence` 的 `N_old`、`kdj.gleam:79-95` 用缓存
+  `kdj_h_idx` / `kdj_l_idx` 判离场 bar 从而只在罕有路径重扫窗口、
+  `branch.gleam:267-280` `exit_bar.idx == idx` 只读头。
+
+**按 owner 第 3 条的三类例外分类（说明，不宣布 glib 全对）**：
+(a) 有界窗口 `sma.gleam:69` `list.split(databar_list, size-1)`、
+`:75` 的 `list.length(settled)`、`kdj.gleam:124`
+`list.take(databar_list, w-1)` 只走常数窗口，不随历史增长；
+(b) 输出侧**一次性** reverse：`trading/export.gleam:24`、
+`trading/ingest.gleam:164`，`trading/live.gleam:129-131` 注释明写
+逐行 `list.append` 是 O(n²) 故改 prepend + 一次 reverse；
+(c) 非数据类小 list：`execution/risk_manager.gleam` 的
+`RiskResult.results`（`:358` 一次 reverse）、`trades_today` /
+`last_trade_times`（`:57-58`、`:146` 按日重置、`:377` `list.find`）、
+`web/branch_view.gleam:142-147` 视图投影；这类也许本该是 type / Dict
+而非 List，即 owner 说的「或许都不应该用 list」。
+另有 `timeframe.gleam:461` / `:469` 的 `list.length` 在
+`is_product_version || { … }` 的开发期 at-home test 里
+（`config.gleam:86` 当前 `False`），不是生产路径，不构成许可。
+
+### 落实
+
+- 新建 **`DEVELOPER_GUIDE.md`**（根，10 节）：路径约定；「不能按名字猜」
+  三个反例（`bars_listed` 不 count、`last_bar` 读头、`exited_branch`
+  不 find）；官方逐字；倒叙归档不变量；`DataBar.idx` vs `SourceBar`
+  专节；所有数据 List 一览；DO / DON'T；三类例外；**骨架 `todo`
+  填写对照表**；文档先导 TDD 为何是根本措施；门禁；边界。
+  文中每个 identifier 与 `file:line` 都实读核对（37 条路径引用全部
+  解析成功，行号抽查内容吻合），Gleam 片段只取自已编译的
+  `src/glibe/timeframe.gleam:191` 与对应 glib 实现。
+- **`README.md`**：修正两处已成假话的措辞——"Every function body is
+  `todo as \"...\"`" → "Most … `todo`"，以及把「设计不在 prose
+  documents 里」改成「规格是代码内 `////` / `///`（编译产物核对），
+  GUIDE 是导航不是第二份规格」；新增英文小节
+  *The lists are newest-first on purpose* 与 GUIDE 链接。
+- **`docs/HANDOFF.md`** 顶部导航区加一行指向 GUIDE（quote 块，不改
+  任何历史节数字）。
+- `docs/STATE.md` 新增 07:31 当前状态节；`.workbuddy/memory/2026-11-15.md`
+  append；`.workbuddy/memory/MEMORY.md` State 同步。
+- **`src/` / `test/` 一行未改**；`docs/PENDING_DECISIONS.md`、
+  `.planning/` 阶段计划不动。
