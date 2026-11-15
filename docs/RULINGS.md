@@ -3155,3 +3155,172 @@ owner 已声明 *"其中AI是否100%按照我设计去实现我也不知道"*，
   append；`.workbuddy/memory/MEMORY.md` State 同步。
 - §6 新增的 20 条 `file:line` 按路径约定全部解析成功、抽查内容吻合；
   `src/` / `test/` 一行未改。历史节与 append-only 日志原文不改写。
+
+---
+
+## 2026-11-15 07:59 — owner 逐字：关键技术是 stream 模式、绘图软件的第一条判据、以及对每处 `reverse` 的追问（执行注记，不新增编号）
+
+**owner 原话（逐字，2026-11-15 07:59）**：
+
+> 我来回答我自己的问题：关键技术是stream模式，纵有万千条k线，系统里面其实只有一根在工作，那就是 working_databar, you almost always only need that one databar.
+>
+> 所以我们去找绘图软件或者自己做绘图软件 see project try_plushie 其中第一条看是否支持单根bar更新chart，如果不能，那么我们的系统不能用他。
+>
+> However, as you mentioned, glib has 7 positions where list.revers() is found, that smells. Was glib doing properly? You have to ask.
+>
+> For example, can it not use reverse when doing sourcebar_list exporting (for potential later offline tests only)? The same question should be asked if there are other ocassions reverse() is used on a list
+
+（`list.revers()` / `ocassions` 两处拼写照抄，不作更正。）
+
+### 本注记的性质
+
+owner 是在**回答他自己 07:42 的问题**，并给出判据，然后要求我对每处
+`reverse` **提出同一个问题**、不得自行宣布 glib 做对了。因此本注记是
+**逐字归位 + 查证 + 提问**，不是新裁定、不是 R 编号、不替 glib 辩护，
+也不改 `src/` / `test/`。07:42 注记里那句「没有一处挂在每根 bar 的
+`databar_processing` 路径上」是对 **7 处 Gleam `list.reverse`** 的计数陈述；
+它不能推广成「glib 整体做对了」——下面 §B 检出两处 JS FFI 的
+`.reverse()` 正挂在高频路径上。
+
+### A. 判据：系统里只有一根 bar 在工作
+
+owner 这句与既有裁定同向，不是新机制：R33（一条流、纯值重算、无
+actor / scheduler / clock / poll）、R38（流没有倒带，一根到达的 bar
+按顺序调用那一对函数）、R39（全部计算在 `working_databar` 里，
+做完才 archived 进 `databar_list`）。`src/glibe/timeframe.gleam:106-120`
+的 `Timeframe` 里，`working_databar: Option(DataBar)` 是那**一根**，
+`databar_list` 是归档历史。**任何「把整条历史翻一遍」的动作，都意味着
+某个消费方在要整个历史，而不是要那一根**——这正是 owner 说的
+*"that smells"* 的判据。
+
+### B. 逐处查证（glib 代码与 try_plushie 源码，不是 glib `docs/`）
+
+**B.1 `*.gleam` 内 7 处 `list.reverse`**（07:42 已记，此处补触发频率）：
+
+| 位置 | 什么时候跑 | 翻的是整条历史吗 |
+|---|---|---|
+| `glib/trading/export.gleam:24` | 退出时 `export_flush` 写一次 | 是，`sourcebar_buffer` |
+| `glib/trading/ingest.gleam:164` | `run_offline` / `run_online` 末尾各一次（`:109` / `:143`） | 是，`databar_list` |
+| `glib/census.gleam:213` | 离线 branch 报告开头一次 | 是，`tf.databar_list` |
+| `glib/census.gleam:172` | 每个 branch group 打印前 | 否，分组后的小表 |
+| `glib/census.gleam:363` | `extreme_indices` 的 fold 末尾 | 否，fold 累积出的极值下标 |
+| `glib/trading/live.gleam:130` | 一次 poll 窗口 decode 完 | 否，有界窗口 |
+| `glib/execution/risk_manager.gleam:358` | 每次风控检查 | 否，7 项固定检查结果 |
+
+**B.2 另有 2 处 JS FFI 的 `.reverse()`，07:42 注记漏记，且都挂在高频路径上**：
+
+- `glib/binance_trading_ffi.mjs:36-38` `chart_bars()` =
+  `timeframe.databar_list.toArray().slice().reverse()`；`:81` 在
+  `set_symbol_state` 里调它。`apply_bar()`（`:49`，注释逐字 *"One place
+  where an archived bar is turned into position, P&L and the shared state
+  the dashboard reads — identical whether the bar arrived from the initial
+  replay, a socket frame, or a poll"*）在 `:170`（seed）、`:227`（ws
+  update）、`:282`（poll）三处被调用 ⇒ **每根 bar 都把整个
+  `databar_list` 转成数组再翻一遍**，O(N²)。
+- `glib/paper_trading_ffi.mjs:273`
+  `chartBars = archived.slice().reverse()`，位于 `while (tradingState)`
+  的 poll 循环（`:188`），**每次 poll 都翻一次**，即使
+  `fresh.length == 0`（没有新 bar）。
+
+这两处不在「7 处 Gleam `list.reverse`」里，但恰恰是 owner 的 stream
+判据最该问的两处：它们要的是整个历史，不是那一根 bar。
+
+**B.3 `sourcebar_list` 导出能不能不用 reverse（owner 点名的例子）**：
+
+事实链（全部读过）：
+
+1. `glib/timeframe.gleam:146-149` `sourcebar_buffer: List(SourceBar)`，
+   注释逐字 *"Newest-first like `databar_list`, so capture is O(1);
+   `export_flush` reverses it once, at the single write."*
+2. 每根 closed bar 在 `glib/timeframe.gleam:235` 调
+   `sourcebar_export.accumulate`（`:41-46` `[sourcebar, ..buffer]`）prepend。
+3. `glib/sourcebar_export.gleam:26-27` 逐字 *"one positional JSON array,
+   oldest-first … the file is read whole, sequentially, once, which is what
+   an array is for"*；`:28-30` `to_json` → `encode_sourcebar_list`。
+4. `glib/sourcebar.gleam:534-535`
+   `json.array(sourcebar_list, of: encode_bar)` **保序**；
+   `:515-518` `decode.list(of: decode_bar(interval))` 也**保序**。
+   `glib/sourcebar_export.gleam:145` `json.parse(payload,
+   decode_sourcebar_list(interval))` 读回来按文件顺序逐根喂同一条流。
+5. `glib/sourcebar_export_ffi.mjs:44-48` 的 `flush()` 有
+   `!wrote` 闸，逐字 *"Once per online session"*，调
+   `engine.export_flush(latest)` 一次。
+
+⇒ **答案（技术事实，不是裁定）**：直接删掉 `list.reverse` 会让文件变成
+newest-first，读回来就是**倒着喂流**，不行；把 reverse 挪到读侧只是把
+同一次 O(n) 换了个边，一帧没省。Gleam `List` 只能 O(1) 读头 / prepend
+（官方逐字见 07:31 注记），从 newest-first 链表生成 oldest-first 数组
+**必然要一次 O(n) 的反向遍历**，`list.reverse` 只是这次遍历的名字。
+
+要真正不出现这次遍历，只有改变「攒一整份 buffer 再写」这件事本身：
+① 每根 closed sourcebar 到达边界时顺手写一行（stream 写，无 buffer）；
+② 干脆不要这条导出，离线测试从同一条流逐根读文件。
+两者都回到 owner 那句「系统里其实只有一根在工作」。
+`glibe` 的 `Timeframe`（`src/glibe/timeframe.gleam:106-120`）目前
+**没有** `sourcebar_buffer` 字段，也没有 `export_flush`——这条路径在
+glibe 尚未存在，是否引入需要 owner 逐字裁定。
+
+**B.4 其余 6 处，按 owner 判据逐处提同一个问题**（不裁定）：
+
+- `trading/ingest.gleam:164` → `web/server.gleam:152-161`
+  `publish_databars` → `glib/web/server_ffi.mjs:42-44`
+  `engineDatabars[key] = gleam_list_to_array(databar_list)`：这是一条
+  **bulk 初始绘制**通道，交出去的是整个历史数组。按 stream 判据要问：
+  历史既然「是同一条流的前段」（R38），初始绘制能不能也一根一根发，
+  从而这处 reverse 与这份数组都不需要？
+- `census.gleam:213` / `:172` / `:363`：离线报告。`:363` 是
+  fold-prepend 后的一次 reverse，属「prepend O(1) 累积 + 一次 O(n)」的
+  正确形状，改写法仍是同一次遍历；但 `:369-373` `in_span` 用
+  `list.filter` + `list.length`、`:381-384` `age_of_last` 用 `list.last`
+  且依赖 oldest-first 顺序，所以 `:213` 那次整表 reverse 是否可以
+  换成读头 / `idx` 相减，值得问。
+- `trading/live.gleam:130`：poll 窗口 decode 的 prepend + reverse，
+  注释（`:125-129`）自己解释了「逐行 `list.append` 是 O(n²)」。
+  但按 R33，这条 live 路径本身就是「poll」，与「无 poll」相冲。
+- `execution/risk_manager.gleam:358`：`list.append` 累积 7 项
+  （`:300`–`:355`）**之后**再 `list.reverse`。append 本已保序，
+  reverse 把结果倒过来；这处最值得问「为什么」，且 `list.append`
+  与 `gleam-core.md` §5 的禁令同形（虽 n=7 恒定）。
+
+**B.5 `try_plushie` 的第一条判据（owner 点名）**：
+
+- **框架机制够**：`plushie_gleam` 有 `Snapshot`/`Patch`、`tree.diff`
+  ID-keyed（`try_plushie/plushie-architecture.md` §4.2–4.3）。
+  `try_plushie/test/try_plushie_test.gleam:394-423`
+  `stable_geometry_gives_single_bar_patch_test` 断言稳定几何 + 稳定 id
+  时 `insert=1 / remove=1 / update_props=0 / replace_node=0`；
+  `:425-462` `tree_diff_patch_size_test` 断言 `insert=2 / remove=2 /
+  update_props ∈ [1,14)`。
+- **当前实现没做到「一根 bar 进绘图」**：
+  `try_plushie/src/try_plushie.gleam:401-403` `subscribe()` 返回 `[]`
+  （无归档事件源）；`try_plushie/src/fusion_view.gleam:231-237`
+  `window()` 每次 `view` 都 `list.length` + `drop` + `take` +
+  `list.reverse` 一个 160 根窗口，**绘图输入仍是整窗 list，不是 head
+  那一根**。`src/fusion_view.gleam:25-36` 的模块头说三处几何已改，
+  与 `plushie-architecture.md` §17.5/§17.6「三处几何未改」的记录
+  不一致——按「代码是事实、文档是散文」，以源码为准。
+- **本次实测的边界**：在 `try_plushie` 跑
+  `gleam test` **exit 1**，`src/explore.gleam:158` 用了
+  `gleam_stdlib` v1.0.5 不存在的 `list.range`（编译器逐字
+  *"The module `gleam/list` does not have a `range` value"*）。所以上面
+  两组断言数字是**测试源码里的断言**，不是本次跑出来的实测；本注记
+  不宣称「try_plushie 测试通过」。
+- **按 owner 判据的结论**：机制支持，但当前 app 既无归档事件源、
+  绘图又吃整窗 list ⇒ **按「如果不能，那么我们的系统不能用他」，
+  plushie / try_plushie 当前不满足第一条门槛**。是否就此记为
+  「当前不可用」、还是先补事件源与单根输入再评，需 owner 一句话。
+- 对照：`plushie-architecture.md:458` 记 glib 用的是 TradingView
+  **Lightweight Charts v5** + SSE `series.update` 单 bar 增量；
+  `:513` 记 BEAM 侧 Plotto「有 K 线但无对数轴/交互/缩放，
+  **无单 bar 增量**」——同一条判据在那个项目里已经用来否掉过一个库。
+
+### C. 本注记不做什么
+
+- 不宣布 glib 全对，也不宣布它错；owner 已声明 *"其中AI是否100%按照
+  我设计去实现我也不知道"*（07:31 逐字），权威始终是 owner 逐字与
+  代码内文档。
+- 不改 glib / try_plushie 任何源码（参照项目只读），不改 `src/` /
+  `test/`，不新增 R 编号。
+- **B.3 与 B.5 两处需要 owner 一句话的，记入待裁决区**；07:42 注记里
+  「不新增待裁决项」只对那一轮成立，本轮 owner 明确要求 *"You have
+  to ask"*。

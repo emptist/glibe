@@ -173,5 +173,28 @@ file:line 查证见 `docs/RULINGS.md`「2026-11-15 07:31」。
 边界的形态」；`README.md` 加 *The chart is not drawn backwards*。owner
 写 `revert`，官方函数是 `list.reverse`，文档按 function 走只用 `reverse`。
 逐字与 6 步链路查证见 `docs/RULINGS.md`「2026-11-15 07:42」。
+**owner 07:59（只写文档，`src/`/`test/` 未改）**：回答自己 07:42 的问题
+→ 关键技术是 **stream 模式**，*"纵有万千条k线，系统里面其实只有一根
+在工作，那就是 working_databar, you almost always only need that one
+databar"*；绘图软件第一条判据 = **能否单根 bar 更新 chart**，不能则
+「我们的系统不能用他」；并要求对每处 reverse 追问 *"Was glib doing
+properly? You have to ask."* **07:42 那句「7 处全在边界、无一处挂每根
+bar」被限定**：那只是 `*.gleam` 计数；另检出 2 处 JS FFI
+`.reverse()` 挂在每根 bar（`binance_trading_ffi.mjs:37/81`，
+`apply_bar` 在 `:170/:227/:282`）与每次 poll
+（`paper_trading_ffi.mjs:273`）。`sourcebar_list` 导出不能直接删
+reverse —— `json.array` / `decode.list` 保序、读回逐根喂流要求
+oldest-first，删了会倒着喂；挪到读侧只换边；要省掉只能不攒 buffer
+或不要这条导出（glibe `Timeframe:106-120` 目前没有该字段）。
+`try_plushie`：框架机制支持单根（`test:394-423` 断言 1 insert /
+0 update_props），但 `subscribe()` 返回 `[]`、`fusion_view.window()`
+每次 view 都 `length`+`drop`+`take`+`reverse` 整窗 ⇒ **当前不满足
+第一条门槛**；本次 `gleam test` 在该项目 exit 1（`explore.gleam:158`
+`list.range` 不存在），数字是源码断言非实测。`DEVELOPER_GUIDE.md`
+新增 §6.5 / §7(e)（9 处逐处提问表）、§6.1 加订正块；README /
+STATE / HANDOFF（修掉「不要 push」假约定）同步；RULINGS 追加 07:59
+逐字与查证。**本轮不宣布 glib 全对，也不宣布它错。** 逐字全文见
+`docs/RULINGS.md`「2026-11-15 07:59」。
 **未收敛**: `gleam.toml` 旧依赖表、`webclient/` 旧实现。
-决策区 **0 项**。
+决策区 **2 项**（owner 明说 *"You have to ask"*）：`sourcebar_buffer`
+导出 glibe 要不要存在；plushie 是否记为当前不可用。

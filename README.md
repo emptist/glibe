@@ -29,13 +29,26 @@ walk.
 Do not guess from a name: `bars_listed` does not count, `last_bar` reads the
 head, and `exited_branch` does not search.
 
-The chart is **not** drawn backwards. Each output boundary reverses its list
-once (the page's initial paint, or the export on quit); every live bar then
-travels alone over SSE and the chart grows by one `series.update`.
-Chronological order is a projection of the one newest-first list, never a
-second stored copy — see `DEVELOPER_GUIDE.md` §6. The guide also has the full
-list inventory, the exceptions and boundary cases, and a table saying how to
-fill each remaining `todo`.
+The chart is **not** drawn backwards — in the shape the engine is meant to
+have. Each output boundary projects the one newest-first list once (the
+page's initial paint, or the export on quit); every live bar then travels
+alone over SSE and the chart grows by one `series.update`. Chronological
+order is a projection, never a second stored copy — see
+`DEVELOPER_GUIDE.md` §6.
+
+That is the design, **not** a claim that the reference implementation got
+everywhere right. Owner, 2026-11-15: *"关键技术是stream模式，纵有万千条k线，
+系统里面其实只有一根在工作，那就是 working_databar, you almost always only
+need that one databar."* So every place that reverses the whole history is a
+place somebody asked for the entire history instead of that one bar.
+`DEVELOPER_GUIDE.md` §6.5 / §7(e) asks exactly that question at each of the
+9 `reverse` sites found in the reference code (7 Gleam + 2 JS FFI); two of
+them do run per bar / per poll. The first test for any chart library is
+therefore whether it can update **one** bar — by that test `try_plushie`
+currently does not qualify (§6.5).
+
+The guide also has the full list inventory, the exceptions and boundary
+cases, and a table saying how to fill each remaining `todo`.
 
 - Plan item: `.planning/phases/05-doc-tdd/05-01-PLAN.md`
 - Developer guide (list efficiency, filling the skeleton): `DEVELOPER_GUIDE.md`

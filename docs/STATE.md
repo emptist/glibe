@@ -4,7 +4,59 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-15 07:42 (当前状态)
+## 2026-11-15 07:59 (当前状态)
+
+- **本轮仍只写文档，`src/` / `test/` 一行未改**：owner 回答了自己
+  07:42 的问题 —— 关键技术是 **stream 模式**，*"纵有万千条k线，系统
+  里面其实只有一根在工作，那就是 working_databar, you almost always
+  only need that one databar"*；绘图软件的**第一条判据**是能否单根 bar
+  更新 chart，*"如果不能，那么我们的系统不能用他"*；并要求对 glib 的
+  每处 `reverse` 追问 *"Was glib doing properly? You have to ask."*
+  逐字全文与全部查证链在 `docs/RULINGS.md`「2026-11-15 07:59」。
+  **本轮不宣布 glib 全对，也不宣布它错。**
+- **07:42 那句结论被限定**：「7 处 `list.reverse` 无一处挂每根 bar」
+  只是对 `*.gleam` 的计数陈述；另检出 **2 处 JS FFI 的 `.reverse()`**
+  挂在高频路径上 —— `glib/binance_trading_ffi.mjs:36-38/81`
+  （`apply_bar` 在 `:170/:227/:282` 触发 ⇒ 每根 bar 整表 reverse）、
+  `glib/paper_trading_ffi.mjs:273`（`:188` 的 poll 循环 ⇒ 每次 poll
+  整表 reverse，无新 bar 也翻）。`DEVELOPER_GUIDE.md` §6.1 已加
+  07:59 订正块，§5 / §6.3 加了「这是应有形状，不是全部实测」的限定。
+- **`sourcebar_list` 导出（owner 点名）**：`glib/sourcebar.gleam:534-535`
+  `json.array` 与 `:515-518` `decode.list` 都保序，
+  `glib/sourcebar_export.gleam:145` 读回按文件顺序逐根喂同一条流、
+  `:26-27` 要求 oldest-first ⇒ **直接删 reverse 会倒着喂流**，挪到读侧
+  只是把同一次 O(n) 换边。Gleam `List` 只能 O(1) 读头 / prepend，
+  newest-first 链表生成 oldest-first 数组必然要一次 O(n) 反向遍历。
+  要真正省掉只能不攒 buffer（每根顺手写一行）或不要这条导出。
+  `src/glibe/timeframe.gleam:106-120` **没有** `sourcebar_buffer`
+  字段、也没有 `export_flush`，这条路在 glibe 尚未存在。
+- **`try_plushie` 判据**：框架机制**支持**单根更新
+  （`test/try_plushie_test.gleam:394-423` 断言稳定几何 +
+  稳定 id 时 `insert=1 / remove=1 / update_props=0`）；但当前 app
+  `src/try_plushie.gleam:401-403` `subscribe()` 返回 `[]`（无归档
+  事件源），`src/fusion_view.gleam:231-237` `window()` 每次 `view`
+  都 `list.length` + `drop` + `take` + `list.reverse` 一个 160 根窗口
+  —— **绘图输入仍是整窗 list，不是 head 那一根** ⇒ 按 owner 判据
+  **当前不满足第一条门槛**。本次在 `try_plushie` 跑 `gleam test`
+  **exit 1**（`src/explore.gleam:158` 用了 stdlib 不存在的
+  `list.range`），故那组数字是**测试源码断言，不是本次实测**；
+  本轮未改该项目任何源码。
+- **逐处提问表**：`DEVELOPER_GUIDE.md` 新增 §6.5（stream 判据与绘图
+  选型）、§7(e)（7 处 Gleam + 2 处 JS FFI，逐处「能不能不用
+  reverse」的技术事实与待问点）；`README.md` 把「Each output
+  boundary reverses its list once」改成「应有的形状」并加 07:59
+  判据段；`docs/HANDOFF.md` §5 顺带修掉「不要 push（owner 没让）」
+  这条与 2026-11-14 裁定冲突的假约定。
+- **决策区由 0 项变 2 项**（owner 明说 *"You have to ask"*）：
+  ① `sourcebar_buffer` 导出这条路 glibe 要不要存在（A 不引入 /
+  B 改成 stream 写 / C 照 glib 抄 / D 先不定）；② plushie 是否
+  记为「当前不可用」（A 判不可用 / B 机制算通过 / C 不再候选）。
+  其余各处只记事实与提问，不预设结论。
+- 本轮未新增 R 编号；`src/` / `test/` 一行未改，门禁数字沿用
+  07:42 复核结果（16 passed / WAE 196 warnings / modules 15）。
+  07:42 及更早的注记、append-only 日志原文均未改写。
+
+## 2026-11-15 07:42 (历史状态)
 
 - **本轮仍只写文档，`src/` / `test/` 一行未改**：回答 owner 07:42 的问题
   「倒叙 List 怎样画图、`reverse` 是不是低效」。结论是问句里那个

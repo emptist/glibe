@@ -159,7 +159,7 @@ glib 里随流增长的 List 都是这个形状，没有例外。下表所有裸
 | 一段跨度 / 窗口大小 | `idx` 相减 | 扫表数元素 | §3.2 表 |
 | 判定「本 bar 是否结束」 | 头一根的 `idx == idx` | `list.find` 全表 | `glib/branch.gleam:267` |
 | 找出窗口内极值 | 缓存 `idx`，仅在离场 bar 恰是极值时重扫一次 | 每根 bar 重扫窗口 | `glib/kdj.gleam:79-95`，注释写 *"Amortised-constant"* |
-| 把历史交给输出端 | 在**唯一一次**写/发布处 `list.reverse`（§6） | 每根 bar reverse 或 append | `glib/trading/export.gleam:24`、`glib/trading/ingest.gleam:164` |
+| 把历史交给输出端 | 边界投影优先走**单根增量流**（§6.2）；确需数组时只在唯一一次写/发布处 `list.reverse` | 每根 bar 整表 reverse、`list.append` | `glib/trading/export.gleam:24`、`glib/trading/ingest.gleam:164`；**反例见 §7(e) #8/#9** |
 
 `gleam-core.md` 里同向的两条禁令：**Do not index a list**（没有 `list.at`）、
 **Do not build a list with `list.append` inside a fold**（quadratic）。
@@ -196,6 +196,19 @@ glibe / glib 里都没有名为 `revert` 的函数。动词跟 function 走，�
 oldest-first, because the chart extends forward in time. Reversing is
 not treatment — every value is exactly what `working_databar_archived`
 stored."* —— reverse 不做计算，只把同一份值换个顺序交出去。
+
+> **07:59 订正 —— 上面这句不能推广成「glib 做对了」。** 它只是对
+> `*.gleam` 内 7 处 `list.reverse` 的计数陈述，句子本身仍成立；owner
+> 07:59 逐字 *"glib has 7 positions where list.revers() is found, that
+> smells. Was glib doing properly? You have to ask."* 要求的是对**每一处**
+> 追问「能不能不用」，而不是按触发频率替它辩护。同一轮检索 `*.mjs`
+> 另检出 **2 处 JS FFI 的 `.reverse()`**，恰好挂在高频路径上：
+> `glib/binance_trading_ffi.mjs:36-38` 的 `chart_bars()` 在 `:81` 被
+> `apply_bar()` 调用，而 `apply_bar` 在 `:170`（seed）/ `:227`（ws）/
+> `:282`（poll）三处触发 ⇒ **每根 bar 整表 reverse**；
+> `glib/paper_trading_ffi.mjs:273` 在 `:188` 的 poll 循环内 ⇒ **每次
+> poll 整表 reverse**，无新 bar 也翻。逐处提问表见 §7(e)，owner 逐字
+> 与查证链见 `docs/RULINGS.md`「2026-11-15 07:59」执行注记。
 
 输出侧的形状也由用途决定：`glib/sourcebar_export.gleam:26-27` 逐字
 *"one positional JSON array, oldest-first … the file is read whole,
@@ -237,7 +250,14 @@ series / JS 数组是它的输出侧投影，靠**尾部追加**增长——JS �
 关键不在 reverse 是不是 O(n)——它是。关键是它挂在**「人打开一次
 页面 / 退出一次导出」**的频率上，不是**「数据到达 N 次」**的频率上。
 把 O(n) 从每根 bar 的路径挪到唯一一次边界，正是 §5 最后一行
-「在唯一一次写/发布处 `list.reverse`」的意思。
+「边界投影优先走单根增量流」的意思。
+
+> **07:59 限定**：这张表算的是 **glibe 应有的形状**，不是 glib 各条
+> 输出路径都做到了的实测结论。`glib/binance_trading_ffi.mjs:81` 与
+> `glib/paper_trading_ffi.mjs:273` 恰恰把整表 reverse 挂在每根 bar /
+> 每次 poll 上（§7(e) #8/#9），那才是 **O(N²)** 的一边。owner 07:59
+> 的判据更根本：系统里只有一根 `working_databar` 在工作，谁在要整个
+> 历史，谁就要被问一次（§6.5）。
 
 ### 6.4 它在 glibe 的裁定里已经有名字
 
@@ -254,6 +274,40 @@ no clock / no poll）、`src/glibe/api/interval.gleam:30-31` 的 `////`
 
 > **一句话**：倒叙是给机器算的，顺序是给人看的；两者只在边界相遇一次，
 > 之后靠单条增量流各自 O(1) 增长。
+
+### 6.5 owner 07:59 的回答：stream 模式，与绘图软件的第一条判据
+
+owner 逐字（全文在 `docs/RULINGS.md`「2026-11-15 07:59」）：
+
+> *"关键技术是stream模式，纵有万千条k线，系统里面其实只有一根在工作，
+> 那就是 working_databar, you almost always only need that one databar."*
+>
+> *"其中第一条看是否支持单根bar更新chart，如果不能，那么我们的系统
+> 不能用他。"*
+
+**§6.2 描述的是应有的形状，不是 glib 全部实现的形状。** 判据比
+「reverse 挂在哪个频率上」更根本：**系统里只有一根 bar 在工作**，
+所以任何一处 `reverse` 整条历史，都说明某个消费方在要整个历史而不是
+那一根 —— 这就是 owner 说的 *"that smells"*。`src/glibe/timeframe.gleam:106-120`
+里 `working_databar: Option(DataBar)` 是那**一根**，`databar_list` 是
+归档历史；R33 / R38 / R39 同向。每处 `reverse` 都要问一次「能不能
+不用」，见 §7(e)。
+
+**绘图软件的第一条判据**（`try_plushie` 查证，源码为准）：
+
+| 查什么 | 查到的事实 |
+|---|---|
+| 机制支持单根更新吗 | **支持**。`plushie_gleam` 有 `Snapshot`/`Patch`、`tree.diff` ID-keyed；`try_plushie/test/try_plushie_test.gleam:394-423` 断言稳定几何 + 稳定 id 时 `insert=1 / remove=1 / update_props=0` |
+| 当前 app 做到了吗 | **没有**。`try_plushie/src/try_plushie.gleam:401-403` `subscribe()` 返回 `[]`（无归档事件源）；`try_plushie/src/fusion_view.gleam:231-237` `window()` 每次 `view` 都 `list.length` + `drop` + `take` + `list.reverse` 一个 160 根窗口 —— **绘图输入是整窗 list，不是 head 那一根** |
+| 本项目这次跑过测试吗 | **没有跑通**：`gleam test` 在 `try_plushie` **exit 1**，`src/explore.gleam:158` 用了 `gleam_stdlib` v1.0.5 不存在的 `list.range`。上表断言数字是**测试源码里的断言**，不是本次实测 |
+
+⇒ 按 owner「如果不能，那么我们的系统不能用他」：**机制够，
+当前实现不满足第一条门槛**。这与 `try_plushie/plushie-architecture.md:1463`
+的 owner 逐字同向：*"单bar更新做不到才会去整list，本来绘图根list无关，
+因为每次都仅需第一个bar"*。对照 glib 用的是 Lightweight Charts v5 +
+SSE `series.update` 单根增量（§6.2），BEAM 侧 Plotto 因「无单 bar
+增量」在该项目已按同一判据被否（`plushie-architecture.md:513`）。
+**是否就此记为「当前不可用」需 owner 逐字裁定。**
 
 ---
 
@@ -297,6 +351,46 @@ prepend + 一次 `reverse` 是 O(n)，逐行 `list.append` 是 **O(n²)**。
 `is_product_version || { … }` 的短路块里（`glib/config.gleam:86` 当前为
 `False`，产品版翻 `True` 后整块不再执行），是开发期的 at-home unit test，
 用来断言「归档前后恰好长一根」，不是生产路径，也不是每根 bar 都跑。
+
+**(e) owner 07:59：对每一处 `reverse` 都问同一个问题 —— 能不能不用？**
+
+owner 逐字：*"can it not use reverse when doing sourcebar_list exporting
+(for potential later offline tests only)? The same question should be asked
+if there are other ocassions reverse() is used on a list"*。下表是
+**逐处查证与提问，不是裁定**（权威仍是 owner 逐字与代码内文档）：
+
+| # | 位置 | 触发 | 能不能不用 `reverse`（技术事实） |
+|---|---|---|---|
+| 1 | `glib/trading/export.gleam:24` | 退出写文件一次 | **直接删不行，见下方专段**；要省掉那次 O(n) 只能不攒 buffer |
+| 2 | `glib/trading/ingest.gleam:164` | replay 跑完一次 | 这处服务 `web/server_ffi.mjs:42-44` 的 bulk `set_databars`。按 stream 判据要问：初始绘制能不能也一根一根发，省掉整表 reverse 与这份数组 |
+| 3 | `glib/census.gleam:213` | 离线报告一次 | 后面 `:369` `in_span` 用 `filter`+`length`、`:382` `age_of_last` 用 `list.last` 且**依赖 oldest-first**；改读头 / `idx` 相减是否可省，未实测，要问 |
+| 4 | `glib/census.gleam:172` | 每个 group 打印前 | 只为打印顺序，分组小表；是否必要取决于输出格式，要问 |
+| 5 | `glib/census.gleam:363` | fold 末尾 | `extreme_indices` 是 prepend O(1) 累积 + 一次 O(n) reverse，改写法仍是同一次遍历；这处是**形状正确**的构造，但「顺序是否真被需要」仍要问 |
+| 6 | `glib/trading/live.gleam:130` | 一次 poll 窗口 | 有界窗口、注释自证 prepend+reverse 优于逐行 `append`；但按 R33「无 poll」，这条路径本身要问 |
+| 7 | `glib/execution/risk_manager.gleam:358` | 每次风控检查 | 前面 `:300`–`:355` 用 `list.append` 累积（本已保序）**之后**再 reverse 倒过来；两处都要问「为什么」，且与 `gleam-core.md` §5 的 append 禁令同形 |
+| 8 | `glib/binance_trading_ffi.mjs:37/81` | **每根 bar** | `apply_bar` 在 `:170/:227/:282` 触发，每次整表 reverse ⇒ O(N²)。按 stream 判据，这处要的是整个历史而不是那一根 |
+| 9 | `glib/paper_trading_ffi.mjs:273` | **每次 poll** | `:188` 的 `while` 循环内，无新 bar 也整表 reverse |
+
+**第 1 处（owner 点名）为什么「直接删不行」**：
+
+`glib/sourcebar.gleam:534-535` 是
+`json.array(sourcebar_list, of: encode_bar)`（**保序**），
+`:515-518` 是 `decode.list(of: decode_bar(interval))`（**保序**），
+`glib/sourcebar_export.gleam:145` 读回来按文件顺序**逐根喂同一条流**。
+`glib/sourcebar_export.gleam:26-27` 逐字要求 oldest-first
+（*"the file is read whole, sequentially, once"*）。所以去掉
+`list.reverse` ⇒ 文件 newest-first ⇒ 回放**倒着喂流**；把 reverse 挪到
+读侧只是把同一次 O(n) 换边。Gleam `List` 只能 O(1) 读头 / prepend，
+**从 newest-first 链表生成 oldest-first 数组必然要一次 O(n) 反向遍历**，
+`list.reverse` 只是这次遍历的名字。
+
+要真正不出现这次遍历，只能改「攒一整份 buffer 再写」本身：
+① 每根 closed sourcebar 到达边界时顺手写一行（stream 写，无 buffer）；
+② 不要这条导出，离线测试从同一条流逐根读文件。
+两者都回到 owner 那句「系统里其实只有一根在工作」。
+`glibe` 的 `Timeframe`（`src/glibe/timeframe.gleam:106-120`）**没有**
+`sourcebar_buffer` 字段、也没有 `export_flush`，这条路径在 glibe
+尚未存在；是否引入需 owner 一句话。
 
 ---
 
@@ -350,7 +444,7 @@ owner 2026-11-15 逐字：*"在你刚才处理大量代码文件却不曾写多�
 
 ---
 
-## 10. 门禁（本文件只写文档，07:12 实测、07:31 / 07:42 复核一致）
+## 10. 门禁（本文件只写文档，07:12 实测、07:31 / 07:42 / 07:59 复核一致）
 
 ```sh
 export PATH="/opt/homebrew/bin:$PATH"
@@ -373,11 +467,15 @@ gleam build --warnings-as-errors  # exit 1：196 = 76 Todo + 117 unused arg
 
 ## 11. 本文的边界
 
-- 本文**不新增 R 编号、不新增待裁决项、不改 `src/` 或 `test/`**。
+- 本文**不新增 R 编号、不改 `src/` 或 `test/`**。07:31 / 07:42 两轮
+  「不新增待裁决项」只对各自那一轮成立；owner 07:59 明确要求
+  *"You have to ask"*，本轮把两处需要他一句话的问题记入待裁决区。
   owner 逐字全文与查证记录的家是 `docs/RULINGS.md`（2026-11-15 各条
-  执行注记，含 07:42）。
+  执行注记，含 07:59）。
 - `glib/` 是**参照实现**。owner 明说不知道其中 AI 是否 100% 照设计实现；
   文中每个 file:line 都是读过的代码事实，分类是说明，不是裁定。
+  §7(e) 逐处表是**提问清单**，不是「glib 做对了」的宣告，也不是
+  「glib 错了」的宣告。
 - 文档里出现的 Gleam 片段来自已编译的 `src/glibe/timeframe.gleam:191`
   与它对应的 glib 实现（表格里的 `[] -> 0` / `[newest, ..] -> …`
   是这两个实现的 arm 摘录，不是独立可编译片段）；带 `...` 的示意

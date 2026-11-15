@@ -19,7 +19,8 @@
 
 - 分支 **`doc-tdd`**，2026-11-14 **已普通 push** 到 `origin/doc-tdd`
   （fast-forward，无 force）；工作树干净。本 §1 其余数字是 2026-11-13
-  快照，当前实测见 `docs/STATE.md` 2026-11-14 节。
+  快照，当前实测见 `docs/STATE.md` **顶部（2026-11-15 07:59）**；
+  待裁决项现为 2 项，见该节。
 - `src/` = **14 个 Gleam 模块、零行实代码**（函数体全 `todo as "…"`）。
 - `test/` = **9 个空 shape test**，只钉 in/out types，无断言、不调用 `todo`。
 - 待裁决 **0 项**（`docs/PENDING_DECISIONS.md`）。
@@ -142,7 +143,11 @@ line here yet; nonsense」*，已恢复原句。
 - 本阶段**不写实现**；不要为让 WAE 变绿而用 `_` 静音或整包豁免。
 - 不新增 guard sh；不新建 `engine` / `monitor` / `replay` / `AppConfig` /
   `config` / 任何 provider 统一框架 / 任何跨层便捷函数。
-- **不要 push**（owner 没让）。
+- **不要改写远端历史**：普通 fast-forward `git push` 直接做；
+  `--force` / `--force-with-lease` / rebase 后强推 / 删远端分支
+  **必须先问 owner**（2026-11-14 裁定，逐字见 `docs/RULINGS.md`
+  同日执行注记）。原先这行写的「不要 push（owner 没让）」是 AI
+  注记冒充 owner 约定，已作废。
 - 不写长篇 prose 文档记录概念；设计写进 `////` / `///`。
 
 ## 6. 留白（R26/R32，等真实消费方，不是待办清单）
