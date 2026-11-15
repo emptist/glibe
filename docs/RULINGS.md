@@ -4135,3 +4135,51 @@ JSON 是懒做法）都指向同一件事：能力已经在 VM 里，取用不�
 不新增 guard sh；不在对话里弹决策卡片、不催、不预设推荐；
 不把「靠 BEAM 吃饭」扩大成「任何库都无需配置」；不往全局 Memory
 写语言知识；不替 owner 选导出格式。
+
+## 2026-11-15 09:32（BEAM 跨平台 / Gleam 治 AI 先天性疾病：owner 观点 + speak_engl 实证）
+
+owner 逐字：
+
+> *"BEAM非常坚固可靠并且小巧，跨一切平台，简直是不可多得的好东西，
+> 只不过群众永远追逐热点而不知道用好东西而已。加上Gleam语言，简直是AI的救星，
+> AI整天忙忙碌碌，但是最终碌碌无为，很难把一个中等复杂的项目做成落地无隐患，
+> 因为语言有问题，不能对治AI的先天性疾病。Gleam就是可以拿来治AI的好药。
+> 关于BEAM跨平台，我的项目 speak_engl 已经证实了。"*
+
+### 落点（与既定裁定同向，不新增 R 编号）
+
+- **观点部分（BEAM 好、群众追热点、Gleam 是 AI 的救星/好药）是 owner 的
+  看法**，逐字归位，不当作语言事实断言；记入知识中心
+  `~/gits/gleam-language/knowledge/beam-cross-platform-measured.md`，
+  硬 `ln` 进 skill `references/`（inode `340471733` / links 2），`SKILL.md`
+  索引就地加一条（inode `324709842` / links 2 不变）。与 09:09「一 BEAM
+  多门」同向。
+- **跨平台部分是实测证实**，非仅观点：查 `speak_engl`
+  (`/Users/jk/gits/hub/prog_langs/swift/two_way_com_training/speak_engl`)：
+  - README 逐字 *"built in Gleam on the BEAM. Runs on-device via mob
+    (iOS/Android) and plushie (desktop) — one Gleam core for all platforms,
+    no server needed"*；*"The engine runs entirely on the phone."*
+  - `GLEAM_APP_TECH_STACK.md:214-215` 平台表：mob 覆盖 Android+iOS
+    （BEAM embedded，*"production apps on App Store + Play Store"*），
+    plushie 覆盖 Desktop (macOS/Linux/Windows)；`:222-223` 最低
+    iOS 13+ / Android 9(API 28)；`:533` plushie 还产出 Linux/Windows
+    交叉编译二进制；`:117-118` *".beam from all three languages fully
+    interchangeable in the same BEAM process"*。
+  - CI 矩阵实测在五大平台编译/运行 BEAM：`.github/workflows/test.yml`
+    (ubuntu core + mobile, macos desktop 语音)、`mob-ios.yml`
+    (macos, 下载 `otp-ios-sim-d199a49a` ERTS 17.1.1 + 启动 iPhone 17
+    Pro 模拟器)、`mob-android.yml` (ubuntu, NDK 27.2.12479018 + Zig
+    0.17.0 交叉编译出 `.apk`)、`mob-build.yml` (ubuntu, `gleam build`
+    → BEAM)。OTP 29 / Gleam 1.19.2 / Elixir 1 全程。
+- **范围**：这条**不改动 glibe 的工程状态、不增不减决策区（仍 3 项）、
+  不改 `src/`/`test/`/`webclient/`/`gleam.toml`/`manifest.toml`**；
+  是 owner 的战略观点被本人项目实证，归位即完成。
+- **知识中心仓库无 remote、且带他人未提交改动**（前几轮已确认）：本次
+  只写文件 + 硬 `ln` + 索引，**未提交、未 push**；`glibe` 侧已普通
+  push 到 `origin/doc-tdd`。
+
+### 本注记不做什么
+
+不改写 07:59–09:22 及更早注记原文；不把「Gleam 治 AI」写成可量化的
+工程结论；不凭记忆扩张 BEAM 平台清单（只列 speak_engl 实测覆盖的
+macOS/Linux/Windows/iOS/Android）；不替知识中心仓库做提交。
