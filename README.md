@@ -43,9 +43,13 @@ need that one databar."* So every place that reverses the whole history is a
 place somebody asked for the entire history instead of that one bar.
 `DEVELOPER_GUIDE.md` §6.5 / §7(e) asks exactly that question at each of the
 9 `reverse` sites found in the reference code (7 Gleam + 2 JS FFI); two of
-them do run per bar / per poll. The first test for any chart library is
-therefore whether it can update **one** bar — by that test `try_plushie`
-currently does not qualify (§6.5).
+them do run per bar / per poll. The first test for any chart implementation
+is therefore whether it can update **one** bar. The drawing in
+`try_plushie` is hand-written, and owner (08:13) says its first version did
+exactly that: *"AI声称可以单bar更新，确实最初版本是做到的，如果你发现
+目前不是，那是他后来搞错了，不是不可以改正"*. The current whole-window
+redraw is a fixable regression, not a reason to drop the library — see
+`DEVELOPER_GUIDE.md` §6.5.
 
 The guide also has the full list inventory, the exceptions and boundary
 cases, and a table saying how to fill each remaining `todo`.

@@ -3324,3 +3324,54 @@ glibe 尚未存在，是否引入需要 owner 逐字裁定。
 - **B.3 与 B.5 两处需要 owner 一句话的，记入待裁决区**；07:42 注记里
   「不新增待裁决项」只对那一轮成立，本轮 owner 明确要求 *"You have
   to ask"*。
+
+---
+
+## 2026-11-15 08:13 — owner 对 07:59 两问的答复（执行注记，不新增编号）
+
+把 07:59 的两个问题原样交给 owner 后，答复逐字：
+
+- 问 `sourcebar_buffer` 导出要不要存在 → **「一会儿讨论这个问题」**。
+- 问 plushie / `try_plushie` 是否记为「当前不可用」 →
+  **「那个里面的绘图是手搓的，AI声称可以单bar更新，确实最初版本是做到的，如果你发现目前不是，那是他后来搞错了，不是不可以改正」**。
+
+### 对 07:59 B.5 结论的修正（owner 当前陈述 > 我的推断）
+
+我 07:59 写的是「机制够、当前实现不满足第一条门槛 ⇒ 按 owner 判据
+**当前不满足**」，并把它列成待裁决项。**这个判断的落点错了，现予修正**：
+
+1. **绘图是手搓的**，不是库提供的成品控件。所以「是否支持单根 bar
+   更新」问的**不是库的能力上限**，而是我们自己的绘图实现有没有守住
+   「只吃 head 那一根」这条纪律。判据的对象从「选哪个库」变成
+   「任何绘图实现都不许把整窗 list 交给 view」。
+2. **能力已经被验证过**：owner 逐字 *"AI声称可以单bar更新，确实最初
+   版本是做到的"*。`try_plushie/plushie-architecture.md:1463` 的 owner
+   逐字同向：*"单bar更新做不到才会去整list，本来绘图根list无关，因为
+   每次都仅需第一个bar"*。
+3. ⇒ 我在 §B.5 检出的 `src/try_plushie.gleam:401-403` `subscribe()`
+   返回 `[]`、`src/fusion_view.gleam:231-237` `window()` 每次 `view`
+   都 `list.length` + `drop` + `take` + `list.reverse` 整窗，是
+   **后来 AI 改错的实现回归，可以改正，不是「不能用他」的证据**。
+   **不判为「当前不可用」，不排除 plushie，不转向别的库。**
+4. **07:59 记的实测边界仍然成立**：本次 `gleam test` 在 `try_plushie`
+   **exit 1**（`src/explore.gleam:158` 用了 `gleam_stdlib` v1.0.5 不存在
+   的 `list.range`），所以 `test/try_plushie_test.gleam:394-423` 的
+   `insert=1 / remove=1 / update_props=0` 是**测试源码断言，不是本次
+   实测**。本轮未改该项目任何源码。
+5. **「最初版本做到」这一条无法从版本历史复核**：在 `try_plushie`
+   跑 `git log --oneline` 返回 *"fatal: your current branch 'master'
+   does not have any commits yet"*，该仓库当前无提交。按权威顺序
+   （owner 当前陈述 > 旧代码 > 我的推断），这条以 **owner 逐字为准**，
+   不拿代码去验证、也不拿代码去否认；**不写成我实测过**。
+
+### 待裁决区的变化
+
+- `sourcebar_buffer` 导出：**保持待裁决**（owner「一会儿讨论」），
+  07:59 B.3 的技术事实与四个选项原样保留，不预设结论、不催。
+- plushie 选型：**不再是待裁决项**，结论按本节第 3 条写进本注记；
+  待裁决区该条整条删除。决策区 **2 项 → 1 项**。
+
+### 本注记不做什么
+
+不改 glib / `try_plushie` 任何源码，不改 `src/` / `test/`，不新增
+R 编号，不改写 07:59 及更早的注记原文（append-only）。

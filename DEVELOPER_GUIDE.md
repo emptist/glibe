@@ -301,13 +301,20 @@ owner 逐字（全文在 `docs/RULINGS.md`「2026-11-15 07:59」）：
 | 当前 app 做到了吗 | **没有**。`try_plushie/src/try_plushie.gleam:401-403` `subscribe()` 返回 `[]`（无归档事件源）；`try_plushie/src/fusion_view.gleam:231-237` `window()` 每次 `view` 都 `list.length` + `drop` + `take` + `list.reverse` 一个 160 根窗口 —— **绘图输入是整窗 list，不是 head 那一根** |
 | 本项目这次跑过测试吗 | **没有跑通**：`gleam test` 在 `try_plushie` **exit 1**，`src/explore.gleam:158` 用了 `gleam_stdlib` v1.0.5 不存在的 `list.range`。上表断言数字是**测试源码里的断言**，不是本次实测 |
 
-⇒ 按 owner「如果不能，那么我们的系统不能用他」：**机制够，
-当前实现不满足第一条门槛**。这与 `try_plushie/plushie-architecture.md:1463`
-的 owner 逐字同向：*"单bar更新做不到才会去整list，本来绘图根list无关，
-因为每次都仅需第一个bar"*。对照 glib 用的是 Lightweight Charts v5 +
-SSE `series.update` 单根增量（§6.2），BEAM 侧 Plotto 因「无单 bar
-增量」在该项目已按同一判据被否（`plushie-architecture.md:513`）。
-**是否就此记为「当前不可用」需 owner 逐字裁定。**
+⇒ **owner 08:13 裁定（逐字）**：*"那个里面的绘图是手搓的，AI声称可以
+单bar更新，确实最初版本是做到的，如果你发现目前不是，那是他后来搞
+错了，不是不可以改正"*。所以判据问的**不是库的能力上限**，而是我们
+自己的绘图实现有没有守住「只吃 head 那一根」；上表后两行是**后来
+改错的实现回归，可以改正**，不是「不能用他」的证据。
+**不判为当前不可用、不排除 plushie、不转向别的库。**
+这与 `try_plushie/plushie-architecture.md:1463` 的 owner 逐字同向：
+*"单bar更新做不到才会去整list，本来绘图根list无关，因为每次都仅需
+第一个bar"*。对照 glib 用的是 Lightweight Charts v5 + SSE
+`series.update` 单根增量（§6.2）；BEAM 侧 Plotto 因「无单 bar 增量」
+在该项目已按同一判据被否（`plushie-architecture.md:513`）。
+「最初版本做到」以 owner 逐字为准：`try_plushie` 仓库当前
+`git log` 无提交（*"does not have any commits yet"*），无法从版本历史
+复核，不写成实测。全文见 `docs/RULINGS.md`「2026-11-15 08:13」。
 
 ---
 
@@ -444,7 +451,7 @@ owner 2026-11-15 逐字：*"在你刚才处理大量代码文件却不曾写多�
 
 ---
 
-## 10. 门禁（本文件只写文档，07:12 实测、07:31 / 07:42 / 07:59 复核一致）
+## 10. 门禁（本文件只写文档，07:12 实测、07:31 / 07:42 / 07:59 / 08:13 复核一致）
 
 ```sh
 export PATH="/opt/homebrew/bin:$PATH"
@@ -469,9 +476,10 @@ gleam build --warnings-as-errors  # exit 1：196 = 76 Todo + 117 unused arg
 
 - 本文**不新增 R 编号、不改 `src/` 或 `test/`**。07:31 / 07:42 两轮
   「不新增待裁决项」只对各自那一轮成立；owner 07:59 明确要求
-  *"You have to ask"*，本轮把两处需要他一句话的问题记入待裁决区。
+  *"You have to ask"*，本轮先记入两处；其中 plushie 选型已由 owner
+  08:13 裁定并写进结论，待裁决区现只剩 `sourcebar_buffer` 导出一处。
   owner 逐字全文与查证记录的家是 `docs/RULINGS.md`（2026-11-15 各条
-  执行注记，含 07:59）。
+  执行注记，含 08:13）。
 - `glib/` 是**参照实现**。owner 明说不知道其中 AI 是否 100% 照设计实现；
   文中每个 file:line 都是读过的代码事实，分类是说明，不是裁定。
   §7(e) 逐处表是**提问清单**，不是「glib 做对了」的宣告，也不是

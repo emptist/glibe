@@ -188,13 +188,30 @@ oldest-first，删了会倒着喂；挪到读侧只换边；要省掉只能不�
 或不要这条导出（glibe `Timeframe:106-120` 目前没有该字段）。
 `try_plushie`：框架机制支持单根（`test:394-423` 断言 1 insert /
 0 update_props），但 `subscribe()` 返回 `[]`、`fusion_view.window()`
-每次 view 都 `length`+`drop`+`take`+`reverse` 整窗 ⇒ **当前不满足
-第一条门槛**；本次 `gleam test` 在该项目 exit 1（`explore.gleam:158`
-`list.range` 不存在），数字是源码断言非实测。`DEVELOPER_GUIDE.md`
+每次 view 都 `length`+`drop`+`take`+`reverse` 整窗 ⇒ ~~当前不满足
+第一条门槛~~ **（08:13 已由 owner 修正，见下：改错的实现回归，
+不是选型否决）**；本次 `gleam test` 在该项目 exit 1
+（`explore.gleam:158` `list.range` 不存在），数字是源码断言非实测。`DEVELOPER_GUIDE.md`
 新增 §6.5 / §7(e)（9 处逐处提问表）、§6.1 加订正块；README /
 STATE / HANDOFF（修掉「不要 push」假约定）同步；RULINGS 追加 07:59
 逐字与查证。**本轮不宣布 glib 全对，也不宣布它错。** 逐字全文见
 `docs/RULINGS.md`「2026-11-15 07:59」。
+**owner 08:13（只写文档，`src/`/`test/` 未改）**：对 07:59 两问的
+答复逐字 —— `sourcebar_buffer` 导出 **「一会儿讨论这个问题」**
+（保持待裁决、不预设不催）；plushie **「那个里面的绘图是手搓的，
+AI声称可以单bar更新，确实最初版本是做到的，如果你发现目前不是，
+那是他后来搞错了，不是不可以改正」**。⇒ **07:59 的落点错了**：
+绘图是手搓的，判据问的不是库的能力上限，而是我们自己的实现有没有
+守住「只吃 head 那一根」；能力最初版本做到过，当前的整窗重画是
+**后来 AI 改错的实现回归、可改正**，不是「不能用他」的证据。
+**不判当前不可用、不排除 plushie、不转向别的库。**
+查证边界：`try_plushie` 仓库 `git log` 无提交（*"does not have any
+commits yet"*），「最初版本做到」无法从版本历史复核，以 owner 逐字
+为准、不写成实测；本次 `gleam test` 在该项目仍 exit 1。
+RULINGS 追加 08:13 注记；DEVELOPER_GUIDE §6.5/§11、README、
+PENDING_DECISIONS（删第 2 项）、STATE 08:13 节同步；决策区 2 → 1。
+逐字全文见 `docs/RULINGS.md`「2026-11-15 08:13」。
 **未收敛**: `gleam.toml` 旧依赖表、`webclient/` 旧实现。
-决策区 **2 项**（owner 明说 *"You have to ask"*）：`sourcebar_buffer`
-导出 glibe 要不要存在；plushie 是否记为当前不可用。
+决策区 **1 项**：`sourcebar_buffer` 导出 glibe 要不要存在
+（A 不引入 / B 改成 stream 写 / C 照 glib 抄 / D 先不定），owner
+「一会儿讨论」。

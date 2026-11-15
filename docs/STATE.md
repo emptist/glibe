@@ -4,7 +4,44 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-15 07:59 (当前状态)
+## 2026-11-15 08:13 (当前状态)
+
+- **把 07:59 的两问交给 owner 后收到答复**（逐字与论证在
+  `docs/RULINGS.md`「2026-11-15 08:13」）：
+  - `sourcebar_buffer` 导出 → **「一会儿讨论这个问题」**：保持待裁决，
+    07:59 的技术事实与四个选项原样不动、不预设、不催。
+  - plushie 选型 → **「那个里面的绘图是手搓的，AI声称可以单bar更新，
+    确实最初版本是做到的，如果你发现目前不是，那是他后来搞错了，
+    不是不可以改正」**。
+- **07:59 的 B.5 判断已修正**：我原来把「当前实现不满足第一条门槛」
+  当成选库结论，落点错了。绘图是手搓的，判据问的不是库的能力上限，
+  而是我们自己的实现有没有守住「只吃 head 那一根」；能力 owner 已
+  确认最初版本做到过。`src/try_plushie.gleam:401-403` `subscribe()`
+  返回 `[]`、`src/fusion_view.gleam:231-237` `window()` 每次 `view`
+  整窗 `length`+`drop`+`take`+`reverse`，是**后来改错的实现回归、
+  可以改正**，不是「不能用他」的证据。⇒ **不判当前不可用、不排除
+  plushie、不转向别的库**。同向的 owner 逐字见
+  `try_plushie/plushie-architecture.md:1463`。
+- **两条查证边界如实保留**：① 本次 `gleam test` 在 `try_plushie`
+  **exit 1**（`src/explore.gleam:158` 用了 stdlib 不存在的
+  `list.range`），故 `insert=1 / 0 update_props` 是**测试源码断言、
+  不是本次实测**；② `try_plushie` 仓库 `git log` 返回
+  *"does not have any commits yet"*，**「最初版本做到」无法从版本
+  历史复核**，以 owner 逐字为准，不写成我实测过。本轮未改该项目源码。
+- **决策区 2 项 → 1 项**：plushie 那条整条删除、结论进 RULINGS；
+  只剩 `sourcebar_buffer` 导出。
+- **改动（仍只写文档，`src/` / `test/` 一行未改）**：
+  `docs/RULINGS.md` 追加 08:13 注记；`DEVELOPER_GUIDE.md` §6.5
+  结论段与 §11 边界改写；`README.md` 把「does not qualify」改成
+  「fixable regression」并归位 owner 逐字；`docs/PENDING_DECISIONS.md`
+  删第 2 项、标题改「当前 1 项」；本文件新增本节；
+  当日日志与 `MEMORY.md` 同步。07:59 及更早的历史节原文不改写。
+- 门禁：`src/` / `test/` 未改，复核结果与 07:42 / 07:59 一致
+  （`format --check` / `check` / `test` / `docs` / `package-interface`
+  / `build` 全 0；`test` 16 passed；`modules: 15`；
+  WAE exit 1、196 warnings 为 R48 固定清单）。
+
+## 2026-11-15 07:59 (历史状态)
 
 - **本轮仍只写文档，`src/` / `test/` 一行未改**：owner 回答了自己
   07:42 的问题 —— 关键技术是 **stream 模式**，*"纵有万千条k线，系统

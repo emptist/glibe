@@ -8,19 +8,23 @@
 > 链接）。引用一律写「文件全路径 + 条目名」，不用裸编号（"Q" 加数字那种既像
 > Question N 又不是的写法）。
 >
-> 最后更新：2026-11-15 07:59
+> 最后更新：2026-11-15 08:13
 
 ---
 
 ## 需要你决定（只看这一节）
 
-### 当前 2 项（2026-11-15 07:59）
+### 当前 1 项（2026-11-15 08:13）
 
 owner 07:59 逐字 *"Was glib doing properly? You have to ask."* 与
 *"The same question should be asked if there are other ocassions reverse()
 is used on a list"*。逐处查证与提问表在 `DEVELOPER_GUIDE.md` §7(e)，
 owner 逐字全文与查证链在 `docs/RULINGS.md`「2026-11-15 07:59」。
-**下面是两处需要你一句话的；其余各处只记事实与提问，不预设结论。**
+**下面只剩一处需要你一句话**（`sourcebar_buffer` 导出，owner 08:13
+答复「一会儿讨论这个问题」，原样保留、不预设结论、不催）。
+**plushie / `try_plushie` 选型已由 owner 08:13 裁定**，结论写进
+`docs/RULINGS.md`「2026-11-15 08:13」，原第 2 项整条删除。
+其余各处只记事实与提问。
 
 #### 1. `sourcebar_buffer` 导出这条路径，glibe 要不要存在？
 
@@ -44,27 +48,6 @@ prepend，从 newest-first 链表生成 oldest-first 数组必然要一次 O(n)
 - **C. 照 glib 抄**：每根 prepend，退出时 `list.reverse` 一次写
   oldest-first JSON array（挂「退出一次」的频率上）。
 - **D. 先不定**：按 R26 / R32 等真正出现离线测试消费方再定，骨架暂不加字段。
-
-#### 2. 绘图库第一条判据：plushie / `try_plushie` 记为「当前不可用」吗？
-
-owner 判据逐字：*"其中第一条看是否支持单根bar更新chart，如果不能，
-那么我们的系统不能用他。"*
-
-事实（B.5）：框架机制**支持** —— `try_plushie/test/try_plushie_test.gleam:394-423`
-断言稳定几何 + 稳定 id 时 `insert=1 / remove=1 / update_props=0`；
-但当前 app `try_plushie/src/try_plushie.gleam:401-403` 的 `subscribe()`
-返回 `[]`（无归档事件源），`try_plushie/src/fusion_view.gleam:231-237`
-的 `window()` 每次 `view` 都 `list.length` + `drop` + `take` +
-`list.reverse` 一个 160 根窗口 —— **绘图输入是整窗 list，不是 head
-那一根**。本次 `gleam test` 在 `try_plushie` **exit 1**
-（`src/explore.gleam:158` 用了 stdlib 不存在的 `list.range`），所以那组
-数字是测试源码断言、不是本次实测。
-
-- **A. 判为当前不可用**（按 owner 原话）：等归档事件源 + 单根绘图输入
-  接线并实测通过后再评。
-- **B. 机制算通过、实现欠账另记**：以 `tree.diff` 的
-  `1 insert / 0 update_props` 为通过，只把接线记为工作。
-- **C. 不再列为候选**：转向别的绘图库，plushie 这条线停在这里。
 
 ---
 

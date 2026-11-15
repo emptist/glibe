@@ -19,8 +19,8 @@
 
 - 分支 **`doc-tdd`**，2026-11-14 **已普通 push** 到 `origin/doc-tdd`
   （fast-forward，无 force）；工作树干净。本 §1 其余数字是 2026-11-13
-  快照，当前实测见 `docs/STATE.md` **顶部（2026-11-15 07:59）**；
-  待裁决项现为 2 项，见该节。
+  快照，当前实测见 `docs/STATE.md` **顶部（2026-11-15 08:13）**；
+  待裁决项现为 1 项，见该节。
 - `src/` = **14 个 Gleam 模块、零行实代码**（函数体全 `todo as "…"`）。
 - `test/` = **9 个空 shape test**，只钉 in/out types，无断言、不调用 `todo`。
 - 待裁决 **0 项**（`docs/PENDING_DECISIONS.md`）。
