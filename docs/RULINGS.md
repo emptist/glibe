@@ -3965,3 +3965,87 @@ owner 08:58 *"旧数据放前面？那不是prepend是什么"* 说的就是这�
 `manifest.toml`（探针全在 `/tmp`），不改 glib / `try_plushie`；
 不新增 guard sh；不在对话里弹决策卡片、不催、不预设推荐；
 不替 owner 选格式，也不把 *"最懒的做法"* 扩大成 JSON 禁令。
+
+---
+
+## 2026-11-15 09:09
+
+**owner 逐字**：
+
+> "BEAM里面有的东西好像都不用另外做什么，直接可用，gleam语言和erlang
+> elixir都是BEAM的门，归元无二路，方便有多门，gleam是最方便的那扇门。"
+
+**这条说的是「为什么前面那串事实成立」，不是新增机制。** 08:16
+（转 erlang target、禁手写 erl）、08:28（external ≠ FFI、≠ 手写 erl、
+零 external 不是成绩）、08:30（语言知识的家在 `~gits/gleam-language`）、
+08:49（`gleam add` + `@external` 直接用）、08:55（OTP 自带数据库、
+JSON 是懒做法）都指向同一件事：能力已经在 VM 里，取用不需要另造
+桥接层、codec 或手写目标源码；差别只是从哪扇门进去。
+
+### 查证（Gleam 1.19.2 / OTP 29，探针全在 `/tmp`，真实退出码）
+
+**A. 零依赖、零手写 erl，OTP 模块直接可用。**
+`/tmp/glibe_beam_door_probe/gleam.toml` 只有 `name` / `version` /
+`target = "erlang"`，`manifest.toml` 里包数 **0**，`src/` 下 `.erl`
+文件数 **0**；`src/beam_door_probe.gleam` 四行 `@external` 指向
+`erlang:term_to_binary` / `binary_to_term` / `monotonic_time` 与
+`lists:reverse`。`gleam run -m beam_door_probe` **exit 0**：
+两个不同变体的 ETF 往返各 `True`、`otp_reverse([1,2,3])` → `[3,2,1]`。
+产物是 `beam_door_probe.beam` + `beam_door_probe@@main.beam`，
+唯一的 `.erl` 是生成的 `@@main` runner stub；glibe 自身
+`build/dev/erlang/glibe` 同理是 **46 个 `.beam`** 加一个
+`_gleam_artefacts/glibe@@main.erl`，没有逐模块 `.erl`（core §9）。
+探针第一版写了 `echo monotonic_time() > 0`，实测 `False`；改成
+打印原始值得 **`-576460751688905208`** —— 「应为正」是我未经
+验证的假设，本注记只记这次测量值，不写成官方规则（该页未取逐字）。
+
+**B. Elixir 是同一台 VM 上的另一扇门。**
+`elixir --version` → **Elixir 1.20.4 (compiled with Erlang/OTP 29)**；
+`elixir -e ':code.which(String)'` →
+`/opt/homebrew/Cellar/elixir/1.20.4/lib/elixir/bin/../lib/elixir/ebin/Elixir.String.beam`。
+同一个 `erl -noshell -pa <ebin>` 会话里 `lists` 与 `'Elixir.String'`
+都返回 `{module, …}`，`'Elixir.String':upcase(<<"beam">>)` →
+`<<"BEAM">>`。传 Erlang 字符串字面量 `"beam"`（是 list）会
+`function_clause`，传 binary 才对 —— 这是**值的形状**，不是桥接层。
+
+**C. 从 Gleam 那扇门直接调 Elixir 模块，编译目标仍是 `erlang`。**
+`/tmp/glibe_beam_door_probe/src/elixir_door.gleam` 只有一行
+`@external(erlang, "Elixir.String", "upcase")`；
+`ERL_LIBS=<elixir lib> gleam run -m elixir_door` **exit 0**，打印
+`"BEAM"`。零 `.ex` / 零 `.erl` / 零 wrapper / 零 codec。
+**区分要说清**：OTP 内置 BIF 连这一步都不用；Elixir 标准库需要把它的
+`ebin` 放进 code path（一个 `ERL_LIBS`），那是部署路径，不是额外写
+代码。本条不扩大成「任何库都无需配置」。
+
+### 与既有裁定、知识中心的关系
+
+- `/Users/jk/gits/gleam-language/knowledge/externals.md:14-24` §2
+  逐字：*"BEAM 目标下，Gleam 调用 Erlang / Elixir / LFE = external
+  （外部），但绝不是 foreign（外来）。它们同跑在一个 BEAM VM 上，
+  运行时表示一致，是同一个世界的兄弟语言"*；官方逐字
+  *"Gleam on Erlang can use Erlang, Elixir, LFE, and other BEAM
+  languages."* 同文件 `:42-50` §4：Elixir 模块名带 `Elixir.` 前缀、
+  **目标仍是 `erlang`**；`:52-64` §5：只有 OTP 模块与 `gleam add`
+  包两条路，手写 `.erl` / `.ex` 违规。
+  `docs/gleam-thinking-core-to-memory.md` §9（core 的 byte-equal
+  镜像）同条：*"target is the COMPILATION target, not the source
+  language (Elixir still uses `erlang`)"*。
+- **不推翻 R31 / R33**：这句说的是「取用运行时能力的门」，不是把
+  BEAM 的 actor / scheduler / clock / poll 搬进 glibe 的系统设计；
+  系统仍是一条流、纯值重算、一个 `Desk`。**也不改 08:16 的
+  「禁止手写 erl」**：08:16 探针 2 已实测手写 `.erl` 会编译绿且产出
+  `.beam`，编译器不拦，所以那半条禁令仍然必需。
+- 对 §6.6 格式探讨只是一条**说明，不是裁定**：既然 `term_to_binary` /
+  `dets` / `mnesia` / `ets` 与 hex 包都已在，格式探讨不必去造 codec
+  或手写目标源码；格式仍是 owner 08:44 的探讨项，不因此替他选。
+  **不往 WorkBuddy 全局 Memory 写语言知识**（08:30）。
+
+### 本注记不做什么
+
+不新增 R 编号，不改写 08:44–08:58 及更早注记原文（append-only）；
+不改 glibe 的 `src/` / `test/` / `webclient/` / `gleam.toml` /
+`manifest.toml`；探针全在 `/tmp`；不改
+`/Users/jk/gits/gleam-language/` 任何文件、不提交那个仓库；
+不新增 guard sh；不在对话里弹决策卡片、不催、不预设推荐；
+不把这句扩大成「任何库都无需配置」或「可以手写 erl」；
+不替 owner 选导出格式，决策区不增不减。

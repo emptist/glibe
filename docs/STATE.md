@@ -4,7 +4,39 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-15 08:58 (当前状态)
+## 2026-11-15 09:09 (当前状态)
+
+- **owner 逐字**（全文在 `docs/RULINGS.md`「2026-11-15 09:09」）：
+  *"BEAM里面有的东西好像都不用另外做什么，直接可用，gleam语言和erlang
+  elixir都是BEAM的门，归元无二路，方便有多门，gleam是最方便的那扇门。"*
+  ⇒ 能力已在 VM 里，取用不另造桥接层 / codec / 手写目标源码；
+  **不是新增机制**，不推翻 R31 / R33，不改 08:16「禁手写 erl」。
+- **编译实证**（`/tmp/glibe_beam_door_probe`，真实 exit 0）：
+  ① 零依赖（`manifest` 包数 0）、零手写 `.erl`，四行 `@external`
+  到 `erlang:*` / `lists:reverse` 全部可用，两个变体 ETF 往返
+  各 `True`；产物只有 `.beam` 与生成的 `@@main.erl` runner stub。
+  ② 本机 Elixir 1.20.4 / OTP 29；同一个 `erl` 会话里 `lists` 与
+  `'Elixir.String'` 同为 `{module, …}`，`upcase(<<"beam">>)` →
+  `<<"BEAM">>`（Erlang 字符串字面量是 list，须传 binary）。
+  ③ `gleam run -m elixir_door` 用一行
+  `@external(erlang, "Elixir.String", "upcase")` 打印 `"BEAM"`，
+  编译目标仍是 `erlang`；Elixir 库只多一个 `ERL_LIBS` code path，
+  OTP 内置 BIF 连这一步都不用。`monotonic_time()` 本次实测为
+  `-576460751688905208`（我原先 `>0` 的假设不成立，只记测量值）。
+- **语言知识落点**：`~gits/gleam-language/knowledge/externals.md`
+  §2 / §4 / §5 与 core §9 已逐字同向；按 08:30 **不写进全局
+  Memory**。本轮另把项目 `.workbuddy/memory/MEMORY.md` 压缩成
+  索引（逐字仍只在 `docs/RULINGS.md` 与当日日志），历史日志未删。
+- **改动（只写文档）**：RULINGS 追加 09:09；本文件新增本节；
+  `DEVELOPER_GUIDE.md` §6.6 / §10 / §11、`README.md`、
+  `docs/HANDOFF.md`、两份 memory 同步。`src/` / `test/` /
+  `webclient/` / `gleam.toml` / `manifest.toml` 一行未改，探针全在
+  `/tmp`，不新增 R 编号、不新增 guard sh、决策区不增不减。
+- 门禁：`format --check` / `check` / `test`（16 passed）/ `docs` /
+  `package-interface`（modules 15）/ `build` 全 0；WAE exit 1、
+  196 warnings（R48 固定清单，未变）；核心镜像 `cmp` 0。
+
+## 2026-11-15 08:58 (历史状态)
 
 - **owner 四段逐字**（全文在 `docs/RULINGS.md`
   「2026-11-15 08:44–08:58」）：08:44 要求**探讨**导出格式

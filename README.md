@@ -24,7 +24,12 @@ while handwritten erlang and elixir by you are prohibited, external 是必须的
 08:28」）；同一句里他还说 *"0 external 并不一定是好事，但是external
 不等于手写erl，这一点AI总是弄混"*. Bind an OTP
 module with `@external(erlang, ...)` or use a `gleam add` package whenever
-a runtime API is actually needed.
+a runtime API is actually needed. Owner, 2026-11-15 09:09: *"BEAM里面有的
+东西好像都不用另外做什么，直接可用 …… 归元无二路，方便有多门，gleam
+是最方便的那扇门"*. Measured with a zero-dependency, zero-hand-written-erl
+probe: `@external(erlang, ...)` reaches OTP BIFs directly, and an Elixir
+module (`Elixir.String`) through the same `erlang` compilation target.
+Verbatim and the three probes: `docs/RULINGS.md`「2026-11-15 09:09」.
 
 What is banned is **us writing `.erl` / `.ex` / `.mjs` source into `src/`**.
 Owner, 2026-11-15: *"我已经转向了glibe这个拒绝JS target的项目，mjs也是
