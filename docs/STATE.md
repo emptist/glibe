@@ -4,7 +4,46 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-15 09:22 (当前状态)
+## 2026-11-16 03:09 (当前状态)
+
+- **owner 逐字**（上一会话末，授权提交）：*"你可以提交你所说的知识中心
+  里面的变动，很好的。"* ⇒ **已提交** `~/gits/gleam-language` 的
+  **`dc736df`**，5 files / 363 insertions(+) / 3 deletions(-)：
+  `README.md`、`knowledge/SKILL.md`（M），`beam-doors-measured.md` /
+  `beam-cross-platform-measured.md` / `externals.md`（A）。提交后工作树
+  干净。该仓库**无 remote** ⇒ 只提交、无法 push。逐字与查证链见
+  `docs/RULINGS.md`「2026-11-16 03:09」。
+- **提交前的计数订正**：知识中心 `README.md` §2 原写
+  `20 files / 2 new / fifteen references`；实测 `knowledge/` 21 文件、
+  其中 3 份本轮新增，skill `references/` 16 个 ⇒ 改为
+  `21 files / 3 new / sixteen references`，并把
+  `beam-cross-platform-measured.md` 补进「same way」那句。
+- **更正（我自己的错）**：上一轮答复称 `~/.workbuddy/skills/
+  gleam-language` 是「另一个独立 git 仓库、没提交那边」——是推断、
+  未经实测、且是错的。实测 `git rev-parse --show-toplevel` 报
+  *"fatal: not a git repository (or any of the parent directories):
+  .git"*，三层候选 `.git` 全不存在 ⇒ **没有第二个仓库，也没有
+  「一起提交 skill」这个动作**；skill 目录只是硬 `ln` 的消费者。
+  历史注记里「带他人未提交改动」也不准确：提交前逐行核对 diff，
+  改动全部只关于本会话新增的三份文件与索引条目。
+- **硬链接提交后仍活**：`externals.md` inode `339942506` / links 3
+  （知识中心 + skill refs + `tools_ib/glibe/docs/`），
+  `beam-doors-measured.md` `340468671` / links 2，
+  `beam-cross-platform-measured.md` `340471733` / links 2，
+  `SKILL.md` `324709842` / links 2；`find -type l` 全空。
+- **门禁复核（只读，`src/` / `test/` 一行未改）**：`format --check` /
+  `test`（**16 passed**）/ `docs build` / `export package-interface`
+  （**modules 15**）/ `build` 全 0；WAE **exit 1 / 196 warnings** =
+  117 unused argument + 76 Todo + 2 unused private constructor +
+  1 unreachable pattern，与 09:22 节逐项一致、**零漂移**（R48 清单）；
+  核心镜像 `cmp` 0。`glibe` 工作树干净，`HEAD` = `origin/doc-tdd`
+  = `b17dae4`。
+- **范围**：只写文档与 memory，不新增 R 编号、不增减决策区（仍 3 项、
+  不催、不预设推荐）、不改 `src/` / `test/` / `webclient/` /
+  `gleam.toml` / `manifest.toml`。按 R19 ④ 逐条填 body 仍是下一批
+  工作，**不替 owner 挑哪一个**。
+
+## 2026-11-15 09:22 (历史状态)
 
 - **owner 逐字**（三条，全文在 `docs/RULINGS.md`「2026-11-15 09:22」）：
   ① 经实测验证的 Gleam 语言感悟写入 `~/gits/gleam-language`，或用

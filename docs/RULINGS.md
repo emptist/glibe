@@ -4183,3 +4183,67 @@ owner 逐字：
 不改写 07:59–09:22 及更早注记原文；不把「Gleam 治 AI」写成可量化的
 工程结论；不凭记忆扩张 BEAM 平台清单（只列 speak_engl 实测覆盖的
 macOS/Linux/Windows/iOS/Android）；不替知识中心仓库做提交。
+
+## 2026-11-16 03:09（知识中心提交落地；纠正「skill 是独立 git 仓库」这一推断；门禁复核）
+
+owner 逐字（上一会话末，授权提交）：
+
+> *"你可以提交你所说的知识中心里面的变动，很好的。"*
+
+随后一句 `continue`。本节只记**已发生的实测**与更正，不是新裁定。
+
+### 落地（事实，不是计划）
+
+- `~/gits/gleam-language` 提交 **`dc736df`**（`docs(knowledge): add
+  measured BEAM-door & cross-platform proofs; link externals.md`），
+  **5 files changed / 363 insertions(+) / 3 deletions(-)**：
+  `README.md`、`knowledge/SKILL.md`（M），
+  `knowledge/beam-doors-measured.md`、
+  `knowledge/beam-cross-platform-measured.md`、
+  `knowledge/externals.md`（A）。提交后 `git status` 干净。
+  **该仓库无 remote** ⇒ 本地提交，没有、也无法 push。
+- 提交前修了我自己 `README.md` §2 的一处计数不一致：原写
+  `"20 files / 2 new / fifteen references"`，实测 `knowledge/` 21 个文件
+  （其中 3 个本轮新增）、skill `references/` 16 个 ⇒ 改为
+  `"21 files / 3 new / sixteen references"`，并把
+  `beam-cross-platform-measured.md` 补进「same way」那句。
+- **更正（我自己的错）**：上一轮答复里「`~/.workbuddy/skills/
+  gleam-language` 是另一个独立 git 仓库，共享同一组 inode，我只提交了
+  知识中心，没提交 skill 那边」是**推断、未经实测、且是错的**。
+  实测 `git rev-parse --show-toplevel` 在该目录返回
+  *"fatal: not a git repository (or any of the parent directories): .git"*；
+  `~/.workbuddy/skills/gleam-language/.git`、`~/.workbuddy/skills/.git`、
+  `~/.workbuddy/.git` **三者均不存在**。⇒ 没有第二个仓库，**不存在
+  「把 skill 那份一起提交」这个动作**；skill 目录只是硬 `ln` 的消费者，
+  字节进不进版本历史由知识中心那个名字决定（git 存字节、不存 inode）。
+- 历史注记里「带他人未提交改动」同样不准确：提交前逐行核对
+  `README.md` 与 `knowledge/SKILL.md` 的 `git diff`，改动全部只关于本会话
+  新增的三份文件与索引条目，**没有混入他人改动**。
+- 硬链接提交后仍活（提交不破链）：
+  `knowledge/externals.md` 与 `tools_ib/glibe/docs/externals.md` 同
+  inode `339942506` / links **3**；`beam-doors-measured.md`
+  `340468671` / links 2；`beam-cross-platform-measured.md`
+  `340471733` / links 2；`knowledge/SKILL.md` `324709842` / links 2；
+  `find . -type l` 全空（零 symlink）。
+
+### 门禁复核（只读，`src/` / `test/` 一行未改）
+
+- `gleam format --check src test` 0；`gleam test` 0（**16 passed**）；
+  `gleam docs build` 0；`gleam export package-interface` 0，
+  `build/dev/docs/glibe/package-interface.json` 实测 **modules 15**；
+  `gleam build` 0。
+- `gleam build --warnings-as-errors` **exit 1 / 196 warnings**，分类逐项
+  实测：`117 Unused function argument` + `76 Todo found` +
+  `2 Unused private constructor` + `1 Unreachable pattern` = 196，
+  与 `docs/STATE.md`「2026-11-15 09:22」逐项一致，**零漂移**（R48 清单）。
+- 核心镜像 `docs/gleam-thinking-core-to-memory.md` 与
+  `~/.workbuddy/skills/gleam-language/references/gleam-core.md` `cmp` exit 0。
+- `glibe` 工作树干净，`HEAD` = `origin/doc-tdd` = `b17dae4`。
+
+### 本注记不做什么
+
+不改写 07:59–09:32 及更早注记原文（其中「未提交、未 push」「带他人
+未提交改动」是**当时的事实**，按 append-only 保留，更正只写在本节）；
+不新增 R 编号；不增减决策区（仍 3 项，不催、不预设推荐、不在对话里弹
+卡片）；不替 owner 挑按 R19 ④ 要填的下一个 body；不改 `src/` / `test/` /
+`webclient/` / `gleam.toml` / `manifest.toml`；不新增 guard sh。
