@@ -215,6 +215,16 @@ stored."* —— reverse 不做计算，只把同一份值换个顺序交出去�
 sequentially, once, which is what an array is for."* 计算侧用**链表**
 （头部 O(1)），输出侧用**数组**（顺序读一次）。
 
+> **08:38 订正 —— 上面这两句把「一个消费方的便利」写成了「格式的
+> 理由」。** owner 逐字：*"why should it be reversed before exporting?
+> to answer this you have to answer no reason, since whether the data
+> in disk is newest first or oldest first, it will never prevent a
+> comsumer to use it. The key is how the comsumer will use it."*
+> 磁盘是 newest-first 还是 oldest-first 都不妨碍消费方使用；「整份
+> 顺序读一次」本身就是为 `feed_all` 那个消费方选的格式，不是数据
+> 的性质。完整消费链、三处写方与订正见 §7(e) 第 1 处，owner 逐字
+> 与查证链见 `docs/RULINGS.md`「2026-11-15 08:38」。
+
 ### 6.2 图表不是「reverse 完画一次」，是「一根一根长出来」
 
 这才是问句里那个措施：**系统里只有一条流，实时每根只发一根，输出端
@@ -368,7 +378,7 @@ if there are other ocassions reverse() is used on a list"*。下表是
 
 | # | 位置 | 触发 | 能不能不用 `reverse`（技术事实） |
 |---|---|---|---|
-| 1 | `glib/trading/export.gleam:24` | 退出写文件一次 | **直接删不行，见下方专段**；要省掉那次 O(n) 只能不攒 buffer |
+| 1 | `glib/trading/export.gleam:24` | 退出写文件一次 | **「为什么 reverse」＝没有理由**（owner 08:38）；三处写方里只有它 reverse，见下方专段 |
 | 2 | `glib/trading/ingest.gleam:164` | replay 跑完一次 | 这处服务 `web/server_ffi.mjs:42-44` 的 bulk `set_databars`。按 stream 判据要问：初始绘制能不能也一根一根发，省掉整表 reverse 与这份数组 |
 | 3 | `glib/census.gleam:213` | 离线报告一次 | 后面 `:369` `in_span` 用 `filter`+`length`、`:382` `age_of_last` 用 `list.last` 且**依赖 oldest-first**；改读头 / `idx` 相减是否可省，未实测，要问 |
 | 4 | `glib/census.gleam:172` | 每个 group 打印前 | 只为打印顺序，分组小表；是否必要取决于输出格式，要问 |
@@ -378,26 +388,75 @@ if there are other ocassions reverse() is used on a list"*。下表是
 | 8 | `glib/binance_trading_ffi.mjs:37/81` | **每根 bar** | `apply_bar` 在 `:170/:227/:282` 触发，每次整表 reverse ⇒ O(N²)。按 stream 判据，这处要的是整个历史而不是那一根 |
 | 9 | `glib/paper_trading_ffi.mjs:273` | **每次 poll** | `:188` 的 `while` 循环内，无新 bar 也整表 reverse |
 
-**第 1 处（owner 点名）为什么「直接删不行」**：
+**第 1 处（owner 点名）—— 07:59 的「直接删不行」答错了问题**
 
-`glib/sourcebar.gleam:534-535` 是
-`json.array(sourcebar_list, of: encode_bar)`（**保序**），
-`:515-518` 是 `decode.list(of: decode_bar(interval))`（**保序**），
-`glib/sourcebar_export.gleam:145` 读回来按文件顺序**逐根喂同一条流**。
-`glib/sourcebar_export.gleam:26-27` 逐字要求 oldest-first
-（*"the file is read whole, sequentially, once"*）。所以去掉
-`list.reverse` ⇒ 文件 newest-first ⇒ 回放**倒着喂流**；把 reverse 挪到
-读侧只是把同一次 O(n) 换边。Gleam `List` 只能 O(1) 读头 / prepend，
-**从 newest-first 链表生成 oldest-first 数组必然要一次 O(n) 反向遍历**，
-`list.reverse` 只是这次遍历的名字。
+owner 08:38 逐字：*"why should it be reversed before exporting? to
+answer this you have to answer no reason, since whether the data in
+disk is newest first or oldest first, it will never prevent a comsumer
+to use it. The key is how the comsumer will use it. Right? So how the
+comsumer is using the exported data today in glib? that is where to
+inspect."*
 
-要真正不出现这次遍历，只能改「攒一整份 buffer 再写」本身：
-① 每根 closed sourcebar 到达边界时顺手写一行（stream 写，无 buffer）；
-② 不要这条导出，离线测试从同一条流逐根读文件。
-两者都回到 owner 那句「系统里其实只有一根在工作」。
+⇒ **「导出前为什么要 reverse」＝ 没有理由。** 磁盘顺序不约束消费方；
+同一份数组从哪头读、要不要一次 O(n) 遍历，都是消费方的事。07:59 /
+08:13 我把「去掉 `list.reverse` 会让这一个消费方倒着喂流」当成了
+答案，是把**一个消费方的便利**写成了**数据的性质**。历史注记原文
+不改写，更正写在 `docs/RULINGS.md`「2026-11-15 08:38」。
+
+**先看清三处写方，reverse 连「写方统一规则」都不是：**
+
+| 写方 | 代码 | 是否 reverse |
+|---|---|---|
+| `glib/trading/export.gleam:21-25` `export_flush` | `to_json(list.reverse(sourcebar_buffer(timeframe)))` | **是** |
+| `glib/census_import.gleam:119-127` `store_fetch` | `to_json(sourcebar_list)`；`binance.fetch_bars` 原本 oldest-first | 否 |
+| `glib/census_import.gleam:171-184` `import_daily` | `to_json(sourcebar_list)`；IB 下载原本 oldest-first | 否 |
+
+`glib/sourcebar_export_ffi.mjs` 的 `write_session` 逐字 *"The payload
+arrived already encoded and already ordered — this does no reshaping
+of the data."* —— 三处都产出 oldest-first，A 只是用一次 reverse
+**追上 B / C 已经是的形状**；它的 buffer 是 newest-first
+（`glib/timeframe.gleam:146-149` = *"Newest-first like `databar_list`
+… `export_flush` reverses it once, at the single write"*，累积是
+`glib/sourcebar_export.gleam:41-46` 的 `[sourcebar, ..buffer]`）。
+
+**消费方在哪、怎么用（这才是要查的地方）：**
+
+1. `glib/trading/ingest.gleam:124-147` `run_offline` →
+   `sourcebar_export.read`（`:130`）→ `feed_all`（`:142`）。
+2. `glib/sourcebar_export.gleam:139-149` `read_payload` 用
+   `decode_sourcebar_list` 解析；`glib/sourcebar.gleam:515-518`
+   `decode.list` 与 `:534-535` `json.array` 都保序，`:145`
+   把解码结果**原样**交回。
+3. `glib/trading/ingest.gleam:75-81` `feed_all` 是
+   `list.fold(sourcebar_list, timeframe, fn(t, b) { feed(t, b, publish) })`
+   —— **从头部开始，一根一根喂**；`:57-70` `feed` →
+   `sourcebar_gate` → `databar_processing` → `working_databar_archived`。
+4. `glib/timeframe.gleam:280-283` `dealt_with_last` 读
+   `list.first(timeframe.databar_list)` 与到达 bar 的 `Timestamp`
+   比较；`:294-296` 给准入的 bar 一个 `idx = bars_listed(...)`（读头）。
+   **这条流有状态、默认时间向前**；倒着喂时 `idx` 递增而 `date`
+   递减，值是合法的、历史是错的。它**不校验**顺序，只是假定顺序。
+5. 同批文件其余消费方：`glib/binance.gleam:168-205` 的
+   `GLIB_SEED_FROM_FILE` 分支（`:198`）读同一个文件、原样返回 →
+   `glib/trading/ingest.gleam:101-108` `run` → 同一个 `feed_all`；
+   `glib/census.gleam:212-213` 调 `run_offline` 后再 reverse 出报告；
+   CLI 入口 `glib/glib.gleam:300`。
+6. 顺序被写成契约：`glib/test/sourcebar_export_test.gleam:122-150`
+   `the_vault_reads_back_oldest_first_test` 断言 oldest-first；
+   `glib/sourcebar_export.gleam:26-27` 的「整份顺序读一次」本身就是
+   **为这个消费方选的格式**。
+
+**结论**：这次 reverse 只服务一个消费方 —— `feed_all` 从链表头部
+fold 进一条有状态的流。它是**边界投影**，可以等价地放在读侧，也可以
+随消费方形状改变而整个消失（逐行 stream 写 / 从尾部读），不必挂在
+写侧。按 07:59 的 stream 判据，真正要问的是**消费方本身**：
+`run_offline` 把整份历史逐根重放过引擎，要的是「整个历史」而不是
+「那一根 `working_databar`」—— 这才是 *"that smells"* 的落点。
+
 `glibe` 的 `Timeframe`（`src/glibe/timeframe.gleam:106-120`）**没有**
-`sourcebar_buffer` 字段、也没有 `export_flush`，这条路径在 glibe
-尚未存在；是否引入需 owner 一句话。
+`sourcebar_buffer` 字段、也没有 `export_flush`，这条消费方路径在
+glibe 尚未存在；是否引入仍是待裁决第 1 项，但 `reverse` 已不是
+决定性因素。
 
 ---
 
@@ -451,7 +510,7 @@ owner 2026-11-15 逐字：*"在你刚才处理大量代码文件却不曾写多�
 
 ---
 
-## 10. 门禁（本文件只写文档，07:12 实测、07:31 / 07:42 / 07:59 / 08:13 / 08:16 / 08:30 复核一致）
+## 10. 门禁（本文件只写文档，07:12 实测、07:31 / 07:42 / 07:59 / 08:13 / 08:16 / 08:30 / 08:38 复核一致）
 
 ```sh
 export PATH="/opt/homebrew/bin:$PATH"
@@ -480,10 +539,12 @@ gleam build --warnings-as-errors  # exit 1：196 = 76 Todo + 117 unused arg
   08:13 裁定并写进结论。待裁决区现为 2 项：`sourcebar_buffer` 导出、
   以及 owner 08:16「拒绝 JS target」是否一并收紧 `webclient/`。
   owner 逐字全文与查证记录的家是 `docs/RULINGS.md`（2026-11-15 各条
-  执行注记，含 08:16 / 08:28 / 08:30）；08:16 的 target / 手写
-  `.erl` 实证、08:28 的 external 术语订正都不在本文，本文只讲
-  list 效率与骨架填写。零 `@external` 只是骨架现状，不是目标；
-  `@external(erlang, …)` 不是 FFI，也不基于手写 erl。
+  执行注记，含 08:16 / 08:28 / 08:30 / 08:38）；08:16 的 target /
+  手写 `.erl` 实证、08:28 的 external 术语订正都不在本文。
+  08:38 的订正在 §6.1 与 §7(e) 第 1 处：导出前的 `reverse` **没有
+  理由**，要看的是消费方 `feed_all` 从头部 fold 进有状态的流；本文
+  只讲 list 效率、消费方查证与骨架填写。零 `@external` 只是骨架
+  现状，不是目标；`@external(erlang, …)` 不是 FFI，也不基于手写 erl。
 - `glib/` 是**参照实现**。owner 明说不知道其中 AI 是否 100% 照设计实现；
   文中每个 file:line 都是读过的代码事实，分类是说明，不是裁定。
   §7(e) 逐处表是**提问清单**，不是「glib 做对了」的宣告，也不是

@@ -13,44 +13,71 @@
 > 弹选择卡片、不催答复、选项不预设推荐。全文见 `docs/RULINGS.md`
 > 「2026-11-15 08:27」。
 >
-> 最后更新：2026-11-15 08:30
+> 最后更新：2026-11-15 08:38
 
 ---
 
 ## 需要你决定（只看这一节）
 
-### 当前 2 项（2026-11-15 08:30）
+### 当前 2 项（2026-11-15 08:38）
 
 owner 07:59 逐字 *"Was glib doing properly? You have to ask."* 与
 *"The same question should be asked if there are other ocassions reverse()
 is used on a list"*。逐处查证与提问表在 `DEVELOPER_GUIDE.md` §7(e)，
 owner 逐字全文与查证链在 `docs/RULINGS.md`「2026-11-15 07:59」。
-第 1 项 `sourcebar_buffer` 导出：owner 08:13 答复「一会儿讨论这个问题」，
-原样保留、不预设结论、不催。**plushie / `try_plushie` 选型已由 owner
-08:13 裁定**，结论写进 `docs/RULINGS.md`「2026-11-15 08:13」，原第 2
-项整条删除。第 2 项由 owner 08:16 逐字引出；其余各处只记事实与提问。
+**plushie / `try_plushie` 选型已由 owner 08:13 裁定**，结论写进
+`docs/RULINGS.md`「2026-11-15 08:13」，原第 2 项整条删除。
+现在第 2 项由 owner 08:16 逐字引出；其余各处只记事实与提问。
 
-#### 1. `sourcebar_buffer` 导出这条路径，glibe 要不要存在？
+#### 1. `sourcebar_buffer` 导出这条**消费方路径**，glibe 要不要存在？
 
-owner 逐字：*"can it not use reverse when doing sourcebar_list exporting
-(for potential later offline tests only)?"*
+owner 07:59 原问：*"can it not use reverse when doing sourcebar_list
+exporting (for potential later offline tests only)?"*；08:13 答复
+「一会儿讨论这个问题」。**owner 08:38 已就其中的 reverse 逐字裁定**
+（全文与查证链在 `docs/RULINGS.md`「2026-11-15 08:38」）：
 
-技术事实（B.3）：`glib/sourcebar.gleam:534-535` 的 `json.array` 与
-`:515-518` 的 `decode.list` 都保序，`glib/sourcebar_export.gleam:145`
-读回来按文件顺序**逐根喂同一条流**，`:26-27` 要求 oldest-first。所以
-**直接删 `list.reverse` 会让文件变 newest-first、回放倒着喂流**；把
-reverse 挪到读侧只是把同一次 O(n) 换边。Gleam `List` 只能 O(1) 读头 /
-prepend，从 newest-first 链表生成 oldest-first 数组必然要一次 O(n)
-反向遍历。要真正不出现它，只能改「攒一整份 buffer 再写」这件事。
+> *"why should it be reversed before exporting? to answer this you have
+> to answer no reason, since whether the data in disk is newest first or
+> oldest first, it will never prevent a comsumer to use it. The key is
+> how the comsumer will use it. Right? So how the comsumer is using the
+> exported data today in glib? that is where to inspect."*
+
+⇒ **「导出前为什么 reverse」＝ 没有理由**；磁盘顺序不约束消费方。
+我 07:59 / 08:13 写的「直接删 reverse 会倒着喂流」只是**对一个
+消费方的事实**，被我当成了答案；现从「技术事实」降级，历史注记
+原文不改写。按逐字改成查消费方：
+
+- 写侧三处，只有 `glib/trading/export.gleam:21-25` reverse；
+  `glib/census_import.gleam:119-127` 与 `:171-184` 都不 reverse，
+  `glib/sourcebar_export_ffi.mjs` 的 `write_session` 也不重排。
+  三处都产出 oldest-first ⇒ 那次 reverse 只是让 newest-first buffer
+  追上另外两个写方，**不是数据或格式的必要条件**。
+- 消费方：`glib/trading/ingest.gleam:124-147` `run_offline` →
+  `glib/sourcebar_export.gleam:139-149` `read_payload`（codec 保序）→
+  `glib/trading/ingest.gleam:75-81` `feed_all` 的 `list.fold`
+  **从头部一根一根喂** → `sourcebar_gate`。
+  `glib/timeframe.gleam:280-283` 读头判重、`:294-296` 读头给 `idx`：
+  **流有状态、假定时间向前，且不校验顺序**。其余消费方：
+  `glib/binance.gleam:198` `GLIB_SEED_FROM_FILE`、
+  `glib/census.gleam:212-213`、`glib/glib.gleam:300` CLI。
+  `glib/test/sourcebar_export_test.gleam:122-150` 把 oldest-first
+  钉成了契约，`glib/sourcebar_export.gleam:26-27`「整份顺序读一次」
+  是**为这个消费方选的格式**。
+- ⇒ reverse 是**为一个消费方做的边界投影**，可等价放读侧、可随
+  消费方形状改变而整个消失。按 owner 07:59 的 stream 判据，真正要
+  看的是消费方本身：`run_offline` 重放整份历史，要的是整个历史而
+  不是那一根 `working_databar`。
+
 `src/glibe/timeframe.gleam:106-120` 目前**没有** `sourcebar_buffer`
-字段，也没有 `export_flush`——这条路在 glibe 尚未存在。
+字段、也没有 `export_flush`，这条消费方路径在 glibe 尚未存在。
+**`reverse` 不再是决定性因素**；剩下要一句话的是路径本身：
 
 - **A. 不引入**：glibe 保持现状；离线测试从文件逐根读、走同一条流，
   不为它留第二份随流增长的历史。
 - **B. 改成 stream 写**：每根 closed sourcebar 到达边界时顺手写一行，
   没有 buffer、没有 reverse；文件格式从 positional JSON array 变逐行。
-- **C. 照 glib 抄**：每根 prepend，退出时 `list.reverse` 一次写
-  oldest-first JSON array（挂「退出一次」的频率上）。
+- **C. 照 glib 抄**：每根 prepend，退出时一次写 oldest-first JSON
+  array（次序按届时消费方定，不预设必须 reverse）。
 - **D. 先不定**：按 R26 / R32 等真正出现离线测试消费方再定，骨架暂不加字段。
 
 #### 2. 「拒绝 JS target」要不要一并收紧 `webclient/`？

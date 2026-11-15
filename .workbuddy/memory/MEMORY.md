@@ -254,3 +254,20 @@ external；JS 跨运行时 ⇒ FFI），但该文件在知识中心仓库是 `??
 未跟踪、`SKILL.md` 是 `M`、无 remote ⇒ 没进版本历史；全局 Memory
 只有 R14/R15 摘要。本轮不写全局 Memory、不擅自提交那个仓库。
 逐字与查证见 `docs/RULINGS.md`「2026-11-15 08:27 / 08:28 / 08:30」。
+**owner 08:38（导出顺序，必须记住）**：*"why should it be reversed
+before exporting? to answer this you have to answer no reason …
+The key is how the comsumer will use it."* ⇒ **磁盘 newest-first /
+oldest-first 都不妨碍消费方使用；「导出前为什么 reverse」答案是
+「没有理由」**。07:59/08:13 的「删 reverse 就倒着喂流」把一个
+消费方的便利写成了数据性质，答错了问题（历史原文不改写，更正见
+RULINGS 08:38）。glib 实测：三个写方只有 `trading/export.gleam:24`
+reverse（buffer newest-first），`census_import` 两处与
+`sourcebar_export_ffi.mjs` 都不重排，三处都产出 oldest-first；
+消费方是 `ingest.gleam:124-147` `run_offline` →
+`sourcebar_export.read_payload` → `feed_all:75-81` `list.fold`
+**从头一根一根喂** → `sourcebar_gate`（`timeframe.gleam:280-283`
+读头判重、`:294-296` 读头给 idx，流假定时间向前且不校验顺序）。
+⇒ reverse 是**为一个消费方做的边界投影**，可等价放读侧、可随
+消费方形状改变而消失；按 stream 判据要看的是消费方本身（重放整份
+历史而非那一根 `working_databar`）。glibe 待裁决第 1 项收窄为
+「这条消费方路径要不要存在」。

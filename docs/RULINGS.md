@@ -3663,3 +3663,108 @@ owner 逐字（原样）：
 不改 `src/` / `test/` / `webclient/`，不改
 `/Users/jk/gits/gleam-language/` 任何文件、不提交那个仓库，
 不新增 guard sh。
+
+---
+
+## 2026-11-15 08:38 — owner 逐字：导出前为什么要 `reverse`？答案是「没有理由」；要看消费方怎么用（执行注记，不新增编号）
+
+owner 逐字（原样，含原拼写）：
+
+> *"关于 sourcebar_list exporting:
+> why should it be reversed before exporting? to answer this you have to answer no reason, since whether the data in disk is newest first or oldest first, it will never prevent a comsumer to use it. The key is how the comsumer will use it. Right? So how the comsumer is using the exported data today in glib? that is where to inspect."*
+
+### 先认错：07:59 / 08:13 答的是另一个问题
+
+待裁决区第 1 项与 `DEVELOPER_GUIDE.md` §7(e) 第 1 处，
+我写的是「直接删 `list.reverse` 会倒着喂流」「挪到读侧只是把同一次
+O(n) 换边」，并据此把 oldest-first 当成**文件格式的必要条件**。那是把
+「某一个消费方的便利」写成了「数据的性质」，正是 owner 这句要纠正的：
+**「为什么要 reverse」的答案是「没有理由」**。磁盘上是 newest-first
+还是 oldest-first，都不妨碍消费方使用；同一份数组从哪头读、要不要
+遍历一次，是消费方的事。历史注记原文不改写，更正写在这里。
+
+### 逐字要求的查证：glib 今天的消费方到底怎么用
+
+**写侧三处，只有一处 `reverse`：**
+
+| # | 位置 | 是否 reverse | 为什么 |
+|---|---|---|---|
+| A | `glib/src/glib/trading/export.gleam:21-25` `export_flush` | **是**：`to_json(list.reverse(sourcebar_buffer(timeframe)))` | 它的 buffer 是 newest-first |
+| B | `glib/src/glib/census_import.gleam:119-127` `store_fetch` | 否：`to_json(sourcebar_list)` | `binance.fetch_bars` 返回 oldest-first |
+| C | `glib/src/glib/census_import.gleam:171-184` `import_daily` | 否：`to_json(sourcebar_list)` | IB 下载本身 oldest-first |
+
+buffer 的 newest-first 逐字：`glib/src/glib/timeframe.gleam:146-149`
+*"Newest-first like `databar_list`, so capture is O(1); `export_flush`
+reverses it once, at the single write."*；累积是
+`glib/src/glib/sourcebar_export.gleam:41-46` 的 `[sourcebar, ..buffer]`。
+`glib/src/glib/sourcebar_export_ffi.mjs` 的 `write_session` 逐字
+*"The payload arrived already encoded and already ordered — this does
+no reshaping of the data."* —— JS 侧不翻。⇒ **三个写方都产出
+oldest-first，A 的 reverse 只是让它追上 B / C 已经是的形状**；它连
+「写方统一规则」都不是，更不是数据的性质。
+
+**读侧与消费链（这才是要查的地方）：**
+
+1. `glib/src/glib/trading/ingest.gleam:124-147` `run_offline` →
+   `sourcebar_export.read`（`:130`）→ `feed_all`（`:142`）。
+2. `glib/src/glib/sourcebar_export.gleam:139-149` `read_payload` →
+   `json.parse(payload, decode_sourcebar_list(interval))`；
+   `glib/src/glib/sourcebar.gleam:515-518` 的 `decode.list` 与
+   `:534-535` 的 `json.array` 都保序，`:145` 把解码结果**原样**交回。
+3. `glib/src/glib/trading/ingest.gleam:75-81` `feed_all` 是
+   `list.fold(sourcebar_list, timeframe, fn(t, b) { feed(t, b, publish) })`
+   —— **从头部开始，一根一根喂**；`:57-70` `feed` →
+   `sourcebar_gate` → `databar_processing` → `working_databar_archived`。
+4. 顺序为何重要：`glib/src/glib/timeframe.gleam:280-283`
+   `dealt_with_last` 读 `list.first(timeframe.databar_list)`（头 = 最新
+   归档的一根）与到达 bar 的 `Timestamp` 比较；`:294-296` 给准入的
+   bar 一个 `idx = bars_listed(...)`，而 `bars_listed` 读头。**这条流
+   是有状态的、默认时间向前**；倒着喂时 `idx` 递增而 `date` 递减，
+   值是合法的、历史是错的。它**不校验**顺序，只是假定顺序。
+   （`glib/test/sourcebar_export_test.gleam:131-133` 的注释写成
+   「gate 会答 this bar was dealt with last」；按 `:280-283` 的等式，
+   该分支只在日期重复时才命中，更准确的说法是「顺序被假定、未被
+   检查」。）
+5. 同一批文件的其余消费方：`glib/src/glib/binance.gleam:168-205`
+   `fetch_bars` 在 `GLIB_SEED_FROM_FILE` 时用 `decode_sourcebar_list`
+   读同一个文件（`:198`）、原样返回 →
+   `glib/src/glib/trading/ingest.gleam:101-108` `run` → 同一个
+   `feed_all`；`glib/src/glib/census.gleam:212-213` 调 `run_offline`
+   后再 `list.reverse(tf.databar_list)` 出报告；CLI 入口
+   `glib/src/glib/glib.gleam:300`。
+6. 顺序被**写成契约**：`glib/test/sourcebar_export_test.gleam:122-150`
+   `the_vault_reads_back_oldest_first_test` 断言读回按 oldest-first；
+   `glib/src/glib/sourcebar_export.gleam:26-27` 逐字
+   *"one positional JSON array, oldest-first … the file is read whole,
+   sequentially, once, which is what an array is for."* —— 「整份顺序
+   读一次」本身就是**为这个消费方选的格式**，不是数据的性质。
+
+**磁盘实测**（本轮读 `data/*.json` 首尾 `date`）：`ADAUSDT_1d` /
+`ATOMUSDT_1d` / `AVAXUSDT_1d` / `BNBUSDT_1d` / `DOGEUSDT_1d` /
+`DOTUSDT_1d` 各 1000 根、`BTCUSDT_1h` 4800 根、`BTCUSDT_1m` 4801
+根、`BTCUSDT_1d` 27 根、`DRAM_daily` 110 根，**全部首尾递增**
+（`BTCUSDT_1d` 1791331200000 → 1793577600000）；两个以字符串存
+`date` 的 `_daily.json` 不计入。⇒ 现状确实是 oldest-first。
+
+### 结论（按 owner 的问法，不换回我原来的问法）
+
+- **「导出前为什么要 reverse」＝ 没有理由。** 磁盘顺序不约束消费方；
+  数组从哪头读、要不要一次 O(n) 遍历，都是消费方的事。
+- glib 里这次 reverse 存在的**唯一**原因是消费方：`feed_all` 从链表
+  头部 fold 进一条有状态的流，而流假定时间向前。所以它是**为一个
+  消费方做的边界投影**，可以等价地放在读侧，也可以随消费方形状
+  改变而整个消失（逐行 stream 写、或从尾部读），不必挂在写侧。
+- 按 07:59 的 stream 判据，真正要问的是**这个消费方本身**：
+  `run_offline` 把整份历史逐根重放过引擎，要的是「整个历史」而不是
+  「那一根 `working_databar`」。这才是 *"that smells"* 的落点，
+  reverse 只是它的症状。
+- glibe 的 `src/glibe/timeframe.gleam:106-120` 仍**没有**
+  `sourcebar_buffer` / `export_flush`；待裁决第 1 项因此收窄为
+  「这条消费方路径要不要存在」，`reverse` 不再是决定性因素。
+
+### 本注记不做什么
+
+不新增 R 编号，不改写 07:59 / 08:13 / 08:16 / 08:27 / 08:28 / 08:30
+及更早注记原文；不改 glib / `try_plushie` 任何源码，不改 glibe 的
+`src/` / `test/` / `webclient/`；不新增 guard sh；决策问题仍只写进
+08:27 指定的那一份单独文档，不在对话里提问。

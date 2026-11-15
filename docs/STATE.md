@@ -4,7 +4,47 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-15 08:27–08:30 (当前状态)
+## 2026-11-15 08:38 (当前状态)
+
+- **owner 逐字**（全文 `docs/RULINGS.md`「2026-11-15 08:38」）：
+  *"why should it be reversed before exporting? to answer this you have
+  to answer no reason, since whether the data in disk is newest first or
+  oldest first, it will never prevent a comsumer to use it. The key is
+  how the comsumer will use it. … So how the comsumer is using the
+  exported data today in glib? that is where to inspect."*
+- **认错**：07:59 / 08:13 我答的是「能不能删掉 reverse 而不动别的」，
+  并把 oldest-first 写成文件格式必要条件 —— 把**一个消费方的便利**
+  写成了**数据的性质**。按 owner 的问法，答案是「没有理由」。历史
+  注记原文不改写，更正写在 08:38 注记。
+- **消费方实测**（全部 file:line 在 `docs/RULINGS.md` 08:38）：写侧
+  三处（`trading/export.gleam:21-25` reverse；`census_import.gleam:119-127`
+  与 `:171-184` 不 reverse）都产出 oldest-first，FFI `write_session`
+  不重排 ⇒ reverse 只是让 newest-first buffer 追上另外两个写方。
+  消费链是 `trading/ingest.gleam:124-147` `run_offline` →
+  `sourcebar_export.read_payload:139-149` → `feed_all:75-81` 的
+  `list.fold` **从头部一根一根喂** → `sourcebar_gate`；
+  `timeframe.gleam:280-283` 读头判重、`:294-296` 按头算 `idx`，
+  流**假定时间向前、不校验顺序**。`binance.gleam:198` 的
+  `GLIB_SEED_FROM_FILE` 与 `census.gleam:212-213` 是同批文件的
+  其余消费方；`test/sourcebar_export_test.gleam:122-150` 把
+  oldest-first 钉成了契约。磁盘 `data/*.json` 抽样 10 个首尾递增。
+- **结论**：这次 reverse 是为**一个消费方**做的边界投影，可等价地
+  放读侧、也可随消费方形状改变而消失；按 stream 判据真正要问的是
+  消费方本身 —— `run_offline` 重放整份历史，要的是整个历史而非
+  那一根 `working_databar`。glibe 的 `Timeframe` 仍无
+  `sourcebar_buffer` / `export_flush`，待裁决第 1 项收窄为「这条
+  消费方路径要不要存在」。
+- **改动（仍只写文档）**：`docs/RULINGS.md` 追加 08:38 注记；
+  `DEVELOPER_GUIDE.md` §6.1 / §7(e) / §10 / §11；
+  `docs/PENDING_DECISIONS.md` 第 1 项事实与选项重写；
+  `docs/HANDOFF.md` 指针；当日日志与 `MEMORY.md` 同步。
+  `src/` / `test/` / `webclient/` 一行未改，不新增 R 编号、
+  不新增 guard sh，决策区仍 **2 项**。
+- 门禁：`format --check` / `check` / `test`（16 passed）/ `docs` /
+  `package-interface`（modules 15）/ `build` 全 0；WAE exit 1、
+  196 warnings（R48 固定清单，未变）。
+
+## 2026-11-15 08:27–08:30 (历史)
 
 - **08:27 owner 逐字**（全文 `docs/RULINGS.md`「2026-11-15 08:27」）：
   *"你不可再使用这种提问方式，有决策问题写入 单独文档，我会去看。"*
