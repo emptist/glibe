@@ -13,13 +13,13 @@
 > 弹选择卡片、不催答复、选项不预设推荐。全文见 `docs/RULINGS.md`
 > 「2026-11-15 08:27」。
 >
-> 最后更新：2026-11-15 08:38
+> 最后更新：2026-11-15 08:58
 
 ---
 
 ## 需要你决定（只看这一节）
 
-### 当前 2 项（2026-11-15 08:38）
+### 当前 3 项（2026-11-15 08:58）
 
 owner 07:59 逐字 *"Was glib doing properly? You have to ask."* 与
 *"The same question should be asked if there are other ocassions reverse()
@@ -27,7 +27,10 @@ is used on a list"*。逐处查证与提问表在 `DEVELOPER_GUIDE.md` §7(e)，
 owner 逐字全文与查证链在 `docs/RULINGS.md`「2026-11-15 07:59」。
 **plushie / `try_plushie` 选型已由 owner 08:13 裁定**，结论写进
 `docs/RULINGS.md`「2026-11-15 08:13」，原第 2 项整条删除。
-现在第 2 项由 owner 08:16 逐字引出；其余各处只记事实与提问。
+现在第 2 项由 owner 08:16 逐字引出；第 3 项由 owner 08:44 的
+「需要探讨」引出，逐字与全部查证链在 `docs/RULINGS.md`
+「2026-11-15 08:44–08:58」，技术事实在 `DEVELOPER_GUIDE.md` §6.6。
+其余各处只记事实与提问。
 
 #### 1. `sourcebar_buffer` 导出这条**消费方路径**，glibe 要不要存在？
 
@@ -80,6 +83,11 @@ exporting (for potential later offline tests only)?"*；08:13 答复
   array（次序按届时消费方定，不预设必须 reverse）。
 - **D. 先不定**：按 R26 / R32 等真正出现离线测试消费方再定，骨架暂不加字段。
 
+owner 08:58 又裁定「导出文件不必按时间顺序存储」（读侧逐根 prepend
+即可，见 `DEVELOPER_GUIDE.md` §6.6），所以顺序不再是本项的决定因素。
+**第 3 项（导出格式）依赖本项**：若这里选 A 不引入，格式问题自动
+消失；本项未裁定前，第 3 项只是探讨，不催。
+
 #### 2. 「拒绝 JS target」要不要一并收紧 `webclient/`？
 
 owner 08:16 逐字：*"注意经过对比和实证，我已经转向了glibe这个拒绝JS
@@ -111,6 +119,40 @@ permitted HERE AND ONLY HERE"*，`webclient/src/webclient.gleam:20`
   需按 owner 当前陈述改写。
 - **C. R16 / R18 原样不动**：本次只把「禁止手写 erl」与实证写进
   文档，手写 `.mjs` 兜底继续留在 `webclient/`，等真实消费方再说。
+
+#### 3. 导出文件用什么格式？（owner 08:44「需要探讨」；依赖第 1 项）
+
+owner 逐字：*"首先对export出去的文件的格式，需要探讨，将来glibe
+用什么格式，用json？csv？更有效率的二进制方式？"*；08:55
+*"输出json是一种最懒的做法，因为不需要花精力去找最佳方案了。
+但是或许hex有合适gleam的原生数据库都不一定的。"*；08:49
+*"不知道 gleam add 所有BEAM 也就是hex.pm package 并且直接通过
+`@external` 使用？不知道Gleam世界如此简单？"*
+
+**这是探讨，不是裁决；选项平列、不预设推荐、不催。** 事实底座
+（`docs/RULINGS.md`「2026-11-15 08:44–08:58」、`DEVELOPER_GUIDE.md`
+§6.6）：`src/` 现在零序列化零文件 IO；`SourceBar` 九个变体、
+grade 在变体里，`Timestamp` 是 opaque 纳秒值；hex 上确有 Gleam
+原生 `sqlight` / `gsv` / `tysv` 与 BEAM 侧 `khepri` / `esqlite`，
+OTP 还内置 `mnesia` / `dets` / `ets`；`@external(erlang, "erlang",
+"term_to_binary")` 两行即可零 codec 往返且变体保真（实测 True），
+`gleam add simplifile` 的 `append_bits` 可每根 O(1) 落盘。
+单根实测字节 JSON object 98 / ETF 73。逐字与全部探针数字见上述
+两份文档。
+
+- **A. 文本 JSON**（positional array 或逐行 JSON lines）：人可读、
+  跨生态；代价是一整层 codec、读方带外传 grade、长期格式兼容债
+  （glib 已有三代兜底）。positional array 还不能 append 一根。
+- **B. 文本 CSV / TSV**（hex 上 `gsv` / `tysv` / `erl_csv` 等现成包）：
+  人可读、表格工具可直接用；同样是 closed set 与 opaque 值降级
+  成文本，需要 parser。
+- **C. 二进制 term**（OTP `term_to_binary` 逐记录 append，或
+  `dets` / `mnesia` 按 key 存）：零 codec、grade 与纳秒 Timestamp
+  原样保真、每根 O(1)；代价是 BEAM 专有、不可跨语言读、不可移植。
+- **D. 现成数据库包**（`gleam add sqlight` / `khepri` 等）：按 key
+  或 SQL 存取，顺序只是查询时的投影；代价是多一个依赖与一套 API。
+- **E. 不导出**：与第 1 项 A 同义，格式问题自动消失。
+- **F. 先不定**：按 R26 / R32 等真实消费方出现再定。
 
 ---
 

@@ -225,6 +225,15 @@ sequentially, once, which is what an array is for."* 计算侧用**链表**
 > 的性质。完整消费链、三处写方与订正见 §7(e) 第 1 处，owner 逐字
 > 与查证链见 `docs/RULINGS.md`「2026-11-15 08:38」。
 
+> **08:58 续 —— 「顺过来」真正靠的是读侧 prepend，不是 reverse。**
+> owner 逐字：*"倒序资料肯定不影响消费呀 …… 如果你读取的使用也用
+> list来存，那么很简单的事情，你想怎么放？旧数据放前面？那不是
+> prepend是什么"*。编译实测（`/tmp/glibe_format_probe/src/read_order.gleam`
+> exit 0）：newest-first 文件逐根读 + `[record, ..acc]` →
+> `10,20,30`，`list.first` 就是最旧那根；全程零 `reverse`、
+> 零 `append`。⇒ 「按时间顺序存储」既不是数据性质也不是格式
+> 必要条件，是**一个消费方的读法**；详见 §6.6。
+
 ### 6.2 图表不是「reverse 完画一次」，是「一根一根长出来」
 
 这才是问句里那个措施：**系统里只有一条流，实时每根只发一根，输出端
@@ -325,6 +334,91 @@ owner 逐字（全文在 `docs/RULINGS.md`「2026-11-15 07:59」）：
 「最初版本做到」以 owner 逐字为准：`try_plushie` 仓库当前
 `git log` 无提交（*"does not have any commits yet"*），无法从版本历史
 复核，不写成实测。全文见 `docs/RULINGS.md`「2026-11-15 08:13」。
+
+### 6.6 导出格式与读取方法（owner 08:44 / 08:49 / 08:55 / 08:58，探讨中）
+
+**这一节是探讨，不是选型结论。** owner 08:44 逐字：*"首先对export
+出去的文件的格式，需要探讨，将来glibe用什么格式，用json？csv？
+更有效率的二进制方式？然后对读取方法进行探讨，需要这个导出的文件
+必须按照时间顺序存储sourcebar信息吗？"* 格式需要他一句话，
+选项平列、不预设推荐、不催（08:27 约定）。逐字与全部查证链在
+`docs/RULINGS.md`「2026-11-15 08:44–08:58」。
+
+**Q2「必须按时间顺序存储吗」已由 owner 裁定：不必须。**
+
+> *"倒序资料肯定不影响消费呀 …… 如果你读取的使用也用list来存，
+> 那么很简单的事情，你想怎么放？旧数据放前面？那不是prepend是什么"*
+
+编译实测（`/tmp/glibe_format_probe/src/read_order.gleam`，exit 0）：
+文件 newest-first `[30,20,10]` 逐根读、`[record, ..acc]` prepend
+→ **10,20,30**，`list.first` 就是最旧那根；文件 oldest-first
+同法 → 30,20,10。整个 reader **零 `reverse`、零 `append`、
+零 `length`**。⇒ 要顺过来靠的是**读侧 O(1) 的 prepend 累积**，
+不是 O(n) 的 `reverse` 重排。这是 08:38「磁盘顺序不约束消费方」
+的具体读法，也与 §3 的唯一不变量一致：引擎内 `databar_list`
+本来就是 newest-first。
+
+| 读法 | 文件形状 | 得到什么 | 代价 |
+|---|---|---|---|
+| 逐根读 + prepend（owner 08:58） | newest-first | oldest-first List，头是最旧 | 每根 O(1)，零 reverse |
+| 整份 `decode.list` + 从头 fold（glib） | oldest-first array | 直接就是喂流顺序 | 必须整份 parse、整份写 |
+| 按 key 存取（`dets` / `mnesia` / `sqlight`） | 无「文件顺序」概念 | 顺序是查询时的一次投影 | 每根 O(1) 读写 |
+
+**Q1 格式：JSON 不是默认答案。** owner 08:55 逐字
+*"输出json是一种最懒的做法，因为不需要花精力去找最佳方案了。
+但是或许hex有合适gleam的原生数据库都不一定的。"*
+—— 批评的是「不花精力找方案」这个行为，**不是** JSON 禁用令。
+08:49 逐字 *"gleam add 所有BEAM 也就是hex.pm package 并且直接
+通过 `@external` 使用？不知道Gleam世界如此简单？"*
+
+事实底座（都是查过 / 编译过的，不是口味）：
+
+- **`src/` 现在零序列化、零文件 IO**；`Timeframe`（`:106-120`）
+  没有 `sourcebar_buffer` / `export_flush`，这条消费方路径本身
+  仍是待裁决第 1 项。
+- **`SourceBar` 是九个变体**，grade 在变体里不在字段里
+  （`api/sourcebar.gleam:43`、`:105-178`）；`Timestamp` 是
+  `pub opaque` 的 `Timestamp(seconds: Int, nanoseconds: Int)`
+  （`gleam_time/timestamp.gleam:100`，纳秒精度）。
+  JSON / CSV 要把 closed set 与 opaque 值降级成文本再 parser
+  回来（正是 `gleam-core.md` §2 / R13 / R21 / R27 反对的）；
+  glib 为此付的账是 `sourcebar.gleam:524-535` *"The variant is
+  not spelled — the reader is told the interval"*、读方带外传
+  `interval`、以及 `sourcebar_export.gleam:151-176` 的**三代格式
+  兼容兜底**。
+- **二进制不需要手写 codec**：一行
+  `@external(erlang, "erlang", "term_to_binary")` + 一行
+  `binary_to_term`，把「grade-in-variant 的六字段值」往返，
+  实测 `ETF round-trip keeps grade + all six fields: True`
+  （两个不同变体分别验过）。这**不是 FFI、不是手写 erl**，
+  是 08:28 已裁定的正常 Gleam 设计。
+- **`gleam add` 就够了**：探针 `gleam add simplifile` →
+  `Added filepath v1.1.2` / `Added simplifile v2.7.0`，
+  `append_bits` 本身就是 `@external(erlang, "simplifile_erl", ...)`；
+  逐根 `write_bits` + `append_bits` 得 145 bytes（每根 73），
+  **无 buffer、无 reverse**。
+- **连 `gleam add` 都不用的一层**：OTP 29 内置
+  `mnesia` / `dets` / `ets`（`code:ensure_loaded` 实测均为
+  `{module, …}`）。DETS 故意乱序插 3 根、按 timestamp 查找
+  全部命中、变体 tag 原样保真 ⇒ 按 key 的存储里根本没有
+  「顺序」这个属性。（这条是 `erl -noshell` 层实验，不是
+  Gleam 编译验证，如实区分。）
+- **hex 上确实有**（`hex.pm` 08:56 实读）：Gleam 原生
+  `sqlight` / `marmot` / `parrot` / `cake` / `gloo`、
+  `gsv` / `tysv`（CSV）、BEAM 侧 `khepri` / `esqlite` /
+  `concord`、时序 `oban_met` / `explorer`。owner 的猜测成立。
+- **实测字节**（单根 / 10 根）：JSON object **98** /
+  ETF **73**；JSON array **991**、JSON lines **989**、
+  ETF 整表 **727**、ETF 逐记录 **73×10**。
+  positional JSON array **不能 append 一根**，是整份 parse /
+  整份写的形状，与 07:59 的 stream 判据相冲。
+
+**取舍（平列，不推荐）**：JSON/CSV 人可读、跨生态，代价是
+一整层 codec 与带外 grade；ETF / DETS 直接存 term、零 codec、
+每根 O(1)，代价是 BEAM 专有、不可跨语言读、不可移植；
+OTP 内置库与 hex 包都是现成能力，不新增手写源码。
+`term_to_binary/2` 选项与 `binary_to_term/2` 的 `safe` 警告，
+官方页三次抓取超时只返回页首 —— **未取得逐字，本轮不引用**。
 
 ---
 
@@ -458,6 +552,13 @@ fold 进一条有状态的流。它是**边界投影**，可以等价地放在�
 glibe 尚未存在；是否引入仍是待裁决第 1 项，但 `reverse` 已不是
 决定性因素。
 
+> **08:58 续（owner 裁定，不再是提问）**：*"倒序资料肯定不影响消费
+> 呀 …… 旧数据放前面？那不是prepend是什么"*。读侧逐根 prepend 就能
+> 从 newest-first 文件得到 oldest-first List（编译实测见 §6.6），
+> 所以「导出文件必须按时间顺序存储吗」答案是**不必须**；按 key 的
+> 存储（`dets` / `mnesia` / `sqlight`）里连「顺序」这个属性都没有。
+> 导出格式则仍在探讨、需 owner 一句话，见 §6.6。
+
 ---
 
 ## 8. 填 `glibe` 骨架时照这张表
@@ -510,7 +611,7 @@ owner 2026-11-15 逐字：*"在你刚才处理大量代码文件却不曾写多�
 
 ---
 
-## 10. 门禁（本文件只写文档，07:12 实测、07:31 / 07:42 / 07:59 / 08:13 / 08:16 / 08:30 / 08:38 复核一致）
+## 10. 门禁（本文件只写文档，07:12 实测、07:31 / 07:42 / 07:59 / 08:13 / 08:16 / 08:30 / 08:38 / 08:58 复核一致）
 
 ```sh
 export PATH="/opt/homebrew/bin:$PATH"
@@ -536,15 +637,18 @@ gleam build --warnings-as-errors  # exit 1：196 = 76 Todo + 117 unused arg
 - 本文**不新增 R 编号、不改 `src/` 或 `test/`**。07:31 / 07:42 两轮
   「不新增待裁决项」只对各自那一轮成立；owner 07:59 明确要求
   *"You have to ask"*，本轮先记入两处；其中 plushie 选型已由 owner
-  08:13 裁定并写进结论。待裁决区现为 2 项：`sourcebar_buffer` 导出、
-  以及 owner 08:16「拒绝 JS target」是否一并收紧 `webclient/`。
+  08:13 裁定并写进结论。待裁决区现为 3 项：`sourcebar_buffer` 导出、
+  owner 08:16「拒绝 JS target」是否一并收紧 `webclient/`、以及 owner
+  08:44 要求的导出格式探讨（依赖第 1 项；不预设推荐、不催）。
   owner 逐字全文与查证记录的家是 `docs/RULINGS.md`（2026-11-15 各条
-  执行注记，含 08:16 / 08:28 / 08:30 / 08:38）；08:16 的 target /
-  手写 `.erl` 实证、08:28 的 external 术语订正都不在本文。
-  08:38 的订正在 §6.1 与 §7(e) 第 1 处：导出前的 `reverse` **没有
-  理由**，要看的是消费方 `feed_all` 从头部 fold 进有状态的流；本文
-  只讲 list 效率、消费方查证与骨架填写。零 `@external` 只是骨架
-  现状，不是目标；`@external(erlang, …)` 不是 FFI，也不基于手写 erl。
+  执行注记，含 08:16 / 08:28 / 08:30 / 08:38 / 08:44–08:58）；
+  08:16 的 target / 手写 `.erl` 实证、08:28 的 external 术语订正
+  都不在本文。08:38 的订正在 §6.1 与 §7(e) 第 1 处：导出前的
+  `reverse` **没有理由**，要看的是消费方 `feed_all` 从头部 fold 进
+  有状态的流；08:44–08:58 的格式与读法探讨在 §6.6。本文讲 list
+  效率、消费方查证、边界格式与骨架填写，**不替 owner 选格式**。
+  零 `@external` 只是骨架现状，不是目标；`@external(erlang, …)`
+  不是 FFI，也不基于手写 erl，`gleam add` + external 是正常做法。
 - `glib/` 是**参照实现**。owner 明说不知道其中 AI 是否 100% 照设计实现；
   文中每个 file:line 都是读过的代码事实，分类是说明，不是裁定。
   §7(e) 逐处表是**提问清单**，不是「glib 做对了」的宣告，也不是

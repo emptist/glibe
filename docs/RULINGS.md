@@ -3768,3 +3768,200 @@ oldest-first，A 的 reverse 只是让它追上 B / C 已经是的形状**；它
 及更早注记原文；不改 glib / `try_plushie` 任何源码，不改 glibe 的
 `src/` / `test/` / `webclient/`；不新增 guard sh；决策问题仍只写进
 08:27 指定的那一份单独文档，不在对话里提问。
+
+---
+
+## 2026-11-15 08:44–08:58（导出格式与读取方法：探讨、实证，以及 owner 对「顺序」的裁定）
+
+### owner 逐字（四段，按到达时间）
+
+1. **08:44（主问）**：*"首先对export出去的文件的格式，需要探讨，将来glibe
+   用什么格式，用json？csv？更有效率的二进制方式？然后对读取方法进行探讨，
+   需要这个导出的文件必须按照时间顺序存储sourcebar信息吗？"*
+2. **08:49**：*"你没有加载 gleam-thinking-core? 不知道 gleam add 所有BEAM
+   也就是hex.pm package 并且直接通过 `@external` 使用？不知道Gleam世界
+   如此简单？"*
+3. **08:55**：*"输出json是一种最懒的做法，因为不需要花精力去找最佳方案了。
+   但是或许hex有合适gleam的原生数据库都不一定的。"*
+4. **08:58**：*"倒序资料肯定不影响消费呀，我不知道glib怎么做的，如果你
+   读取的使用也用list来存，那么很简单的事情，你想怎么放？旧数据放前面？
+   那不是prepend是什么"*
+
+### 先认三处错
+
+- **08:49 批评成立，但要如实说清边界**：本轮开头确实按 R19 加载了
+  `gleam-language` skill 并**全文**读了 `references/gleam-core.md`
+  （379 行），08:50 又 `cmp` 过 `docs/gleam-thinking-core-to-memory.md`
+  → **exit 0，字节一致**。所以不是「没加载」，是**加载了却没照着做**：
+  第一版探针里手写了 `int_to_string` / `digits` / `one_digit` /
+  `join_with` / `bool_to_string`，还手写了一段定长位数组 codec，而
+  `gleam_stdlib` 早在 `gleam.toml:6` 里，`int.to_string`（`int.gleam:149`）、
+  `string.join`（`string.gleam:457`）、`bool.to_string`（`bool.gleam:189`）、
+  `bit_array.byte_size`（`bit_array.gleam:26`）全是现成的。这违反
+  `gleam-core.md` §8 *"Do not re-implement a library's job"*、§12
+  *"`pip install` mindset → `gleam add`"*，也重犯了 owner 先前那句
+  *"gleam add 去加上你却少的东西，不要绕圈子替换"*。**探针已重写**，
+  下面所有数字来自重写后的编译产物。
+- **08:55 批评成立**：我默认把 JSON 当成唯一在讨论的格式，没去 hex 查
+  「有没有更合适的方案」。*"最懒的做法"* 指的是**不花精力找方案**
+  这个行为，不是 owner 对 JSON 下了禁用裁定 —— 不擅自扩大成禁令。
+- 07:59 / 08:13 的旧错（把消费方便利写成数据性质）已在 08:38 认过，
+  此处不重复、不改历史原文。
+
+### A. glibe 现状（读过的 file:line，不是推测）
+
+- `src/glibe/api/sourcebar.gleam:105-178`：`SourceBar` 是**九个变体**，
+  每个带同样六个字段 `timestamp: Timestamp` / `open` `high` `low`
+  `close: Float` / `volume: Int`；`:43` 逐字 *"So there is NO `interval`
+  `field: a number could disagree with the bar around it, a variant
+  cannot."* —— **grade 在变体里，不在字段里**。
+- `build/packages/gleam_time/src/gleam/time/timestamp.gleam:100`：
+  `pub opaque type Timestamp { Timestamp(seconds: Int, nanoseconds: Int) }`，
+  是**纳秒精度的 opaque 值**；`:1178` `to_unix_seconds` 返回 `Float`
+  （有精度损失），`:1187` `to_unix_seconds_and_nanoseconds` 才无损。
+- `src/glibe/timeframe.gleam:106-120`：`Timeframe` 仍**没有**
+  `sourcebar_buffer`、没有 `export_flush`；`src/` 全库检索
+  `json|csv|binary|bit_array|term_to_binary|file.|write|read|export|
+  encode|decode` 命中的全是 `////` 文档里的英文单词，**零序列化、
+  零文件 IO 代码**。所以「将来 glibe 用什么格式」目前是**悬空**的：
+  这条消费方路径本身还是待裁决第 1 项。
+- `gleam.toml:3` `target = "erlang"`；`manifest.toml` 里
+  `source = "hex"` 的包 **23** 个（含 `gleam_json`、`gleam_erlang`、
+  `simplifile`、`mist`、`wisp`）。
+
+### B. glib 的格式与 codec（format 是长期契约的实证）
+
+- `glib/src/glib/sourcebar_export.gleam:26-27` 逐字
+  *"one positional JSON array, oldest-first … the file is read whole,
+  sequentially, once, which is what an array is for."*
+- `glib/src/glib/sourcebar.gleam:524-535` `encode_bar` 逐字
+  **"The variant is not spelled — the reader is told the interval, and
+  the bar's numbers are the fields."**；`:510-518` 的
+  `decode_sourcebar_list(interval)` 靠**读方带外传入** grade，
+  `:534-535` `json.array` 保序。
+- `glib/src/glib/sourcebar_export.gleam:139-149` `read_payload` 用
+  `json.parse(payload, decode_sourcebar_list(interval))` **整份 parse**；
+  `:151-176` `read_provider_generation` 是**三代格式兼容兜底**
+  （当前 vault / Binance / IB 三种 decoder 逐个试）。这就是「把
+  closed set 降级成 String + parser」之后要付的账：`test/sourcebar_export_test.gleam:122-150`
+  把 oldest-first 钉成了契约。
+- `glib/src/glib/trading/export.gleam:21-25` 退出时
+  `list.reverse(sourcebar_buffer(..))` 一次，写整份 array。
+- ⇒ positional JSON array **不能 append 一根**：它是「整份 parse /
+  整份写」的形状，与 07:59 stream 判据（系统里只有一根
+  `working_databar` 在工作）相冲。这句是格式性质，不是对 glib 的
+  全对/全错宣判。
+
+### C. 真的去 hex 与 OTP 查了（不预设「没有」）
+
+`https://hex.pm/packages?search=...` 08:56–08:57 实读，**存在的包名**：
+
+| 方向 | 包（版本 / 页面逐字） |
+|---|---|
+| Gleam 原生 SQLite | `sqlight` 1.2.0 *"Use SQLite from Gleam!"*；`marmot` 1.9.1 *"Type-safe SQL for SQLite in Gleam"*；`parrot` 2.3.0 *"type-safe SQL in gleam for sqlite, postgresql & mysql"*；`cake` 4.1.0 / `cake_sqlight` 1.5.0 / `gloo` 1.0.2 |
+| Gleam 原生 CSV | `gsv` 5.1.0 *"A simple csv parser and generator written in Gleam"*；`tysv` 1.0.0 *"Stream typed values in Gleam from CSV"* |
+| BEAM 侧数据库 | `khepri` 0.19.3 *"Tree-like replicated on-disk database library"*；`esqlite` 0.10.1（sqlite NIF）；`concord` 3.1.17 *"embedded distributed key-value store"* |
+| 时序 / 列式 | `oban_met` 1.3.3 *"distributed, compacting, multidimensional … time series datastore"*；`explorer` 0.13.0 *"Series … and dataframes"* |
+| Elixir/Erlang CSV | `csv` 3.2.2 / `nimble_csv` 1.3.0 / `erl_csv` 0.6.0 |
+
+**比 hex 更近的一层**：OTP 内置，连 `gleam add` 都不用。
+`erl -noshell -eval 'code:ensure_loaded(..)'` 实测（OTP 29）：
+`mnesia={module,mnesia}`、`dets={module,dets}`、`ets={module,ets}`、
+`kernel={module,kernel}`；`stdlib` 返回 `{error,nofile}` 只因它是
+application 名而非模块名，不是加载失败（如实记，不写成失败）。
+`erlang:term_to_binary` / `binary_to_term` 是 `erlang` 模块的 BIF
+（官方 `erlang.html` 页首 *"The Erlang BIFs and predefined types."*
+与 `ext_binary()` 定义 *"structured according to the Erlang external
+term format"*）。**注意**：`term_to_binary/2` 选项与
+`binary_to_term/2` 的 `safe` 安全警告，官方页三次 WebFetch 均 60s
+超时、只返回页首 —— **未取得逐字，本轮不引用、不编造**。
+⇒ owner 08:55 *"或许hex有合适gleam的原生数据库都不一定的"* **成立**，
+08:49 *"gleam add 所有BEAM 也就是hex.pm package 并且直接通过
+`@external` 使用"* 也成立；两者合起来就是 08:28 已裁定的
+*"`external` 是必须的正常的合理的gleam设计"* 的正面例子。
+
+### D. 编译探针（Gleam 1.19.2 / OTP 29，`/tmp/glibe_format_probe`，真实 exit code）
+
+探针**只用 stdlib 现成函数 + 一行 `@external`**，零手写 codec、
+零手写 `.erl`、零新增源码文件进仓库。第一次 `gleam run` 因
+`repo.hex.pm` 不可达 exit 1，复用 glibe 的 `manifest.toml` 走本地
+缓存后 **exit 0**。
+
+- **二进制不需要手写 codec**：`@external(erlang, "erlang",
+  "term_to_binary")` 与 `"binary_to_term"` 两行，把「grade 在变体里」
+  的六字段值往返 → `ETF round-trip keeps grade + all six fields:
+  True`；两个**不同变体**分别验过都是 `True`。这是 R13 / R21 /
+  R27 与 `gleam-core.md` §2 的直接后果：JSON/CSV 得把 closed set
+  和 opaque `Timestamp` 降级成文本再 parser 回来，ETF 直接存 term，
+  变体 tag、纳秒 `Timestamp`、`Float` 精度全部原样保真。
+- **实测字节**：单根 JSON object **98** / ETF **73**；10 根
+  positional JSON array **991** / JSON lines **989** / ETF 整表
+  **727** / ETF 逐记录 **73×10**。
+- **`gleam add` 实证**：探针里 `gleam add simplifile` → 输出
+  `Added filepath v1.1.2` / `Added simplifile v2.7.0`，编译 **exit 0**。
+  `simplifile.gleam:381/391/404` 的 `read_bits` / `write_bits` /
+  `append_bits` 本身就是 `@external(erlang, "simplifile_erl", ...)`。
+  逐根 `write_bits` 一根 + `append_bits` 一根 → 文件 **145 bytes**、
+  单根 **73 bytes**，两个不同变体 grade 往返都 `True`。
+  ⇒ **每根 O(1) 落盘，无 buffer、无 `list.reverse`**。
+  在 glibe 里要用需先 `gleam add simplifile`（现为 `wisp` 的传递
+  依赖，在 `manifest.toml:31`）；本轮**没有**改 `gleam.toml`。
+- **OTP 层实验，非 Gleam 编译验证（如实区分）**：
+  `erl -noshell -eval` 下 DETS 故意**乱序**插入 3 根
+  `[B3, B1, B2]`，按 `timestamp` 作 key 查找全部命中，且
+  `variant tag survived storage: true`。⇒ 按 key 存取的存储里
+  **根本没有「文件顺序」这个概念**，顺序是查询时的一次投影
+  （与 R30 / 07:42 输出侧投影同构）。
+
+### E. 读取方法：owner 08:58 的答案，编译验证
+
+`/tmp/glibe_format_probe/src/read_order.gleam`，**exit 0**：
+
+```
+file NEWEST-first, read + prepend -> 10, 20, 30
+file OLDEST-first, read + prepend -> 30, 20, 10
+head of the List from a NEWEST-first file = 10 (the OLDEST bar)
+```
+
+整个 reader 只有 `[record, ..acc]` 一个操作 —— **零 `reverse`、
+零 `append`、零 `length`**。文件 newest-first（引擎内
+`databar_list` 的天然形状），逐根读进来 prepend，得到的正好是
+oldest-first，`list.first` 就是最旧那根，可直接喂 `feed_all`。
+owner 08:58 *"旧数据放前面？那不是prepend是什么"* 说的就是这一步：
+**要顺过来，靠的是读侧的 prepend（O(1) 累积），不是 reverse（O(n)
+重排）**。这是 08:38「磁盘顺序不约束消费方」的具体读法。
+
+### 结论（严格区分「探讨」与「裁定」）
+
+1. **「导出的文件必须按时间顺序存储 sourcebar 吗」＝ 不必须**，
+   这是 owner 08:38 + 08:58 的**裁定**，不是待裁决项：
+   - 08:38：磁盘 newest-first / oldest-first 都不阻止消费方使用；
+   - 08:58：读进来用 List 存，想要旧数据放前面就是 prepend；
+   - 实证：newest-first 文件 + 逐根 prepend → oldest-first；
+   - 更彻底：DETS / Mnesia / `sqlight` 按 key 存取，顺序只是
+     查询时的投影，文件里没有这个属性。
+   ⇒ 「按时间顺序存储」是**一个消费方的读法**，既不是数据的性质，
+   也不是格式的必要条件。glib 把它钉成契约，是它选了
+   「positional JSON array + 整份 `decode.list` + 从头 fold」
+   这个组合的结果。
+2. **格式＝探讨中，需要 owner 一句话，本轮不裁定**。事实底座是
+   A–E：JSON 是最省力但不是唯一；hex 上有 Gleam 原生 SQLite / CSV
+   与 BEAM 数据库；OTP 还有连 `gleam add` 都不用的 `dets` /
+   `mnesia` / `term_to_binary`；`SourceBar` 的变体与 opaque
+   `Timestamp` 让「存 term」比「降级成文本再 parse」少一整层
+   codec，而代价是 BEAM 专有、不可跨生态读、不可移植。
+   **选项平列、不预设推荐、不催**，按 08:27 约定只写进那一份
+   单独文档（第 3 项，且依赖第 1 项：若第 1 项选「不引入」，
+   本项自动消失）。
+3. 与 07:59 stream 判据的关系（说明，不是裁定）：positional
+   JSON array 必须整份 parse / 整份写；JSON lines、ETF 逐记录、
+   或按 key 的数据库都能每根 O(1) 落盘、每根 O(1) 读，与
+   「系统里只有一根 `working_databar` 在工作」同形。
+
+### 本注记不做什么
+
+不新增 R 编号，不改写 07:59–08:38 及更早注记原文（append-only）；
+不改 glibe 的 `src/` / `test/` / `webclient/` / `gleam.toml` /
+`manifest.toml`（探针全在 `/tmp`），不改 glib / `try_plushie`；
+不新增 guard sh；不在对话里弹决策卡片、不催、不预设推荐；
+不替 owner 选格式，也不把 *"最懒的做法"* 扩大成 JSON 禁令。

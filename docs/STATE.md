@@ -4,7 +4,67 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-15 08:38 (当前状态)
+## 2026-11-15 08:58 (当前状态)
+
+- **owner 四段逐字**（全文在 `docs/RULINGS.md`
+  「2026-11-15 08:44–08:58」）：08:44 要求**探讨**导出格式
+  （json / csv / 二进制）与读取方法（是否必须按时间顺序存储）；
+  08:49 *"gleam add 所有BEAM 也就是hex.pm package 并且直接通过
+  `@external` 使用？不知道Gleam世界如此简单？"*；08:55
+  *"输出json是一种最懒的做法 …… 或许hex有合适gleam的原生数据库
+  都不一定的"*；08:58 *"倒序资料肯定不影响消费呀 …… 旧数据放前面？
+  那不是prepend是什么"*。
+- **认错（本轮）**：本轮开头确按 R19 全文加载 `gleam-core.md`
+  （379 行），镜像 `cmp` exit 0；但**加载了却没照着做** —— 第一版
+  探针手写了 `int_to_string` / `digits` / `join_with` /
+  `bool_to_string` 和定长位数组 codec，而 `gleam_stdlib` 早在
+  `gleam.toml:6`。违反 core §8 / §12 与 owner 先前的
+  「gleam add 去加上你却少的东西，不要绕圈子替换」。探针已重写为
+  只用 stdlib + 一行 `@external`，下方数字全部来自重写后的产物。
+  另把 JSON 当唯一格式、没去 hex 查方案，也是 08:55 批评的「懒」。
+- **Q2 已由 owner 裁定：导出文件不必按时间顺序存储。**
+  编译实测（`/tmp/glibe_format_probe/src/read_order.gleam` exit 0）：
+  newest-first 文件逐根读 + `[record, ..acc]` → `10,20,30`，
+  `list.first` 是最旧那根；全程零 `reverse` / `append` / `length`。
+  按 key 存取的 `dets` / `mnesia` / `sqlight` 里连「顺序」属性都没有
+  （DETS 乱序插 3 根、按 timestamp 查找全命中、变体 tag 保真）。
+- **Q1 格式＝探讨中，不裁定**，选项平列、不预设推荐、不催，按
+  08:27 约定只写进那一份单独文档（决策区 **2 → 3 项**，第 3 项
+  依赖第 1 项；若第 1 项选「不引入」，格式问题自动消失）。
+- **查证（实测，非推测）**：`glibe/src` 零序列化零文件 IO，
+  `Timeframe:106-120` 无 `sourcebar_buffer` / `export_flush`；
+  `SourceBar` 九变体、grade 在变体里（`api/sourcebar.gleam:43`），
+  `Timestamp` 是 `pub opaque` 纳秒值（`gleam_time/timestamp.gleam:100`）。
+  glib 的 positional JSON array 必须整份 parse，`sourcebar.gleam:524-535`
+  逐字 *"The variant is not spelled — the reader is told the interval"*，
+  `sourcebar_export.gleam:151-176` 有**三代格式兼容兜底**。
+  hex 实读确有 Gleam 原生 `sqlight` / `marmot` / `parrot` / `gsv` /
+  `tysv`、BEAM 侧 `khepri` / `esqlite` / `concord`、时序 `oban_met`；
+  OTP 29 内置 `mnesia` / `dets` / `ets`（`code:ensure_loaded` 实测
+  `{module,…}`，连 `gleam add` 都不用）。
+- **编译探针**（Gleam 1.19.2 / OTP 29，`/tmp/glibe_format_probe`，
+  真实 exit 0）：`@external(erlang, "erlang", "term_to_binary")` /
+  `binary_to_term` 两行零 codec 往返，`ETF round-trip keeps grade +
+  all six fields: True`（两个不同变体分别验过）；单根 JSON object
+  **98** / ETF **73** bytes，10 根 JSON array **991** / JSON lines
+  **989** / ETF 整表 **727**；`gleam add simplifile` →
+  `Added filepath v1.1.2` / `Added simplifile v2.7.0`，
+  `append_bits` 逐根写两根得 **145 bytes**（每根 73），无 buffer
+  无 reverse。`term_to_binary/2` 选项与 `binary_to_term/2` 的
+  `safe` 警告官方页三次抓取超时只返回页首 → **未取得逐字、不引用**。
+- **改动（仍只写文档）**：`docs/RULINGS.md` 追加 08:44–08:58 注记；
+  `DEVELOPER_GUIDE.md` 新增 §6.6、§6.1 与 §7(e) 加 08:58 订正、
+  §10 / §11 同步；`README.md` 去掉「export on quit 也 reverse 一次」
+  的过时例、加顺序裁定与 §6.6 指针；待裁决区新增第 3 项；
+  本文件新增本节；`docs/HANDOFF.md` 指针、两份 memory 同步。
+  `src/` / `test/` / `webclient/` / `gleam.toml` / `manifest.toml`
+  一行未改，探针全在 `/tmp`，历史节原文不改写，不新增 R 编号、
+  不新增 guard sh。
+- 门禁：`format --check` / `check` / `test`（16 passed）/ `docs` /
+  `package-interface`（modules 15）/ `build` 全 0；WAE exit 1、
+  196 warnings（R48 固定清单，未变）；核心镜像 `cmp` 0。
+
+## 2026-11-15 08:38 (历史状态)
 
 - **owner 逐字**（全文 `docs/RULINGS.md`「2026-11-15 08:38」）：
   *"why should it be reversed before exporting? to answer this you have

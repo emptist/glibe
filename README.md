@@ -61,10 +61,17 @@ head, and `exited_branch` does not search.
 
 The chart is **not** drawn backwards — in the shape the engine is meant to
 have. Each output boundary projects the one newest-first list once (the
-page's initial paint, or the export on quit); every live bar then travels
-alone over SSE and the chart grows by one `series.update`. Chronological
-order is a projection, never a second stored copy — see
-`DEVELOPER_GUIDE.md` §6.
+page's initial paint); every live bar then travels alone over SSE and the
+chart grows by one `series.update`. Chronological order is a projection,
+never a second stored copy — see `DEVELOPER_GUIDE.md` §6.
+
+An exported file does **not** have to be in time order. Owner, 2026-11-15:
+*"倒序资料肯定不影响消费呀 …… 旧数据放前面？那不是prepend是什么"* —
+read a newest-first file one record at a time and prepend, and the List
+you hold is oldest-first with no `reverse` at all (measured in a compiled
+probe). A keyed store has no file-order property to begin with. The export
+format itself (JSON / CSV / binary term / a hex database) is still an open
+discussion, not a settled choice — `DEVELOPER_GUIDE.md` §6.6.
 
 That is the design, **not** a claim that the reference implementation got
 everywhere right. Owner, 2026-11-15: *"关键技术是stream模式，纵有万千条k线，
@@ -82,7 +89,8 @@ redraw is a fixable regression, not a reason to drop the library — see
 `DEVELOPER_GUIDE.md` §6.5.
 
 The guide also has the full list inventory, the exceptions and boundary
-cases, and a table saying how to fill each remaining `todo`.
+cases, the export-format discussion (§6.6), and a table saying how to fill
+each remaining `todo`.
 
 - Plan item: `.planning/phases/05-doc-tdd/05-01-PLAN.md`
 - Developer guide (list efficiency, filling the skeleton): `DEVELOPER_GUIDE.md`

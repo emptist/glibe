@@ -271,3 +271,26 @@ reverse（buffer newest-first），`census_import` 两处与
 消费方形状改变而消失；按 stream 判据要看的是消费方本身（重放整份
 历史而非那一根 `working_databar`）。glibe 待裁决第 1 项收窄为
 「这条消费方路径要不要存在」。
+
+**owner 08:44–08:58（导出格式 / 读取方法，必须记住）**：
+08:58 逐字 *"倒序资料肯定不影响消费呀 …… 旧数据放前面？那不是
+prepend是什么"* ⇒ **导出文件不必按时间顺序存储**；newest-first 文件
+逐根读 + `[r, ..acc]` prepend 即得 oldest-first List（编译实测
+`/tmp/glibe_format_probe/src/read_order.gleam` exit 0，零 reverse/
+append/length），`list.first` 是最旧那根。按 key 的存储（`dets`/
+`mnesia`/`sqlight`）里连顺序属性都没有（DETS 乱序插、按 timestamp
+查、变体 tag 保真）。08:49：*`gleam add` 所有 BEAM/hex.pm 包 +
+`@external` 直接用，Gleam 世界如此简单*；08:55：**"输出json是一种
+最懒的做法"**（批评不找方案，不是禁用 JSON），*"或许hex有合适
+gleam的原生数据库都不一定的"* ⇒ 查证成立：`sqlight`/`marmot`/
+`parrot`/`gsv`/`tysv`（Gleam）、`khepri`/`esqlite`（BEAM）、
+OTP 内置 `mnesia`/`dets`/`ets`。**格式仍在探讨、不裁定**，选项
+平列不预设推荐，决策区 2 → 3 项（第 3 项依赖第 1 项）。
+实测：`@external(erlang, "erlang", "term_to_binary")` 两行零 codec
+往返变体保真 `True`；单根 JSON 98 / ETF 73 bytes；
+`gleam add simplifile` + `append_bits` 逐根写 145 bytes/两根
+无 buffer 无 reverse。**本轮认错**：core 全文加载了（镜像 cmp 0）
+却没照做，探针手写 stdlib 已有的 helper 与定长 codec —— 违反
+core §8/§12；已重写。**`external` ≠ FFI、≠ 手写 erl，`gleam add`
++ `@external` 是正常做法；0 external 不是成绩。**
+逐字与全部查证见 `docs/RULINGS.md`「2026-11-15 08:44–08:58」。
