@@ -4,7 +4,49 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-15 08:16 (当前状态)
+## 2026-11-15 08:27–08:30 (当前状态)
+
+- **08:27 owner 逐字**（全文 `docs/RULINGS.md`「2026-11-15 08:27」）：
+  *"你不可再使用这种提问方式，有决策问题写入 单独文档，我会去看。"*
+  08:16 我用对话选项卡片问了 `webclient/` 收紧一事，**提问方式作废**；
+  问题本身已在单独文档的「需要你决定」第 2 项，本轮**不重问、
+  不重列、不催**。执行约定：决策问题只写进那一份单独文档；选项
+  一律平列、不预设推荐（第 2 项 A 的「推荐理解」已删）；不催、
+  不设时限、不把未答项当否决。决策区**仍为 2 项**：
+  `sourcebar_buffer` 导出、`webclient/` 是否收紧，两项都未裁定。
+- **08:28 owner 逐字纠正**（全文「2026-11-15 08:28」）：
+  *"0 external 并不一定是好事 … exteranl is not equal to FFI, and is
+  not based on handwritten erlang or elixir, while handwritten erlang
+  and elixir by you are prohibited, external 是必须的正常的合理的
+  gleam设计"*。**我 08:16 把「零 `@external`」列进「当前合规事实」
+  是错的**：那只是骨架现状，不是目标、不是成绩；08:16 探针 2 里
+  有问题的**是我手写的 `.erl` 文件**，不是 `@external` 属性。官方
+  Externals guide 逐字 *"We recommend minimising use of externals,
+  most projects won't use any at all"* 是用度建议与统计，不是
+  「零才好」。需要运行时 API 时正常写 `@external(erlang, …)` 或
+  `gleam add` 包；禁的只有 AI 手写 `.erl` / `.ex` / `.mjs` 进 `src/`。
+- **08:30 owner 逐字**（全文「2026-11-15 08:30」）：*"如果没有找到
+  关于FFI仅限于JS的原因，那么AI没记下来，他可能记录到workbuddy的
+  全局Memory里面去了。很愚蠢的做法。"* 查证：FFI 限于 JS 的
+  **理由找到了**，在 `~gits/gleam-language/knowledge/externals.md:14-20`
+  §2（BEAM 同 VM ⇒ external；JS 跨运行时 ⇒ FFI），skill 副本 `cmp`
+  exit 0；但该文件在知识中心仓库是 **`??` 未跟踪**、`SKILL.md` 是
+  `M`、仓库无 remote ⇒ **没进版本历史**。WorkBuddy 全局 Memory 里
+  只有 R14/R15 一句摘要，没有这个理由。⇒ 语言知识的家是
+  `~gits/gleam-language`；本轮**不往全局 Memory 写语言知识**，也不
+  擅自提交那个带别人未提交改动的仓库。
+- **改动（仍只写文档）**：`docs/RULINGS.md` 追加 08:27 / 08:28 /
+  08:30 三条注记；`README.md` 去掉「zero @external」成绩写法、写明
+  external 是正常设计；`docs/HANDOFF.md` §1 指针 / §5；
+  待裁决区头部记方法约定、去推荐标注、事实行标「现状非目标」；
+  `DEVELOPER_GUIDE.md` §10 / §11；本文件；项目 memory 同步。
+  `src/` / `test/` / `webclient/` 一行未改，08:16 及更早原文
+  不改写，不新增 R 编号、不新增 guard sh。
+- 门禁：`format --check` / `check` / `test`（16 passed）/ `docs` /
+  `package-interface`（modules 15）/ `build` 全 0；WAE exit 1、
+  196 warnings（R48 固定清单，未变）。
+
+## 2026-11-15 08:16 (历史状态)
 
 - **owner 逐字**（全文与实证在 `docs/RULINGS.md`「2026-11-15 08:16」）：
   *"注意经过对比和实证，我已经转向了glibe这个拒绝JS target的项目，

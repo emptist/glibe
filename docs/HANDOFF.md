@@ -19,12 +19,12 @@
 
 - 分支 **`doc-tdd`**，2026-11-14 **已普通 push** 到 `origin/doc-tdd`
   （fast-forward，无 force）；工作树干净。本 §1 其余数字是 2026-11-13
-  快照，当前实测见 `docs/STATE.md` **顶部（2026-11-15 08:16）**；
+  快照，当前实测见 `docs/STATE.md` **顶部（2026-11-15 08:27–08:30）**；
   待裁决项现为 2 项，见该节。
 - `src/` = **14 个 Gleam 模块、零行实代码**（函数体全 `todo as "…"`）。
 - `test/` = **9 个空 shape test**，只钉 in/out types，无断言、不调用 `todo`。
 - 待裁决 **0 项**（2026-11-13 快照；当前 **2 项**，见
-  `docs/STATE.md` 顶部 2026-11-15 08:16 节）。
+  `docs/STATE.md` 顶部 2026-11-15 08:27–08:30 节）。
 
 | 命令 | exit | 结果 |
 |---|---|---|
@@ -144,11 +144,16 @@ line here yet; nonsense」*，已恢复原句。
 - 本阶段**不写实现**；不要为让 WAE 变绿而用 `_` 静音或整包豁免。
 - 不新增 guard sh；不新建 `engine` / `monitor` / `replay` / `AppConfig` /
   `config` / 任何 provider 统一框架 / 任何跨层便捷函数。
-- **不手写 `.erl` / `.mjs` 进 `src/`**（owner 2026-11-15 08:16 逐字，
-  见 `docs/RULINGS.md` 同名注记）。BEAM 能力只走 OTP 模块
-  `@external(erlang, …)` 或 `gleam add` 的 hex 包。根包的 target 声明
-  会让 JS 外实现编译失败，但**手写 `.erl` 会被静默编译成 `.beam`**，
-  所以这一半不靠编译绿来证明，靠 `src/` 的文件清单。
+- **不手写 `.erl` / `.ex` / `.mjs` 进 `src/`**（owner 2026-11-15 08:16 /
+  08:28 逐字，见 `docs/RULINGS.md` 同名注记）。但**`@external(erlang, …)`
+  是必须、正常、合理的 Gleam 设计**：它不等于 FFI、不基于手写 erl；
+  「FFI 只限于 JS」的理由是 BEAM 同 VM / JS 跨运行时
+  （`~gits/gleam-language/knowledge/externals.md` §2）。需要运行时 API
+  就调 OTP 模块或 `gleam add` 的包，**零 external 不是目标、不是成绩**。
+  根包的 target 声明会让 JS 外实现编译失败，但**手写 `.erl` 会被静默
+  编译成 `.beam`**，所以禁手写这一半不靠编译绿来证明，靠 `src/` 的
+  文件清单。Gleam 语言知识的家是 `~gits/gleam-language`，不是 WorkBuddy
+  全局 Memory（owner 08:30）。
 - **不要改写远端历史**：普通 fast-forward `git push` 直接做；
   `--force` / `--force-with-lease` / rebase 后强推 / 删远端分支
   **必须先问 owner**（2026-11-14 裁定，逐字见 `docs/RULINGS.md`

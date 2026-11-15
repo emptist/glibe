@@ -3476,3 +3476,190 @@ AND ONLY HERE"*，以及 `webclient/src/webclient.gleam:20` 的 `////`，
 不新增 R 编号，不改写 R14–R18 与 07:59 / 08:13 历史原文
 （append-only），不改 `src/` / `test/` / `webclient/` 任何一行，
 不改 glib / `try_plushie`，不新增项目级 guard sh。
+
+---
+
+## 2026-11-15 08:27 — owner 逐字：决策问题写进单独文档，不再用对话式提问（执行注记，不新增编号）
+
+owner 逐字（原样）：
+
+> *"你不可再使用这种提问方式，有决策问题写入 单独文档，我会去看。"*
+
+### 本注记的性质与我的错误
+
+08:16 我把「拒绝 JS target 是否一并收紧 `webclient/`」用对话里的
+选项卡片问了一次。**错的是提问方式，不是问题内容**：卡片不会留在
+仓库里，也不让 owner 按自己的时间去看；他要的是决策问题落在
+**单独文档**里。该问题在 08:16 已经写进
+`docs/PENDING_DECISIONS.md`「需要你决定」第 2 项，所以本轮
+**不重问、不重列、不催答复**。
+
+### 执行约定（按逐字，不扩大）
+
+- 决策问题**只**写进单独文档 `docs/PENDING_DECISIONS.md`
+  「需要你决定」节；对话里不再弹选择卡片、不再要求即时答复。
+- 文档里**不预设结论**：08:16 第 2 项 A 选项原有的「推荐理解」
+  标注删除，三个选项一律平列；owner 自己去看、自己定。
+- *"我会去看"* = 不催、不设时限、不把未答项当成已否决。
+  08:13 的 `sourcebar_buffer` 一项继续原样保留。
+- 本注记**不是**对 08:16 那个技术问题的裁定，决策区**仍为 2 项**。
+
+### 本注记不做什么
+
+不改 08:16 及更早的注记原文（append-only），不改 `src/` /
+`test/` / `webclient/`，不新增 R 编号，不新增 guard sh。
+
+---
+
+## 2026-11-15 08:28 — owner 逐字：`external` ≠ FFI、≠ 手写 erl；external 是正常设计（执行注记，不新增编号）
+
+owner 逐字（原样，含原拼写）：
+
+> *"0 external 并不一定是好事，但是external不等于手写erl，这一点AI总是弄混，
+> 要好好阅读gleam官方文档。我说过很多遍, 你在 ~gits/gleam-language 去找相关的
+> 话吧，我不知道ai有没有记下来。总之 exteranl is not equal to FFI, and is not
+> based on handwritten erlang or elixir, while handwritten erlang and elixir
+> by you are prohibited, external 是必须的正常的合理的gleam设计"*
+
+### 查证一：`~gits/gleam-language` 里到底记了什么
+
+owner 指的路是 `/Users/jk/gits/gleam-language/`。**找到的是边界，
+没找到这句正面逐字**：
+
+- `knowledge/externals.md` §2（逐字）：*"BEAM 目标下，Gleam 调用 Erlang /
+  Elixir / LFE = `external`（外部），但绝不是 `foreign`（外来）… JS =
+  `foreign`（外来）… 不要把 `@external(erlang, …)` 叫做 "FFI""*，
+  标注为 owner ruling 2026-11-13；§5 逐字 *"铁律：绝不手寫 `.erl` /
+  `.ex`"*，并列出两条合法来源（OTP 模块、`gleam add` 的包）。
+- `knowledge/SKILL.md:202-205` 是同一条的索引；
+  `gleam-thinking-core.md` §9 写 *"Externals sparingly — prefer Gleam;
+  most projects use none"*。
+- **全库检索没有「0 external 并不一定是好事」「external 是必须的正常的
+  合理的 Gleam 设计」这两句**。owner 那句「我不知道ai有没有记下来」
+  属实：AI 记下了「不许手写 erl」和「external≠foreign」，**没记下
+  external 本身是必须且正常的设计**，于是把它滑成了「零 external
+  才干净」。本轮不擅自改这个仓库（owner 只让去读）。
+
+### 查证二：官方文档（本轮实读 `https://gleam.run/documentation/externals`）
+
+页面标题是 **Externals guide**，取回的正文里没有出现 "FFI" 一词；
+官方用词是 external function / external type。逐字摘录：
+
+> *"Gleam on Erlang can use Erlang, Elixir, LFE, and other BEAM languages."*
+>
+> *"There is no additional performance cost to calling functions written in
+> other languages and those written in Gleam."*
+>
+> *"Externals are useful, but they have several disadvantages."*
+>
+> *"We recommend minimising use of externals, most projects won't use any at
+> all. Externals could be a good choice in these situations: — You need to use
+> an API provided by the runtime you are using. … — There is code written in
+> another language on the runtime …"*
+>
+> *"The Gleam compiler will ensure that all uses of the function will be
+> correct for the annotated types, but it cannot verify that the function
+> implemented in the other language returns the specified types, or even
+> that it exists."*
+
+⇒ 「sparingly / most projects won't use any at all」是**用度建议与现状
+统计**，不是「零 external 是优点」的判据；需要运行时 API 时，
+external 正是官方给的答案。官方文档也确实展示了一段
+`-module(pokemon).` 的 Erlang 源码与 `src/my_app/pokemon.mjs` 的 JS
+源码 —— 那是**语言机制的一般示例**，不是给 AI 在本项目手写目标语言
+源文件的许可；owner 禁的是 *"handwritten erlang and elixir by you"*。
+
+### 我 08:16 错在哪里（不改写历史原文，在此更正）
+
+1. `docs/STATE.md` 08:16 节把「零 `@external`」列在小标题
+   **「glibe 当前合规事实」**下，`README.md` 也把 `zero @external`
+   写成 erlang-target 的一项成绩。⇒ 把「目前恰好没有」误当成
+   「应该追求零」。owner 逐字：**0 external 并不一定是好事**。
+2. 08:16 探针 2 为证明手写源码会被编译，写了
+   `@external(erlang, "hand_written", "go")`。那条的**问题是我手写
+   的 `src/hand_written.erl` 文件**，不是 `@external` 属性本身。
+   把二者捆在一起讲，就是 owner 说的「AI 总是弄混」。
+3. 我引用 `gleam-core.md` §9 的官方措辞 *"cannot verify the foreign
+   implementation exists"* 时没区分术语：按 owner 的边界，BEAM 侧是
+   **external**，只有跨运行时的 JS 才是 foreign / FFI。
+   **不要把 `@external(erlang, …)` 叫 FFI。**
+
+### 执行边界（按逐字，不扩大）
+
+- `@external(erlang, "lists" / "os" / "httpc" / "inets" / "ssl", …)`
+  调 OTP，或 `gleam add` 一个包再调它的纯 Gleam API，是**必须的、
+  正常的、合理的 Gleam 设计**；真有需要就写，不因「想保持零」而绕开。
+- 被禁止的只有一件事：**AI 自己手写 `.erl` / `.ex`（以及往 `src/`
+  手写 `.mjs`）**。这条与「正常使用 external」并存，不矛盾。
+- `src/` 当下零 external 是**现状**，不是目标、不是成绩、不是门禁；
+  不把 external 数量做成指标或 sh 守卫（R44 / core §12）。
+- R14 / R15 里「根包禁 `@external(javascript, …)`」的历史裁定
+  **不变**：那禁的是 JS target 依赖，不是禁 external。
+
+### 落地与本注记不做什么
+
+`README.md` 去掉「zero @external」的成绩写法并写明 external 是正常
+设计；`docs/STATE.md` 在最新状态节更正 08:16 的「合规事实」措辞
+（**历史节原文不改写**）；`docs/HANDOFF.md` §5、待裁决区第 2 项的
+事实描述、项目 memory 同步。**08:16、08:27 及更早注记原文不改写**
+（append-only，更正写在这里）；不改
+`/Users/jk/gits/gleam-language/` 任何文件，不改 `src/` / `test/` /
+`webclient/`，不新增 R 编号，不新增 guard sh。
+
+---
+
+## 2026-11-15 08:30 — owner 逐字：语言知识的家是 `~gits/gleam-language`，不是 WorkBuddy 全局 Memory（执行注记，不新增编号）
+
+owner 逐字（原样）：
+
+> *"如果没有找到关于FFI仅限于JS的原因，那么AI没记下来，他可能记录到
+> workbuddy的全局Memory里面去了。很愚蠢的做法。"*
+
+### 查证结果（逐条，不替 owner 猜）
+
+1. **「FFI 仅限于 JS」的理由找到了，就在知识中心**：
+   `/Users/jk/gits/gleam-language/knowledge/externals.md:14-20` §2 逐字
+   *"它们同跑在一个 BEAM VM 上，运行时表示一致，是同一个世界的兄弟
+   语言"* / *"JS 是完全不同的运行时；跨运行时才叫 Foreign Function
+   Interface（FFI）。JS 目标的外部源文件（`.mjs` / `.js`）才是 FFI"*，
+   并标注 owner ruling 2026-11-13。
+   `~/.workbuddy/skills/gleam-language/references/externals.md` 与它
+   **byte-identical**（`cmp` exit 0）。⇒ 08:28 注记说的「没找到」
+   只针对**「external 是必须/正常/合理的设计」「0 external 并不一定
+   是好事」那两句正面逐字**，不针对 FFI 理由；两者不是同一句。
+2. **但 owner 的怀疑在版本记录层面成立**：知识中心仓库
+   `git status --short` 是 ` M knowledge/SKILL.md` 与
+   `?? knowledge/externals.md` —— 装着 FFI 理由的那个文件**从未被
+   提交**，仓库 `git remote -v` 为空、分支 `master` 只到
+   `5f1a798`。也就是说理由只躺在磁盘上的松散文件和
+   WorkBuddy 用户级 skill 目录里，**没进知识中心的版本历史**；
+   这与 owner 说的「记到 workbuddy 的全局里去了」是同一类落点错误。
+3. **WorkBuddy 全局 Memory 里并没有这个理由**：用户级
+   `MEMORY.md:569-572` 只有 R14/R15 的一句摘要
+   （*"No handwritten Erlang or JS in `src/` … `@external` binds
+   existing BEAM modules, it is NOT a licence to write a foreign
+   module"*），既没有「同跑在一个 BEAM VM」的理由，也没有
+   08:28 的正面裁定；`/Users/jk/.workbuddy/MEMORY.md` 与
+   `/Users/jk/.workbuddy/memory/96be…_memory.md` 检索
+   `FFI|foreign|external` 均无命中。⇒ **没有把语言知识塞进全局
+   Memory**，但也没把它提交到该去的仓库。
+
+### 执行边界（按逐字，不扩大）
+
+- Gleam 语言事实与 owner 逐字的家是 **`~gits/gleam-language`**，
+  不是 WorkBuddy 全局 Memory。本轮**不往任何全局 Memory 写语言
+  知识**（08:28 / 08:30 两条逐字只归位到本文件与项目 memory）。
+- 08:28 与 08:30 的正面裁定补记在 glibe 的 `docs/RULINGS.md`
+  （本项目 owner 逐字的家）与项目 memory；**不擅自提交或改写
+  `gleam-language` 仓库** —— 它已有不属于本轮的未提交改动
+  （`SKILL.md` 被改、`externals.md` 未跟踪），替别人提交正是
+  owner 说的「AI 不会自我约束」。该仓库的状态如实报给他，不代他决定。
+- 「不许手写 `.erl`/`.ex`」与「`@external(erlang, …)` 是正常设计」
+  是两条并存的规则，见 08:28 注记；不因本条改动。
+
+### 本注记不做什么
+
+不新增 R 编号，不改写 08:16 / 08:27 / 08:28 及更早注记原文，
+不改 `src/` / `test/` / `webclient/`，不改
+`/Users/jk/gits/gleam-language/` 任何文件、不提交那个仓库，
+不新增 guard sh。

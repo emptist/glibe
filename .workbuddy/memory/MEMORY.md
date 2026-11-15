@@ -219,7 +219,7 @@ target=erlang）：JS-only `@external(javascript,…)` → **exit 1**
 → **exit 0**、`hand_written.beam` 被编译 ⇒ **编译器不拦手写 erl**，
 「禁止手写erl」是必需第二半且编译绿≠合规；孤立 `.mjs` → exit 0、
 只复制到 `_gleam_artefacts/`。glibe 现状：`gleam.toml:3 target="erlang"`，
-`src/` 15 `.gleam` / 零 `@external` / 零 `.erl`，build 里 196 个 `.erl`
+`src/` 15 `.gleam` / 零 `@external`（现状非目标，见 08:28）/ 零 `.erl`，build 里 196 个 `.erl`
 全属 hex 依赖或 runner stub；`webclient/` 仍是 R18 独立 JS-target 包、
 生成 `.mjs`、零手写 JS。BEAM 能力只走 OTP `@external(erlang,…)` 或
 `gleam add` 包（externals.md §5 同条）。**未擅动** `webclient/gleam.toml:8`
@@ -230,3 +230,27 @@ target=erlang）：JS-only `@external(javascript,…)` → **exit 1**
 B stream 写 / C 照 glib 抄 / D 先不定），owner「一会儿讨论」；
 ② 08:16「拒绝 JS target」是否一并收紧 `webclient/`（A 只约束引擎、
 取消手写兜底 / B 全项目无 JS target / C R16/R18 原样不动）。
+**owner 08:27（工作方法，强制）**：*"你不可再使用这种提问方式，
+有决策问题写入 单独文档，我会去看。"* ⇒ 决策只写进
+`docs/PENDING_DECISIONS.md`「需要你决定」；对话里不弹选项卡片、
+不催、选项不预设推荐，未答项不等于否决。
+**owner 08:28（术语，必须记住）**：*"0 external 并不一定是好事 …
+exteranl is not equal to FFI, and is not based on handwritten
+erlang or elixir, while handwritten erlang and elixir by you are
+prohibited, external 是必须的正常的合理的gleam设计"*。
+⇒ **零 `@external` 只是骨架现状，不是目标/成绩**；需要 runtime
+API 就正常写 `@external(erlang, "lists"/"os"/"httpc"/…)` 或
+`gleam add` 包。`@external(erlang,…)` ≠ FFI ≠ 手写 erl；禁的只有
+AI 手写 `.erl`/`.ex`/`.mjs` 进 `src/`。官方 Externals guide
+（本轮实读）：*"Gleam on Erlang can use Erlang, Elixir, LFE, and
+other BEAM languages"*；*"most projects won't use any at all"*
+是用度建议与统计，不是「零才好」。AI 常把「禁手写 erl」滑成
+「零 external 才干净」——别再犯。
+**owner 08:30**：*"如果没有找到关于FFI仅限于JS的原因，那么AI没
+记下来，他可能记录到workbuddy的全局Memory里面去了。很愚蠢的做法。"*
+⇒ **Gleam 语言知识的家是 `~gits/gleam-language`，不是 WorkBuddy
+全局 Memory**。理由在 `knowledge/externals.md` §2（BEAM 同 VM ⇒
+external；JS 跨运行时 ⇒ FFI），但该文件在知识中心仓库是 `??`
+未跟踪、`SKILL.md` 是 `M`、无 remote ⇒ 没进版本历史；全局 Memory
+只有 R14/R15 摘要。本轮不写全局 Memory、不擅自提交那个仓库。
+逐字与查证见 `docs/RULINGS.md`「2026-11-15 08:27 / 08:28 / 08:30」。

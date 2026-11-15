@@ -8,13 +8,18 @@
 > 链接）。引用一律写「文件全路径 + 条目名」，不用裸编号（"Q" 加数字那种既像
 > Question N 又不是的写法）。
 >
-> 最后更新：2026-11-15 08:16
+> **owner 2026-11-15 08:27 逐字：*"你不可再使用这种提问方式，有决策问题
+> 写入 单独文档，我会去看。"*** ⇒ 本文件是决策问题的唯一落点；不在对话里
+> 弹选择卡片、不催答复、选项不预设推荐。全文见 `docs/RULINGS.md`
+> 「2026-11-15 08:27」。
+>
+> 最后更新：2026-11-15 08:30
 
 ---
 
 ## 需要你决定（只看这一节）
 
-### 当前 2 项（2026-11-15 08:16）
+### 当前 2 项（2026-11-15 08:30）
 
 owner 07:59 逐字 *"Was glib doing properly? You have to ask."* 与
 *"The same question should be asked if there are other ocassions reverse()
@@ -54,10 +59,13 @@ owner 08:16 逐字：*"注意经过对比和实证，我已经转向了glibe这�
 target的项目，mjs也是祸根之一，AI不会自我约束，所以要换成erlang
 target，并且禁止手写erl"*。他没有点名 `webclient/`，所以本轮**没有**
 删改它；以下是需要他一句话的那处张力，全文与三个探针实测在
-`docs/RULINGS.md`「2026-11-15 08:16」。
+`docs/RULINGS.md`「2026-11-15 08:16」，external 术语的订正见
+「2026-11-15 08:28 / 08:30」。
 
 事实：根包 `gleam.toml:3` 已是 `target = "erlang"`，`src/` 15 个
-`.gleam`、零 `@external`、零 `.erl` / `.mjs`。但
+`.gleam`、零 `@external`（**这只是骨架现状，不是目标、不是成绩**；
+owner 08:28 逐字 *"0 external 并不一定是好事"*，`@external` 是
+正常且必要的 Gleam 设计）、零 `.erl` / `.mjs`。但
 `webclient/gleam.toml:3` 是 `target = "javascript"`（R18 裁定的独立
 包），`webclient/gleam.toml:8` 逐字 *"a hand-written .mjs is
 permitted HERE AND ONLY HERE"*，`webclient/src/webclient.gleam:20`
@@ -68,7 +76,7 @@ permitted HERE AND ONLY HERE"*，`webclient/src/webclient.gleam:20`
 （`Unsupported target`），但手写 `.erl` 会被静默编译成 `.beam`、
 编译全绿 —— 所以「禁止手写 erl」这一半不能靠构建工具代守。
 
-- **A. 只约束引擎，取消兜底（推荐理解）**：`webclient/` 保持 R18
+- **A. 只约束引擎，取消兜底**：`webclient/` 保持 R18
   的独立 JS-target 包，但删掉手写 `.mjs` 的许可（只许编译器生成的
   `.mjs`、npm 库、以及 hex/OTP 提供的能力）；引擎边界不变。
 - **B. 整个项目不要 JS target**：`webclient/` 也收敛到 erlang target
