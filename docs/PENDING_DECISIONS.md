@@ -8,23 +8,22 @@
 > 链接）。引用一律写「文件全路径 + 条目名」，不用裸编号（"Q" 加数字那种既像
 > Question N 又不是的写法）。
 >
-> 最后更新：2026-11-15 08:13
+> 最后更新：2026-11-15 08:16
 
 ---
 
 ## 需要你决定（只看这一节）
 
-### 当前 1 项（2026-11-15 08:13）
+### 当前 2 项（2026-11-15 08:16）
 
 owner 07:59 逐字 *"Was glib doing properly? You have to ask."* 与
 *"The same question should be asked if there are other ocassions reverse()
 is used on a list"*。逐处查证与提问表在 `DEVELOPER_GUIDE.md` §7(e)，
 owner 逐字全文与查证链在 `docs/RULINGS.md`「2026-11-15 07:59」。
-**下面只剩一处需要你一句话**（`sourcebar_buffer` 导出，owner 08:13
-答复「一会儿讨论这个问题」，原样保留、不预设结论、不催）。
-**plushie / `try_plushie` 选型已由 owner 08:13 裁定**，结论写进
-`docs/RULINGS.md`「2026-11-15 08:13」，原第 2 项整条删除。
-其余各处只记事实与提问。
+第 1 项 `sourcebar_buffer` 导出：owner 08:13 答复「一会儿讨论这个问题」，
+原样保留、不预设结论、不催。**plushie / `try_plushie` 选型已由 owner
+08:13 裁定**，结论写进 `docs/RULINGS.md`「2026-11-15 08:13」，原第 2
+项整条删除。第 2 项由 owner 08:16 逐字引出；其余各处只记事实与提问。
 
 #### 1. `sourcebar_buffer` 导出这条路径，glibe 要不要存在？
 
@@ -48,6 +47,35 @@ prepend，从 newest-first 链表生成 oldest-first 数组必然要一次 O(n)
 - **C. 照 glib 抄**：每根 prepend，退出时 `list.reverse` 一次写
   oldest-first JSON array（挂「退出一次」的频率上）。
 - **D. 先不定**：按 R26 / R32 等真正出现离线测试消费方再定，骨架暂不加字段。
+
+#### 2. 「拒绝 JS target」要不要一并收紧 `webclient/`？
+
+owner 08:16 逐字：*"注意经过对比和实证，我已经转向了glibe这个拒绝JS
+target的项目，mjs也是祸根之一，AI不会自我约束，所以要换成erlang
+target，并且禁止手写erl"*。他没有点名 `webclient/`，所以本轮**没有**
+删改它；以下是需要他一句话的那处张力，全文与三个探针实测在
+`docs/RULINGS.md`「2026-11-15 08:16」。
+
+事实：根包 `gleam.toml:3` 已是 `target = "erlang"`，`src/` 15 个
+`.gleam`、零 `@external`、零 `.erl` / `.mjs`。但
+`webclient/gleam.toml:3` 是 `target = "javascript"`（R18 裁定的独立
+包），`webclient/gleam.toml:8` 逐字 *"a hand-written .mjs is
+permitted HERE AND ONLY HERE"*，`webclient/src/webclient.gleam:20`
+的 `////` 同义 —— 这是 R16 / R18 给的手写 `.mjs` 兜底，形状正是
+「AI 自我约束」：靠一句 HERE AND ONLY HERE 限制，而不是靠目标声明。
+当前该目录**实际**只有 1 个 `.gleam` 和编译器生成的 `.mjs`、
+零手写 JS。探针另证：erlang target 下 JS-only external 是编译错误
+（`Unsupported target`），但手写 `.erl` 会被静默编译成 `.beam`、
+编译全绿 —— 所以「禁止手写 erl」这一半不能靠构建工具代守。
+
+- **A. 只约束引擎，取消兜底（推荐理解）**：`webclient/` 保持 R18
+  的独立 JS-target 包，但删掉手写 `.mjs` 的许可（只许编译器生成的
+  `.mjs`、npm 库、以及 hex/OTP 提供的能力）；引擎边界不变。
+- **B. 整个项目不要 JS target**：`webclient/` 也收敛到 erlang target
+  或退役，浏览器页面由 BEAM 侧 Mist / Wisp 提供；R18 的 split
+  需按 owner 当前陈述改写。
+- **C. R16 / R18 原样不动**：本次只把「禁止手写 erl」与实证写进
+  文档，手写 `.mjs` 兜底继续留在 `webclient/`，等真实消费方再说。
 
 ---
 

@@ -4,7 +4,48 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-15 08:13 (当前状态)
+## 2026-11-15 08:16 (当前状态)
+
+- **owner 逐字**（全文与实证在 `docs/RULINGS.md`「2026-11-15 08:16」）：
+  *"注意经过对比和实证，我已经转向了glibe这个拒绝JS target的项目，
+  mjs也是祸根之一，AI不会自我约束，所以要换成erlang target，并且
+  禁止手写erl"*。这是对 07:59 审计给出的理由与铁律，不是新编号，
+  不改写 R14–R18 及更早注记的历史原文。
+- **三个探针实测**（`/tmp/glibe_target_probe`，Gleam 1.19.2，
+  `target = "erlang"`，逐条报真实退出码）：
+  ① JS-only `@external(javascript, "./foreign.mjs", "now")` →
+  `gleam build` **exit 1**、`error: Unsupported target`（没有 Erlang
+  实现就不能编译）；② `src/hand_written.erl` 配
+  `@external(erlang, "hand_written", "go")` → **exit 0**，
+  `hand_written.beam` 被产出（**编译器不拦手写 erl**）；
+  ③ 孤立 `src/foreign.mjs` → **exit 0**，只复制进
+  `_gleam_artefacts/`，无 JS 运行时产物。⇒「禁止手写 erl」是
+  erlang target 之外必需的第二半，且这一半**编译绿不等于合规**。
+- **glibe 当前合规事实**：`gleam.toml:3` 是 `target = "erlang"`，
+  全文件无 `[javascript]` 节；`src/` = 15 个 `.gleam`、零个非
+  `.gleam` 文件、零 `@external`；`build/dev/erlang/glibe/` 唯一的
+  `.erl` 是 `glibe@@main.erl` runner stub，`find build -name '*.erl'`
+  共 196 个（`80 dev` + `116 packages`），其余全属 `build/packages/`
+  下的 hex 依赖源码。`webclient/` 仍是 R18 的独立 JS-target 包，
+  1 个 `.gleam`、生成 `.mjs`、零手写 JS。
+- **一处未擅动**：`webclient/gleam.toml:8` 与
+  `webclient/src/webclient.gleam:20` 还留着 R16 / R18 的手写
+  `.mjs` 兜底许可，形状正是「AI 自我约束」。owner 这句话没有点名
+  `webclient/`，故不删、不改写、不宣布作废；是否收紧记入待裁决区。
+- **决策区 1 项 → 2 项**：新增「拒绝 JS target 是否一并收紧
+  `webclient/`」；原 `sourcebar_buffer` 导出一项原样保留、不催。
+- **改动（仍只写文档）**：`docs/RULINGS.md` 追加 08:16 注记；
+  `README.md` 新增 target 小节；`docs/HANDOFF.md` §1 指针 / §5
+  「不要做」同步；待裁决区新增第 2 项；
+  `DEVELOPER_GUIDE.md` §10 门禁复核时间、§11 边界；本文件新增本节；
+  当日日志与 `MEMORY.md` 同步。`src/` / `test/` / `webclient/`
+  一行未改，历史节原文不改写。
+- 门禁：`src/` / `test/` 未改，复核结果与 07:42 / 07:59 / 08:13
+  一致（`format --check` / `check` / `test` / `docs` /
+  `package-interface` / `build` 全 0；`test` 16 passed；
+  `modules: 15`；WAE exit 1、196 warnings 为 R48 固定清单）。
+
+## 2026-11-15 08:13 (历史状态)
 
 - **把 07:59 的两问交给 owner 后收到答复**（逐字与论证在
   `docs/RULINGS.md`「2026-11-15 08:13」）：

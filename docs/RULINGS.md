@@ -3375,3 +3375,104 @@ glibe 尚未存在，是否引入需要 owner 逐字裁定。
 
 不改 glib / `try_plushie` 任何源码，不改 `src/` / `test/`，不新增
 R 编号，不改写 07:59 及更早的注记原文（append-only）。
+
+---
+
+## 2026-11-15 08:16 — owner 逐字：为什么 glibe 拒绝 JS target、以及「禁止手写 erl」（执行注记，不新增编号）
+
+owner 逐字（原样）：
+
+> *"注意经过对比和实证，我已经转向了glibe这个拒绝JS target的项目，mjs也是祸根之一，AI不会自我约束，所以要换成erlang target，并且禁止手写erl"*
+
+### 本注记的性质
+
+这是 owner 对 07:59 审计（glib 两处 JS FFI `.mjs` 挂在每根 bar / 每次
+poll 路径上）给出的**理由与铁律**，不是新的待裁决项，也不改写
+R14 / R15 / R16 / R17 / R18 的历史原文。「经过对比和实证」是 owner
+自己的判断；本注记只把它与本轮可复核的代码事实对齐，不替他宣布
+`webclient/` 的旧裁定作废。
+
+### 实证：编译器替 owner 守住了哪一半，守不住哪一半
+
+本轮在 `/tmp/glibe_target_probe`（Gleam 1.19.2，独立包，
+`target = "erlang"`）跑了三个探针，逐条报真实退出码：
+
+1. **JS-only external 被编译器拒绝。** `src/target_probe.gleam` 写
+   `@external(javascript, "./foreign.mjs", "now")` 加
+   `pub fn now() -> Int`：`gleam build` **exit 1**，编译器逐字：
+   ```
+   error: Unsupported target
+   The `now` function is public but doesn't have an implementation for the
+   Erlang target. All public functions of a package must be able to compile
+   for a module to be valid.
+   ```
+   ⇒ `target = "erlang"` 不是一句承诺：JS 外来实现在这个包里根本没有
+   可编译的入口。这正是「拒绝 JS target」由**构建工具**表达、不靠 AI
+   自我约束的意思。
+2. **手写 `.erl` 不会被拒绝，反而被编译。** 把
+   `src/hand_written.erl`（`-module(hand_written).` / `go() -> 42.`）
+   放进同一个 `src/`，配 `@external(erlang, "hand_written", "go")`：
+   `gleam build` **exit 0**，产物
+   `build/dev/erlang/target_probe/ebin/hand_written.beam` 与
+   `_gleam_artefacts/hand_written.erl` 都出现。`gleam-core.md` §9 逐字：
+   *"the compiler checks Gleam-side uses but cannot verify the foreign
+   implementation exists or returns that type"*。
+   ⇒ **「禁止手写 erl」是必需的第二半**：换成 erlang target 之后，
+   AI 只要把 `.mjs` 换成 `.erl`，同一条绕过类型检查的路依旧畅通，
+   而且编译全绿。这一半编译器**守不住**。
+3. **孤立的 `.mjs` 在 erlang target 下无活性。** `src/foreign.mjs` 被
+   复制进 `_gleam_artefacts/foreign.mjs`，`gleam build` **exit 0**，
+   没有任何 JS 运行时产物。它既不编译也不报错 —— 所以「不许出现
+   `.mjs`」同样不是构建工具能给的保证。
+
+### 本轮实读的 glibe 结构事实（不是意图）
+
+- `gleam.toml:3` 逐字 `target = "erlang"`；全文件没有 `[javascript]`
+  节、没有 `runtime`、没有 `gleam_javascript` 依赖。
+- `src/` = **15 个 `.gleam`、零个非 `.gleam` 文件**；
+  `grep -rn "@external" src webclient/src test` 返回空。
+- 根包 `build/dev/erlang/glibe/` 下唯一的 `.erl` 是
+  `_gleam_artefacts/glibe@@main.erl`（`gleam run` 的 runner stub），
+  其余是 **44 个 `.abstr` / 46 个 `.beam`**；`find build -name '*.erl'`
+  共 **196 个**（`80 dev` + `116 packages`），除这 1 个 runner stub 外
+  全在 `build/packages/` 与依赖的 dev 产物下，属于
+  `simplifile` / `houdini` / `gramps` / `hpack_erl` / `gleeunit` 等
+  **hex 包自带的源码**。**没有一行 `.erl` 是我们写进 `src/` 的。**
+- `webclient/gleam.toml:3` 是 `target = "javascript"`（R18 裁定的
+  独立包），`webclient/src/` 只有 1 个 `.gleam`，零手写 JS；
+  `build/dev/javascript/webclient/webclient.mjs` 由 Gleam 编译生成。
+
+### 判据（按 owner 逐字推出来的执行边界，不是新裁定）
+
+- 引擎的 BEAM 能力只有两个来源：**OTP 模块**经
+  `@external(erlang, …)`，或 **`gleam add` 的 hex 包**的纯 Gleam API。
+  与 `~/.workbuddy/skills/gleam-language/references/externals.md` §5
+  「绝不手寫 `.erl` / `.ex`」（owner 2026-11-13）是同一条。
+- 不新增项目级 guard sh（R44 / `gleam-core.md` §12：能用包边界表达的，
+  不写 shell 去 grep 扩展名）。根包用 `gleam.toml` 的 target 表达；
+  `src/` 只放 `.gleam` 是**包边界**，不是靠注释求 AI 自觉。
+  探针 2 说明这一半编译器不检查，所以它是**审阅时看文件清单**的
+  事实，**不是「编译绿就等于合规」的证明** —— 这一点如实写，不粉饰。
+- 07:59 检出的 glib 两处 `.mjs` 高频 `reverse` 归到「祸根」：
+  `glib/binance_trading_ffi.mjs:37/81`、
+  `glib/paper_trading_ffi.mjs:273`。它们是**手写在引擎 `src/` 里的
+  外来源码**，与 R18 允许的「独立包里由 Gleam 生成的 `.mjs`」
+  不是同一件东西。
+
+### 与 R16 / R17 / R18 的张力（不替 owner 撤销）
+
+`webclient/gleam.toml:8` 逐字 *"a hand-written .mjs is permitted HERE
+AND ONLY HERE"*，以及 `webclient/src/webclient.gleam:20` 的 `////`，
+还留着 owner 2026-11-07 逐字给出的**手写 `.mjs` 兜底许可**
+（R16 小范围例外 / R18 第 5 条：*"如果这样做实在麻烦，就手写mjs，
+但是仅仅出现在那个webclient目录里面"*）。它正是「AI 自我约束」
+形状的规则：靠一句「HERE AND ONLY HERE」限制，而不是靠目标声明。
+**本轮原样保留，不删、不改写、不宣布作废** —— owner 当前陈述优先，
+但这一句没有点名 `webclient/`；撤销他自己的旧逐字需要他一句话。
+这一处记为待裁决区的一项，不预设结论。
+
+### 本注记不做什么
+
+不新增 R 编号，不改写 R14–R18 与 07:59 / 08:13 历史原文
+（append-only），不改 `src/` / `test/` / `webclient/` 任何一行，
+不改 glib / `try_plushie`，不新增项目级 guard sh。

@@ -211,7 +211,22 @@ commits yet"*），「最初版本做到」无法从版本历史复核，以 own
 RULINGS 追加 08:13 注记；DEVELOPER_GUIDE §6.5/§11、README、
 PENDING_DECISIONS（删第 2 项）、STATE 08:13 节同步；决策区 2 → 1。
 逐字全文见 `docs/RULINGS.md`「2026-11-15 08:13」。
+**owner 08:16（只写文档）**：*"注意经过对比和实证，我已经转向了glibe
+这个拒绝JS target的项目，mjs也是祸根之一，AI不会自我约束，所以要换成
+erlang target，并且禁止手写erl"*。**三个探针实测**（`/tmp/glibe_target_probe`，
+target=erlang）：JS-only `@external(javascript,…)` → **exit 1**
+`Unsupported target`；手写 `src/hand_written.erl` + `@external(erlang,…)`
+→ **exit 0**、`hand_written.beam` 被编译 ⇒ **编译器不拦手写 erl**，
+「禁止手写erl」是必需第二半且编译绿≠合规；孤立 `.mjs` → exit 0、
+只复制到 `_gleam_artefacts/`。glibe 现状：`gleam.toml:3 target="erlang"`，
+`src/` 15 `.gleam` / 零 `@external` / 零 `.erl`，build 里 196 个 `.erl`
+全属 hex 依赖或 runner stub；`webclient/` 仍是 R18 独立 JS-target 包、
+生成 `.mjs`、零手写 JS。BEAM 能力只走 OTP `@external(erlang,…)` 或
+`gleam add` 包（externals.md §5 同条）。**未擅动** `webclient/gleam.toml:8`
+/ `src/webclient.gleam:20` 的 R16/R18 手写 `.mjs` 兜底（owner 没点名）。
+逐字与实证见 `docs/RULINGS.md`「2026-11-15 08:16」。
 **未收敛**: `gleam.toml` 旧依赖表、`webclient/` 旧实现。
-决策区 **1 项**：`sourcebar_buffer` 导出 glibe 要不要存在
-（A 不引入 / B 改成 stream 写 / C 照 glib 抄 / D 先不定），owner
-「一会儿讨论」。
+决策区 **2 项**：① `sourcebar_buffer` 导出要不要存在（A 不引入 /
+B stream 写 / C 照 glib 抄 / D 先不定），owner「一会儿讨论」；
+② 08:16「拒绝 JS target」是否一并收紧 `webclient/`（A 只约束引擎、
+取消手写兜底 / B 全项目无 JS target / C R16/R18 原样不动）。
