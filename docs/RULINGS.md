@@ -4049,3 +4049,89 @@ JSON 是懒做法）都指向同一件事：能力已经在 VM 里，取用不�
 不新增 guard sh；不在对话里弹决策卡片、不催、不预设推荐；
 不把这句扩大成「任何库都无需配置」或「可以手写 erl」；
 不替 owner 选导出格式，决策区不增不减。
+
+---
+
+## 2026-11-15 09:22
+
+**owner 逐字**（同一轮三条）：
+
+1. *"你对于gleam语言经过实测验证的感悟，应该写入 ~/gits/gleam-language,
+   或者用硬ln连接过去，注意我说的是硬，不是symbol link，this is unix
+   family OS filesystem"*
+2. *"你担心依赖BEAM的问题，不用担心，我就是打算靠BEAM吃饭的。
+   你没看到我最近的项目都是gleam"*
+3. 09:22 追加 *"你可把exteranl.md ln 过来方便查阅"*（`exteranl` 是原话
+   拼写，实际文件名 `externals.md`）。
+
+### A. 语言知识的家：知识中心，单文件硬 `ln`
+
+- 此前注记里「不改 `/Users/jk/gits/gleam-language/` 任何文件、不提交
+  那个仓库」**是我自己设的边界，不是 owner 的裁定**；owner 当前陈述
+  优先（Authority 第一条）。本轮按逐字把实测感悟写进知识中心；
+  历史注记原文不改写（append-only），更正写在这里。
+- 知识中心本来的设计（`README.md` §1 / §2 / §5，2026-11-13 owner
+  逐字）：*"不要链接目录结构，仅去硬link gleam-thinking-core 那个
+  文件，因为各自的项目中有几个版本，造成混乱必须设计这个单一数据源"*；
+  *"skill等等文档也一样处理，放在哪里，谁用谁链接就行了，单一文件
+  链接，说link的时候，在unix世界就是指单独文件的"*；
+  *"file link (ln without -s or anything else) should not be broken in
+  a unix/linux filesystem"*。⇒ 单个文件、单个 `ln`、无 `-s`；
+  `stat -f '%i %l'` 是检查，`cmp` 只是字节级 sanity check。
+  这与更早那次「手工 link 顶替软件设计差错」不是一回事：那次是
+  **目录级**链接/复制来做同步，这里是 owner 明确要求的**单文件**
+  链接，且知识中心本就按这个模型建成。
+- 本轮实测（`stat -f 'dev=%d inode=%i links=%l'`，同一设备
+  `dev=16777231`）：
+  · 核心卡四个名字同一 inode `337552766`（links 4），含 glibe 的
+    `docs/gleam-thinking-core-to-memory.md`；
+  · `knowledge/gleam-measured.md` ↔ skill
+    `references/gleam-measured.md` 同 inode `333921129`（links 2）；
+  · `knowledge/externals.md` 与 skill 副本**原先是两个 inode**
+    （`339942506` / `339942149`，`cmp` 0 但不是链接）—— 这正是
+    08:30 我说的「停在磁盘松散文件」；
+  · `ln -f` 之后 `externals.md` 三个名字同 inode `339942506`、
+    links **3**（知识中心 / skill `references` /
+    `glibe/docs/externals.md`，按 09:22 逐字链过来方便查阅）；
+    新增 `knowledge/beam-doors-measured.md` ↔
+    `skill/references/beam-doors-measured.md` 同 inode `340468671`、
+    links **2**；`find … -type l` 全空（零 symlink）。
+- **落地内容**：`knowledge/beam-doors-measured.md` 收录这一轮**全部编译
+  实证的语言事实**（零依赖 OTP BIF / Elixir 门 / external≠FFI≠手写 erl /
+  `term_to_binary` 零 codec / `gleam add simplifile` / List 读侧 prepend /
+  未取得逐字的边界），不写 glibe 项目状态；`SKILL.md` 的
+  `<reference_index>` 用 `open(..., "r+")` **就地**加一条（inode
+  `324709842`、links 2 保持不变）；知识中心 `README.md` §2 的 shelf
+  计数与「`cmp` 分不出副本与链接」同步。
+- `glibe/docs/externals.md` 是**硬 `ln` 过来的查阅入口，不是新写的
+  规格**：它讲语言机制（含「JS 目标的 `.mjs` 才是 FFI」），glibe
+  08:16「禁止 AI 手写 `.erl` / `.ex` / `.mjs` 进 `src/`」仍是本项目
+  裁定；该文件 §8 记的是 try_plushie / glib 的历史，不是 glibe 的
+  设计证据（同 R38 边界）。
+- 知识中心仓库**无 remote**，且带有别人未提交的
+  ` M knowledge/SKILL.md` 与 `?? knowledge/externals.md`；本轮只写文件
+  与链接，**未提交、未 push、未改写他人未提交内容**。
+
+### B. 依赖 BEAM 不是顾虑，是方向
+
+- 我在三处把 *"BEAM 专有、不可跨生态读 / 不可跨语言读、不可移植"*
+  写成格式选项的**「代价」**：08:44–08:58 注记（历史原文不改写）、
+  `docs/PENDING_DECISIONS.md` 第 3 项 A / C、`DEVELOPER_GUIDE.md`
+  §6.6 的「取舍」段。owner 当前逐字说明「靠 BEAM 吃饭、最近项目
+  都是 Gleam」⇒ **跨生态可读不是本项目的需求，BEAM 原生不是
+  减分项**。
+- 本轮把后两处改成**性质陈述**（不是代价、不加推荐）：BEAM 原生格式
+  直接存 term、零 codec；JSON / CSV 人可读是它的性质，但「跨生态」
+  不再作为优势计入。**格式仍是探讨项**，不因此选 ETF、不因此禁
+  JSON、不因此替 owner 裁定；选项仍平列（08:27），决策区不增不减
+  （仍 3 项）。
+- 与 09:09「一 BEAM 多门」同向，不推翻 R31 / R33（那两条说的是
+  系统设计，不是取用运行时能力的门），不改 08:16 禁手写目标源码。
+
+### 本注记不做什么
+
+不新增 R 编号；不改写 07:59–09:09 及更早注记原文；不改 glibe 的
+`src/` / `test/` / `webclient/` / `gleam.toml` / `manifest.toml`；
+不新增 guard sh；不在对话里弹决策卡片、不催、不预设推荐；
+不把「靠 BEAM 吃饭」扩大成「任何库都无需配置」；不往全局 Memory
+写语言知识；不替 owner 选导出格式。

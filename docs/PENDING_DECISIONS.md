@@ -13,13 +13,20 @@
 > 弹选择卡片、不催答复、选项不预设推荐。全文见 `docs/RULINGS.md`
 > 「2026-11-15 08:27」。
 >
-> 最后更新：2026-11-15 08:58
+> 最后更新：2026-11-15 09:22
 
 ---
 
 ## 需要你决定（只看这一节）
 
-### 当前 3 项（2026-11-15 08:58）
+### 当前 3 项（2026-11-15 09:22）
+
+owner 09:22 逐字 *"你担心依赖BEAM的问题，不用担心，我就是打算靠BEAM
+吃饭的。你没看到我最近的项目都是gleam"* ⇒ 第 3 项里「BEAM 专有、
+不可跨生态读、不可移植」**不再列作代价**：跨生态可读不是本项目的
+需求，BEAM 原生是性质。选项仍平列、不预设推荐、不催；**格式仍待
+探讨，不因此选 ETF 或禁 JSON**，决策区不增不减。逐字与更正见
+`docs/RULINGS.md`「2026-11-15 09:22」。
 
 owner 07:59 逐字 *"Was glib doing properly? You have to ask."* 与
 *"The same question should be asked if there are other ocassions reverse()
@@ -140,15 +147,17 @@ OTP 还内置 `mnesia` / `dets` / `ets`；`@external(erlang, "erlang",
 单根实测字节 JSON object 98 / ETF 73。逐字与全部探针数字见上述
 两份文档。
 
-- **A. 文本 JSON**（positional array 或逐行 JSON lines）：人可读、
-  跨生态；代价是一整层 codec、读方带外传 grade、长期格式兼容债
+- **A. 文本 JSON**（positional array 或逐行 JSON lines）：人可读；
+  代价是一整层 codec、读方带外传 grade、长期格式兼容债
   （glib 已有三代兜底）。positional array 还不能 append 一根。
+  「跨生态可读」按 owner 09:22 不再计入优势。
 - **B. 文本 CSV / TSV**（hex 上 `gsv` / `tysv` / `erl_csv` 等现成包）：
   人可读、表格工具可直接用；同样是 closed set 与 opaque 值降级
   成文本，需要 parser。
 - **C. 二进制 term**（OTP `term_to_binary` 逐记录 append，或
   `dets` / `mnesia` 按 key 存）：零 codec、grade 与纳秒 Timestamp
-  原样保真、每根 O(1)；代价是 BEAM 专有、不可跨语言读、不可移植。
+  原样保真、每根 O(1)，是 **BEAM 原生格式**；按 owner 09:22
+  「靠 BEAM 吃饭」，BEAM 专有 **不是顾虑、不列为代价**。
 - **D. 现成数据库包**（`gleam add sqlight` / `khepri` 等）：按 key
   或 SQL 存取，顺序只是查询时的投影；代价是多一个依赖与一套 API。
 - **E. 不导出**：与第 1 项 A 同义，格式问题自动消失。

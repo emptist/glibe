@@ -31,6 +31,15 @@ probe: `@external(erlang, ...)` reaches OTP BIFs directly, and an Elixir
 module (`Elixir.String`) through the same `erlang` compilation target.
 Verbatim and the three probes: `docs/RULINGS.md`「2026-11-15 09:09」.
 
+Owner, 2026-11-15 09:22: *"你担心依赖BEAM的问题，不用担心，我就是打算靠BEAM
+吃饭的。你没看到我最近的项目都是gleam"* — BEAM-native storage is a property,
+not a portability cost to hedge against; the export format stays an open
+question. The compiled language facts behind this section live in
+`~gits/gleam-language/knowledge/beam-doors-measured.md`, a **single-file hard
+`ln`** into the skill references (no symbolic link); `docs/externals.md` is the
+same kind of link, made for easy reference. Verbatim and the inode
+measurements: `docs/RULINGS.md`「2026-11-15 09:22」.
+
 What is banned is **us writing `.erl` / `.ex` / `.mjs` source into `src/`**.
 Owner, 2026-11-15: *"我已经转向了glibe这个拒绝JS target的项目，mjs也是
 祸根之一，AI不会自我约束，所以要换成erlang target，并且禁止手写erl"*. The

@@ -4,7 +4,43 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-15 09:09 (当前状态)
+## 2026-11-15 09:22 (当前状态)
+
+- **owner 逐字**（三条，全文在 `docs/RULINGS.md`「2026-11-15 09:22」）：
+  ① 经实测验证的 Gleam 语言感悟写入 `~/gits/gleam-language`，或用
+  **硬 `ln`**（*"注意我说的是硬，不是symbol link，this is unix family
+  OS filesystem"*）连接过去；② *"你担心依赖BEAM的问题，不用担心，
+  我就是打算靠BEAM吃饭的。你没看到我最近的项目都是gleam"*；
+  ③ *"你可把exteranl.md ln 过来方便查阅"*。
+- **语言知识落点（已落地）**：新建
+  `~gits/gleam-language/knowledge/beam-doors-measured.md`（编译实证、
+  真实 exit code、未取证边界），`ln` 到 skill `references/`，同
+  inode `340468671`、links 2；`ln -f` 把原本字节相同但 inode 不同的
+  两份 `externals.md`（`339942506` / `339942149`）并为一名，再 `ln`
+  到 `glibe/docs/externals.md`，三名同 inode `339942506`、links 3；
+  `find -type l` 全空（零 symlink）。`SKILL.md` 用 `open(..., "r+")`
+  就地加索引条目，inode `324709842` / links 2 不变；知识中心
+  `README.md` §2 的 shelf 计数与「`cmp` 分不出副本与链接」同步。
+  该仓库**无 remote**且有他人未提交改动 ⇒ 只写、未提交、未 push。
+- **更正（我自己的错）**：此前「不改知识中心任何文件」是 AI 自设
+  边界，不是 owner 裁定；把「BEAM 专有、不可跨生态读、不可移植」
+  写成格式选项的**代价**也不成立 —— 靠 BEAM 吃饭，BEAM 是方向。
+  `docs/PENDING_DECISIONS.md` 第 3 项 A / C 与 `DEVELOPER_GUIDE.md`
+  §6.6 已改成性质陈述；08:44–08:58 历史注记原文不改写；**格式
+  仍待探讨**，不因此选 ETF、不因此禁 JSON，选项平列（08:27）、
+  决策区不增不减（仍 3 项）。
+- **改动（只写文档与链接）**：`docs/RULINGS.md` 追加 09:22；
+  本文件新增本节；`DEVELOPER_GUIDE.md` §6.6 / §10 / §11、
+  `README.md`、`docs/PENDING_DECISIONS.md`、`docs/HANDOFF.md`、
+  两份 memory 同步；`glibe/docs/externals.md` 是硬 `ln` 的查阅
+  入口，不是新写规格（08:16 禁手写目标源码仍管 glibe）。
+  `src/` / `test/` / `webclient/` / `gleam.toml` / `manifest.toml`
+  一行未改，不新增 R 编号、不新增 guard sh。
+- 门禁：`format --check` / `check` / `test`（16 passed）/ `docs` /
+  `package-interface`（modules 15）/ `build` 全 0；WAE exit 1、
+  196 warnings（R48 固定清单，未变）；核心镜像 `cmp` 0。
+
+## 2026-11-15 09:09 (历史状态)
 
 - **owner 逐字**（全文在 `docs/RULINGS.md`「2026-11-15 09:09」）：
   *"BEAM里面有的东西好像都不用另外做什么，直接可用，gleam语言和erlang
