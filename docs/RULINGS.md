@@ -4853,6 +4853,12 @@ R.5 已据实改写，14/12 数字全同步。
 
 ## 2026-11-17 16:50 — owner 要求真评测 try_plushie 能否担当 glibe 的 app（UI 层）；实测结论：能，且正好补上 glibe 唯一缺的那半
 
+> **措辞修正（17:28，见本文件“2026-11-17 17:28”节）**：本条当时用“能当此重任 /
+> 路线据实测钉下”，是**只测了 try_plushie 单候选**下的措辞，超出了证据——当时
+> 没有把它和 glib 的 web client 方案做横向比较。17:28 补了对称实测比较，并把结论
+> 降级为**基于比较的推荐、待 owner 裁定、且被测对象仍在开发中**。以下 16:50 原文
+> 作为历史保留，不改写逐字与测量数字。
+
 owner 逐字（本轮）：反复让我看 try_plushie，目的是让我"重新考虑将来的 glibe
 app 技术路线如何选择"；"原先的 glibe 有一个 app 的路线，并不依赖 js，但是
 让你去评审 try_plushie，你做了吗？"。model 层（Desk 为顶部 type 逐步下沉到
@@ -4956,3 +4962,88 @@ app 路线"的 GUI 补完。
 （先 `////`/`///` 定 type 与 in/out、再空架子、测试、填体），声控那半接 BEAM
 侧真 TTS/STT，不预先堆机制、不造调度层。叶子/分支/策略 12 个 Todo 仍按 R.5
 的真实缺口逐项填，两件事并行不冲突。
+
+---
+
+## 2026-11-17 17:28 — owner 追问「你定下他，是经过比较，还是根据想象？」；补横向实测比较，结论降级
+
+owner 逐字（本轮）："当然要实测比较，并且比较代码复杂程度，与其他模块的顺应程度，
+等等，综合评测。" 上一轮（16:50）我**只实测了 try_plushie 一个候选**就写下
+"能当此重任 / 路线钉下"——那是单候选验证，不是比较，措辞超出证据。本条纠正：
+按同一套指标把两个方案都量一遍，再给结论。owner 另注："try_plushie 仍在开发
+过程中，文档也在重新梳理，很快会有一个更好的状态。"——被测对象仍在变，结论
+只能是当前状态的评测。
+
+### 一、两个方案的客观度量（本次实跑 / 实读源码，不是文档自述）
+
+| 指标 | try_plushie（plushie 原生 GUI） | glib web client（babel 视觉方案） |
+|---|---|---|
+| `gleam.toml` target | **erlang**（默认） | **javascript**（第 3 行 `target = "javascript"`） |
+| src Gleam 模块 / 行数 | 41 模块 / 10550 行（含整套 glib 拷贝 39 模块 10284 行） | 39 模块 / 8278 行 |
+| UI 层核心代码 | 3 文件 / 1526 行（`try_plushie.gleam` 599 + `fusion_view.gleam` 877 + `voice.gleam` 50） | web 层 2 模块 328 行 + `priv/index.html` 1047 行 + `lightweight-charts.js` |
+| 手写 JS / mjs | **0**（tree 内无 .js/.mjs/.ts/.wasm） | 14 个 `*_ffi.mjs`（node 侧）+ 前端 HTML 内联 JS；图表库是第三方 vendor |
+| `@external` 数 | 3 | 27 |
+| 依赖数 | 9（含 `plushie_gleam` 0.6 + Rust renderer 0.7.1） | 8（含 `gleam_javascript`、`zones`、`tzif`） |
+| 原生二进制依赖 | 1 个预编译 renderer（14M `plushie-renderer-darwin-aarch64`） | node 运行时 + npm 包 |
+| `format --check` | exit 0 | exit 0 |
+| `build --warnings-as-errors` | **exit 0，无 warning** | **exit 1，3 warnings**（未达 glibe 的固定门禁） |
+| `gleam test` | mock 35 / headless 35 passed | 171 passed |
+| 视觉实现机制 | 自算 K 线几何 + canvas（无金融图表 widget） | `LightweightCharts.createChart`（成熟第三方图表库） |
+| 声控代码是否在 app 树里 | `voice.gleam` 是 stub（50 行，`speak`=a11y announce、`transcribe`=Error） | **主树 0 命中**：`grep -rn 'whisper\|say\|ffmpeg\|os:cmd' src priv` 精确匹配为空——声控只活在 reference 文档，从未写进 app |
+
+### 二、代码复杂程度对比
+
+- **视觉核心体量**：plushie 路线 UI 核心 1526 行纯 Gleam；web 路线是 web 层 328 行
+  Gleam + 1047 行 HTML 内联 JS + 14 个 mjs FFI（其中 `paper_trading_ffi.mjs` 567 行、
+  `web/server_ffi.mjs` 434 行、`binance_trading_ffi.mjs` 295 行）。**web 路线的复杂度
+  大头在跨语言胶水和手写 JS**，plushie 路线的复杂度大头在自算图表几何。
+- **边界宽度**：`@external` 3 vs 27；手写 JS 0 vs 14 文件 + 内联 JS。按 owner「拒绝 JS
+  target / mjs 是祸根」与「简单是正确的验证码」，plushie 路线的边界更窄、更纯。
+- **门禁健康**：plushie WAE 0；glib web WAE exit 1（3 warnings）。web 方案当前连 glibe
+  的固定门禁都没过。
+- **代价对称**：plushie 的复杂转移到了上游依赖（133 模块 SDK + Iced + 14M renderer，
+  pre-1.0 漂移风险）；web 的复杂留在自己仓库（第三方图表库成熟但被 vendor、node 生态）。
+  两条路的复杂度不是消失，是换了位置。
+
+### 三、与 glibe 其他模块的顺应程度对比
+
+- **target 顺应（决定性）**：glibe 本体 `target = "erlang"`、src 15 模块纯 Gleam 无 FFI。
+  plushie 路线同为 erlang target，同一 BEAM 节点内可直接接线；web 路线是 javascript
+  target，与 glibe 分属两个 package / 两个 target，数据要跨进程边界（HTTP/WS 序列化）
+  才能进引擎。owner 的「眼耳并用一个 BEAM 节点」在 plushie 路线是原生满足，在 web
+  路线要靠序列化桥。
+- **model 顺应**：try_plushie **不复用 glibe**，而是把 glib 整树拷进来——134 处
+  `import glib/`，`timeframe.gleam` 与 glib 主树逐字节相同（`diff -q` IDENTICAL），
+  `sourcebar.gleam` 已分叉。glibe 是从 glib 抄作业 + owner 裁定修正的另一分支（有
+  `id`/`kline`/`symbol`，无 `ib`/`census`/`config`）。所以两条路线目前**都没有直接吃
+  glibe 的 model**：plushie 吃的是 glib 拷贝，web 吃的是 glib 主树。这里要诚实——
+  "顺应 glibe" 还没有任何一条路线做到，都是概念同构、代码未接。
+- **声控顺应**：两条路线的 app 树里都没有真声控代码。glib 三选一文档实测的
+  `ffmpeg → whisper_cpp NIF → say`（4/4）是独立的 BEAM 侧实验，**从未并进任何 app**。
+  这正是 owner 说的"已测试但尚未写出 app"。谁做视觉壳，都必须另接这半。
+- **数据入口顺应**：两者都走 glib 的 `SourceBar` → `timeframe` 语义，与 R33/R39 一致；
+  这一项两者打平。
+
+### 四、综合评测结论（基于比较的推荐，不是定案）
+
+1. **视觉这半：plushie 路线在"与 glibe 同构 + 边界纯度 + 门禁健康"三项上实测占优**——
+   同 erlang target、0 手写 JS、WAE 0、整 Desk 建成 model 的实测增量图；web 路线在
+   "图表库成熟度"上占优（LightweightCharts 开箱即用），但代价是 JS target + 27 个
+   FFI + 1047 行内联 JS + WAE 未过。
+2. **声控这半：两路线都不具备**——都在文档/实验里，都不在 app 树里。这不是选 plushie
+   的理由，也不是选 web 的理由，是共同的待落地缺口。
+3. **总判断**：若 owner 坚持"不依赖 JS target / 同一 BEAM 节点 / 眼耳并用"，plushie
+   是目前更顺应的候选；但它是**参考实现级别的候选，不是可交付 app**——仍在开发、
+   文档在重梳、pre-1.0、声控未接、图表几何全自算。web 路线的价值是图表现成、171 测试
+   打底，方向与目标哲学相反。
+4. **措辞纠正**：撤回 16:50 的"能当此重任 / 路线据实测钉下"。正确说法是：**经横向实测
+   比较，plushie 在顺应度与边界纯度上优于 web client，是当前更值得投入的视觉候选；
+   最终 UI 路线属 owner 裁定，且需等 try_plushie 稳定状态再确认。** 不弹卡片、不新增
+   待决项、不替定案。
+
+### 五、保持移动（本条）
+
+本条只改文档（RULINGS / STATE / memory 措辞），未改三处 tree 任何源码。下一步不等
+路线最终裁定也能并行推进的：叶子/分支/策略 12 个 Todo 按 R.5 真实缺口填；声控半若
+要落地，先在 glibe 侧按 R19 doc-led TDD 建"四指令闭集类型 + STT/TTS 边界"的空架子，
+不预先堆机制。

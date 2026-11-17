@@ -4,7 +4,29 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-17 16:50 (当前状态 — try_plushie 真评测完成，app/UI 路线据实测钉下)
+## 2026-11-17 17:28 (当前状态 — 补横向实测比较，16:50 的「定案」措辞降级为「比较后的推荐」)
+
+owner 追问"你定下他，是经过比较，还是根据想象？"+"当然要实测比较，并且比较代码复杂
+程度、与其他模块的顺应程度，综合评测"。**纠正**：16:50 只测了 try_plushie 单候选，
+不是比较。本轮按同套指标实测两个方案，硬数据：
+
+| 指标 | try_plushie (plushie 原生 GUI) | glib web client |
+|---|---|---|
+| target | erlang | **javascript** |
+| UI 核心 | 1526 行纯 Gleam / 0 手写 JS / 3 `@external` | web 328 Gleam + 1047 HTML 内联 JS + 14 mjs / 27 `@external` |
+| WAE | exit 0 | **exit 1 (3 warnings)** |
+| 测试 | 35 mock / 35 headless | 171 passed |
+| 声控代码在 app 树 | stub (a11y announce, 非真 TTS) | **0 命中** (只在 reference 文档) |
+| 复用 glibe model | 否 — 拷贝 glib (134 import, timeframe 逐字节同) | 否 — 用 glib 主树 |
+
+- **结论（比较后的推荐，非定案）**：视觉这半 plushie 在 target 顺应 / 边界纯度 / 门禁
+  健康三项实测占优；web 只在图表库成熟度上占优。声控这半**两者都没有**（都在文档/实验，
+  都不在 app 树）。plushie 是参考实现级候选，仍在开发 + pre-1.0 + 声控未接。
+- **撤回 16:50「能当此重任 / 路线钉下」**：正确说法 = 经横向实测，plushie 是当前更值得
+  投入的视觉候选，最终 UI 路线属 owner 裁定，且待 try_plushie 稳定状态再确认。
+- 三处 tree 源码未改。完整数据/逐字见 `docs/RULINGS.md`「2026-11-17 17:28」。
+
+## 2026-11-17 16:50 (历史 — try_plushie 单候选实测；「定案」措辞已被 17:28 降级)
 
 owner 要求真评测 try_plushie 能否担当 glibe 的 app（UI）层："需要你自己去
 评测，评测结果出来以后，可以确定 UI 的路线"。**结论：能，且正好补上 glibe
