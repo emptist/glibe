@@ -74,17 +74,20 @@ pub type DataBar {
 /// (R1 / R4); `timeframe.bars_listed` reads this value off the HEAD bar of
 /// `databar_list` and returns `idx + 1` — it does not count the List (R39).<**human:here you should be careful: the bars_listed if is used anywhere, the funtion should be defined not to count but to calculate by the first one's idx in the databar_list, that is the idx + 1.**>
 pub fn idx(databar: DataBar) -> Int {
-  todo as "05-01: read the index of this bar"
+  let DataBar(idx:, ..) = databar
+  idx
 }
 
 /// `DataBar.timestamp`. `interval.sourcebar_closed` reads it against the UTC
 /// unix-second grid (R27 / R29); it is never a spelling to be parsed.
 pub fn timestamp(databar: DataBar) -> Timestamp {
-  todo as "05-01: read the absolute Timestamp of this databar"
+  let DataBar(timestamp:, ..) = databar
+  timestamp
 }
 
 /// `DataBar.signal`. The decision `timeframe.strategy` wrote on this bar
 /// (R10 / R11) is read by the view projection after archiving (R33 / R30).
 pub fn signal(databar: DataBar) -> Signal {
-  todo as "05-01: read the decision carried by this bar"
+  let DataBar(signal:, ..) = databar
+  signal
 }

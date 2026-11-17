@@ -67,13 +67,34 @@ pub type Interval {
 
 /// The exchange wire spelling. Boundary data, never a constructor name.
 pub fn to_string(interval: Interval) -> String {
-  todo as "05-01: model name to wire code"
+  case interval {
+    IntervalOneMinute -> "1m"
+    IntervalThreeMinute -> "3m"
+    IntervalFifteenMinute -> "15m"
+    IntervalThirtyMinute -> "30m"
+    IntervalOneHour -> "1h"
+    IntervalFourHour -> "4h"
+    IntervalOneDay -> "1d"
+    IntervalOneWeek -> "1wk"
+    IntervalOneMonth -> "1mo"
+  }
 }
 
 /// Read a wire spelling. Failure has nothing to say, so the error is `Nil`
 /// (core §6); this is a codec, not a validation layer.
 pub fn from_string(name: String) -> Result(Interval, Nil) {
-  todo as "05-01: wire code to model name"
+  case name {
+    "1m" -> Ok(IntervalOneMinute)
+    "3m" -> Ok(IntervalThreeMinute)
+    "15m" -> Ok(IntervalFifteenMinute)
+    "30m" -> Ok(IntervalThirtyMinute)
+    "1h" -> Ok(IntervalOneHour)
+    "4h" -> Ok(IntervalFourHour)
+    "1d" -> Ok(IntervalOneDay)
+    "1wk" -> Ok(IntervalOneWeek)
+    "1mo" -> Ok(IntervalOneMonth)
+    _ -> Error(Nil)
+  }
 }
 
 /// <**human: bar_close or bar_closes or bar_closed might be a better choice, but still need to check gleam official docs on naming convetions https://gleam.run/documentation/conventions-patterns-and-anti-patterns/**>
@@ -96,5 +117,21 @@ pub fn from_string(name: String) -> Result(Interval, Nil) {
 /// THIS system assigned to it (R39). No calendar, no offset, no system
 /// clock.
 pub fn sourcebar_closed(interval: Interval, timestamp: Timestamp) -> Bool {
-  todo as "05-01: UTC unix-second grid; market calendar is a later debt"
+  let #(seconds, _nanoseconds) =
+    timestamp.to_unix_seconds_and_nanoseconds(timestamp)
+  case interval {
+    // A one-minute bar's every arrival closes it at the source; the finer
+    // sub-daily grids are the unix-second modulo R27 names. Daily, weekly and
+    // monthly keep their historical `True` — the UTC/market-calendar grid for
+    // them is explicit deferred debt (R29 / plan 04-02), not invented here.
+    IntervalOneMinute -> True
+    IntervalThreeMinute -> seconds % 180 == 0
+    IntervalFifteenMinute -> seconds % 900 == 0
+    IntervalThirtyMinute -> seconds % 1800 == 0
+    IntervalOneHour -> seconds % 3600 == 0
+    IntervalFourHour -> seconds % 14_400 == 0
+    IntervalOneDay -> True
+    IntervalOneWeek -> True
+    IntervalOneMonth -> True
+  }
 }

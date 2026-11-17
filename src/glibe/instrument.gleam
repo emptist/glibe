@@ -60,10 +60,15 @@
 //// `databar_processing` then receives a `DataBar` whose period will never
 //// change again. No actor, scheduler, clock or poll (R33).
 ////
-//// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
+//// R19 status (2026-11-17): all three bodies filled — `get_timeframe` /
+//// `put_timeframe` are the Dict read / write pair, and `compose_ib_realtime_bar`
+//// dispatches by the `Interval` key to one `ib_sourcebar.five_second_to_*`.
+//// Pinned by `instrument_timeframes_round_trip_test` and
+//// `instrument_compose_first_bar_test` in `test/glibe_test.gleam`.
+//// No `todo` remains here.
 
 import gleam/dict.{type Dict}
-import gleam/option.{type Option}
+import gleam/option.{type Option, None}
 import glibe/api/interval.{
   type Interval, IntervalFifteenMinute, IntervalFourHour, IntervalOneDay,
   IntervalOneHour, IntervalOneMinute, IntervalOneMonth, IntervalOneWeek,
@@ -71,7 +76,7 @@ import glibe/api/interval.{
 }
 import glibe/api/sourcebar.{type SourceBar}
 import glibe/ib/sourcebar as ib_sourcebar
-import glibe/timeframe.{type Timeframe}
+import glibe/timeframe.{type Timeframe, Timeframe}
 
 /// One instrument: the thing traded, owned by one broker under one name.
 /// It stores its timeframes and nothing about its own identity.
@@ -79,12 +84,41 @@ pub type Instrument {
   Instrument(timeframes: Dict(Interval, Timeframe))
 }
 
+// The ONE dispatch body shared by all nine `case interval` arms below. READS
+// the timeframe under `key` from this instrument's Dict and that timeframe's
+// `growing_target_sourcebar`; WRITES the new growing value back into the
+// timeframe (record update) and the recomputed timeframe back under the key.
+// `compose` is the provider function — the caller passes the one whose NAME
+// fixes the target grade, so no Interval parameter can disagree with it
+// (R23 / R37). The return type has NO error channel and R33 has the system
+// already live as ONE Value: a timeframe for this key exists from the
+// instrument's own setup, so a missing key has nothing to compose and the
+// instrument is returned unchanged (no panic, no invented timeframe — R49).
+fn dispatch_compose(
+  instrument: Instrument,
+  key: Interval,
+  arriving: ib_sourcebar.IbSourceBar,
+  compose: fn(Option(SourceBar), ib_sourcebar.IbSourceBar) ->
+    #(Option(SourceBar), Option(SourceBar)),
+) -> #(Option(SourceBar), Instrument) {
+  case get_timeframe(instrument, key) {
+    Error(Nil) -> #(None, instrument)
+    Ok(timeframe) -> {
+      let #(closed, growing) =
+        compose(timeframe.growing_target_sourcebar, arriving)
+      let updated = Timeframe(..timeframe, growing_target_sourcebar: growing)
+      #(closed, put_timeframe(instrument, key, updated))
+    }
+  }
+}
+
 /// READ down: the timeframe under this interval key.
 pub fn get_timeframe(
   instrument: Instrument,
   interval: Interval,
 ) -> Result(Timeframe, Nil) {
-  todo as "05-01: read the timeframe named by the instrument's key"
+  let Instrument(timeframes) = instrument
+  dict.get(timeframes, interval)
 }
 
 /// WRITE: the recomputed timeframe back under this interval key.
@@ -93,7 +127,8 @@ pub fn put_timeframe(
   interval: Interval,
   timeframe: Timeframe,
 ) -> Instrument {
-  todo as "05-01: write back the recomputed timeframe"
+  let Instrument(timeframes) = instrument
+  Instrument(dict.insert(timeframes, interval, timeframe))
 }
 
 /// ONE arriving IB five-second bar, composed into the timeframe named by
@@ -113,36 +148,85 @@ pub fn put_timeframe(
 /// 2026-11-13). A provider that already serves every grade (Binance) has
 /// no such function here — a one-to-one `kline.to_sourcebar` already gives
 /// one closed `SourceBar` of the right variant (R28).
+///
+/// If no timeframe exists under `interval`, there is nothing to compose
+/// into: the instrument is returned unchanged and `closed` is `None`. The
+/// return type carries no error channel and no timeframe is invented here
+/// (R49); under R33 the timeframes are set up when this live Value is built.
 pub fn compose_ib_realtime_bar(
   instrument: Instrument,
   interval: Interval,
   arriving: ib_sourcebar.IbSourceBar,
 ) -> #(Option(SourceBar), Instrument) {
-  // Owner review 2026-11-14 (verbatim): *"you can still do meaningful basic
-  // things with todo here, for example, a case match to todo in each case,
-  // so you can find if the args are designed well"*. The nine arms ARE the
-  // nine `Interval` constructors: an incomplete `case` is a compile error
-  // (R13), so this skeleton is the check that the key and the nine target
-  // grades are ONE closed set. Each arm still names the ONE provider
-  // function it will dispatch to; the read/write pair comes with its body.
+  // The nine arms ARE the nine `Interval` constructors: an incomplete
+  // `case` is a compile error (R13), so the key and the nine target grades
+  // are ONE closed set. Each arm hands `dispatch_compose` the ONE provider
+  // function whose name fixes that grade. A missing key returns the
+  // instrument unchanged (see `dispatch_compose`): the return type has no
+  // error channel and there is no timeframe to compose into.
   case interval {
     IntervalOneMinute ->
-      todo as "05-01: ib_sourcebar.five_second_to_one_minute; read and write growing_target_sourcebar"
+      dispatch_compose(
+        instrument,
+        interval,
+        arriving,
+        ib_sourcebar.five_second_to_one_minute,
+      )
     IntervalThreeMinute ->
-      todo as "05-01: ib_sourcebar.five_second_to_three_minute; read and write growing_target_sourcebar"
+      dispatch_compose(
+        instrument,
+        interval,
+        arriving,
+        ib_sourcebar.five_second_to_three_minute,
+      )
     IntervalFifteenMinute ->
-      todo as "05-01: ib_sourcebar.five_second_to_fifteen_minute; read and write growing_target_sourcebar"
+      dispatch_compose(
+        instrument,
+        interval,
+        arriving,
+        ib_sourcebar.five_second_to_fifteen_minute,
+      )
     IntervalThirtyMinute ->
-      todo as "05-01: ib_sourcebar.five_second_to_thirty_minute; read and write growing_target_sourcebar"
+      dispatch_compose(
+        instrument,
+        interval,
+        arriving,
+        ib_sourcebar.five_second_to_thirty_minute,
+      )
     IntervalOneHour ->
-      todo as "05-01: ib_sourcebar.five_second_to_one_hour; read and write growing_target_sourcebar"
+      dispatch_compose(
+        instrument,
+        interval,
+        arriving,
+        ib_sourcebar.five_second_to_one_hour,
+      )
     IntervalFourHour ->
-      todo as "05-01: ib_sourcebar.five_second_to_four_hour; read and write growing_target_sourcebar"
+      dispatch_compose(
+        instrument,
+        interval,
+        arriving,
+        ib_sourcebar.five_second_to_four_hour,
+      )
     IntervalOneDay ->
-      todo as "05-01: ib_sourcebar.five_second_to_one_day; read and write growing_target_sourcebar"
+      dispatch_compose(
+        instrument,
+        interval,
+        arriving,
+        ib_sourcebar.five_second_to_one_day,
+      )
     IntervalOneWeek ->
-      todo as "05-01: ib_sourcebar.five_second_to_one_week; read and write growing_target_sourcebar"
+      dispatch_compose(
+        instrument,
+        interval,
+        arriving,
+        ib_sourcebar.five_second_to_one_week,
+      )
     IntervalOneMonth ->
-      todo as "05-01: ib_sourcebar.five_second_to_one_month; read and write growing_target_sourcebar"
+      dispatch_compose(
+        instrument,
+        interval,
+        arriving,
+        ib_sourcebar.five_second_to_one_month,
+      )
   }
 }

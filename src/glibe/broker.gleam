@@ -44,7 +44,8 @@ pub fn get_instrument(
   broker: Broker,
   symbol: Symbol,
 ) -> Result(Instrument, Nil) {
-  todo as "05-01: read the instrument named by the broker's key"
+  let Broker(instruments, ..) = broker
+  dict.get(instruments, symbol)
 }
 
 /// WRITE: the recomputed instrument back under this name.
@@ -53,15 +54,18 @@ pub fn put_instrument(
   symbol: Symbol,
   instrument: Instrument,
 ) -> Broker {
-  todo as "05-01: write back the recomputed instrument"
+  let Broker(instruments, accounts) = broker
+  Broker(dict.insert(instruments, symbol, instrument), accounts)
 }
 
 /// READ down: the account under this key.
 pub fn get_account(broker: Broker, id: AccountId) -> Result(Account, Nil) {
-  todo as "05-01: read the account named by the broker's key"
+  let Broker(accounts: accounts, ..) = broker
+  dict.get(accounts, id)
 }
 
 /// WRITE: the recomputed account back under this key.
 pub fn put_account(broker: Broker, id: AccountId, account: Account) -> Broker {
-  todo as "05-01: write back the recomputed account"
+  let Broker(instruments, accounts) = broker
+  Broker(instruments, dict.insert(accounts, id, account))
 }

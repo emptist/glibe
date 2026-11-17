@@ -1,85 +1,48 @@
-//// A name, not a thing. Implements
+//// The one name glibe owns. Implements
 //// `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
 ////
-//// READS: nothing. This is at the bottom of the chain.
-//// WRITES: `Symbol`, used as the key of `Broker.instruments`.
+//// READS: nothing — the bottom of the chain.
+//// WRITES: `Symbol`, the key of `Broker.instruments`.
 ////
-//// R22 (owner, verbatim): *"Symbol never is Instrument, people may call you
-//// with different titles and names they like, but you are you, how can a
-//// title and name be you?"* A broker spells an instrument its own way; the
-//// instrument itself never stores that spelling. There is no `InstrumentId`,
-//// no alias and no compatibility layer.
+//// R22: a Symbol is a NAME, never an Instrument. A broker spells an
+//// instrument its own way; the instrument never stores that spelling. No
+//// alias, no compatibility layer.
 ////
-//// R37: identity lives in the HOLDER's Dict key. R26: each broker's dialect
-//// is an adapter concern, not a new type in the model. R13: an identifier is
-//// its own type, opaque so a `String` is not a `Symbol`.
+//// GOVERNING ROOT (owner 2026-11-17 08:37, `docs/RULINGS.md`): type boundary
+//// = authority boundary. glibe may define ONLY the one standard `Symbol`; a
+//// broker's native symbol belongs to that broker (brokers do not define each
+//// other's either), and future sources are unknowable. Freezing foreign
+//// variants into this type was wrong by construction. Names are an OPEN set,
+//// so the single constructor carries a `String` — it is not a sum of broker
+//// dialects (R13: closed sets are types; R26: open set, one type at a time).
 ////
-//// R19 status: skeleton. ONE arm of `to_string` now has a working
-//// line (owner 2026-11-14: *"you can still use todo here, but it's so
-//// simple why wait?"*). The catch-all arm and its `Todo` warning are
-//// deliberately left by owner (*"now, this will cause a compile warning,
-//// I intend this"*) and are NOT silenced. The shape of `Symbol` itself is
-//// still open — see the owner review notes on the variants below.
+//// R28: each broker's native symbol lives in ITS OWN module and converts here
+//// through its own `to_symbol`. `Broker.instruments` is keyed by this one
+//// standard `Symbol` only, so one broker's spelling never crosses to another.
+//// Precedent: `binance/kline.BinanceKline` + `to_sourcebar` → the standard
+//// `api/sourcebar.SourceBar`.
+////
+//// The `<human:>` notes in the earlier skeleton were PSEUDOCODE and examples,
+//// not decisions (owner 2026-11-17 08:40). `Symbol.type` named a type, not a
+//// value. Full record: `docs/RULINGS.md` 「2026-11-17 08:37」.
 
-/// The spelling a broker uses for an instrument. Opaque: a spelling can only
-/// be made through `string_to_symbol`, and is never confused with a plain
-/// `String`.
+/// The one standard name for an instrument. Opaque: a spelling can only be
+/// made here and is never confused with a bare `String`. Names are an open
+/// set, so this is a single constructor over a `String`, not an enumeration
+/// of broker dialects — those belong to their brokers (R28, governance root).
 pub opaque type Symbol {
-  /// <**human: variants should be used here, so you should try whether if you should define Symbol types in broker modules, instead of in symbol module：
-  /// in Binance module, perhaps opaque one:
-  /// pub type BinanceSymbol {
-  ///   BinanceStockBSymbol(string: String)
-  ///   BinanceFuturesSymbol(string: String)
-  /// }
-  /// you should compare the two approaches to see which is more suitable for your case
-  /// 
-  /// 
-  /// all the variants below are just examples, not to take the names without careful consideration**>
-  BinanceStockBSymbol(string: String)
-  BinanceFuturesSymbol(string: String)
-  IbStockSymbol(string: String)
-  IbOptionSymbol(string: String)
-  IbForexSymbol(string: String)
-  //Symbol(spelling: String)
+  Symbol(spelling: String)
 }
 
-/// A broker's spelling becomes a `Symbol`. The wire spelling is boundary
-/// data; the entity is not built here (R22).
-/// <**human: string_to_symbol is a gleam convetion for a function that takes a string and returns a symbol, https://gleam.run/documentation/conventions-patterns-and-anti-patterns/
-/// the following code is just an example, I even don't know if they are correct in syntax, not to take the code without careful consideration**>
-///  
-/// pub fn string_to_symbol(string: String, symbol_type:Symbol.type) -> Symbol {
-///   case symbol_type {
-///       BinanceStockBSymbol -> BinanceStockBSymbol(string)
-///       BinanceFuturesSymbol -> BinanceFuturesSymbol(string)
-///       IbStockSymbol -> IbStockSymbol(string)
-///       IbOptionSymbol -> IbOptionSymbol(string)
-///       IbForexSymbol -> IbForexSymbol(string)
-///   }
-/// }
-/// 
-/// echo symbol.string_to_symbol("SPYBUSDT", BinanceStockBSymbol)
-/// or:
-/// echo symbol.string_to_symbol(symbol_type:IbStockSymbol, string:"SPY")
-/// **>
+/// Give a boundary spelling the standard name. The spelling is boundary data;
+/// the entity is not built here (R22).
 pub fn string_to_symbol(spelling: String) -> Symbol {
-  todo as "05-01: a name is given by the holder, not by the thing"
+  Symbol(spelling)
 }
 
-/// 
-/// <**human: use symbol_to_string to convert a symbol to a string **>
-/// 
-/// READS the spelling held by this `Symbol` variant. WRITES one `String`
-/// for codecs and view projections only.
+/// Project the standard name back to a `String`, for codecs and view
+/// projections only.
 pub fn to_string(symbol: Symbol) -> String {
-  case symbol {
-    // <**human: you can still use todo here, but it's so simple why wait?**>
-    BinanceStockBSymbol(string) -> string
-    BinanceFuturesSymbol(string) -> string
-    IbStockSymbol(string) -> string
-    IbOptionSymbol(string) -> string
-    IbForexSymbol(string) -> string
-    // <**human: now, this will cause a compile warning, I intend this**>
-    _ -> todo as "05-01: project the name at a boundary"
-  }
+  let Symbol(spelling) = symbol
+  spelling
 }

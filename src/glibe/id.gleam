@@ -48,13 +48,13 @@ pub opaque type AccountId {
 /// because `BrokerId` is opaque.
 /// <**human: this is in fact a string_to_broker_id, isn't it?**>
 pub fn string_to_broker_id(spelling: String) -> BrokerId {
-  todo as "05-01: a holder's key, not the broker's own field"
+  BrokerId(spelling)
 }
 
 /// A boundary spelling becomes the key of `Broker.accounts`.
 /// <**human: this is in fact a string_to_account_id, isn't it?**>
 pub fn string_to_account_id(spelling: String) -> AccountId {
-  todo as "05-01: a holder's key, not the account's own field"
+  AccountId(spelling)
 }
 
 /// `BrokerId` read back at a boundary. The constructor is `opaque`, so
@@ -63,10 +63,12 @@ pub fn string_to_account_id(spelling: String) -> AccountId {
 /// destructure it. `string_to_broker_id` and this function are the two
 /// directions of the one key.
 pub fn broker_id_to_string(id: BrokerId) -> String {
-  todo as "05-01: read the spelling out of the opaque broker key"
+  let BrokerId(spelling) = id
+  spelling
 }
 
 /// `AccountId` read back at a boundary; the same `opaque` rule as above.
 pub fn account_id_to_string(id: AccountId) -> String {
-  todo as "05-01: read the spelling out of the opaque account key"
+  let AccountId(spelling) = id
+  spelling
 }

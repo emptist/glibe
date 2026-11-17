@@ -30,7 +30,11 @@ pub type Signal {
 
 /// The wire / view spelling of a signal. Boundary data only.
 pub fn to_string(signal: Signal) -> String {
-  todo as "05-01: project a closed-set decision at a boundary"
+  case signal {
+    SignalBuy -> "buy"
+    SignalSell -> "sell"
+    SignalNoSignal -> ""
+  }
 }
 
 /// The same boundary in the other direction: a wire word read in becomes
@@ -38,5 +42,10 @@ pub fn to_string(signal: Signal) -> String {
 /// not have (R13 / R21). `to_string` and this function are the two halves
 /// of the codec; the wire spelling lives nowhere else.
 pub fn from_string(word: String) -> Result(Signal, Nil) {
-  todo as "05-01: read a boundary word back into the closed set"
+  case word {
+    "buy" -> Ok(SignalBuy)
+    "sell" -> Ok(SignalSell)
+    "" -> Ok(SignalNoSignal)
+    _ -> Error(Nil)
+  }
 }

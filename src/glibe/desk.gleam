@@ -49,10 +49,12 @@ pub type Desk {
 
 /// READ down: the broker under this key.
 pub fn get_broker(desk: Desk, id: BrokerId) -> Result(Broker, Nil) {
-  todo as "05-01: read the broker named by the desk's key"
+  let Desk(brokers) = desk
+  dict.get(brokers, id)
 }
 
 /// WRITE: the recomputed broker back under this key.
 pub fn put_broker(desk: Desk, id: BrokerId, broker: Broker) -> Desk {
-  todo as "05-01: write back the recomputed broker"
+  let Desk(brokers) = desk
+  Desk(dict.insert(brokers, id, broker))
 }

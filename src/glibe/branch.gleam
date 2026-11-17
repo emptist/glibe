@@ -33,9 +33,19 @@
 //// layer owns a branch's closing rule (R50). Each `todo as "..."` says
 //// what its body has to write (R19); `gleam build --warnings-as-errors`
 //// reports each one until it is written.
+////
+//// R19 status (2026-11-17): 7 bodies filled — four bar readers,
+//// `lower_case_type_name`, `recognised_this_bar`, `recognised_start_idx`,
+//// `exited_branch`. Seven remain: `branch_size` (growing branch has no
+//// exit_bar, yet the signature returns Int, not Option), `move_between` /
+//// `branch_stat` / `recognised_move` (need a measurement series absent from
+//// `DataBar`, R26), and `next_yang/yin_branch` + `branch_exit_leaf_size` (the
+//// closing count is per-interval in the reference — 40/8/2 — but this
+//// skeleton's `branch_exit_leaf_size()` takes no argument). Recorded in
+//// `docs/PENDING_DECISIONS.md` R.5; none is invented.
 
-import gleam/option.{type Option}
-import glibe/databar.{type DataBar}
+import gleam/option.{type Option, None, Some}
+import glibe/databar.{type DataBar, DataBar}
 import glibe/leaf.{type DataLeaf}
 
 /// The four bars a branch is: where the move opened, where it was
@@ -65,21 +75,30 @@ pub type DataBranch {
 /// The bar the move opened on — the dead leaf's `corner_bar` (R4 / R5).
 /// `timeframe.strategy` reads it on the bar a branch is recognised (R11).
 pub fn start_bar(branch: DataBranch) -> DataBar {
-  todo as "05-01: read branch.start_bar"
+  case branch {
+    YinBranch(start_bar:, ..) -> start_bar
+    YangBranch(start_bar:, ..) -> start_bar
+  }
 }
 
 /// The bar the branch was recognised on. `timeframe.branches` writes it
 /// from `working_databar`; R11 makes it the manual enter point, so
 /// `timeframe.strategy` reads it to put the decision on that bar.
 pub fn enter_bar(branch: DataBranch) -> DataBar {
-  todo as "05-01: read branch.enter_bar"
+  case branch {
+    YinBranch(enter_bar:, ..) -> enter_bar
+    YangBranch(enter_bar:, ..) -> enter_bar
+  }
 }
 
 /// The bar the move actually ended on, or `None` while it grows (R1 / R5).
 /// A death, not a discovery: `timeframe.branches` fills it from the
 /// riding leaf's `start_bar`.
 pub fn end_bar(branch: DataBranch) -> Option(DataBar) {
-  todo as "05-01: read branch.end_bar"
+  case branch {
+    YinBranch(end_bar:, ..) -> end_bar
+    YangBranch(end_bar:, ..) -> end_bar
+  }
 }
 
 /// The bar the branch was recognised as dead on, `branch_exit_leaf_size`
@@ -87,7 +106,10 @@ pub fn end_bar(branch: DataBranch) -> Option(DataBar) {
 /// `timeframe.strategy` reads it as the manual exit point (R11); `None`
 /// until that bar arrives.
 pub fn exit_bar(branch: DataBranch) -> Option(DataBar) {
-  todo as "05-01: read branch.exit_bar"
+  case branch {
+    YinBranch(exit_bar:, ..) -> exit_bar
+    YangBranch(exit_bar:, ..) -> exit_bar
+  }
 }
 
 /// How many bars the branch spans, `start_bar` to `exit_bar`, both ends
@@ -100,7 +122,10 @@ pub fn branch_size(branch: DataBranch) -> Int {
 /// `YangBranch` (R20 / R30). It is projected from the constructor, so the
 /// spelling cannot contradict the value it names (R2).
 pub fn lower_case_type_name(the_branch: DataBranch) -> String {
-  todo as "05-01: project yin or yang from the constructor"
+  case the_branch {
+    YinBranch(..) -> "yin"
+    YangBranch(..) -> "yang"
+  }
 }
 
 /// The move between ANY two bars — the one measurement every profit and
@@ -135,7 +160,13 @@ pub fn recognised_move(branch: DataBranch) -> Option(#(Float, Float, Float)) {
 /// answer on the same bar it reads `enter_bar` (R11). `None` names a
 /// branch not in hand.
 pub fn recognised_this_bar(branch: Option(DataBranch), idx: Int) -> Bool {
-  todo as "05-01: compare enter_bar.idx with idx; None is False"
+  case branch {
+    None -> False
+    Some(b) -> {
+      let DataBar(idx: enter_idx, ..) = enter_bar(b)
+      enter_idx == idx
+    }
+  }
 }
 
 /// `start_bar.idx` of a branch that was recognised, and `None` otherwise.
@@ -146,7 +177,13 @@ pub fn recognised_start_idx(
   branch: Option(DataBranch),
   recognised: Bool,
 ) -> Option(Int) {
-  todo as "05-01: read start_bar.idx only when recognised is True and a branch is in hand"
+  case branch, recognised {
+    Some(b), True -> {
+      let DataBar(idx: start_idx, ..) = start_bar(b)
+      Some(start_idx)
+    }
+    _, _ -> None
+  }
 }
 
 /// The branch the list ends on this bar, and nothing else (R5).
@@ -161,7 +198,23 @@ pub fn exited_branch(
   branches: List(DataBranch),
   idx: Int,
 ) -> Option(DataBranch) {
-  todo as "05-01: read the HEAD branch in O(1); Some only when its exit_bar.idx is idx, otherwise None"
+  // R5: only the head of the newest-first list (O(1), never list.find). Some
+  // only when that head's exit_bar.idx is idx, so one exit is never marked
+  // twice; a growing head (no exit_bar) or any other idx is None.
+  case branches {
+    [] -> None
+    [newest, ..] ->
+      case exit_bar(newest) {
+        Some(exit) -> {
+          let DataBar(idx: exit_idx, ..) = exit
+          case exit_idx == idx {
+            True -> Some(newest)
+            False -> None
+          }
+        }
+        None -> None
+      }
+  }
 }
 
 /// One bar of a `YangBranch`'s life (rides yin leaves, R2).

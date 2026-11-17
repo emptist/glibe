@@ -63,17 +63,22 @@
 //// it stops an AI from inventing parameter order and return types. A fact
 //// that must reach a later step is a FIELD, never a tuple on the side.
 ////
-//// R38: no replay, no rewind, no second batch implementation. History and
-//// live data are ONE stream (R33): a batch is just this same pair of entry
-//// points run n times. R33: no actor, scheduler, clock, poll or heartbeat.
+//// R38: one stream, no second path — history and live data are the SAME
+//// straight line (R33): a batch is just this same pair of entry points run
+//// n times. R33: no actor, scheduler, clock, poll or heartbeat.
 ////
-//// R19 status: skeleton apart from `bars_listed`, whose body reads the
-//// head of `databar_list` (owner 2026-11-15). Every other body is
-//// `todo as "..."`; a todo names the ONE value its body will read / write.
+//// R19 status (2026-11-17): filled — `bars_listed` (owner 2026-11-15),
+//// `sourcebar_gate` (the ONE door: validate -> born whole into
+//// working_databar), `working_databar_archived` (prepend to list head, clear
+//// working), and `databar_processing` (the single pipe shape, R40/R41).
+//// Four remain: `indicator` / `leaves` / `branches` / `strategy` — every one
+//// needs a value the current skeleton holds back (a measurement series on
+//// DataBar, the leaf-death criterion, the branch_exit_leaf_size, the decision
+//// rule), all recorded in `docs/PENDING_DECISIONS.md` R.5. None invented.
 
-import gleam/option.{type Option}
+import gleam/option.{type Option, None, Some}
 import glibe/api/interval.{type Interval}
-import glibe/api/sourcebar.{type SourceBar, type SourceBarRejection}
+import glibe/api/sourcebar.{type SourceBar, type SourceBarRejection} as sb
 import glibe/branch.{type DataBranch}
 import glibe/databar.{type DataBar}
 import glibe/leaf.{type DataLeaf}
@@ -140,14 +145,34 @@ pub fn sourcebar_gate(
   interval: Interval,
   sourcebar: SourceBar,
 ) -> Result(Timeframe, SourceBarRejection) {
-  todo as "05-01: one qualified sourcebar born whole into working_databar"
+  // R8 / R39: the ONE door. validate rejects (never repairs); a qualified bar
+  // is born whole as working_databar with idx from bars_listed (the head's
+  // idx + 1, O(1), never a list count). The caller's `interval` stays the key
+  // held by Instrument and is not written into this timeframe (R23 / R37).
+  case sb.validate(sourcebar) {
+    Error(rejection) -> Error(rejection)
+    Ok(qualified) -> {
+      let new_bar =
+        sb.to_databar(qualified, bars_listed(timeframe.databar_list))
+      Ok(Timeframe(..timeframe, working_databar: Some(new_bar)))
+    }
+  }
 }
 
 /// The whole straight line. Its body is a single pipe of steps, each
 /// `fn(Timeframe) -> Timeframe`, ending at `working_databar_archived`
 /// (R40 / R41). Infinitely extensible: adding a step is adding one `|>`.
 pub fn databar_processing(timeframe: Timeframe) -> Timeframe {
-  todo as "05-01: timeframe |> indicator |> leaves |> branches |> strategy |> working_databar_archived"
+  // R40 / R40-A / R41: ONE pipe shape — every step takes and returns a
+  // Timeframe, so adding a step is adding one `|>` and no step invents its
+  // own argument order. Each step's body is filled independently; this is
+  // only the straight line they sit on (R39).
+  timeframe
+  |> indicator
+  |> leaves
+  |> branches
+  |> strategy
+  |> working_databar_archived
 }
 
 /// Step: indicators, computed IN the working databar.
@@ -178,7 +203,17 @@ pub fn strategy(timeframe: Timeframe) -> Timeframe {
 /// Archive the working databar into `databar_list`. Takes NO bar argument:
 /// the bar archived is the one in the field (R39 / R41).
 pub fn working_databar_archived(timeframe: Timeframe) -> Timeframe {
-  todo as "05-01: Some -> None, bar prepended to the HEAD of databar_list (O(1), newest stays first)"
+  // R39 / R41: take the ONE bar in the field (no argument), prepend it to the
+  // HEAD of databar_list (O(1), newest stays first — bars_listed reads that
+  // head), and clear working_databar back to None. No bar is copied or walked.
+  case timeframe.working_databar {
+    None -> timeframe
+    Some(bar) ->
+      Timeframe(..timeframe, working_databar: None, databar_list: [
+        bar,
+        ..timeframe.databar_list
+      ])
+  }
 }
 
 /// The number of bars listed. R39 fixes this name — *"`bars_accepted` 不是

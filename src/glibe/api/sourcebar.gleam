@@ -91,13 +91,14 @@
 //// (R9).
 ////
 //// R33: history and live data are ONE stream. Both arrive here; there is no
-//// replay, no rewind, no second batch implementation (R38).
+//// second path or separate batch treatment (R38).
 ////
 //// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
 
 import gleam/time/timestamp.{type Timestamp}
 import glibe/api/interval.{type Interval}
-import glibe/databar.{type DataBar}
+import glibe/databar.{type DataBar, DataBar}
+import glibe/trading/signal
 
 /// The internal standard bar. One variant per time span; the variant IS the
 /// period, so no field names one. Not any provider's native structure and
@@ -200,7 +201,17 @@ pub type SourceBarRejection {
 /// every variant, so a tenth span is an `Inexhaustive patterns` error here
 /// (R13).
 pub fn interval(of sourcebar: SourceBar) -> Interval {
-  todo as "05-01: case over the nine variants, one Interval each"
+  case sourcebar {
+    SourceBarOneMinute(..) -> interval.IntervalOneMinute
+    SourceBarThreeMinute(..) -> interval.IntervalThreeMinute
+    SourceBarFifteenMinute(..) -> interval.IntervalFifteenMinute
+    SourceBarThirtyMinute(..) -> interval.IntervalThirtyMinute
+    SourceBarOneHour(..) -> interval.IntervalOneHour
+    SourceBarFourHour(..) -> interval.IntervalFourHour
+    SourceBarOneDay(..) -> interval.IntervalOneDay
+    SourceBarOneWeek(..) -> interval.IntervalOneWeek
+    SourceBarOneMonth(..) -> interval.IntervalOneMonth
+  }
 }
 
 /// The price checker (owner's word). A qualified bar passes unchanged; an
@@ -209,7 +220,24 @@ pub fn interval(of sourcebar: SourceBar) -> Interval {
 /// variant without a `case`. The bar it reads is already of its final
 /// grade: a checker never changes a period.
 pub fn validate(sourcebar: SourceBar) -> Result(SourceBar, SourceBarRejection) {
-  todo as "05-01: a qualified sourcebar passes; a typed rejection otherwise"
+  // R8 reject-never-repair. The six fields are on all nine variants, so they
+  // are reachable without a case. The single-constructor refusal is deliberate
+  // (R26): a finer reason waits for a real consumer.
+  case
+    sourcebar.open <. 0.0
+    || sourcebar.high <. 0.0
+    || sourcebar.low <. 0.0
+    || sourcebar.close <. 0.0
+    || sourcebar.high <. sourcebar.low
+    || sourcebar.high <. sourcebar.open
+    || sourcebar.high <. sourcebar.close
+    || sourcebar.low >. sourcebar.open
+    || sourcebar.low >. sourcebar.close
+    || sourcebar.volume < 0
+  {
+    True -> Error(SourceBarRejectionUnqualified)
+    False -> Ok(sourcebar)
+  }
 }
 
 /// Birth of the working databar: ONE qualified `SourceBar` becomes ONE whole
@@ -223,5 +251,14 @@ pub fn validate(sourcebar: SourceBar) -> Result(SourceBar, SourceBarRejection) {
 /// `databar_processing` thereafter reads and writes `working_databar`,
 /// not this `SourceBar`.
 pub fn to_databar(sourcebar: SourceBar, idx: Int) -> DataBar {
-  todo as "05-01: one whole closed sourcebar born at the source boundary"
+  DataBar(
+    idx: idx,
+    timestamp: sourcebar.timestamp,
+    open: sourcebar.open,
+    high: sourcebar.high,
+    low: sourcebar.low,
+    close: sourcebar.close,
+    volume: sourcebar.volume,
+    signal: signal.SignalNoSignal,
+  )
 }

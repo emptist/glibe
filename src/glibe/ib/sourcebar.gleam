@@ -129,13 +129,62 @@
 //// R28 requires the native shape preserved; each gains a reader in THIS
 //// module when its consumer exists.
 ////
-//// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
-//// These signatures are the DESIGN THOUGHT made checkable by the compiler,
-//// not an implementation (owner 2026-11-13).
+//// R19 status (2026-11-17): all nine `five_second_to_*` bodies are filled.
+//// The three-state accumulation lives in ONE private `accumulate`; each
+//// public function fixes its target grade by passing its own `Interval` and
+//// `SourceBar` constructor. Pinned by three assertions in `test/glibe_test.gleam`
+//// (start / accumulate / close). No `todo` remains here.
 
-import gleam/option.{type Option}
+import gleam/float
+import gleam/option.{type Option, None, Some}
 import gleam/time/timestamp.{type Timestamp}
+import glibe/api/interval
 import glibe/api/sourcebar.{type SourceBar}
+
+// Accumulate ONE arriving 5s bar into the growing target bar — the three
+// states of `working_databar` (R39). READS the growing SourceBar, this one
+// arriving bar and the UTC grid for `target_interval`; WRITES #(closed,
+// growing). `make` is the target grade's constructor: a value passed by the
+// caller, so the grade is fixed by the PUBLIC FUNCTION'S NAME, never read
+// from a parameter a caller could claim (R23 / R37). First bar starts the
+// period; a bar still inside the grid keeps the first open, takes MAX high /
+// MIN low / latest close and adds volume; a bar reaching the grid boundary
+// emits the whole grown bar and clears growing.
+fn accumulate(
+  growing_target_sourcebar: Option(SourceBar),
+  arriving: IbSourceBar,
+  target_interval: interval.Interval,
+  make: fn(Timestamp, Float, Float, Float, Float, Int) -> SourceBar,
+) -> #(Option(SourceBar), Option(SourceBar)) {
+  case growing_target_sourcebar {
+    None -> #(
+      None,
+      Some(make(
+        arriving.time,
+        arriving.open,
+        arriving.high,
+        arriving.low,
+        arriving.close,
+        arriving.volume,
+      )),
+    )
+    Some(bar) ->
+      case interval.sourcebar_closed(target_interval, arriving.time) {
+        True -> #(Some(bar), None)
+        False -> #(
+          None,
+          Some(make(
+            bar.timestamp,
+            bar.open,
+            float.max(bar.high, arriving.high),
+            float.min(bar.low, arriving.low),
+            arriving.close,
+            bar.volume + arriving.volume,
+          )),
+        )
+      }
+  }
+}
 
 /// One IB realtime bar. IB's `realtimeBar` callback gives `time`, `open`,
 /// `high`, `low`, `close`, `volume`, `wap` and `count`; all eight are kept.
@@ -165,7 +214,12 @@ pub fn five_second_to_one_minute(
   growing_target_sourcebar: Option(SourceBar),
   arriving: IbSourceBar,
 ) -> #(Option(SourceBar), Option(SourceBar)) {
-  todo as "05-01: accumulate one 5s bar into growing_target_sourcebar; on the UTC one-minute boundary emit SourceBarOneMinute and clear growing"
+  accumulate(
+    growing_target_sourcebar,
+    arriving,
+    interval.IntervalOneMinute,
+    sourcebar.SourceBarOneMinute,
+  )
 }
 
 /// ONE arriving 5-second bar accumulated toward ONE UTC three-minute
@@ -174,7 +228,12 @@ pub fn five_second_to_three_minute(
   growing_target_sourcebar: Option(SourceBar),
   arriving: IbSourceBar,
 ) -> #(Option(SourceBar), Option(SourceBar)) {
-  todo as "05-01: accumulate one 5s bar into growing_target_sourcebar; on the UTC three-minute boundary emit SourceBarThreeMinute and clear growing"
+  accumulate(
+    growing_target_sourcebar,
+    arriving,
+    interval.IntervalThreeMinute,
+    sourcebar.SourceBarThreeMinute,
+  )
 }
 
 /// ONE arriving 5-second bar accumulated toward ONE UTC fifteen-minute
@@ -183,7 +242,12 @@ pub fn five_second_to_fifteen_minute(
   growing_target_sourcebar: Option(SourceBar),
   arriving: IbSourceBar,
 ) -> #(Option(SourceBar), Option(SourceBar)) {
-  todo as "05-01: accumulate one 5s bar into growing_target_sourcebar; on the UTC fifteen-minute boundary emit SourceBarFifteenMinute and clear growing"
+  accumulate(
+    growing_target_sourcebar,
+    arriving,
+    interval.IntervalFifteenMinute,
+    sourcebar.SourceBarFifteenMinute,
+  )
 }
 
 /// ONE arriving 5-second bar accumulated toward ONE UTC thirty-minute
@@ -192,7 +256,12 @@ pub fn five_second_to_thirty_minute(
   growing_target_sourcebar: Option(SourceBar),
   arriving: IbSourceBar,
 ) -> #(Option(SourceBar), Option(SourceBar)) {
-  todo as "05-01: accumulate one 5s bar into growing_target_sourcebar; on the UTC thirty-minute boundary emit SourceBarThirtyMinute and clear growing"
+  accumulate(
+    growing_target_sourcebar,
+    arriving,
+    interval.IntervalThirtyMinute,
+    sourcebar.SourceBarThirtyMinute,
+  )
 }
 
 /// ONE arriving 5-second bar accumulated toward ONE UTC one-hour period;
@@ -201,7 +270,12 @@ pub fn five_second_to_one_hour(
   growing_target_sourcebar: Option(SourceBar),
   arriving: IbSourceBar,
 ) -> #(Option(SourceBar), Option(SourceBar)) {
-  todo as "05-01: accumulate one 5s bar into growing_target_sourcebar; on the UTC one-hour boundary emit SourceBarOneHour and clear growing"
+  accumulate(
+    growing_target_sourcebar,
+    arriving,
+    interval.IntervalOneHour,
+    sourcebar.SourceBarOneHour,
+  )
 }
 
 /// ONE arriving 5-second bar accumulated toward ONE UTC four-hour period;
@@ -210,7 +284,12 @@ pub fn five_second_to_four_hour(
   growing_target_sourcebar: Option(SourceBar),
   arriving: IbSourceBar,
 ) -> #(Option(SourceBar), Option(SourceBar)) {
-  todo as "05-01: accumulate one 5s bar into growing_target_sourcebar; on the UTC four-hour boundary emit SourceBarFourHour and clear growing"
+  accumulate(
+    growing_target_sourcebar,
+    arriving,
+    interval.IntervalFourHour,
+    sourcebar.SourceBarFourHour,
+  )
 }
 
 /// ONE arriving 5-second bar accumulated toward ONE UTC one-day period;
@@ -219,7 +298,12 @@ pub fn five_second_to_one_day(
   growing_target_sourcebar: Option(SourceBar),
   arriving: IbSourceBar,
 ) -> #(Option(SourceBar), Option(SourceBar)) {
-  todo as "05-01: accumulate one 5s bar into growing_target_sourcebar; on the UTC one-day boundary emit SourceBarOneDay and clear growing"
+  accumulate(
+    growing_target_sourcebar,
+    arriving,
+    interval.IntervalOneDay,
+    sourcebar.SourceBarOneDay,
+  )
 }
 
 /// ONE arriving 5-second bar accumulated toward ONE UTC one-week period;
@@ -228,7 +312,12 @@ pub fn five_second_to_one_week(
   growing_target_sourcebar: Option(SourceBar),
   arriving: IbSourceBar,
 ) -> #(Option(SourceBar), Option(SourceBar)) {
-  todo as "05-01: accumulate one 5s bar into growing_target_sourcebar; on the UTC one-week boundary emit SourceBarOneWeek and clear growing"
+  accumulate(
+    growing_target_sourcebar,
+    arriving,
+    interval.IntervalOneWeek,
+    sourcebar.SourceBarOneWeek,
+  )
 }
 
 /// ONE arriving 5-second bar accumulated toward ONE UTC one-month period;
@@ -237,5 +326,10 @@ pub fn five_second_to_one_month(
   growing_target_sourcebar: Option(SourceBar),
   arriving: IbSourceBar,
 ) -> #(Option(SourceBar), Option(SourceBar)) {
-  todo as "05-01: accumulate one 5s bar into growing_target_sourcebar; on the UTC one-month boundary emit SourceBarOneMonth and clear growing"
+  accumulate(
+    growing_target_sourcebar,
+    arriving,
+    interval.IntervalOneMonth,
+    sourcebar.SourceBarOneMonth,
+  )
 }

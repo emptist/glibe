@@ -27,9 +27,18 @@
 //// (R39). `timeframe.strategy` reads the corner bar. Each `todo as "..."`
 //// says what its body has to write (R19); `gleam build --warnings-as-errors`
 //// reports each one until it is written.
+////
+//// R19 status (2026-11-17): 7 bodies filled — `born_yin/born_yang`,
+//// `start_bar/end_bar/corner_bar`, `leaf_size` (R6 idx arithmetic), and
+//// `cma_recurrence` (R3 forward step). Four remain: `leaf_depth` / `leaf_cma`
+//// need the selected moving-average field on `DataBar` (R26 — a field arrives
+//// with its real consumer), and `next_yin_leaf` / `next_yang_leaf` need the
+//// leaf-death/turn criterion that this skeleton's `///` does not specify yet.
+//// Recorded in `docs/PENDING_DECISIONS.md` R.5; none is invented here.
 
-import gleam/option.{type Option}
-import glibe/databar.{type DataBar}
+import gleam/int
+import gleam/option.{type Option, None, Some}
+import glibe/databar.{type DataBar, DataBar}
 
 /// The three bars a leaf is: the bar it opened on, the last bar that
 /// belonged to it (`None` until it has ended, R1), and the extreme that moves
@@ -47,32 +56,41 @@ pub type DataLeaf {
 /// `growing_yin_leaf` is `None` and writes the result into that field. The
 /// leaf starts and corners on that one whole bar and has no `end_bar` (R1).
 pub fn born_yin(databar: DataBar) -> DataLeaf {
-  todo as "05-01: YinLeaf(start_bar: databar, end_bar: None, corner_bar: databar)"
+  YinLeaf(start_bar: databar, end_bar: None, corner_bar: databar)
 }
 
 /// A yang leaf born on this bar — the mirror of `born_yin`.
 /// `timeframe.leaves` writes it into `growing_yang_leaf` (R1 / R2).
 pub fn born_yang(databar: DataBar) -> DataLeaf {
-  todo as "05-01: YangLeaf(start_bar: databar, end_bar: None, corner_bar: databar)"
+  YangLeaf(start_bar: databar, end_bar: None, corner_bar: databar)
 }
 
 /// The bar a leaf opened on. `timeframe.branches` compares
 /// `working_databar.idx` with `growing_yin_leaf.start_bar.idx` (R4);
 /// `timeframe.strategy` reads the branch's `start_bar` that came from here.
 pub fn start_bar(leaf: DataLeaf) -> DataBar {
-  todo as "05-01: read leaf.start_bar"
+  case leaf {
+    YinLeaf(start_bar:, ..) -> start_bar
+    YangLeaf(start_bar:, ..) -> start_bar
+  }
 }
 
 /// The last bar that belonged to this leaf, or `None` while it grows (R1).
 /// `timeframe.leaves` writes it from `last_bar` when the leaf settles.
 pub fn end_bar(leaf: DataLeaf) -> Option(DataBar) {
-  todo as "05-01: read leaf.end_bar"
+  case leaf {
+    YinLeaf(end_bar:, ..) -> end_bar
+    YangLeaf(end_bar:, ..) -> end_bar
+  }
 }
 
 /// The leaf's moving extreme. `timeframe.branches` takes a newly recognised
 /// branch's `start_bar` from the settled leaf's `corner_bar` (R4 / R5).
 pub fn corner_bar(leaf: DataLeaf) -> DataBar {
-  todo as "05-01: read leaf.corner_bar"
+  case leaf {
+    YinLeaf(corner_bar:, ..) -> corner_bar
+    YangLeaf(corner_bar:, ..) -> corner_bar
+  }
 }
 
 /// How many bars this leaf spans. `timeframe.branches` passes the bar in
@@ -80,7 +98,18 @@ pub fn corner_bar(leaf: DataLeaf) -> DataBar {
 /// count with `branch_exit_leaf_size` to close a branch (R5 / R6).
 /// No price is read here.
 pub fn leaf_size(leaf: DataLeaf, databar: DataBar) -> Int {
-  todo as "05-01: idx arithmetic, both ends included; never walk databar_list"
+  // R6: a length test, never a price test; two idx subtracted, both ends
+  // included. A growing leaf has no end_bar (R1), so the bar in hand is its
+  // last bar. No walk of databar_list.
+  let DataBar(idx: start_idx, ..) = start_bar(leaf)
+  let last_idx = case end_bar(leaf) {
+    Some(end) -> {
+      let DataBar(idx: i, ..) = end
+      i
+    }
+    None -> databar.idx
+  }
+  last_idx - start_idx + 1
 }
 
 /// The leaf's magnitude as a share, read off `start_bar` and `corner_bar`.
@@ -102,7 +131,25 @@ pub fn cma_recurrence(
   prev_cma_of: fn(DataBar) -> Float,
   raw_of: fn(DataBar) -> Float,
 ) -> Float {
-  todo as "05-01: (previous mean * held + raw) / (held + 1); born this bar returns raw"
+  // R3: N_old = idx - start_idx is the number of bars already held. Born on
+  // this bar (N_old = 0) returns its own raw value, never 0.0. Otherwise the
+  // previous mean is read off the HEAD of the newest-first list (O(1)); the
+  // list is never walked.
+  let DataBar(idx: idx, ..) = databar
+  let held = idx - start_idx
+  case held {
+    0 -> raw_of(databar)
+    _ ->
+      case databar_list {
+        [] -> raw_of(databar)
+        [previous, ..] -> {
+          let numerator =
+            prev_cma_of(previous) *. int.to_float(held) +. raw_of(databar)
+          let denominator = int.to_float(held + 1)
+          numerator /. denominator
+        }
+      }
+  }
 }
 
 /// The leaf's running mean on this bar, of the selected moving average and
