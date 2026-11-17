@@ -4,6 +4,31 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
+## 2026-11-17 16:50 (当前状态 — try_plushie 真评测完成，app/UI 路线据实测钉下)
+
+owner 要求真评测 try_plushie 能否担当 glibe 的 app（UI）层："需要你自己去
+评测，评测结果出来以后，可以确定 UI 的路线"。**结论：能，且正好补上 glibe
+唯一缺的视觉那半。** 实测（非转述 lab 文档）：try_plushie 的
+`format --check` / `build --warnings-as-errors` 均 0；mock 与 headless 双后端
+各 **35 passed**；真窗口 `gleam run` 日志只有 Compiled/Running，无
+init_timeout / renderer panic。双图隔离实测一张前进另一张 0 patch，单 bar
+增量 `insert=1/3/1/3, remove=0, update_props=0`。
+
+- **评测的四块**：眼（plushie 原生桌面 GUI，纯 Gleam、无 JS、整个 Desk 建成
+  model）、耳/口（glib 三选一已实测 BEAM 闭环 `ffmpeg→whisper_cpp NIF→say`，
+  四指令 4/4）、数据入口（glibe httpc / WS → 标准 SourceBar → glib timeframe）、
+  组合（同一 BEAM 节点消息通信、可分可合，符合 owner「眼一个耳一个并用一个」）。
+- **UI 路线据实钉下**：领域 model = Desk（top type，已清楚）；视觉 = plushie
+  原生桌面 GUI（erlang target、不依赖 JS）；语音 = BEAM actor + NIF/say；
+  入口 = glibe 取数 + glib 处理。不依赖 JS target，正是 owner 说的「原先
+  glibe 那个不依赖 js 的 app 路线」的 GUI 补完。
+- **诚实边界**：plushie pre-1.0（双重上游风险）；`voice.gleam` 是 stub（`speak`
+  用 a11y announce 非真 TTS，声控半未在 lab 接线）；只带一份 BTCUSDT_1h 数据；
+  无内置金融图表 widget；真窗口沙箱内无法看图、只确认日志无错（画面由 owner
+  此前复现）。最终以此路线落地 app 属 owner 裁定，本轮不替定案、不新增待决项。
+- 三处 tree 未改源码、仍干净。逐字与全部证据见 `docs/RULINGS.md`
+  「2026-11-17 16:50」。
+
 ## 2026-11-17 16:12 (当前状态 — 已提交 + 纠正「全被挡」误判；16:01 节为上次)
 
 owner 质问「为什么不提交、什么在挡你往前推」。答案：没东西挡，是我拖。

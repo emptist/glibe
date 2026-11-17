@@ -4848,3 +4848,111 @@ R.5 已据实改写，14/12 数字全同步。
 
 **读法**：R3 早就把 sma_tiny 给了；这里纠正的是「它因 R46 消失」这个我自己的
 误判，不是新裁定。owner 逐字全文在 R3 与本条。
+
+---
+
+## 2026-11-17 16:50 — owner 要求真评测 try_plushie 能否担当 glibe 的 app（UI 层）；实测结论：能，且正好补上 glibe 唯一缺的那半
+
+owner 逐字（本轮）：反复让我看 try_plushie，目的是让我"重新考虑将来的 glibe
+app 技术路线如何选择"；"原先的 glibe 有一个 app 的路线，并不依赖 js，但是
+让你去评审 try_plushie，你做了吗？"。model 层（Desk 为顶部 type 逐步下沉到
+timeframe）"你已经清楚了"；app 层 = UI，为人工便利——"人工交易者用户必然
+期望眼耳分工，用眼看行情用脑分析行情的同时，还能用口发布指令，用耳听取反馈，
+包括成交回报等等，这样才是高效率的手工交易平台"。glib 的视觉用 web client、
+声控用一系列技术、已测试但没写出 app；"这两个 app 可分可合，各有意义。哪怕
+搞三个 app 也不难，眼一个耳一个，并用一个，难吗？"。指令："try_plushie 实验
+如何？你评估下来，可以当此重任吗？需要你自己去评测。评测结果出来以后，可以
+确定 UI 的路线，这个 app 基本就落地了。"
+
+这是**评测指令 + app 层设计陈述**，不是新编号。本条记 owner 逐字、实测与结论。
+
+### 一、真评测（本次实跑，不是转述 lab 的文档自述）
+
+对象：`~/gits/hub/tools_ib/try_plushie`。逐条实测：
+
+| 检验 | 命令 | 结果 |
+|---|---|---|
+| 格式 | `gleam format --check src test` | exit 0 |
+| 构建 | `gleam build --warnings-as-errors` | exit 0，无 warning |
+| mock 后端 | `gleam test` | **35 passed, no failures** |
+| headless 真渲染后端 | `PLUSHIE_TEST_BACKEND=headless gleam test` | **35 passed, no failures** |
+| 真窗口 | `gleam run -m try_plushie` | 日志只有 `Compiled` / `Running try_plushie.main`，12s 内无 `init_timeout`（`FailedToStartChild(1, InitTimeout)`）、无 renderer `status 134` / font-size panic |
+
+双后端 PROBE 数字（本次跑出，两次一致）：双图隔离——h1 前进一根 → m5 子树
+**0 patch**，m5 前进一根 → h1 子树 **0 patch**；单 bar 到达 candles
+`insert=1 remove=0 update_props=0`、overlays `3/0/0`、volume `1/0/0`、kdj
+`3/0/0`。这是实测输出，不是 lab 文档里的旧断言。
+
+代码实读（不是文档自述）：`src/try_plushie.gleam` 的 `build_desk()` 用 glib 真
+构造器建 2 broker / 5 instrument / 14 timeframe，身份全在 dict 键里；
+`history_stream` 把 glib 真 SourceBar 逐根 emit，`feed_one_bar` 是唯一绘图
+seam；`update` 按身份键回写 desk；`view` 出两个真 canvas + desk 树。
+`fusion_view.gleam`（877 行）已实现 §19 的「chart 不存 bars、bar 到达即生成
+图形、自动缩放 O(1)」。`voice.gleam` 是 stub（见边界）。
+
+### 二、评测结论：能当此重任——try_plushie 证明的是「整条 app 链可组合」
+
+不是只证明"能画 K 线"，而是把 owner 要的手工交易平台四块全在同一 BEAM 节点
+跑通（对照 `try_plushie/fusion-design.md` §4 融合架构）：
+
+1. **眼（视觉）**：plushie 原生桌面 GUI 直接吃 glib 的 `DataBar`。多 broker /
+   证券 / 周期的整个 `Desk` 建成 model；单 bar 增量图 + 双图独立更新 +
+   zoom/pan/crosshair + 分层 canvas 稳定 id，全部实测达标。纯 Gleam，桌面端
+   预编译 renderer、无需 Rust 工具链、不依赖 JS target——正合 owner「拒绝 JS
+   target / mjs 是祸根」。
+2. **耳/口（声控）**：声控半不是 try_plushie 验证的，是 glib 三选一已经实测的
+   （`glib/docs/reference/gleam-wire-and-three-way-choice-2026-11-01.md` §3）：
+   `麦克风 → ffmpeg(os:cmd) → whisper_cpp NIF → Gleam 类型 → say(os:cmd)`，
+   四个定死指令 4/4 精确识别、静麦正确拒绝、say 可听。**JS target 做不了声控**
+   （Node 无语音 API），BEAM 全赢。
+3. **数据入口**：glibe 的 httpc / Binance 原生 WebSocket kline 推送 → 标准
+   `SourceBar` → glib 的 `sourcebar_gate` / `databar_processing`（lab
+   `plushie-architecture.md` §20/§21 实测；真窗口已能看 chart growing）。取数
+   用 glibe 的方法、处理用 glib，与 owner 2026-11-16 裁决同向。
+4. **可分可合**：视觉在 plushie 进程、声控在 BEAM actor、引擎是纯值——同一
+   BEAM 节点内按消息通信。眼一个、耳一个、合并一个都是接线问题，正是 owner
+   说的"可分可合，各有意义；搞三个也不难"。领域 type 全部从 `Desk` 展开，
+   与 R「Desk 是中心控制室」（RULINGS 1971-1974）一致。
+
+### 三、UI 路线（据实测 + owner 已陈述的设计）
+
+不是新裁定，是把 owner 的设计陈述与实测对齐后据实钉下来的路线：
+
+| 层 | 用什么 | 依据 |
+|---|---|---|
+| 领域 model | `Desk` 为 top type（已梳理清楚） | owner 本轮 + R「Desk 中心控制室」 |
+| 眼：视觉 UI | **plushie 原生桌面 GUI**（erlang target、纯 Gleam、无 JS） | 本次实测 + owner 拒绝 JS target |
+| 耳/口：语音 | BEAM 侧 actor：`ffmpeg`/`whisper_cpp` NIF/`say`；只念屏幕给不了的（下单/成交/拒单/待确认价） | glib 三选一实测 + owner 眼耳分离规则 |
+| 数据入口 | glibe httpc / WebSocket → 标准 `SourceBar` → glib timeframe | R33 + owner 11-16 裁决 |
+| 组合 | 同一 BEAM 节点、消息通信、可分可合 | owner 本轮 |
+
+**这条路线不依赖 JS target**，正好是 owner 说的"原先 glibe 那个不依赖 js 的
+app 路线"的 GUI 补完。
+
+### 四、诚实边界（评测如实记录，不夸大）
+
+- **plushie pre-1.0**（Gleam SDK 0.6.0 / renderer 0.7.1）：API 漂移 + 双重上游
+  风险（iced 上游破坏性变更 + plushie fork/协议/多 SDK）。版本被
+  `plushie_rust_version` 钉死，升级要同步追。
+- **`voice.gleam` 是 stub**：`hear` 只做最小解析、`transcribe` 返回 Error、
+  `speak` 走的是 plushie 的 a11y `command.announce`（读屏器）**不是真 TTS**。
+  声控那半在 try_plushie 里**没接线**；真闭环是 glib 三选一实测的，落地需在
+  BEAM 侧接回 `say` 与 whisper NIF，并把四指令闭集类型接回主 app。
+- **只有一份数据**：仓库只带 `BTCUSDT_1h.json`（4800 根）；第二张图是同一真
+  实流的前 1/12（400 根），不是真 5min bar。
+- **无内置金融图表 widget**：K 线几何、轴、视口映射自己算（lab 有可复用种子）；
+  Patch 增量 / 分层缓存 / 命中 / 滚轮是协议内建。
+- **高频海量图形性能未压测**；社区小众（作者 dhedlund）有长期维护风险。
+- **真窗口证据的边界**：本次拿到的启动日志干净（无 init_timeout / panic），
+  但沙箱挡住 `pgrep` / 无法看图，未能独立确认 renderer 进程常驻与画面像素；
+  真桌面画面稳定由 owner 此前复现（`plushie-architecture.md` §21.5）记录。
+- **最终以此路线落地 app 仍属 owner 裁定**；本条是技术评测结论，不替他定案、
+  不弹卡片、不新增待裁决项。
+
+### 五、保持移动
+
+本轮是评测 + 定路线，未改 glib / glibe / try_plushie 任何源码（三处 tree 仍
+干净）。路线既已据实测钉下来，下一步 app 落地按 R19 doc-led TDD 逐模块推进
+（先 `////`/`///` 定 type 与 in/out、再空架子、测试、填体），声控那半接 BEAM
+侧真 TTS/STT，不预先堆机制、不造调度层。叶子/分支/策略 12 个 Todo 仍按 R.5
+的真实缺口逐项填，两件事并行不冲突。
