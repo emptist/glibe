@@ -4,7 +4,101 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-16 03:09 (当前状态)
+## 2026-11-17 16:01 (当前状态 — lab 整链核对；15:51 节为上次)
+
+owner 指路：try_plushie 把整个 Desk 建成 plushie 的 model；核对它的
+Desk ▸ Broker ▸ Instrument ▸ Timeframe 组合，「find how well they work
+together」，glibe 是未来、保持移动。实测（读 lab 源码 + 跑双项目门禁）：
+
+- **lab 真的测了整条链，glib 没有**：`try_plushie/src/try_plushie.gleam`
+  `build_desk()` 建 2 broker / 5 instrument / 14 timeframe，身份全在 dict
+  键里；`desk_model_represented_test` 钉住这些数字，两个 routing test 验
+  按身份键选分支。lab 门禁 35 passed / check 0 error。glib `test/` 无
+  同类整链测试 —— 这是 owner 说的「not covered by glib」。
+- **已落地进 glibe**：`test/glibe_test.gleam` 新增
+  `whole_chain_by_identity_keys_test`，把 lab 的装配缩成一个 Desk：三级键
+  向下写、照原键读回，h1/d1 选中不同 timeframe、未写键在本层 miss。
+  刻意**不在 Desk 旁另存 tf**（R33 唯一顶层 Value）。`gleam test`
+  **43 passed**。
+- **不搬的三样**：lab 的 `Model.desk` + 单独 `tf` 双份（R33 明禁）、
+  glib 6 构造子的 provider `Symbol`（R28 / 10:27 否决）、`new()`（R49）
+  与 `sourcebar_buffer`（10:16/10:25 否决）。全文见 `docs/RULINGS.md`
+  「2026-11-17 16:01」。
+- 门禁：`format` / `check` / `test` **43 passed** / `docs` / `export` 全 0；
+  WAE exit 1、**47 = 15 Todo + 32 unused arg**，R.5 清单未变（新增真断言）。
+
+**下面 15:51 及更早各节是历史，当前答案以本节为准。**
+
+## 2026-11-17 15:51 (历史 — 当前状态见上节；文档与代码核对)
+
+owner 逐字：*"you have to check whether docs and codebase are go along with
+the design, so I don't believe 'Code untouched' is some good news"*。真去读代码、
+跑门禁，查出并修正**四处**此前写成「不动 / 已一致」但实际不成立的东西：
+
+- **代码里真的有被否决的词**：`timeframe.gleam:66`、`api/sourcebar.gleam:94`
+  两处 `////` 设计注释里的 `replay`（违反 10:25 / 10:31）。已改成正面陈述
+  （`one stream, no second path` / `no second path or separate batch treatment`），
+  行数不变。`grep -rni "buffer\|replay" src test` 现为 **0**。
+- **两个真实编译告警**：`timeframe.gleam:81-82` duplicate import、`:84` unused
+  `idx`。已合并 import / 删 `idx`。WAE 从 49 降到 **47 = 15 Todo + 32 unused
+  arg**，其余门禁 `format` / `check` / `test` **42 passed** / `docs` / `export` 全 0。
+- **行号漂移**：填 body 把行推后，Guide / RULINGS / STATE 老引用失效；本轮按
+  符号名重定位（完整对照表见 `docs/RULINGS.md`「2026-11-17 15:51」）。
+- **假「不含」声明**：RULINGS 10:25 / 10:31 写的「src/test 不含这两词，不动」
+  是当时没实测的错话，已就地改正并指向本节。
+
+核对通过：15 Todo 与 R.5 清单吻合；无 actor/scheduler/poll（R33）；`timestamp`
+全是 `Timestamp`（R27）；`sourcebar_list` 零出现是 10:16 的有意延迟（等真实
+消费方，R26/R32），不是漂移。全文见 `docs/RULINGS.md`「2026-11-17 15:51」。
+
+**下面 10:16 及更早各节是历史，当前答案以本节为准。**
+
+## 2026-11-17 10:16 (历史 — 当前状态见上节；含 10:25 / 10:27 / 10:31)
+
+- **owner 10:31 逐字裁定（用法，最 sharp 的一条）**：*"all those sentences
+  include 'buffer' or 'replay' as if they are design, are AI's own sayings,
+  not mine. Unless as when I quote their words for correcting them, I have
+  never used such stupid words."* ⇒ 这两词一旦出现在「像设计」的句子里，
+  那句话就是 AI 的说法；**唯一合法出场是引用它们加以纠正**。`DEVELOPER_GUIDE.md`
+  已据此清理：设计位置全改 owner 的词，glib 代码字面里的旧名显式标注否决；
+  顶部加术语守卫。全文见 `docs/RULINGS.md`「2026-11-17 10:31」。
+- **owner 10:25 逐字裁定（归属 + 本体）**：*"all `buffer` and `replay`, no
+  matter where you see them, must not be my words. Since this is a pure stream
+  system, there will never be such stupid things"* ⇒ `buffer` / `replay`
+  **永不是 owner 的词**（不许写成他的理由/设计/待办；glib 旧文档贴的
+  `[user ...]` 标签他现予否认），且 glibe 作为 pure stream **本体上没有**
+  这类累积/重放之物。全文见 `docs/RULINGS.md`「2026-11-17 10:25」。
+- **owner 逐字裁定（10:16）**：*"sourcebar_list is legal, sourcebar_buffer is
+  illegal, we don't need any buffer here. sourcebar_list is only for later
+  exporting (saving for potential offline use)"*。待裁决第 1 项
+  （`sourcebar_buffer` 导出路径要不要在 glibe 存在）**关闭**：非法、
+  不引入、不需要任何 buffer。`sourcebar_list` 合法但身份单一 —— 只是
+  之后导出用的数据，不是 stream 的一部分、不参与 computation。
+- **owner 10:19 追问「where when and how they use sourcebar_buffer in glib
+  or glibe? why?」—— 逐文件实测回答**：glib 真的有并在用 —— 字段
+  `glib/src/glib/timeframe.gleam:149`、出生 `:169`、每根 gate 累加
+  `:235-239`、getter `:309-311`、`sourcebar_export.gleam:41-46` 的
+  `[bar, ..buffer]`、退出一次 reverse 写 `trading/export.gleam:21-25`、
+  测试钉在 `timeframe_test.gleam:900/903/908/1040`。glib 旧文档当时记的
+  why（`DESIGN.md:129-130` 的 offline replay、`glib/docs/RULINGS.md:684-694`
+  的「fold 不在时到达的值要有人保管」）—— **这两处是 glib 文档的说法、
+  不是 owner 的话**：owner 10:25 裁定 `buffer` / `replay` 永远不是他的词，
+  pure stream 系统绝无此物（全文见 `docs/RULINGS.md`「2026-11-17 10:25」）。
+  **glibe 里零出现**（`src/`/`test/` 全库 0 处），`timeframe.gleam:112-126`
+  无该字段、`:27-32` 明写 "There is no SourceBar accumulator" —— 它从来
+  只是决策区的标签。命名（owner 10:27 更正）：`sourcebar_list` **一直是 owner
+  的词**，与 `databar_list` / `yin_branch_list` / `yang_branch_list` 平行；
+  `sourcebar_buffer` 是 AI 改的蠢名字，他从未用过 —— 不存在「改回来」。
+  `manual-strategy-carriage-2026-10-31.md:146` 的 *"the diagram also said
+  `sourcebar_list`; the field is `sourcebar_buffer`"* 记的就是这次 AI 改名。
+  全文见 `docs/RULINGS.md`「2026-11-17 10:16 / 10:25 / 10:27」三条。
+- **落地**：`docs/PENDING_DECISIONS.md` 第 1 项整条删除，待裁决 2 → **1 项**
+  （只剩 `webclient/`）；`DEVELOPER_GUIDE.md` §6.6 / §7(e) 改为裁定结论；
+  HANDOFF 计数同步。`src/` / `test/` 不动 —— 导出格式已定 ETF，落码等真实
+  离线导出消费方（R26/R32）。**下面 2026-11-16 及更早各节是历史，不是当前
+  答案；本节才是。**
+
+## 2026-11-16 03:09 (历史 — 当前状态见上节)
 
 - **owner 逐字**（上一会话末，授权提交）：*"你可以提交你所说的知识中心
   里面的变动，很好的。"* ⇒ **已提交** `~/gits/gleam-language` 的

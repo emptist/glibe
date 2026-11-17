@@ -9,6 +9,13 @@
 > `docs/STATE.md` 最新节 → 载入 `gleam-language` 技能并**全文**读
 > `references/gleam-core.md`（仓库镜像
 > `docs/gleam-thinking-core-to-memory.md`）→ 本文。
+>
+> **术语守卫（owner 2026-11-17 10:25 / 10:27 / 10:31）**：`buffer` 与
+> `replay` 是 AI 的蠢词，**从不是 owner 的话**。凡把这两词当设计术语用的
+> 句子都是 AI 自己的说法；owner 只在「引用它们加以纠正」时用过。它们的
+> 唯一合法出场是「被引用的 glib 旧代码字面 + 显式标注已否决」。owner 的词
+> 是 `sourcebar_list`（与 `databar_list` 等 `xyz_list` 平行），系统是 pure
+> stream、没有这些蠢物。读到这两词时先认清：要么是纠正引用，要么是 AI 污染。
 
 **路径约定**：`glib/foo.gleam:N` 指参照实现 `../glib/src/glib/foo.gleam`
 第 N 行；`glib/web/server_ffi.mjs:N` 指
@@ -29,7 +36,7 @@ owner 2026-11-15 逐字：*"整体设计是非常精巧的。不是粗心大意�
 
 | 名字 | 看起来像 | 实际 | 出处 |
 |---|---|---|---|
-| `bars_listed` | 数一数 `databar_list` 有多长 | 读**头部**那根 bar 的 `idx`，返回 `idx + 1` | `glib/timeframe.gleam:827`；`glibe/timeframe.gleam:191` |
+| `bars_listed` | 数一数 `databar_list` 有多长 | 读**头部**那根 bar 的 `idx`，返回 `idx + 1` | `glib/timeframe.gleam:827`；`glibe/timeframe.gleam:227` |
 | `last_bar` | 取 List 最后一根 | 读**头部**：倒叙归档下，头就是「上一根」 | `glib/timeframe.gleam:601` |
 | `exited_branch` | 在分支表里 `list.find` 一个匹配 | 只读**头部**一根，比较它的 `exit_bar.idx` | `glib/branch.gleam:267`；`glibe/branch.gleam:160` |
 
@@ -138,12 +145,12 @@ glib 里随流增长的 List 都是这个形状，没有例外。下表所有裸
 | List | 定义 | 写入 | 读取 |
 |---|---|---|---|
 | `databar_list` | `glib/timeframe.gleam:96` | `:848` prepend | `:280` / `:601` / `:827` 头 |
-| `sourcebar_buffer` | `:146-149`（注释明写 *"Newest-first like `databar_list`, so capture is O(1)"*） | `glib/sourcebar_export.gleam:45` `[sourcebar, ..buffer]` | `glib/trading/export.gleam:24` 一次性 `list.reverse` |
+| `sourcebar_list`（glib 代码里被 AI 改名成 `sourcebar_buffer` —— 蠢名，已否决，owner 10:27） | `:146-149`（注释原写 *"Newest-first like `databar_list`, so capture is O(1)"*） | `glib/sourcebar_export.gleam:45` 的 cons（代码字面 `[sourcebar, ..buffer]`） | `glib/trading/export.gleam:24` 一次性 `list.reverse` |
 | `signif_yin_leaf_list` / `signif_yang_leaf_list` | `:127-128` | `:549` / `:555` prepend | 归档记录，不在每根 bar 的判定路径上 |
 | `yin_branch_list` / `yang_branch_list` | `:144-145` | `:690` / `:694` prepend | `:746` → `branch.exited_branch` 读头 |
 
-`glibe` 骨架里对应的字段是 `src/glibe/timeframe.gleam:110`
-`databar_list`、`:115-116` `yin_branch_list` / `yang_branch_list`。
+`glibe` 骨架里对应的字段是 `src/glibe/timeframe.gleam:116`
+`databar_list`、`:121-122` `yin_branch_list` / `yang_branch_list`。
 骨架的函数体多数还是 `todo`，但 **`todo` 的文字已经写明这个形状**（见 §8），
 将来填 body 时不许再把它改成 `list.length` / `list.find` / `list.append`。
 
@@ -153,7 +160,7 @@ glib 里随流增长的 List 都是这个形状，没有例外。下表所有裸
 
 | 需求 | 用 | 不要用 | 依据 |
 |---|---|---|---|
-| 历史根数 / 下一根 `idx` | `bars_listed` 的两个 `case` arm：读头 `idx + 1`，空表 `0` | `list.length` | §2 官方逐字；`glibe/timeframe.gleam:191`（已编译、已 GREEN） |
+| 历史根数 / 下一根 `idx` | `bars_listed` 的两个 `case` arm：读头 `idx + 1`，空表 `0` | `list.length` | §2 官方逐字；`glibe/timeframe.gleam:227`（已编译、已 GREEN） |
 | 上一根 bar、上一条 branch | `case list { [head, ..] -> ... }` | `list.last` / `list.reverse` | `glib/timeframe.gleam:601`、`glib/branch.gleam:267` |
 | 归档一根 | `[newest, ..rest]` | `list.append(rest, [newest])` | 官方 `append` 逐字；`glib/timeframe.gleam:848` |
 | 一段跨度 / 窗口大小 | `idx` 相减 | 扫表数元素 | §3.2 表 |
@@ -184,7 +191,7 @@ glibe / glib 里都没有名为 `revert` 的函数。动词跟 function 走，�
 
 | 位置 | 什么时候跑 |
 |---|---|
-| `glib/trading/ingest.gleam:164` | 一次 replay 跑完，页面**初始绘制** |
+| `glib/trading/ingest.gleam:164` | 一次离线批次跑完，页面**初始绘制** |
 | `glib/trading/export.gleam:24` | **退出时写导出文件**一次 |
 | `glib/trading/live.gleam:130` | 一次 poll 窗口 decode 完（有界窗口，§7(a)） |
 | `glib/census.gleam:172` / `:213` / `:363` | 生成离线报告 |
@@ -197,42 +204,27 @@ oldest-first, because the chart extends forward in time. Reversing is
 not treatment — every value is exactly what `working_databar_archived`
 stored."* —— reverse 不做计算，只把同一份值换个顺序交出去。
 
-> **07:59 订正 —— 上面这句不能推广成「glib 做对了」。** 它只是对
-> `*.gleam` 内 7 处 `list.reverse` 的计数陈述，句子本身仍成立；owner
-> 07:59 逐字 *"glib has 7 positions where list.revers() is found, that
-> smells. Was glib doing properly? You have to ask."* 要求的是对**每一处**
-> 追问「能不能不用」，而不是按触发频率替它辩护。同一轮检索 `*.mjs`
-> 另检出 **2 处 JS FFI 的 `.reverse()`**，恰好挂在高频路径上：
-> `glib/binance_trading_ffi.mjs:36-38` 的 `chart_bars()` 在 `:81` 被
-> `apply_bar()` 调用，而 `apply_bar` 在 `:170`（seed）/ `:227`（ws）/
-> `:282`（poll）三处触发 ⇒ **每根 bar 整表 reverse**；
-> `glib/paper_trading_ffi.mjs:273` 在 `:188` 的 poll 循环内 ⇒ **每次
-> poll 整表 reverse**，无新 bar 也翻。逐处提问表见 §7(e)，owner 逐字
-> 与查证链见 `docs/RULINGS.md`「2026-11-15 07:59」执行注记。
+**但这个计数不证明 glib 做对了。** owner 07:59 逐字 *"glib has 7
+positions where list.revers() is found, that smells. Was glib doing
+properly? You have to ask."* 判据是对**每一处**问「能不能不用
+reverse」，而不是按触发频率替它辩护。`*.mjs` 里还有 2 处 JS FFI 的
+`.reverse()` 恰好挂在高频路径上：`glib/binance_trading_ffi.mjs:36-38`
+的 `chart_bars()` 被 `apply_bar()` 调用，后者在 `:170`（seed）/ `:227`
+（ws）/ `:282`（poll）三处触发 ⇒ **每根 bar 整表 reverse**；
+`glib/paper_trading_ffi.mjs:273` 在 `:188` 的 poll 循环内 ⇒ **每次
+poll 整表 reverse**。这两处是 O(N²)，逐处提问表见 §7(e)。
 
-输出侧的形状也由用途决定：`glib/sourcebar_export.gleam:26-27` 逐字
-*"one positional JSON array, oldest-first … the file is read whole,
-sequentially, once, which is what an array is for."* 计算侧用**链表**
-（头部 O(1)），输出侧用**数组**（顺序读一次）。
-
-> **08:38 订正 —— 上面这两句把「一个消费方的便利」写成了「格式的
-> 理由」。** owner 逐字：*"why should it be reversed before exporting?
-> to answer this you have to answer no reason, since whether the data
-> in disk is newest first or oldest first, it will never prevent a
-> comsumer to use it. The key is how the comsumer will use it."*
-> 磁盘是 newest-first 还是 oldest-first 都不妨碍消费方使用；「整份
-> 顺序读一次」本身就是为 `feed_all` 那个消费方选的格式，不是数据
-> 的性质。完整消费链、三处写方与订正见 §7(e) 第 1 处，owner 逐字
-> 与查证链见 `docs/RULINGS.md`「2026-11-15 08:38」。
-
-> **08:58 续 —— 「顺过来」真正靠的是读侧 prepend，不是 reverse。**
-> owner 逐字：*"倒序资料肯定不影响消费呀 …… 如果你读取的使用也用
-> list来存，那么很简单的事情，你想怎么放？旧数据放前面？那不是
-> prepend是什么"*。编译实测（`/tmp/glibe_format_probe/src/read_order.gleam`
-> exit 0）：newest-first 文件逐根读 + `[record, ..acc]` →
-> `10,20,30`，`list.first` 就是最旧那根；全程零 `reverse`、
-> 零 `append`。⇒ 「按时间顺序存储」既不是数据性质也不是格式
-> 必要条件，是**一个消费方的读法**；详见 §6.6。
+**磁盘顺序不约束消费方；「顺过来」靠读侧 prepend，不靠 reverse。**
+owner 08:38 逐字 *"why should it be reversed before exporting? ... no
+reason, since whether the data in disk is newest first or oldest first,
+it will never prevent a comsumer to use it. The key is how the comsumer
+will use it."*；08:58 逐字 *"旧数据放前面？那不是prepend是什么"*。
+编译实测（`/tmp/glibe_format_probe/src/read_order.gleam`，exit 0）：
+newest-first 文件逐根读 + `[record, ..acc]` → `10,20,30`，`list.first`
+就是最旧那根，全程零 reverse / 零 append。所以「按时间顺序存储」
+既不是数据性质、也不是格式必要条件，只是**一个消费方的读法**。
+导出格式已定为 ETF term（§6.6）。逐字与查证链在
+`docs/RULINGS.md`「2026-11-15 07:59 / 08:38 / 08:58」。
 
 ### 6.2 图表不是「reverse 完画一次」，是「一根一根长出来」
 
@@ -271,12 +263,11 @@ series / JS 数组是它的输出侧投影，靠**尾部追加**增长——JS �
 把 O(n) 从每根 bar 的路径挪到唯一一次边界，正是 §5 最后一行
 「边界投影优先走单根增量流」的意思。
 
-> **07:59 限定**：这张表算的是 **glibe 应有的形状**，不是 glib 各条
-> 输出路径都做到了的实测结论。`glib/binance_trading_ffi.mjs:81` 与
-> `glib/paper_trading_ffi.mjs:273` 恰恰把整表 reverse 挂在每根 bar /
-> 每次 poll 上（§7(e) #8/#9），那才是 **O(N²)** 的一边。owner 07:59
-> 的判据更根本：系统里只有一根 `working_databar` 在工作，谁在要整个
-> 历史，谁就要被问一次（§6.5）。
+这张表算的是 **glibe 应有的形状**。`glib/binance_trading_ffi.mjs:81`
+与 `glib/paper_trading_ffi.mjs:273` 把整表 reverse 挂在每根 bar /
+每次 poll 上（§7(e) #8/#9），那才是 **O(N²)** 的一边。owner 07:59
+的判据更根本：系统里只有一根 `working_databar` 在工作，谁在要整个
+历史，谁就要被问一次（§6.5）。
 
 ### 6.4 它在 glibe 的裁定里已经有名字
 
@@ -307,10 +298,18 @@ owner 逐字（全文在 `docs/RULINGS.md`「2026-11-15 07:59」）：
 **§6.2 描述的是应有的形状，不是 glib 全部实现的形状。** 判据比
 「reverse 挂在哪个频率上」更根本：**系统里只有一根 bar 在工作**，
 所以任何一处 `reverse` 整条历史，都说明某个消费方在要整个历史而不是
-那一根 —— 这就是 owner 说的 *"that smells"*。`src/glibe/timeframe.gleam:106-120`
+那一根 —— 这就是 owner 说的 *"that smells"*。`src/glibe/timeframe.gleam:112-126`
 里 `working_databar: Option(DataBar)` 是那**一根**，`databar_list` 是
 归档历史；R33 / R38 / R39 同向。每处 `reverse` 都要问一次「能不能
 不用」，见 §7(e)。
+
+**为什么那两个 AI 蠢词根本无处安放**（owner 10:37 反问的原话）：
+*"in the stream, we only deal with the working_databar, what to buffer?
+what to replay?"* —— 流里从头到尾只有一根 `working_databar` 在被处理：
+合格的 sourcebar 一整根出生为它、在它上面算完决策、归档后它清回 `None`。
+**没有第二个对象可攒、可倒带**，所以「存一份随流增长的副本」「重放一遍」
+这类说法在 pure stream 里连个作用对象都没有。它们不是「做了太蠢」，是
+**对象不存在**——这正是 10:25 / 10:27 / 10:31 三条裁定的根。
 
 **绘图软件的第一条判据**（`try_plushie` 查证，源码为准）：
 
@@ -335,14 +334,35 @@ owner 逐字（全文在 `docs/RULINGS.md`「2026-11-15 07:59」）：
 `git log` 无提交（*"does not have any commits yet"*），无法从版本历史
 复核，不写成实测。全文见 `docs/RULINGS.md`「2026-11-15 08:13」。
 
-### 6.6 导出格式与读取方法（owner 08:44 / 08:49 / 08:55 / 08:58，探讨中）
+### 6.6 导出格式与读取方法（2026-11-17 09:40 定案：ETF term）
 
-**这一节是探讨，不是选型结论。** owner 08:44 逐字：*"首先对export
-出去的文件的格式，需要探讨，将来glibe用什么格式，用json？csv？
-更有效率的二进制方式？然后对读取方法进行探讨，需要这个导出的文件
-必须按照时间顺序存储sourcebar信息吗？"* 格式需要他一句话，
-选项平列、不预设推荐、不催（08:27 约定）。逐字与全部查证链在
-`docs/RULINGS.md`「2026-11-15 08:44–08:58」。
+**格式已定：ETF（Erlang External Term Format），逐根一个 term。**
+owner 09:40 逐字：*"要将glibe的输出格式按照最优解定下来"*。定案、
+优先级与逐字全文在 `docs/RULINGS.md`「2026-11-17 09:40」。
+owner 08:44 原问逐字：*"首先对export出去的文件的格式，需要探讨，
+将来glibe用什么格式，用json？csv？更有效率的二进制方式？然后对读取
+方法进行探讨，需要这个导出的文件必须按照时间顺序存储sourcebar信息
+吗？"* 查证链在 `docs/RULINGS.md`「2026-11-15 08:44–08:58」。
+
+**判据只有一条（根法则 / R13 / R21 / R27）：让类型自己说话，不为它补
+一层 codec。** 标准 `SourceBar` 九个变体、grade 在变体里、`Timestamp`
+是 opaque 纳秒值；`term_to_binary` / `binary_to_term` 直接存 term，
+grade、纳秒、`Float` 精度全部原样保真。JSON / CSV 必须把 closed set 与
+opaque 值降级成文本再 parser 回来、读方带外传 grade、还背格式兼容债
+（glib 三代兜底就是账）。**零 codec 的一方胜。**
+
+**优先级（owner 要的"优先级和选择建议"）：**
+
+| 级 | 格式 | 判据 / 何时用 |
+|---|---|---|
+| **1（选定）** | **ETF term**：`term_to_binary` 逐根 append（OTP BIF，2 行 `@external`） | 类型原样保真、零 codec、零依赖、零手写 `.erl`、BEAM 原生；单根 73 bytes（JSON object 98）。最优解 |
+| 2 | OTP `dets` / `mnesia`，或 hex `sqlight` / `khepri` | 只有出现「按 key 随机读写 / 查询」的真实消费方才上（R26/R32）：顺序在库里只是查询投影 |
+| 3 | CSV / TSV（hex `gsv` / `tysv`） | 只有「表格工具 / 人直接读」成真实需求才用；仍付降级 codec 债 |
+| 4 | JSON（positional array / JSON lines） | 不禁用但不选：`最懒的做法`（08:55）、整层 codec + 带外 grade + 兼容债；跨生态可读按 09:22 不计入优势 |
+
+**顺序不是格式判据。** prepend / append 是**读侧**的事（外部文件读进
+`List` 时逐根 `[record, ..acc]`）；输出侧不刻意造成顺序或逆序存储。
+因此「某种格式能否 append 一根」不进上表的加减分。
 
 **Q2「必须按时间顺序存储吗」已由 owner 裁定：不必须。**
 
@@ -373,9 +393,11 @@ owner 逐字（全文在 `docs/RULINGS.md`「2026-11-15 07:59」）：
 
 事实底座（都是查过 / 编译过的，不是口味）：
 
-- **`src/` 现在零序列化、零文件 IO**；`Timeframe`（`:106-120`）
-  没有 `sourcebar_buffer` / `export_flush`，这条消费方路径本身
-  仍是待裁决第 1 项。
+- **`src/` 现在零序列化、零文件 IO**；`Timeframe`（`:112-126`）
+  没有那份随流增长的 sourcebar 列表字段、也没有 `export_flush`。
+  这是定案，不是留白：owner 裁定该字段**非法**、glibe 不需要它；
+  owner 的词是 `sourcebar_list`，只在将来导出时用（见 §7(e)）。
+  （AI 曾把它叫 `sourcebar_buffer` —— 已否决的蠢名，仅此处引用纠正。）
 - **`SourceBar` 是九个变体**，grade 在变体里不在字段里
   （`api/sourcebar.gleam:43`、`:105-178`）；`Timestamp` 是
   `pub opaque` 的 `Timestamp(seconds: Int, nanoseconds: Int)`
@@ -396,7 +418,7 @@ owner 逐字（全文在 `docs/RULINGS.md`「2026-11-15 07:59」）：
   `Added filepath v1.1.2` / `Added simplifile v2.7.0`，
   `append_bits` 本身就是 `@external(erlang, "simplifile_erl", ...)`；
   逐根 `write_bits` + `append_bits` 得 145 bytes（每根 73），
-  **无 buffer、无 reverse**。
+  **不攒整份、无 reverse**。
 - **连 `gleam add` 都不用的一层**：OTP 29 内置
   `mnesia` / `dets` / `ets`（`code:ensure_loaded` 实测均为
   `{module, …}`）。DETS 故意乱序插 3 根、按 timestamp 查找
@@ -410,17 +432,16 @@ owner 逐字（全文在 `docs/RULINGS.md`「2026-11-15 07:59」）：
 - **实测字节**（单根 / 10 根）：JSON object **98** /
   ETF **73**；JSON array **991**、JSON lines **989**、
   ETF 整表 **727**、ETF 逐记录 **73×10**。
-  positional JSON array **不能 append 一根**，是整份 parse /
-  整份写的形状，与 07:59 的 stream 判据相冲。
 
-**取舍（平列，不推荐）**：JSON / CSV 人可读，代价是一整层 codec
-与带外 grade；ETF / DETS 直接存 term、零 codec、每根 O(1)，是
-**BEAM 原生格式**；OTP 内置库与 hex 包都是现成能力，不新增手写
-源码。**owner 09:22 逐字** *"你担心依赖BEAM的问题，不用担心，
+**取舍（已定：ETF，见本节开头优先级表）**：ETF 直接存 term、零
+codec、每根 O(1)、类型原样保真，是 **BEAM 原生格式**，故选它；
+JSON / CSV 要付一整层 codec + 带外 grade，列为第 3、4 级。
+OTP 内置库与 hex 包都是现成能力，不新增手写源码；DETS / 数据库
+列为第 2 级，等「按 key 随机读写」的真实消费方出现才上（R26/R32）。
+**owner 09:22 逐字** *"你担心依赖BEAM的问题，不用担心，
 我就是打算靠BEAM吃饭的。你没看到我最近的项目都是gleam"*
 ⇒ 把「BEAM 专有、不可跨生态读、不可移植」写成**代价**是错的：
 跨生态可读不是本项目的需求，BEAM 原生是性质而非减分项。
-**格式仍是探讨项**，不因此选 ETF、不因此禁 JSON，选项仍平列。
 `term_to_binary/2` 选项与 `binary_to_term/2` 的 `safe` 警告，
 官方页三次抓取超时只返回页首 —— **未取得逐字，本轮不引用**。
 
@@ -439,9 +460,9 @@ owner 逐字（全文在 `docs/RULINGS.md`「2026-11-15 07:59」）：
 零依赖、零手写 `.erl` 的四行 `@external` 直接调 `erlang:*` /
 `lists:reverse`；本机 Elixir 1.20.4 的 `Elixir.String` 是同一 VM 上
 的普通 `.beam`，Gleam 用一行 `@external(erlang, "Elixir.String",
-"upcase")` 就能调（只多一个 `ERL_LIBS` code path）。⇒ 格式探讨不必
-去造 codec / 桥接层 / 手写目标源码；**格式仍是探讨项，不因此替
-owner 选**。逐字与三条探针在 `docs/RULINGS.md`「2026-11-15 09:09」。
+"upcase")` 就能调（只多一个 `ERL_LIBS` code path）。这正是 §6.6 选
+ETF、用 `@external` 直连 BIF 而不造 codec / 桥接层 / 手写目标源码的
+根据。逐字与三条探针在 `docs/RULINGS.md`「2026-11-15 09:09」。
 
 ---
 
@@ -491,12 +512,14 @@ prepend + 一次 `reverse` 是 O(n)，逐行 `list.append` 是 **O(n²)**。
 owner 逐字：*"can it not use reverse when doing sourcebar_list exporting
 (for potential later offline tests only)? The same question should be asked
 if there are other ocassions reverse() is used on a list"*。下表是
-**逐处查证与提问，不是裁定**（权威仍是 owner 逐字与代码内文档）：
+**逐处查证与提问，不是裁定**（权威仍是 owner 逐字与代码内文档）。
+表中 glib 代码字面若出现 `sourcebar_buffer` / `replay`，那是 AI 旧名，
+owner 10:25 / 10:27 已否决，仅作被引用的代码字面保留。
 
 | # | 位置 | 触发 | 能不能不用 `reverse`（技术事实） |
 |---|---|---|---|
 | 1 | `glib/trading/export.gleam:24` | 退出写文件一次 | **「为什么 reverse」＝没有理由**（owner 08:38）；三处写方里只有它 reverse，见下方专段 |
-| 2 | `glib/trading/ingest.gleam:164` | replay 跑完一次 | 这处服务 `web/server_ffi.mjs:42-44` 的 bulk `set_databars`。按 stream 判据要问：初始绘制能不能也一根一根发，省掉整表 reverse 与这份数组 |
+| 2 | `glib/trading/ingest.gleam:164` | 一次离线批次跑完 | 这处服务 `web/server_ffi.mjs:42-44` 的 bulk `set_databars`。按 stream 判据要问：初始绘制能不能也一根一根发，省掉整表 reverse 与这份数组 |
 | 3 | `glib/census.gleam:213` | 离线报告一次 | 后面 `:369` `in_span` 用 `filter`+`length`、`:382` `age_of_last` 用 `list.last` 且**依赖 oldest-first**；改读头 / `idx` 相减是否可省，未实测，要问 |
 | 4 | `glib/census.gleam:172` | 每个 group 打印前 | 只为打印顺序，分组小表；是否必要取决于输出格式，要问 |
 | 5 | `glib/census.gleam:363` | fold 末尾 | `extreme_indices` 是 prepend O(1) 累积 + 一次 O(n) reverse，改写法仍是同一次遍历；这处是**形状正确**的构造，但「顺序是否真被需要」仍要问 |
@@ -505,7 +528,7 @@ if there are other ocassions reverse() is used on a list"*。下表是
 | 8 | `glib/binance_trading_ffi.mjs:37/81` | **每根 bar** | `apply_bar` 在 `:170/:227/:282` 触发，每次整表 reverse ⇒ O(N²)。按 stream 判据，这处要的是整个历史而不是那一根 |
 | 9 | `glib/paper_trading_ffi.mjs:273` | **每次 poll** | `:188` 的 `while` 循环内，无新 bar 也整表 reverse |
 
-**第 1 处（owner 点名）—— 07:59 的「直接删不行」答错了问题**
+**第 1 处（owner 点名）：导出前的 reverse 没有理由。**
 
 owner 08:38 逐字：*"why should it be reversed before exporting? to
 answer this you have to answer no reason, since whether the data in
@@ -514,27 +537,28 @@ to use it. The key is how the comsumer will use it. Right? So how the
 comsumer is using the exported data today in glib? that is where to
 inspect."*
 
-⇒ **「导出前为什么要 reverse」＝ 没有理由。** 磁盘顺序不约束消费方；
-同一份数组从哪头读、要不要一次 O(n) 遍历，都是消费方的事。07:59 /
-08:13 我把「去掉 `list.reverse` 会让这一个消费方倒着喂流」当成了
-答案，是把**一个消费方的便利**写成了**数据的性质**。历史注记原文
-不改写，更正写在 `docs/RULINGS.md`「2026-11-15 08:38」。
+⇒ 磁盘顺序不约束消费方；同一份数组从哪头读、要不要一次 O(n) 遍历，
+都是消费方的事。「去掉 reverse 会让消费方倒着喂流」是**一个消费方
+的便利**，不是数据的性质，也不构成保留 reverse 的理由。逐字与查证
+链在 `docs/RULINGS.md`「2026-11-15 08:38」。
 
 **先看清三处写方，reverse 连「写方统一规则」都不是：**
 
 | 写方 | 代码 | 是否 reverse |
 |---|---|---|
-| `glib/trading/export.gleam:21-25` `export_flush` | `to_json(list.reverse(sourcebar_buffer(timeframe)))` | **是** |
+| `glib/trading/export.gleam:21-25` `export_flush` | `to_json(list.reverse(sourcebar_buffer(timeframe)))`（代码字面；owner 的字段名是 `sourcebar_list`） | **是** |
 | `glib/census_import.gleam:119-127` `store_fetch` | `to_json(sourcebar_list)`；`binance.fetch_bars` 原本 oldest-first | 否 |
 | `glib/census_import.gleam:171-184` `import_daily` | `to_json(sourcebar_list)`；IB 下载原本 oldest-first | 否 |
 
 `glib/sourcebar_export_ffi.mjs` 的 `write_session` 逐字 *"The payload
 arrived already encoded and already ordered — this does no reshaping
 of the data."* —— 三处都产出 oldest-first，A 只是用一次 reverse
-**追上 B / C 已经是的形状**；它的 buffer 是 newest-first
-（`glib/timeframe.gleam:146-149` = *"Newest-first like `databar_list`
+**追上 B / C 已经是的形状**；它那份列表是 newest-first
+（`glib/timeframe.gleam:146-149` 注释 = *"Newest-first like `databar_list`
 … `export_flush` reverses it once, at the single write"*，累积是
-`glib/sourcebar_export.gleam:41-46` 的 `[sourcebar, ..buffer]`）。
+`glib/sourcebar_export.gleam:41-46` 的 cons，代码字面 `[sourcebar, ..buffer]`）。
+这份列表 owner 叫 `sourcebar_list`（与 `databar_list` 平行）；`buffer` 是
+AI 旧名，已否决。
 
 **消费方在哪、怎么用（这才是要查的地方）：**
 
@@ -570,35 +594,37 @@ fold 进一条有状态的流。它是**边界投影**，可以等价地放在�
 `run_offline` 把整份历史逐根重放过引擎，要的是「整个历史」而不是
 「那一根 `working_databar`」—— 这才是 *"that smells"* 的落点。
 
-`glibe` 的 `Timeframe`（`src/glibe/timeframe.gleam:106-120`）**没有**
-`sourcebar_buffer` 字段、也没有 `export_flush`，这条消费方路径在
-glibe 尚未存在；是否引入仍是待裁决第 1 项，但 `reverse` 已不是
-决定性因素。
+`glibe` 的 `Timeframe`（`src/glibe/timeframe.gleam:112-126`）**没有**
+那份随流增长的 sourcebar 列表字段、也没有 `export_flush`。owner 已裁定：
+该字段（AI 旧名 `sourcebar_buffer`，已否决）**非法、不引入**；owner 的词
+是 `sourcebar_list`，且它只用于**之后的导出**（saving for potential
+offline use），不是 stream 的一部分、不参与任何 computation。`reverse`
+从来不是决定性因素。
 
-> **08:58 续（owner 裁定，不再是提问）**：*"倒序资料肯定不影响消费
-> 呀 …… 旧数据放前面？那不是prepend是什么"*。读侧逐根 prepend 就能
-> 从 newest-first 文件得到 oldest-first List（编译实测见 §6.6），
-> 所以「导出文件必须按时间顺序存储吗」答案是**不必须**；按 key 的
-> 存储（`dets` / `mnesia` / `sqlight`）里连「顺序」这个属性都没有。
-> 导出格式则仍在探讨、需 owner 一句话，见 §6.6。
+**「导出文件必须按时间顺序存储吗」＝不必须。** owner 08:58 逐字
+*"倒序资料肯定不影响消费呀 …… 旧数据放前面？那不是prepend是什么"*。
+读侧逐根 prepend 就能从 newest-first 文件得到 oldest-first List
+（编译实测见 §6.6）；按 key 的存储（`dets` / `mnesia` / `sqlight`）
+里连「顺序」这个属性都没有。导出格式为 ETF term，见 §6.6。
 
 ---
 
 ## 8. 填 `glibe` 骨架时照这张表
 
-`src/` 目前 15 个模块、多数 body 是 `todo`。下表路径全部相对
+`src/` 目前 15 个模块；骨架已填过一批，下表位置是 2026-11-17 15:51
+实测（行号随 body 填开会漂移，引用前按符号名重新定位）。下表路径全部相对
 `src/glibe/`（测试路径相对项目根）。`////` / `///` 是规格，
 `todo as "..."` 的文字是**填法**，下表把它与 glib 的实测实现对齐。
 
 | 骨架位置 | todo / 现状 | 填 body 时 |
 |---|---|---|
-| `timeframe.gleam:191` `bars_listed` | **已实现** `[] -> 0` / `[newest, ..] -> newest.idx + 1` | 保持；`test/glibe_test.gleam:107` 的断言特意让 `list.length` 必红（头 `idx: 41`、两格，答案必须是 42 而不是 2） |
-| `timeframe.gleam:180` `working_databar_archived` | `Some -> None, bar prepended to the HEAD of databar_list (O(1), newest stays first)` | `[databar, ..timeframe.databar_list]`，对应 `glib/timeframe.gleam:848` |
-| `branch.gleam:160` `exited_branch` | `read the HEAD branch in O(1); Some only when its exit_bar.idx is idx` | `case branches { [head, ..] -> ... }`，禁 `list.find` |
-| `branch.gleam:95` `branch_size` | `idx arithmetic, both ends included; never walk the branch lists` | `exit_bar.idx - start_bar.idx + 1` |
-| `leaf.gleam:82` `leaf_size` | `idx arithmetic, both ends included; never walk databar_list` | `end.idx - start_bar.idx + 1` |
-| `leaf.gleam:98` `cma_recurrence` / `:113` `leaf_cma` | 读 `databar_list` 头部 + `idx` 算术 | `list.first` 取上一根的 carried mean，`N_old = databar.idx - start_idx` |
-| `api/sourcebar.gleam:225` `to_databar` | `one whole closed sourcebar born at the source boundary` | 写 `idx` 参数；这是 `idx` 唯一的出生点 |
+| `timeframe.gleam:227` `bars_listed` | **已实现** `[] -> 0` / `[newest, ..] -> newest.idx + 1` | 保持；`test/glibe_test.gleam:313-318` 的断言特意让 `list.length` 必红（头 `idx: 41`、两格，答案必须是 42 而不是 2） |
+| `timeframe.gleam:206` `working_databar_archived` | `Some -> None, bar prepended to the HEAD of databar_list (O(1), newest stays first)` | `[databar, ..timeframe.databar_list]`，对应 `glib/timeframe.gleam:848` |
+| `branch.gleam:197` `exited_branch` | `read the HEAD branch in O(1); Some only when its exit_bar.idx is idx` | `case branches { [head, ..] -> ... }`，禁 `list.find` |
+| `branch.gleam:117` `branch_size` | `idx arithmetic, both ends included; never walk the branch lists` | `exit_bar.idx - start_bar.idx + 1` |
+| `leaf.gleam:100` `leaf_size` | `idx arithmetic, both ends included; never walk databar_list` | `end.idx - start_bar.idx + 1` |
+| `leaf.gleam:127` `cma_recurrence` / `:160` `leaf_cma` | 读 `databar_list` 头部 + `idx` 算术 | `list.first` 取上一根的 carried mean，`N_old = databar.idx - start_idx` |
+| `api/sourcebar.gleam:253` `to_databar` | `one whole closed sourcebar born at the source boundary` | 写 `idx` 参数；这是 `idx` 唯一的出生点 |
 | `databar.gleam:76` `idx` | `read the index of this bar` | 一个字段读取；不要顺手去数 List |
 
 顺序仍是 R19：`////` 命名计划项 → `///` 写明谁读/写哪个具体值（R47）→
@@ -626,32 +652,31 @@ owner 2026-11-15 逐字：*"在你刚才处理大量代码文件却不曾写多�
 - R47 要求每个 `////` / `///` 都能译成「谁读/写哪个具体值」，R50 要求一个
   文件只读写自己那一层持有的 Dict。这两条把散文挤出去，留下的正是
   实现 body 时需要的信息。
-- 本轮就是实例：`bars_listed` 的旧 todo 写的是 *"count the settled
-  bars"*，三处文档跟着写「counts」。文字错，方向就错——后来的人照着它
-  写 `list.length` 完全「说得通」。把 todo 改成
-  `read the head bar's idx and return idx + 1`，body 才可能写对。
-  **改文档文字就是改设计**，不是润色。
+- 本轮的实例：`bars_listed` 的 todo 必须写成
+  `read the head bar's idx and return idx + 1`——准确到具体值，body 才
+  可能写对。若文档只含糊说「count」，后来的人照着写 `list.length`
+  也「说得通」，方向就错了。**改文档文字就是改设计**，不是润色。
 
 ---
 
-## 10. 门禁（本文件只写文档，07:12 实测、07:31 / 07:42 / 07:59 / 08:13 / 08:16 / 08:30 / 08:38 / 08:58 / 09:09 / 09:22 复核一致）
+## 10. 门禁（2026-11-17 15:51 实测；填 body 后重测，旧数字已作废）
 
 ```sh
 export PATH="/opt/homebrew/bin:$PATH"
 gleam format --check src test      # 0
 gleam check                       # 0
-gleam test                        # 16 passed, no failures
+gleam test                        # 43 passed, no failures
 gleam docs build                  # 0
 gleam export package-interface    # 0；modules: 15
 gleam build                       # 0
-gleam build --warnings-as-errors  # exit 1：196 = 76 Todo + 117 unused arg
-                                  #       + 1 unreachable + 2 unused private ctor
+gleam build --warnings-as-errors  # exit 1：47 = 15 Todo + 32 unused arg
 ```
 
 `--warnings-as-errors` 是**从空架子起就固定的门禁**（R48），不是成绩单：
-那 76 条 `Todo found` 就是逐条待实现的清单，不许按类别豁免，也不许用
-`_` 批量静音。填掉一个 body 就少一条，且必须同时少一条对应的
-`Unused function argument`（`bars_listed` 那次 198 → 196 正是这个差值）。
+每条 `Todo found` 就是一条待实现的清单，不许按类别豁免，也不许用
+`_` 批量静音。填掉一个 body 就少一条 `Todo`，且必须同时少一条对应的
+`Unused function argument`；当前计数以本节实测为准（填 body 会持续下降，
+旧数字留在带日期的历史节里，不当当前答案）。
 
 ---
 
@@ -660,27 +685,229 @@ gleam build --warnings-as-errors  # exit 1：196 = 76 Todo + 117 unused arg
 - 本文**不新增 R 编号、不改 `src/` 或 `test/`**。07:31 / 07:42 两轮
   「不新增待裁决项」只对各自那一轮成立；owner 07:59 明确要求
   *"You have to ask"*，本轮先记入两处；其中 plushie 选型已由 owner
-  08:13 裁定并写进结论。待裁决区现为 3 项：`sourcebar_buffer` 导出、
-  owner 08:16「拒绝 JS target」是否一并收紧 `webclient/`、以及 owner
-  08:44 要求的导出格式探讨（依赖第 1 项；不预设推荐、不催）。
-  owner 逐字全文与查证记录的家是 `docs/RULINGS.md`（2026-11-15 各条
-  执行注记，含 08:16 / 08:28 / 08:30 / 08:38 / 08:44–08:58 /
-  09:09 / 09:22）；08:16 的 target / 手写 `.erl` 实证、08:28 的
-  external 术语订正、09:09 的 BEAM 门裁定与三条编译探针都不在本文
-  （§6.6 只有一句说明）。08:38 的订正在 §6.1 与 §7(e) 第 1 处：
-  导出前的 `reverse` **没有理由**，要看的是消费方 `feed_all` 从头部
-  fold 进有状态的流；08:44–08:58 的格式与读法探讨在 §6.6。
-  **09:22**：语言知识归 `~gits/gleam-language`（单文件硬 `ln`，
-  零 symlink）；「靠 BEAM 吃饭」⇒ BEAM 原生不是代价、格式仍不裁定。
+  08:13 裁定并写进结论、导出格式已由 owner 09:40 定案（§6.6）。
+  `sourcebar_buffer` 导出路径已由 owner 10:16 裁定为非法、不引入
+  （`sourcebar_list` 只用于之后离线导出），撤出决策区。待裁决区现为
+  1 项：owner 08:16「拒绝 JS target」是否一并收紧 `webclient/`。
+  owner 逐字全文与查证记录的家是 `docs/RULINGS.md`（2026-11-15 /
+  2026-11-17 各条执行注记）；08:16 的 target / 手写 `.erl` 实证、
+  08:28 的 external 术语订正、09:09 的 BEAM 门裁定与三条编译探针
+  都不在本文。08:38 的结论在 §6.1 与 §7(e) 第 1 处：导出前的
+  `reverse` **没有理由**，要看的是消费方 `feed_all` 从头部 fold 进
+  有状态的流；格式定案（ETF term）与读法在 §6.6。
+  语言知识归 `~gits/gleam-language`（单文件硬 `ln`，零 symlink）；
+  「靠 BEAM 吃饭」⇒ BEAM 原生不是代价。
   本文讲 list 效率、消费方查证、边界格式与骨架填写，
-  **不替 owner 选格式、不复制语言知识**。零 `@external` 只是骨架
-  现状，不是目标；`@external(erlang, …)` 不是 FFI，也不基于手写
+  **不复制语言知识**。零 `@external` 只是骨架现状，不是目标；
+  `@external(erlang, …)` 不是 FFI，也不基于手写
   erl，`gleam add` + external 是正常做法。
 - `glib/` 是**参照实现**。owner 明说不知道其中 AI 是否 100% 照设计实现；
   文中每个 file:line 都是读过的代码事实，分类是说明，不是裁定。
   §7(e) 逐处表是**提问清单**，不是「glib 做对了」的宣告，也不是
   「glib 错了」的宣告。
-- 文档里出现的 Gleam 片段来自已编译的 `src/glibe/timeframe.gleam:191`
+- 文档里出现的 Gleam 片段来自已编译的 `src/glibe/timeframe.gleam:227`
   与它对应的 glib 实现（表格里的 `[] -> 0` / `[newest, ..] -> …`
   是这两个实现的 arm 摘录，不是独立可编译片段）；带 `...` 的示意
   写法只表示形状，不是源码逐字。没有凭空写出的代码。
+
+---
+
+## 12. 用自然界实例记住这些原则（owner 2026-11-17 08:44 提问 / 08:51 拆解）
+
+owner 08:44 逐字提问：*"再用人体生理学解释这些编程基本原则让你好理解和
+记住，你必须写入开发者文档：遇到类似问题如何决定？任何人或动物，所吃
+进去的食物和喝进去的饮料，里面所包含的蛋白质，脂肪，各种氨基酸，请问
+动物和人体是直接拿去放进自己全身细胞里面，还是怎么样做的？"*
+
+owner 08:51 逐字拆解：*"即便同样是脂肪，在自然界，都是分别定义的，大豆
+不能帮花生定义自己的脂肪化学结构特点以及他与其他化学物质混合存在的混合
+物结构特点，这些都是个自定义的。动物很聪明，他不会去混淆外来和自身这两
+个存在的边界，因此永远没有一个动物会把外来的东西不经过自己的重定义就加
+以使用，也没有一个无视外来的混合物的结构特征，就用完全相同的处理过程进
+行处理的。这是对这个自然界真实案例的拆解。"*
+
+本节把「类型边界 = 权限边界」（08:37 治理根）、「开放集」、R28「原生形状
+→ 自身定义的标准形状」挂到这个你身上就有的实例上。
+
+### 12.1 owner 对自然界真实案例的三条拆解
+
+1. **同类也分别定义。** 即便同为脂肪，大豆的脂肪化学结构、以及它与别的
+   化学物质共存时的**混合物结构**，都是**大豆自己定义的**；大豆不能替花生
+   定义。→ 每个来源的东西（连同它与别的东西混合共存的结构）各自自定义。
+2. **外来 vs 自身的边界不混淆。** 没有动物把外来东西**不经过自己的重定义**
+   就拿来用。→ 边界是一道必经的「用自己的方式重新定义」。
+3. **不无视结构特征、不用相同过程。** 没有动物无视外来物的结构特征、用
+   完全相同的处理过程处理所有来源。→ 每个来源按其自身结构特征**分别处理**。
+
+### 12.2 逐条映射到 glibe
+
+| 自然界（owner 拆解） | glibe | 原则 |
+|---|---|---|
+| 大豆不能替花生定义脂肪结构 + 混合物结构 | 每个 broker 在自己的模块定义自己的原生 symbol / Kline，连同它与别的字段共存的结构 | 治理根：谁有权改谁定义；R50 一模块一所有权 |
+| 外来物必经自身重定义才用 | 原生形状经**自己的** `to_symbol` / `to_sourcebar` 转成 glibe 自己定义的形状，才进标准层 | R28：原生 → 自身标准；边界是必经的重定义 |
+| 不无视结构特征用相同过程 | 每个 `to_*` 针对该 provider 的结构特征分别写；不存在一个通用过程套所有来源 | 分别处理，不假装所有数据源长一样 |
+| 外来不进自身、自身不外流 | 原生形状不进 `Broker.instruments`；其 key 只有标准 `Symbol` | 治理根：别人的东西不进我的类型 |
+| 靠自身定义构建自身 | 标准 `Symbol`（单个 `String`）/ `SourceBar` 是 glibe **自己定义的**形状，用它构建自己的值 | 自身定义，不是外来身份的抹除 |
+| 食物来源无法预料 | 开放集 ⇒ 标准类型不枚举 broker 变体 | R26：来源无法预料 |
+
+必须同时抓住两点，不矛盾：**标准层是 glibe 自己的身体定义**（用自身的
+语言重新表达外来物），**而每个外来物进来的重定义入口是分别的、针对其
+结构特征的**（拆解 3）。标准形状不是外来身份的抹除，而是用自己的语言
+重新表达。
+
+### 12.3 遇到类似问题如何决定（可操作判据）
+
+碰到「某个外部的东西，要不要放进我的类型/模块」，按这个顺序问，**不要
+在文字里辩论，也不要造探针模拟不存在的场景**：
+
+1. **问归属：** 谁有权改这个值？**谁有权改，谁定义它的类型**（08:37 治理根）。
+2. **分别定义：** 这个来源的东西（连同它与别的东西共存的结构）由它自己
+   所在模块定义；glibe 不替任何来源定义，也不把几家塞进一个类型。
+3. **边界重定义：** 每个来源经**自己的** `to_*` 转成 glibe 自己定义的形状
+   ——这是唯一入场通道（R28）。
+4. **按特征分别处理：** 每个 `to_*` 针对该来源的结构特征写；不要用「通用
+   过程」套所有来源，也不要说来源身份消失。
+5. **开放集不枚举：** 来源无法预料 ⇒ 标准类型里**绝不写死来源变体**（R26）；
+   注释里的 5 个变体是样例，不是决定（08:40）。
+6. **用自身定义构建：** 内部用自己定义的形状（标准 `Symbol` = 单个
+   `String`）和自己的算法构造自己的值——外来物经重定义后才用，不原样搬运。
+
+判据终点是一个**所有权形状**：每个来源分别定义 → 各自在边界重定义 →
+glibe 用自身定义构建自己。和 owner 的三条拆解逐条对应。
+
+---
+
+## 13. 小狗的那顿饭：完整案例（owner 提问 08:59 / 完整描述 / 总结 09:02）
+
+> **本节读者多半是 AI。** 读的顺序被故意固定为：**① owner 的问题全文 →
+> ② 消化吸收过程的完整描述 → ③ 从描述映射出的验收用例 → ④ 最后的总结。**
+> 不许跳过 ② 直接抓 ④ ——那正是 AI「望文生义、落到邪见」的路径。
+> 抽象原则对 AI 无效：它会把原则复述成漂亮句子，然后照旧写错。所以先
+> 给足**看得见的实物细节**，总结只能放在最后。
+
+### 13.1 owner 的问题全文（2026-11-17 08:59，逐字）
+
+*"现在问多几个问题，看你是否真正理解：一条小狗吃进一块他从地上找到的
+人吃剩下的骨头上的肉，然后过一段时间，有人喂食狗粮给他吃，后来又有小
+朋友调皮硬给他塞进嘴里一根双汇火腿肠，一把蒲公英草，还给他灌了一点二
+锅头，然后主人发现了，出于担心，喂食了一颗狗主人自己吃的三九胃泰胶囊，
+请具体描述一下这小狗的消化吸收过程，详细到某一种消化酶在什么时候开始
+以什么方式出现并起作用。"*
+
+注意问题里钉死的两个约束：**(a) 具体描述整个过程**；**(b) 细到某一种酶
+在什么时候、以什么方式出现并起作用**。少任何一条都没有回答这个问题。
+
+### 13.2 消化吸收过程的完整描述
+
+**总纲：这不是"一锅炖成通用营养汤"。每种东西走各自的路径，每种酶按
+底物结构分别出现、分别激活。**
+
+**0. 口腔（t=0，骨头肉）。** 狗的唾液**几乎没有淀粉酶**（与人类不同），
+主要是水 + 黏液 + 溶菌酶。机械咀嚼磨碎、润滑成食团。此处不发生化学分解
+——狗的淀粉消化要等胰腺。
+
+**1. 胃（分批：肉 → 狗粮 → 火腿肠+草+酒 → 胶囊）。** 酶以**无活性酶原**
+分泌，到胃里才被酸激活：
+
+| 酶/物质 | 何时、以什么方式出现 | 对什么底物起作用 |
+|---|---|---|
+| 胃蛋白酶原 → 胃蛋白酶 | 主细胞分泌无活性酶原；壁细胞泌 HCl 使 pH 降到 1.5–3；低 pH 使酶原构象改变、**自催化激活**（胃蛋白酶再激活更多酶原，正反馈） | 肉/火腿肠的蛋白质：切芳香族氨基酸附近肽键；胶原蛋白（结缔组织、明胶胶囊壳）部分降解 |
+| 胃脂肪酶 | 舌腺（von Ebner 腺）分泌，随唾液吞入，在胃的酸性环境中起作用 | 优先水解短/中链甘油三酯；只是前锋，主力在小肠 |
+| 盐酸本身（不是酶） | 壁细胞泌酸，进食后 pH 波动 | 溶解骨片的碳酸钙→Ca²⁺；使蛋白变性展开暴露肽键；高浓度二锅头进一步改变环境 |
+
+**二锅头是特殊的一课**：乙醇是小分子，既水溶又脂溶，**不需要消化酶**，
+在胃里约 20–25% 直接扩散进血液，其余进小肠快速吸收。但 56% 的高度白酒
+**使蛋白变性、刺激胃黏膜、抑制胃蛋白酶、延缓胃排空**——它改变了整个反应
+环境。幼犬体重小、肝酶系统未成熟，这个剂量危险。
+
+**胃还按物理性质分批排空**：液体（酒）快，固体（肉/狗粮）慢，脂肪最慢
+——这几样东西**不是一起进小肠的**，又一处分别处理。
+
+**2. 十二指肠（激素触发的酶级联——最精彩的"按需出现"）。** 酸性食糜一
+进入，肠黏膜两种细胞发信号：
+
+- **S 细胞**尝到酸 → 释放**促胰液素（secretin）** → 胰腺导管分泌**碳酸氢
+  盐**，把 pH 从 2 拉到 6–8。
+- **I 细胞**尝到脂肪酸和氨基酸 → 释放**胆囊收缩素（CCK）** → 胰腺腺泡
+  分泌胰酶 + 胆囊收缩排出胆汁。
+
+然后是**级联激活，不是一次性全开**：十二指肠黏膜分泌**肠激酶
+（enteropeptidase）**，只做一件事——把**胰蛋白酶原**切一刀 → **胰蛋白酶**；
+胰蛋白酶再逐个激活其余酶原：**糜蛋白酶原 → 糜蛋白酶**（切芳香族残基）、
+**弹性蛋白酶原 → 弹性蛋白酶**（切弹性蛋白）、**羧肽酶原 → 羧肽酶**（从羧基
+端切）、**辅脂酶原 → 辅脂酶**。四种蛋白酶**切不同氨基酸残基、各管一段**。
+
+脂肪和淀粉各走各的：
+
+- **胆汁盐不是酶**，是乳化剂：把脂肪打散成小液滴增大表面积。**胰脂肪酶 +
+  辅脂酶**锚定在液滴表面，水解甘油三酯的 1、3 位 → 2-单酰甘油 + 2 个脂肪酸。
+- **胰淀粉酶**管狗粮和火腿肠里的淀粉 → 麦芽糖、糊精。家犬在驯化中 **AMY2B
+  基因拷贝数扩张**，胰腺淀粉酶高表达——这是狗能吃淀粉的分子根据。
+- **核糖核酸酶/脱氧核糖核酸酶**分解食物细胞里的 RNA/DNA。
+
+**3. 小肠刷状缘（膜结合酶，就地切割）。** 这些酶**不分泌到肠腔**，镶嵌在
+微绒毛膜上，底物接触才水解：麦芽糖酶、蔗糖酶-异麦芽糖酶、氨基肽酶、
+二肽酶。产物是最小单位——单糖、氨基酸、二三肽。吸收也分别走通道：
+葡萄糖走 **SGLT1**（Na⁺ 依赖），果糖走 **GLUT5**，二三肽走 **PepT1**
+（H⁺ 依赖）；脂肪酸和 2-单酰甘油形成微团进入肠上皮后**重新酯化成甘油
+三酯**，打包成乳糜微粒走**淋巴**——不是原样搬运。
+
+**4. 肝脏（"重定义"真正发生的地方）。**
+
+- **乙醇**：门静脉送到肝 → **乙醇脱氢酶（ADH）** → 乙醛（有毒）→
+  **乙醛脱氢酶（ALDH）** → 乙酸 → 乙酰辅酶 A → 进入自身代谢。乙醇虽直接
+  穿过胃壁，但**在肝脏被身体用自己定义的酶重新定义**了才算能用。
+- **三九胃泰**（人用药，给狗是错的）：明胶壳被蛋白/羧肽酶消化；里面的
+  植物提取物（生物碱、黄酮、苷类）是**异物（xenobiotics）**——狗没有把它
+  变成自身的酶，走 **CYP450 Phase I 氧化 → Phase II 结合（葡萄糖醛酸化/
+  硫酸化）→ 胆汁或尿排出**。人的胃药不能替狗定义它的处理过程——这正是
+  "大豆不能替花生定义"的活例子。
+- 氨基酸、脂肪酸这些"通用件"进肝后，按**狗自己的 DNA** 合成的酶和蛋白
+  才是狗自己的东西——**吃牛肉不长牛肌肉**。
+
+**5. 大肠（蒲公英草：不能重定义的就不进入自身）。** 狗**没有纤维素酶**
+（无法断 β-1,4 糖苷键）。蒲公英的纤维素走完整段小肠不被消化，进大肠后
+由菌群发酵成短链脂肪酸（乙酸、丙酸、丁酸），部分被结肠吸收，其余随粪便
+排出。骨头的尖锐碎片则是**物理结构问题**——不是任何消化酶能处理的，可能
+划伤或梗阻。
+
+### 13.3 从描述映射出的验收用例
+
+上面每一条都是一次验收：若你的程序在对应处会出问题，那就是 bug。
+
+| 小狗吃进的东西 | 身体的机制（正确设计） | 若写成程序，对应的 bug |
+|---|---|---|
+| 骨头上的肉（外来蛋白） | 胃蛋白酶原被酸激活成胃蛋白酶；完整外源蛋白过不了小肠上皮 | 把外来的东西**原样**塞进自己的类型/字典，靠注释说"应先用 `to_*`" |
+| 狗粮（淀粉） | 胰淀粉酶切糖苷键；家犬 AMY2B 拷贝扩张才消化得了 | 一个通用 `String` + 解析器 + 一堆分支处理所有来源 |
+| 火腿肠（另一家的肉 + 淀粉 + 添加剂） | 与肉、狗粮来源不同，结构特征不同 → 各自的酶 | 把火腿肠和肉写成同一个变体，理由"反正是肉"——抹平来源 |
+| 蒲公英（纤维素） | 狗**没有**纤维素酶 → 不消化、排出，不进自身 | 假装能处理：写个 `todo` 或 catch-all「以后再说」 |
+| 二锅头（乙醇） | 小分子直接扩散过胃壁，但肝脏 **ADH → ALDH** 重定义成乙酰 CoA 才用 | 以为"进得来就能用"——**进来 ≠ 被接纳**；缺肝脏这道重定义 |
+| 三九胃泰（人用药） | 明胶壳被消化；植物提取物是异物 → **CYP450** 改造后排出 | 忘掉"来源有权定义自己"：人的药不能替狗定义处理过程 |
+| 骨头碎片（尖锐物理结构） | 物理问题，任何酶都解决不了 → 排出/风险 | 以为类型系统能包办一切，忽略非类型的维度 |
+
+**"酶何时、以什么方式出现" = 三种防 bug 机制：**
+
+1. **酶原 + 酸激活（胃蛋白酶原 → 胃蛋白酶）：** 默认**不活动**，只有持权者
+   在正确条件下激活，且自催化放大。→ 编程：值**默认造不出来**，只有持权者
+   在构造器里造（opaque + 唯一入口）。不是"造出来再检查"，是"没授权就构造
+   不出"。
+2. **级联激活（肠激酶 → 胰蛋白酶 → 其余酶原）：** 一个开关打开一整串。
+   → 编程：一次 `to_*` 转换打开下游整条链，转换是唯一入场口（R28）。
+3. **刷状缘膜结合酶（就地切割）：** 不分泌到肠腔，底物接触才切。
+   → 编程：转换就在**边界**发生，不在内部某个"以后处理"的地方。
+
+### 13.4 最后才是总结（owner 09:02 观察 + 我的陈述）
+
+owner 逐字观察（2026-11-17 09:02）：*"看到吗，小狗没有学过编程，但是比
+不动点脑子的AI的程序写的更好，绝对没有那些显而易见的bug"*。
+
+小狗靠**结构**，烂程序靠**纪律**。**让错误状态不可表示**——小狗的消化
+系统里，"未重定义的外来物进入自身"这个状态**构造不出来**：不是运行时
+检查后发现错了，而是压根表达不出来。
+
+glibe 里那个已修掉的 bug（`symbol.gleam` 曾把 5 个外部变体写进标准
+`Symbol`）正是这一类：错误状态当时**可表示**，所以编译器不拦；改成单一
+`String` + 各 broker 自己的 `to_symbol` 后，边界才从注释变成机制。
+
+**原则如果没被机制承接，就只是装饰。** 问自己一句就够：*这个错误，是
+运行时检查出来的，还是构造时就表达不出来？* 后者才是 type 真正起作用。

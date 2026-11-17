@@ -13,89 +13,32 @@
 > 弹选择卡片、不催答复、选项不预设推荐。全文见 `docs/RULINGS.md`
 > 「2026-11-15 08:27」。
 >
-> 最后更新：2026-11-15 09:22
+> 最后更新：2026-11-17 10:16
 
 ---
 
 ## 需要你决定（只看这一节）
 
-### 当前 3 项（2026-11-15 09:22）
+### 当前 1 项（2026-11-17 10:16；原第 3 项导出格式、原第 1 项 buffer 已裁定撤出）
 
 owner 09:22 逐字 *"你担心依赖BEAM的问题，不用担心，我就是打算靠BEAM
-吃饭的。你没看到我最近的项目都是gleam"* ⇒ 第 3 项里「BEAM 专有、
-不可跨生态读、不可移植」**不再列作代价**：跨生态可读不是本项目的
-需求，BEAM 原生是性质。选项仍平列、不预设推荐、不催；**格式仍待
-探讨，不因此选 ETF 或禁 JSON**，决策区不增不减。逐字与更正见
-`docs/RULINGS.md`「2026-11-15 09:22」。
+吃饭的。你没看到我最近的项目都是gleam"* ⇒ BEAM 原生是性质不是代价；
+该项与 2026-11-17 09:40「定最优格式」共同促成 ETF term 定案，逐字见
+`docs/RULINGS.md`「2026-11-15 09:22」与「2026-11-17 09:40」。
 
 owner 07:59 逐字 *"Was glib doing properly? You have to ask."* 与
 *"The same question should be asked if there are other ocassions reverse()
 is used on a list"*。逐处查证与提问表在 `DEVELOPER_GUIDE.md` §7(e)，
 owner 逐字全文与查证链在 `docs/RULINGS.md`「2026-11-15 07:59」。
-**plushie / `try_plushie` 选型已由 owner 08:13 裁定**，结论写进
-`docs/RULINGS.md`「2026-11-15 08:13」，原第 2 项整条删除。
-现在第 2 项由 owner 08:16 逐字引出；第 3 项由 owner 08:44 的
-「需要探讨」引出，逐字与全部查证链在 `docs/RULINGS.md`
-「2026-11-15 08:44–08:58」，技术事实在 `DEVELOPER_GUIDE.md` §6.6。
-其余各处只记事实与提问。
+**已裁定、整条撤出决策区的项**：plushie / `try_plushie` 选型
+（owner 08:13）、导出格式 ETF term（owner 09:40）、以及
+`sourcebar_list` 合法 / `sourcebar_buffer` 非法（owner 10:16），
+结论分别在 `docs/RULINGS.md`「2026-11-15 08:13」、
+「2026-11-17 09:40」、「2026-11-17 10:16」。
+下面唯一一项由 owner 08:16 逐字引出，逐字与三个探针实测在
+`docs/RULINGS.md`「2026-11-15 08:16」。其余各处只记事实与提问。
 
-#### 1. `sourcebar_buffer` 导出这条**消费方路径**，glibe 要不要存在？
-
-owner 07:59 原问：*"can it not use reverse when doing sourcebar_list
-exporting (for potential later offline tests only)?"*；08:13 答复
-「一会儿讨论这个问题」。**owner 08:38 已就其中的 reverse 逐字裁定**
-（全文与查证链在 `docs/RULINGS.md`「2026-11-15 08:38」）：
-
-> *"why should it be reversed before exporting? to answer this you have
-> to answer no reason, since whether the data in disk is newest first or
-> oldest first, it will never prevent a comsumer to use it. The key is
-> how the comsumer will use it. Right? So how the comsumer is using the
-> exported data today in glib? that is where to inspect."*
-
-⇒ **「导出前为什么 reverse」＝ 没有理由**；磁盘顺序不约束消费方。
-我 07:59 / 08:13 写的「直接删 reverse 会倒着喂流」只是**对一个
-消费方的事实**，被我当成了答案；现从「技术事实」降级，历史注记
-原文不改写。按逐字改成查消费方：
-
-- 写侧三处，只有 `glib/trading/export.gleam:21-25` reverse；
-  `glib/census_import.gleam:119-127` 与 `:171-184` 都不 reverse，
-  `glib/sourcebar_export_ffi.mjs` 的 `write_session` 也不重排。
-  三处都产出 oldest-first ⇒ 那次 reverse 只是让 newest-first buffer
-  追上另外两个写方，**不是数据或格式的必要条件**。
-- 消费方：`glib/trading/ingest.gleam:124-147` `run_offline` →
-  `glib/sourcebar_export.gleam:139-149` `read_payload`（codec 保序）→
-  `glib/trading/ingest.gleam:75-81` `feed_all` 的 `list.fold`
-  **从头部一根一根喂** → `sourcebar_gate`。
-  `glib/timeframe.gleam:280-283` 读头判重、`:294-296` 读头给 `idx`：
-  **流有状态、假定时间向前，且不校验顺序**。其余消费方：
-  `glib/binance.gleam:198` `GLIB_SEED_FROM_FILE`、
-  `glib/census.gleam:212-213`、`glib/glib.gleam:300` CLI。
-  `glib/test/sourcebar_export_test.gleam:122-150` 把 oldest-first
-  钉成了契约，`glib/sourcebar_export.gleam:26-27`「整份顺序读一次」
-  是**为这个消费方选的格式**。
-- ⇒ reverse 是**为一个消费方做的边界投影**，可等价放读侧、可随
-  消费方形状改变而整个消失。按 owner 07:59 的 stream 判据，真正要
-  看的是消费方本身：`run_offline` 重放整份历史，要的是整个历史而
-  不是那一根 `working_databar`。
-
-`src/glibe/timeframe.gleam:106-120` 目前**没有** `sourcebar_buffer`
-字段、也没有 `export_flush`，这条消费方路径在 glibe 尚未存在。
-**`reverse` 不再是决定性因素**；剩下要一句话的是路径本身：
-
-- **A. 不引入**：glibe 保持现状；离线测试从文件逐根读、走同一条流，
-  不为它留第二份随流增长的历史。
-- **B. 改成 stream 写**：每根 closed sourcebar 到达边界时顺手写一行，
-  没有 buffer、没有 reverse；文件格式从 positional JSON array 变逐行。
-- **C. 照 glib 抄**：每根 prepend，退出时一次写 oldest-first JSON
-  array（次序按届时消费方定，不预设必须 reverse）。
-- **D. 先不定**：按 R26 / R32 等真正出现离线测试消费方再定，骨架暂不加字段。
-
-owner 08:58 又裁定「导出文件不必按时间顺序存储」（读侧逐根 prepend
-即可，见 `DEVELOPER_GUIDE.md` §6.6），所以顺序不再是本项的决定因素。
-**第 3 项（导出格式）依赖本项**：若这里选 A 不引入，格式问题自动
-消失；本项未裁定前，第 3 项只是探讨，不催。
-
-#### 2. 「拒绝 JS target」要不要一并收紧 `webclient/`？
+#### 1. 「拒绝 JS target」要不要一并收紧 `webclient/`？
 
 owner 08:16 逐字：*"注意经过对比和实证，我已经转向了glibe这个拒绝JS
 target的项目，mjs也是祸根之一，AI不会自我约束，所以要换成erlang
@@ -127,41 +70,12 @@ permitted HERE AND ONLY HERE"*，`webclient/src/webclient.gleam:20`
 - **C. R16 / R18 原样不动**：本次只把「禁止手写 erl」与实证写进
   文档，手写 `.mjs` 兜底继续留在 `webclient/`，等真实消费方再说。
 
-#### 3. 导出文件用什么格式？（owner 08:44「需要探讨」；依赖第 1 项）
-
-owner 逐字：*"首先对export出去的文件的格式，需要探讨，将来glibe
-用什么格式，用json？csv？更有效率的二进制方式？"*；08:55
-*"输出json是一种最懒的做法，因为不需要花精力去找最佳方案了。
-但是或许hex有合适gleam的原生数据库都不一定的。"*；08:49
-*"不知道 gleam add 所有BEAM 也就是hex.pm package 并且直接通过
-`@external` 使用？不知道Gleam世界如此简单？"*
-
-**这是探讨，不是裁决；选项平列、不预设推荐、不催。** 事实底座
-（`docs/RULINGS.md`「2026-11-15 08:44–08:58」、`DEVELOPER_GUIDE.md`
-§6.6）：`src/` 现在零序列化零文件 IO；`SourceBar` 九个变体、
-grade 在变体里，`Timestamp` 是 opaque 纳秒值；hex 上确有 Gleam
-原生 `sqlight` / `gsv` / `tysv` 与 BEAM 侧 `khepri` / `esqlite`，
-OTP 还内置 `mnesia` / `dets` / `ets`；`@external(erlang, "erlang",
-"term_to_binary")` 两行即可零 codec 往返且变体保真（实测 True），
-`gleam add simplifile` 的 `append_bits` 可每根 O(1) 落盘。
-单根实测字节 JSON object 98 / ETF 73。逐字与全部探针数字见上述
-两份文档。
-
-- **A. 文本 JSON**（positional array 或逐行 JSON lines）：人可读；
-  代价是一整层 codec、读方带外传 grade、长期格式兼容债
-  （glib 已有三代兜底）。positional array 还不能 append 一根。
-  「跨生态可读」按 owner 09:22 不再计入优势。
-- **B. 文本 CSV / TSV**（hex 上 `gsv` / `tysv` / `erl_csv` 等现成包）：
-  人可读、表格工具可直接用；同样是 closed set 与 opaque 值降级
-  成文本，需要 parser。
-- **C. 二进制 term**（OTP `term_to_binary` 逐记录 append，或
-  `dets` / `mnesia` 按 key 存）：零 codec、grade 与纳秒 Timestamp
-  原样保真、每根 O(1)，是 **BEAM 原生格式**；按 owner 09:22
-  「靠 BEAM 吃饭」，BEAM 专有 **不是顾虑、不列为代价**。
-- **D. 现成数据库包**（`gleam add sqlight` / `khepri` 等）：按 key
-  或 SQL 存取，顺序只是查询时的投影；代价是多一个依赖与一套 API。
-- **E. 不导出**：与第 1 项 A 同义，格式问题自动消失。
-- **F. 先不定**：按 R26 / R32 等真实消费方出现再定。
+> 导出格式（原第 3 项，ETF term）已由 owner 2026-11-17 09:40 定案；
+> `sourcebar_buffer` 导出路径（原第 1 项）已由 owner 2026-11-17 10:16
+> 裁定为非法、glibe 不引入（`sourcebar_list` 只用于之后离线导出）。
+> 两项按本文件「裁决后整条删除」的约定从决策区撤出，结论写进
+> `docs/RULINGS.md`「2026-11-17 09:40」与「2026-11-17 10:16」、
+> `DEVELOPER_GUIDE.md` §6.6 / §7(e)。决策区现为 1 项。
 
 ---
 
@@ -256,6 +170,46 @@ owner 原话（逐字引用、`[user 日期]`、UC 编号）及全部论证在�
 `docs/QUESTIONS.md` 只保留 2026-10-04 版清单里 5 个已撤回条目与 1 个假前提，
 以及撤回理由。本文件不重复。
 
+## R.6 `Symbol` 的归属 —— 按 R28 已定，不是待裁决项（2026-11-17）
+
+owner 逐字（2026-11-17）：*"Symbol 分开定义根本不可能出错，也不可能增加
+负担，因为各自使用的 Symbol 永远随着某一个broker 数据源跑，根本不存在串门
+的情况，而系统则是定义一个标准的Symbol，这跟个自定义自己的外部sourcebar，
+然后定义系统标准SourceBar type逻辑完全相同"*。
+
+这是**裁定，不是问题**——R28 已经定过的形状，Symbol 照抄。`api/symbol.gleam`
+的 human 注记里那句 *"you should compare the two approaches to see which is
+more suitable"* 至此关闭：答案不是「比较后选一个」，而是「没有取舍，与
+sourcebar 同构」。
+
+**R28 在代码里已实现的同构（核对过，不是想象）：**
+- `api/sourcebar.gleam:106` 标准 `SourceBar`：9 个变体按时段，**不含任何
+  provider 名**；标准层不知道各家原生 bar 长什么样。
+- `binance/kline.gleam:108` 原生 `BinanceKline`：带 Binance 字段名，
+  `:250` 的 `to_sourcebar` 是它唯一的出口，转进标准 `SourceBar`。
+- `ib/sourcebar.gleam` 同理（IB 自己的名字、自己的转换）。
+
+**Symbol 照此：**
+- 每家 broker 在自己的模块定义**自己的原生 symbol**，随自己的数据源跑；
+  各家 `to_symbol` 转成系统那一个标准 `Symbol`。
+- 原生 symbol **从不进** `Broker.instruments` 的字典，字典 key 只有标准
+  `Symbol` ⇒ **串门无从发生**。owner 的关键判据就是这句：*"各自使用的
+  Symbol 永远随着某一个broker 数据源跑，根本不存在串门"*。
+- 因此「哪种形状能挡住串门」是个伪命题——我为它造过 accessor 错配探针，
+  是虚构战场，作废。
+
+**我制造并已作废的三件错事（诚实保留，防止复发）：**
+1. symcmp_b 把 `Broker` 写成泛型 `Broker(k)` → 断言「B 逼 Desk 变形、要加
+   union」。owner：*"Desk dict is for Brokers, why should it have anything to
+   do with how Symbol type is defined?"* —— 自造的耦合，结论错。
+2. owner 问「哪种情况 type 让错误无可遁形」，我答「B 的 accessor 错配」——
+   答的正是那个不存在的串门场景。错。
+3. 把「Symbol 归属」登记进决策区当第 4 项待裁决——它按 R28 已定，不该进。
+   决策区已恢复为 3 项。
+
+**仍未定、但不阻塞的**：变体命名需 R15 / R21 核（IB 仅历史股票/ETF，
+`IbOptionSymbol` / `IbForexSymbol` 疑似超范围）。这是命名，不是归属。
+
 ## R.5 待做工作（不需要裁决）
 
 - ~~web 层 demo 对比（R24）~~ 已完成；实测数字与结论在 `docs/DESIGN.md`、
@@ -292,3 +246,39 @@ owner 原话（逐字引用、`[user 日期]`、UC 编号）及全部论证在�
   等 type 非本系统设计；「叶子」特指 `YinLeaf` / `YangLeaf`；glib 不是权威。
   **不是待裁决项**，全文在 `docs/RULINGS.md` R33、`docs/DESIGN.md`
   「The system is already live」。
+
+- **R19④ 填 body 进度（2026-11-17）**：doc-tdd 空架子逐模块填实。
+  已填 `id` / `interval` / `sourcebar` / `symbol` / `databar` / `signal` /
+  `desk` / `broker` / `kline` / `ib/sourcebar`（9 个合成函数）/
+  `instrument`（Dict 读写 + compose 分派）/ `leaf`（7 个：构造、三读、
+  `leaf_size`、`cma_recurrence`）。测试 29 → 37 passed。
+  **`leaf.gleam` 剩 4 个 todo 是真实规格缺口，不是待裁决项、也不臆造**：
+  - `leaf_depth` / `leaf_cma`（R3「选定均线的均值」）依赖 `DataBar` 上的
+    均线字段——当前 `DataBar` 只有 OHLCV+signal，无均线字段（R26 留白，
+    字段随真实消费方出现再加）。`cma_recurrence` 已填：它把 reader 当参数，
+    规格自足。
+  - `next_yin_leaf` / `next_yang_leaf` 需要「叶子何时死亡 / 转向」的判据；
+    骨架 `///` 只写了「settle / birth / move corner_bar」三个动作，没给
+    触发条件（R1/R2 只定义 end_bar 语义与「branch 骑 leaf」，无叶子死亡价
+    格判据）。判据随 `timeframe.leaves` 的真实消费者落地时补，不预造。
+  - `branch.gleam` 已填 7 个（四读 + `lower_case_type_name` +
+    `recognised_this_bar` / `recognised_start_idx` + `exited_branch`），
+    测试增至 40 passed。剩 7 个 todo 同样是规格缺口，非待裁决项：
+    - `branch_size`：growing branch 无 exit_bar（`///` 说 "has no size"），
+      但签名返回 `Int` 不是 `Option` — 无 exit_bar 时返回什么未定。
+    - `move_between` / `branch_stat` / `recognised_move`：读「measurement
+      series」，而当前 `DataBar` 只有 OHLCV+signal，无均线/测量字段（R26 留白）。
+    - `next_yang/yin_branch` + `branch_exit_leaf_size()`：关闭计数在参考实现
+      glib 里是**按 interval 取值**（config_test: D1=40 / W1=8；
+      `handoff-old.md` 记 40/8/2），旧容器 `TimeframeSettings` 已被 R46 删除；
+      本骨架 `branch_exit_leaf_size()` 却无参。值随真实消费方按 R26 落地时，
+      形态（是否改成收 `Interval`）需据那一刻的消费方定，不预造。
+  - 这些不是「需要你决定」项：owner 的原则是字段与值随真实消费方一个一个加
+    （R26/R32），不预造、现在不臆造实现。
+  - `timeframe.gleam` 已填 `sourcebar_gate`（validate→born whole 进 working_databar，
+    idx 取 bars_listed）、`working_databar_archived`（prepend 表头、清 working）、
+    `databar_processing`（单管道形状调用各步），测试增至 42 passed。
+    剩 4 个 todo = 管道 4 步 `indicator`/`leaves`/`branches`/`strategy`，各依赖上面
+    已登记的开放点（测量字段、叶子死亡判据、exit_size、决策规则），同样留白。
+  - **当前 todo 总分布（WAE 实测 15）**：leaf 4 + branch 7 + timeframe 4 = 15，
+    全部是「字段/判据随真实消费方落地」的 R26 按序工作，非待裁决项。
