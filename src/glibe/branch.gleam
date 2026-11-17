@@ -34,16 +34,18 @@
 //// what its body has to write (R19); `gleam build --warnings-as-errors`
 //// reports each one until it is written.
 ////
-//// R19 status (2026-11-17): 7 bodies filled — four bar readers,
+//// R19 status (2026-11-17): 10 bodies filled — four bar readers,
 //// `lower_case_type_name`, `recognised_this_bar`, `recognised_start_idx`,
-//// `exited_branch`. Seven remain: `branch_size` (growing branch has no
-//// exit_bar, yet the signature returns Int, not Option), `move_between` /
-//// `branch_stat` / `recognised_move` (need a measurement series absent from
-//// `DataBar`, R26), and `next_yang/yin_branch` + `branch_exit_leaf_size` (the
-//// closing count is per-interval in the reference — 40/8/2 — but this
-//// skeleton's `branch_exit_leaf_size()` takes no argument). Recorded in
+//// `exited_branch`, plus `move_between` / `recognised_move` (R3 share on the
+//// selected MA; R26 field now landed). Five remain: `branch_size`
+//// (growing branch has no exit_bar, yet the signature returns Int, not
+//// Option) and `branch_stat` (same Option problem via end_bar),
+//// `next_yang/yin_branch` + `branch_exit_leaf_size` (the closing count is
+//// per-interval in the reference — 40/8/2 — but this skeleton's
+//// `branch_exit_leaf_size()` takes no argument). Recorded in
 //// `docs/PENDING_DECISIONS.md` R.5; none is invented.
 
+import gleam/int
 import gleam/option.{type Option, None, Some}
 import glibe/databar.{type DataBar, DataBar}
 import glibe/leaf.{type DataLeaf}
@@ -136,7 +138,14 @@ pub fn move_between(
   from_bar: DataBar,
   to_bar: DataBar,
 ) -> #(Float, Float, Float) {
-  todo as "05-01: share of the move, its length in bars, and the move per bar"
+  // R3/R6: the share is on the selected MA, not price; the length is an idx
+  // difference with both ends included, never a walk of any list. The third
+  // value is the per-bar slope, not a verdict.
+  let DataBar(sma_tiny: from_ma, idx: from_idx, ..) = from_bar
+  let DataBar(sma_tiny: to_ma, idx: to_idx, ..) = to_bar
+  let move = { to_ma -. from_ma } /. from_ma
+  let bars = int.to_float(to_idx - from_idx + 1)
+  #(move, bars, move /. bars)
 }
 
 /// Three measurements of an ENDED branch: `branch_stat` reads `start_bar`
@@ -152,7 +161,13 @@ pub fn branch_stat(branch: DataBranch) -> #(Float, Float, Float) {
 /// while no `exit_bar` exists, because one end of a move is not a move
 /// (R1 / R5). It calls `move_between`.
 pub fn recognised_move(branch: DataBranch) -> Option(#(Float, Float, Float)) {
-  todo as "05-01: move_between(enter_bar, exit_bar), None while exit_bar is None"
+  // R11/R1: one end of a move is not a move, so no exit_bar means no answer.
+  // When it exists, the actionable window is enter -> exit; end_bar is a
+  // different (magnitude) question that branch_stat asks.
+  case exit_bar(branch) {
+    None -> None
+    Some(exit) -> Some(move_between(enter_bar(branch), exit))
+  }
 }
 
 /// R4's one-line recognition question: was this branch recognised on this

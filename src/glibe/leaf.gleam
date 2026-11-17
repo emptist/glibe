@@ -28,12 +28,13 @@
 //// says what its body has to write (R19); `gleam build --warnings-as-errors`
 //// reports each one until it is written.
 ////
-//// R19 status (2026-11-17): 7 bodies filled — `born_yin/born_yang`,
-//// `start_bar/end_bar/corner_bar`, `leaf_size` (R6 idx arithmetic), and
-//// `cma_recurrence` (R3 forward step). Four remain: `leaf_depth` / `leaf_cma`
-//// need the selected moving-average field on `DataBar` (R26 — a field arrives
-//// with its real consumer), and `next_yin_leaf` / `next_yang_leaf` need the
-//// leaf-death/turn criterion that this skeleton's `///` does not specify yet.
+//// R19 status (2026-11-17): 8 bodies filled — `born_yin/born_yang`,
+//// `start_bar/end_bar/corner_bar`, `leaf_size` (R6 idx arithmetic),
+//// `cma_recurrence` (R3 forward step), and `leaf_depth` (R3 share of the
+//// selected MA, R26 field now landed with its consumer). Three remain:
+//// `leaf_cma` needs the twin's mean-reader fields on `DataBar` (not declared
+//// in this design), and `next_yin_leaf` / `next_yang_leaf` need the
+//// leaf-death/turn criterion that this skeleton's `///` does not specify.
 //// Recorded in `docs/PENDING_DECISIONS.md` R.5; none is invented here.
 
 import gleam/int
@@ -116,7 +117,22 @@ pub fn leaf_size(leaf: DataLeaf, databar: DataBar) -> Int {
 /// A view projection reads it for a settled leaf (R20 / R30); it is a
 /// measurement, not the closing decision — that is `leaf_size` (R6).
 pub fn leaf_depth(leaf: DataLeaf) -> Float {
-  todo as "05-01: share between start_bar and corner_bar on the leaf's measurement series"
+  // R3: the top of a yin leaf is its start (the corner is the low); a yang
+  // leaf mirrors it. Both are read off the two bars the leaf already names,
+  // so nothing walks a series. A share, not a difference, so a 100-dollar
+  // leaf sits next to a 60,000-dollar one.
+  case leaf {
+    YinLeaf(start_bar:, corner_bar:, ..) -> {
+      let DataBar(sma_tiny: top, ..) = start_bar
+      let DataBar(sma_tiny: corner, ..) = corner_bar
+      { top -. corner } /. top
+    }
+    YangLeaf(start_bar:, corner_bar:, ..) -> {
+      let DataBar(sma_tiny: floor, ..) = start_bar
+      let DataBar(sma_tiny: top, ..) = corner_bar
+      { top -. floor } /. top
+    }
+  }
 }
 
 /// One step of a leaf's running mean (R3). `leaf_cma` calls it with the

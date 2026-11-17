@@ -11,7 +11,7 @@
 //// `binance_kline_to_sourcebar_test`, arrived 2026-11-14 with the first
 //// filled body.
 ////
-//// R19 status: sixteen real-assertion tests live —
+//// R19 status: nineteen real-assertion tests live —
 //// `binance_kline_to_sourcebar_test` (2026-11-14),
 //// `bars_listed_reads_head_idx_test` (2026-11-15), `symbol_codec_shape_test`
 //// round-trip (2026-11-17), three `ib_composition_*` tests (start / accumulate /
@@ -22,7 +22,9 @@
 //// `timeframe_*` tests (sourcebar_gate door; archived prepends to head), and
 //// `whole_chain_by_identity_keys_test` (Desk ▸ Broker ▸ Instrument ▸
 //// Timeframe written and read back by identity keys — the lab's whole-desk
-//// proof reduced to glibe's one Value). The rest pin types only.
+//// proof reduced to glibe's one Value), and three structure-measurement tests
+//// (`leaf_depth_share_test`, `branch_move_between_test`,
+//// `branch_recognised_move_test`, R3 selected-MA shares). The rest pin types.
 
 import gleam/dict
 import gleam/option.{type Option, None, Some}
@@ -109,6 +111,23 @@ fn listed_bar(idx: Int) -> DataBar {
     close: 0.0,
     volume: 0,
     signal: signal.SignalNoSignal,
+    sma_tiny: 0.0,
+  )
+}
+
+/// A `DataBar` with a chosen index and selected MA (R3), for the structure
+/// measurement tests. Only `idx` and `sma_tiny` are read there.
+fn ma_bar(idx: Int, sma: Float) -> DataBar {
+  databar.DataBar(
+    idx: idx,
+    timestamp: timestamp.from_unix_seconds(1_499_040_000),
+    open: 0.0,
+    high: 0.0,
+    low: 0.0,
+    close: 0.0,
+    volume: 0,
+    signal: signal.SignalNoSignal,
+    sma_tiny: sma,
   )
 }
 
@@ -241,6 +260,7 @@ pub fn sourcebar_to_databar_birth_test() {
       close: 1.5,
       volume: 100,
       signal: signal.SignalNoSignal,
+      sma_tiny: 0.0,
     )
     as "one whole bar born with the caller's idx and a neutral decision"
 }
@@ -357,6 +377,7 @@ pub fn databar_readers_test() {
       close: 1.5,
       volume: 100,
       signal: signal.SignalBuy,
+      sma_tiny: 0.0,
     )
   assert databar.idx(bar) == 7 as "idx is the bar's stream index"
   assert databar.timestamp(bar) == ts as "absolute Timestamp, not a spelling"
@@ -848,6 +869,50 @@ pub fn leaf_cma_recurrence_test() {
   let prev = databar.DataBar(..listed_bar(9), close: 10.0)
   let cur = databar.DataBar(..listed_bar(10), close: 20.0)
   assert leaf.cma_recurrence(cur, [prev], 9, raw, raw) == 15.0
+  Nil
+}
+
+/// R3 (owner verbatim): `leaf_depth` is a share of the SELECTED MA, read off
+/// start_bar and corner_bar — a yin leaf's top is its start (the corner is the
+/// low), a yang leaf's top is its corner. pin the share and the polarity, and
+/// that it is a share (finite ratio), not a price difference.
+pub fn leaf_depth_share_test() {
+  let yin = leaf.YinLeaf(ma_bar(0, 100.0), None, ma_bar(1, 80.0))
+  assert leaf.leaf_depth(yin) == 0.2 as "yin: (100-80)/100"
+  let yang = leaf.YangLeaf(ma_bar(0, 80.0), None, ma_bar(1, 100.0))
+  assert leaf.leaf_depth(yang) == 0.2 as "yang: (100-80)/100"
+  Nil
+}
+
+/// branch.move_between is the one P&L measurement: a share of the selected
+/// MA (R3) plus an idx-based bar count, both ends included (R6). No series is
+/// walked; the two bars already carry both values.
+pub fn branch_move_between_test() {
+  let #(move, bars, per_bar) =
+    branch.move_between(ma_bar(0, 100.0), ma_bar(4, 125.0))
+  assert move == 0.25 as "share: (125-100)/100"
+  assert bars == 5.0 as "both ends included: idx 0..4"
+  assert per_bar == 0.05 as "slope: 0.25/5"
+  Nil
+}
+
+/// recognised_move is the actionable window enter_bar -> exit_bar (R11);
+/// None while no exit_bar exists, because one end of a move is not a move (R1).
+pub fn branch_recognised_move_test() {
+  let growing =
+    branch.YangBranch(ma_bar(0, 100.0), ma_bar(1, 100.0), None, None)
+  assert branch.recognised_move(growing) == option.None as "no exit, no move"
+  let ended =
+    branch.YangBranch(
+      ma_bar(0, 100.0),
+      ma_bar(1, 100.0),
+      None,
+      Some(ma_bar(4, 125.0)),
+    )
+  let #(move, bars, _) = branch.move_between(ma_bar(1, 100.0), ma_bar(4, 125.0))
+  assert branch.recognised_move(ended)
+    == option.Some(#(move, bars, move /. bars))
+    as "enter->exit window, no end_bar needed"
   Nil
 }
 

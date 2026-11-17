@@ -260,5 +260,9 @@ pub fn to_databar(sourcebar: SourceBar, idx: Int) -> DataBar {
     close: sourcebar.close,
     volume: sourcebar.volume,
     signal: signal.SignalNoSignal,
+    // R3: the selected MA is computed later by timeframe.indicator; a bar is
+    // born whole with a neutral seed, never a fabricated mean (R46 removed
+    // the settings, not this field).
+    sma_tiny: 0.0,
   )
 }

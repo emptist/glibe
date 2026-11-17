@@ -67,6 +67,12 @@ pub type DataBar {
     close: Float,
     volume: Int,
     signal: Signal,
+    /// The selected moving average the leaf rides (R3, owner verbatim:
+    /// *"CMA 当然同样是选定均线的均值呀"*). `leaf.leaf_depth` and
+    /// `branch.move_between` read it off the two bars a structure names; R46
+    /// deleted the WINDOW-SIZE settings, not this field. `timeframe.indicator`
+    /// is its writer (todo); `sourcebar.to_databar` seeds it at birth.
+    sma_tiny: Float,
   )
 }
 
