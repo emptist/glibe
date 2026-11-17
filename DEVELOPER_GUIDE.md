@@ -659,17 +659,17 @@ owner 2026-11-15 逐字：*"在你刚才处理大量代码文件却不曾写多�
 
 ---
 
-## 10. 门禁（2026-11-17 15:51 实测；填 body 后重测，旧数字已作废）
+## 10. 门禁（2026-11-17 16:xx 实测；每填一个 body 重测，旧数字作废）
 
 ```sh
 export PATH="/opt/homebrew/bin:$PATH"
 gleam format --check src test      # 0
 gleam check                       # 0
-gleam test                        # 43 passed, no failures
+gleam test                        # 46 passed, no failures
 gleam docs build                  # 0
 gleam export package-interface    # 0；modules: 15
 gleam build                       # 0
-gleam build --warnings-as-errors  # exit 1：47 = 15 Todo + 32 unused arg
+gleam build --warnings-as-errors  # exit 1：40 = 12 Todo + 28 unused arg
 ```
 
 `--warnings-as-errors` 是**从空架子起就固定的门禁**（R48），不是成绩单：

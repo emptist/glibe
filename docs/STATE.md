@@ -4,6 +4,23 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
+## 2026-11-17 16:12 (当前状态 — 已提交 + 纠正「全被挡」误判；16:01 节为上次)
+
+owner 质问「为什么不提交、什么在挡你往前推」。答案：没东西挡，是我拖。
+
+- **已提交并 push**：`doc-tdd` 三次 narrow commit，普通 fast-forward
+  `5b44cdc..0fdfb69`（实现 / 裁定文档 / 工作日志），tree 干净。
+- **往前推**：纠正 R.5 里「测量函数因 DataBar 无均线字段被挡」的误判——
+  R46 删的是 settings 容器 + 窗口大小数字，不是 R3 点名的 `sma_tiny` 字段。
+  `DataBar` 加 `sma_tiny`（出生 `0.0`），doc-led TDD 填 3 个规格自足的 body：
+  `leaf.leaf_depth`、`branch.move_between`、`branch.recognised_move`。
+- **门禁真值**：`format` / `check` / `docs` / `export` 全 0；`test` **46 passed**；
+  WAE exit 1、**40 = 12 Todo + 28 unused arg**（15→12 Todo）。
+- **剩 12 Todo 是真规格缺口**（非待裁决、不臆造）：leaf 3（leaf_cma 要 twin
+  均值 reader 字段、next_*_leaf 要死亡判据）+ branch 5（branch_size/stat 签名
+  该是 Option、next_*_branch + exit_size 要 per-interval 值）+ timeframe 4 管道步。
+  逐项在 `docs/PENDING_DECISIONS.md` R.5；全文 RULINGS「2026-11-17 16:12」。
+
 ## 2026-11-17 16:01 (当前状态 — lab 整链核对；15:51 节为上次)
 
 owner 指路：try_plushie 把整个 Desk 建成 plushie 的 model；核对它的

@@ -250,35 +250,36 @@ sourcebar 同构」。
 - **R19④ 填 body 进度（2026-11-17）**：doc-tdd 空架子逐模块填实。
   已填 `id` / `interval` / `sourcebar` / `symbol` / `databar` / `signal` /
   `desk` / `broker` / `kline` / `ib/sourcebar`（9 个合成函数）/
-  `instrument`（Dict 读写 + compose 分派）/ `leaf`（7 个：构造、三读、
-  `leaf_size`、`cma_recurrence`）。测试 29 → 37 passed。
-  **`leaf.gleam` 剩 4 个 todo 是真实规格缺口，不是待裁决项、也不臆造**：
-  - `leaf_depth` / `leaf_cma`（R3「选定均线的均值」）依赖 `DataBar` 上的
-    均线字段——当前 `DataBar` 只有 OHLCV+signal，无均线字段（R26 留白，
-    字段随真实消费方出现再加）。`cma_recurrence` 已填：它把 reader 当参数，
-    规格自足。
-  - `next_yin_leaf` / `next_yang_leaf` 需要「叶子何时死亡 / 转向」的判据；
-    骨架 `///` 只写了「settle / birth / move corner_bar」三个动作，没给
-    触发条件（R1/R2 只定义 end_bar 语义与「branch 骑 leaf」，无叶子死亡价
-    格判据）。判据随 `timeframe.leaves` 的真实消费者落地时补，不预造。
-  - `branch.gleam` 已填 7 个（四读 + `lower_case_type_name` +
-    `recognised_this_bar` / `recognised_start_idx` + `exited_branch`），
-    测试增至 40 passed。剩 7 个 todo 同样是规格缺口，非待裁决项：
-    - `branch_size`：growing branch 无 exit_bar（`///` 说 "has no size"），
-      但签名返回 `Int` 不是 `Option` — 无 exit_bar 时返回什么未定。
-    - `move_between` / `branch_stat` / `recognised_move`：读「measurement
-      series」，而当前 `DataBar` 只有 OHLCV+signal，无均线/测量字段（R26 留白）。
-    - `next_yang/yin_branch` + `branch_exit_leaf_size()`：关闭计数在参考实现
-      glib 里是**按 interval 取值**（config_test: D1=40 / W1=8；
-      `handoff-old.md` 记 40/8/2），旧容器 `TimeframeSettings` 已被 R46 删除；
-      本骨架 `branch_exit_leaf_size()` 却无参。值随真实消费方按 R26 落地时，
-      形态（是否改成收 `Interval`）需据那一刻的消费方定，不预造。
+  `instrument`（Dict 读写 + compose 分派）/ `leaf`（8 个）/ `branch`（10 个）/
+  `timeframe`（3 个）。测试 **46 passed**。
+  - **`sma_tiny` 字段已落 `DataBar`**（R3 owner 逐字 *"CMA 当然同样是选定
+    均线的均值呀"* 点名的 selected MA）。此前写成「无均线字段、等消费方」
+    是我把 R46 误读成「字段也被删」——R46 删的是 `TimeframeSettings` 和
+    12 个窗口大小数字，不是 `sma_tiny` 这个测量值；骨架 `///` 早已写明这些
+    函数读它，glib 也有现成实现。`to_databar` 出生时种 `0.0`，writer 是
+    `timeframe.indicator`（仍是 todo）。
+  - **已填的 3 个新 body**（R3 规格自足，glib 有参考实现）：
+    `leaf.leaf_depth`（yin 顶=start、yang 顶=corner，取 share 不是差）、
+    `branch.move_between`（`(to-from)/from` + idx 两端 inclusive 的 bar 数）、
+    `branch.recognised_move`（enter→exit 窗口，无 exit_bar 则 `None`）。
+  - **真实规格缺口（不是待裁决项、不臆造），12 个 todo = leaf 3 + branch 5 +
+    timeframe 4**：
+    - `leaf.leaf_cma` 需要「twin 的均值 reader」——`yin_leaf_cma` /
+      `yang_leaf_cma` 两个字段在本设计里**未声明**（R46 把携带它们的 settings
+      容器删了，没说这两字段落在哪）；不猜。
+    - `leaf.next_yin_leaf` / `next_yang_leaf` 需要叶子何时死亡/转向的判据；
+      glibe R1/R3/R6 给了 end_bar 语义与「closing 是长度测试」，**没有**给
+      「yin 死在新高 sma_tiny、corner 跟新低」这条触发条件（它在 glib 文档里，
+      R38 声明 glib 不是权威）。随 `timeframe.leaves` 的真实消费方落地。
+    - `branch.branch_size` / `branch_stat` 的**签名本身有问题**：growing branch
+      无 exit_bar / end_bar，签名却返回裸 `Int` / 裸三元组，不是 `Option`
+      （glib 用库内 `let assert` 掩盖，core §7 禁止库 panic）。判据随真实消费方
+      定，不擅自改签名。
+    - `branch.next_yang/yin_branch` + `branch_exit_leaf_size()`：关闭计数在
+      参考实现里**按 interval 取值**（D1=40 / W1=8），旧容器 `TimeframeSettings`
+      已被 R46 删；本骨架 `branch_exit_leaf_size()` 无参。形态随真实消费方定。
+    - `timeframe` 4 步 `indicator` / `leaves` / `branches` / `strategy`，各依赖
+      上面已登记的开放点，留白。
   - 这些不是「需要你决定」项：owner 的原则是字段与值随真实消费方一个一个加
-    （R26/R32），不预造、现在不臆造实现。
-  - `timeframe.gleam` 已填 `sourcebar_gate`（validate→born whole 进 working_databar，
-    idx 取 bars_listed）、`working_databar_archived`（prepend 表头、清 working）、
-    `databar_processing`（单管道形状调用各步），测试增至 42 passed。
-    剩 4 个 todo = 管道 4 步 `indicator`/`leaves`/`branches`/`strategy`，各依赖上面
-    已登记的开放点（测量字段、叶子死亡判据、exit_size、决策规则），同样留白。
-  - **当前 todo 总分布（WAE 实测 15）**：leaf 4 + branch 7 + timeframe 4 = 15，
-    全部是「字段/判据随真实消费方落地」的 R26 按序工作，非待裁决项。
+    （R26/R32），不预造、现在不臆造实现。**当前 todo 总分布（WAE 实测 12）**
+    = leaf 3 + branch 5 + timeframe 4。
