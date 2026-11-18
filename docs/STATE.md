@@ -4,7 +4,20 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-19 00:26 (当前状态 — 方法论前提：不读书会害死你；用 plushie 必读 Elm/iced/plushie 官方文档)
+## 2026-11-19 02:18 (当前状态 — 决策区 0 项 → 出 app 架构设计 doc/type 层；未建骨架)
+
+- owner："需要我决定什么？不需要就不用等我发话。" 实读 `PENDING_DECISIONS.md` = **当前 0 项**；
+  不弹卡片、不追问，继续推进 app 架构设计。
+- **本轮产出**：`.planning/phases/06-app-architecture/06-01-PLAN.md` —— 把 00:22「BEAM-only」
+  总纲展开成三层 ownership：L1 领域核（`Desk` 唯一 source of truth，不动）/ L2 MVU runtime
+  （Model 引用 Desk、Update 纯函数、View 产 SpecShape；眼耳口各一 runtime 经 shared actor 广播；
+  **是表现层循环、非 R33 调度器**）/ L3 边界 adapter（输入 SourceBar→Msg、视觉 SpecShape→renderer、
+  耳口 STT/TTS 平台隔离）。附 7 条兄弟项目坑→机制表。
+- **不跨步**：未建 src 骨架、未写函数体、未加依赖、未定库版本、未改任何 tree 源码。设计是推论
+  （出处逐条标）、非新裁定；决策区维持 0 项。下一步按 gdltdd 逐模块 doc/type → 空架子 →
+  测试 RED → 填体 GREEN。见 `docs/RULINGS.md`「2026-11-19 02:18」。
+
+## 2026-11-19 00:26 (历史 — 方法论前提：不读书会害死你；用 plushie 必读 Elm/iced/plushie 官方文档)
 
 owner 逐字："首先你可以明确，如果不读书，会害死你。所以用plushie你要去读Elm 读iced 读plushie
 的官方文档。try_plushie 就是不读书，所以后来推翻重来，用了官方的做法，很快就完成了自己瞎编

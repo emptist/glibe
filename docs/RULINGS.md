@@ -5308,3 +5308,42 @@ owner 逐字（本轮）："首先你可以明确，如果不读书，会害死�
 - 读完官方文档 = 清掉了设计前提，但**本条仍不输出 app 架构设计**——owner 明确"不应该一步跨出太远"。
   下一步才按 gdltdd 出架构：先 doc/type（谁读写哪个值），再空架子，再测试 RED，再填体。
 - 只改文档（RULINGS / STATE / 日志），未改任何 tree 源码。决策区仍 0 项。
+
+---
+
+## 2026-11-19 02:18 — owner"需要我决定什么？不需要就不用等我发话"；决策区 0 项 → 出 app 架构设计（doc/type 层）
+
+owner 逐字（本轮）："需要我决定什么？不需要就不用等我发话。"
+
+### 一、先把问题答死
+
+- **无需裁决**。本轮开头实读 `docs/PENDING_DECISIONS.md`「需要你决定」节 = **当前 0 项**
+  （2026-11-19 00:03 起）。既然没有待决项，按 owner"不用等我发话"继续推进唯一 pending 的
+  实质工作：设计 glibe 自己的 app 架构（task #31）。**不弹卡片、不追问、不制造待决项。**
+
+### 二、本轮产出：app 架构设计（doc/type 层）
+
+落点 `.planning/phases/06-app-architecture/06-01-PLAN.md`（plan 条目，供未来模块 `////` 点名；
+按 05-01 规矩它不是设计资产本身，具体判据落模块时进 `////`/`///`）。
+
+- **已裁定前提不重造**（每条带出处）：架构总纲 BEAM-only（00:22）、唯一顶层 Value `Desk`
+  （R33/R42/R50）、领域核纯值重算无 actor（R33）、视觉层 bar_stream_chart + plushie 闭合 /
+  web 出局（11-18 / 00:03 / 00:07）、声控去 BEAM/hex 找现成库不重造、眼耳口可分可合（16:50）、
+  用 plushie 先读当前官方文档（00:26）。
+- **三层 ownership**：L1 领域核（已有，`Desk` 是 source of truth，不动）；L2 MVU runtime
+  （新设计：Model 引用 Desk 不另存、Update 纯函数调 L1、View 产 SpecShape；眼耳口各一独立
+  runtime 经 shared actor 广播，单 loop 多窗口 = wrong shape 不重踩）；L3 边界 adapter
+  （输入 SourceBar→Msg、视觉 SpecShape→renderer、耳口 STT/TTS 平台隔离）。
+- **关键区分**：MVU runtime 是表现层事件循环，**不是 R33 禁止的调度器**——领域重算仍是纯
+  `Desk -> Desk`。这样 L2 与 R33 不冲突。
+- **坑 → 机制表**：7 条从兄弟项目坑来的约束，每条挂机制（owner 进程归属、FFI 边界、探针、
+  persistent_term 缓存、三后端 + 真窗口验收、erlang target 零手写 JS/erl），不做装饰。
+- **待落地模块**：`app/message` / `app/runtime` / `app/view` / `app/voice/<platform>` 是**提议**，
+  名字与切分落模块时按 R50 再定，R26/R32 不预造。
+
+### 三、边界（不跨步）
+
+- 这是把 00:22 总纲展开成三层 ownership 的**设计推论**（出处逐条标），不是新裁定；最终落地
+  属 owner。决策区维持 0 项，不翻案任何旧结论。
+- **未建 `src/` 骨架、未写函数体、未加依赖、未定库版本、未改任何 tree 源码。** 下一步才按
+  gdltdd 逐模块：doc/type → 空架子 → 测试 RED → 填体 GREEN。
