@@ -4,7 +4,26 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-17 17:28 (当前状态 — 补横向实测比较，16:50 的「定案」措辞降级为「比较后的推荐」)
+## 2026-11-18 08:23 (当前状态 — owner 出示自研 `bar_stream_chart` 1.0.0，昨日图表边界过时)
+
+owner："our own made https://hex.pm/packages/bar_stream_chart"。实查（hex 页 + 本地源码 +
+主项目接线）：`bar_stream_chart` 1.0.0，描述逐字"Incremental candlestick chart: one bar in,
+that bar's shapes out"，发布者 hex 用户 `guo` / 2026-11-17，Apache-2.0，只依赖 gleam_stdlib，
+**erlang target / 971 行纯 Gleam / 0 手写 JS / 0 @external**；包自身 10/10 测试、WAE 0 本轮实跑。
+try_plushie 已正式依赖（`gleam.toml` `>= 1.0.0 and < 2.0.0`、manifest `source = "hex"`），
+`fusion_view.gleam` 退成 `SpecShape → plushie prop` 翻译壳；主项目 WAE 0 / mock 35/35 本轮实跑，
+patch 数字不变；本地源码与 hex 缓存 diff IDENTICAL。
+
+- **修正的边界**：17:28 记的"无内置金融图表 widget、K 线几何全自算"**已过时**——图表规范层
+  现在是 owner 自研、已发布 hex、纯 Gleam 同 target 的独立可复用包，复杂度移进自有资产。
+- **重新评估**：17:28 "web 独有图表库成熟度优势"不再准确——两边都有图表库：web 第三方
+  LightweightCharts（成熟度占优），plushie 自有 `bar_stream_chart`（自有/同 target/跨 renderer，
+  但 1.0.0 首发仅 10 测试）。
+- **不翻案**：17:28 三项占优 + "最终路线属 owner 裁定、被测对象仍在开发"结论原样保留；
+  声控两缺、都不复用 glibe model 两条边界不变。四 tree 源码未改。详见 `docs/RULINGS.md`
+  「2026-11-18 08:23」。
+
+## 2026-11-17 17:28 (历史 — 补横向实测比较，16:50 的「定案」措辞降级为「比较后的推荐」；图表边界已被 11-18 更新)
 
 owner 追问"你定下他，是经过比较，还是根据想象？"+"当然要实测比较，并且比较代码复杂
 程度、与其他模块的顺应程度，综合评测"。**纠正**：16:50 只测了 try_plushie 单候选，

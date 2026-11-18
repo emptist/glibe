@@ -4967,6 +4967,11 @@ app 路线"的 GUI 补完。
 
 ## 2026-11-17 17:28 — owner 追问「你定下他，是经过比较，还是根据想象？」；补横向实测比较，结论降级
 
+> **边界更新（2026-11-18，见本文件“2026-11-18 08:23”节）**：本条记的“无内置金融
+> 图表 widget / K 线几何全自算”已在次日过时——owner 自研的 `bar_stream_chart 1.0.0`
+> 已发布 hex、被 try_plushie 正式依赖，`fusion_view` 退成翻译壳。本条其余测量与结论
+> 保留为当时历史，不改写；“web 图表库成熟度占优”一条被该节重新评估。
+
 owner 逐字（本轮）："当然要实测比较，并且比较代码复杂程度，与其他模块的顺应程度，
 等等，综合评测。" 上一轮（16:50）我**只实测了 try_plushie 一个候选**就写下
 "能当此重任 / 路线钉下"——那是单候选验证，不是比较，措辞超出证据。本条纠正：
@@ -5047,3 +5052,59 @@ owner 逐字（本轮）："当然要实测比较，并且比较代码复杂程�
 路线最终裁定也能并行推进的：叶子/分支/策略 12 个 Todo 按 R.5 真实缺口填；声控半若
 要落地，先在 glibe 侧按 R19 doc-led TDD 建"四指令闭集类型 + STT/TTS 边界"的空架子，
 不预先堆机制。
+
+---
+
+## 2026-11-18 08:23 — owner 出示自研包 `bar_stream_chart`；昨日「图表」边界过时，据实更新（结论不翻案）
+
+owner 本轮只给一行："our own made https://hex.pm/packages/bar_stream_chart"。这是 owner
+出示自有资产，接上 17:28 评测里我记的“plushie 无内置金融图表 widget、K 线几何全自算”
+那条边界。owner 已在 17:28 预告"try_plushie 仍在开发、文档在重梳、很快有更好的状态"——
+这条就是那个更好状态的一部分。**本条只更新过时事实，不翻案 17:28 的结论。**
+
+### 一、实查这个包（hex 页 + 本地源码 + 主项目接线，非转述）
+
+| 项 | 实测结果 | 证据 |
+|---|---|---|
+| 名称 / 版本 | `bar_stream_chart` 1.0.0 | hex.pm 页 + `gleam.toml` |
+| 描述（逐字） | "Incremental candlestick chart: one bar in, that bar's shapes out" | hex.pm / README |
+| 发布者 / 时间 | hex 用户 `guo` / 2026-11-17 | hex.pm 页 |
+| 许可 / 依赖 | Apache-2.0 / 只依赖 `gleam_stdlib` | hex.pm + `gleam.toml` |
+| target | erlang（编译产物 `.erl`/`.beam` 在 build 树） | gleam.toml 无 target 行 + build 树 |
+| 规模 | 1 模块 / 971 行纯 Gleam / 0 手写 JS / 0 `@external` | `wc -l` + grep |
+| 纯函数测试 | 10/10 passed | `gleam test` 本轮实跑 |
+| 包 WAE | exit 0 | `gleam build --warnings-as-errors` 本轮实跑 |
+| 主项目接线 | try_plushie `gleam.toml` 声明 `>= 1.0.0 and < 2.0.0`；manifest `source = "hex"`、`outer_checksum` 已钉；`fusion_view.gleam` 用它建 spec / push / shapes，`fusion_view` 退成翻译壳 | 实读两文件 |
+| 主项目门禁 | WAE exit 0、mock 35/35 本轮实跑，patch 数字不变（candles insert=1、overlays=3、volume=1、kdj=3、remove=0） | 实测 |
+| 本地源码 = hex 缓存 | `diff -q` IDENTICAL | 实测 |
+
+包的设计规则（README 逐字要点）：`push(chart, bar)` 是唯一输入，无 batch / 无 replay /
+无 load-list；`Chart` opaque，只存派生 count / 一次 carried bar / O(1) bounds，**不存调用方
+bar 列表副本**；`shapes` 只装配已生成形状，zoom/pan 走一次仿射变换不重访旧 bar；输出颜色
+遵循中国习惯（涨红跌绿）；view/model 分离，返回框架中立的 `SpecShape` IR 交 renderer 翻译。
+仓库另有 `chart-package-plan.md` 标记状态"已完成 2026-11-17"，`RELEASE.md` 是 owner 自写的
+hex 发布清单（AI 不执行发布，owner 本人执行）。
+
+### 二、昨日评测哪条被修正、哪条不变
+
+- **被修正**：17:28 对比表「视觉实现机制」写 plushie "自算 K 线几何 + canvas（无金融图表
+  widget）"、边界写"无内置金融图表 widget"——**已过时**。正确说法：图表规范层（增量 K 线、
+  轴、视口映射、O(1) 边界、SpecShape IR）现在是 owner 自研、已发布 hex、纯 Gleam erlang
+  target、被主项目正式依赖的独立包；plushie 侧只剩把 `SpecShape` 翻成 prop 节点的翻译壳。
+  复杂度不是消失，是从 app 里移进了自己的可复用库——与 web 把复杂度交给第三方 vendor
+  （node_modules 里的图表库）是**不同归属**：一个是自有资产，一个是外部依赖。
+- **被重新评估**：17:28 结论 1 说"web 只在图表库成熟度上占优"。现在两边都有图表库：
+  web 是 LightweightCharts（第三方、成熟、开箱即用），plushie 是 `bar_stream_chart`
+  （自有、1.0.0 首发、10 测试、功能专注增量 K 线）。"第三方成熟度"这项 web 仍客观占优；
+  但"图表资产归自己掌控 / 纯 Gleam / 同 erlang target / 可跨 renderer 复用"这项 plushie
+  现在成立，昨日"web 独有图表优势"的说法不再准确。
+- **不变（不翻案）**：17:28 的三项占优（target 顺应、边界纯度、门禁健康）与"最终 UI 路线
+  属 owner 裁定、被测对象仍在开发"的结论原样保留。声控两路线都缺、都不复用 glibe model
+  两条边界也不变。本条不把它升级成"定案"。
+
+### 三、保持移动（本条）
+
+本条只改文档（RULINGS / STATE / memory），未改四处 tree 任何源码。owner 以"our own made"
+出示这个包，说明自有图表基础设施已在推进——这与整个项目 BEAM-native / 自有资产 /
+type-first 的方向一致。下一步仍不替定案：若要把它纳入 glibe 的 app 落地，按 R19 doc-led
+TDD 先定边界类型；声控半与 12 个 Todo 按各自真实缺口并行推进。
