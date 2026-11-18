@@ -4,7 +4,18 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-19 00:10 (当前状态 — 认错：00:03 把"包也支持 web"当论据是逻辑错误，已删；结论不变)
+## 2026-11-19 00:22 (当前状态 — 架构定案：全面依赖 BEAM 自身能力完成前端后端一切)
+
+owner 逐字："现在你的项目不是缺少一个环节吗？就是App究竟用什么架构做，现在不应该一步跨出
+太远，记住 gdltdd gleam document led tdd. 所以你目前可以决定的事是：项目全面依赖BEAM自身
+能力足够完成前端后端一切。架构定了。"
+
+- **架构定了**：glibe 全面依赖 BEAM 自身能力，BEAM 足够完成前端 + 后端一切。这就是总纲。
+- **不跨步**：owner 明确"不应该一步跨出太远"。本轮**不**定 app 内部结构、不点名 renderer /
+  声控库最终组合、不建代码骨架；那些按 gdltdd（doc/签名先行 → 空架子 → 测试 RED → 填体
+  GREEN）逐模块落地。决策区维持 0 项。见 `docs/RULINGS.md`「2026-11-19 00:22」。
+
+## 2026-11-19 00:10 (历史 — 认错：00:03 把"包也支持 web"当论据是逻辑错误，已删；结论不变)
 
 owner 怒斥 00:03 回答："你说他也支持web，所以你tmd就离不开web了？我问你你有狗肉了是不是
 可以不用吃屎了，你说不，狗狗也会吃屎。" **这是逻辑错误，不是措辞问题。** 问"有 A 了是不是
