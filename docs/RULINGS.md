@@ -5153,3 +5153,27 @@ owner 逐字（本轮）："你如果采用 bar_stream_chart 就不在需要web 
   他的推理语气与既有 JS 禁令，不是他逐字说"删除 webclient"。
 - 本条只改文档（RULINGS / PENDING_DECISIONS / STATE / memory），未改任何 tree 源码。下一步视觉壳
   按 R19 doc-led TDD 逐模块推进，不预先堆机制。
+
+---
+
+## 2026-11-19 00:07 — owner 三连确认：chart 包零 GUI 框架依赖、已补 plushie 无 chart 缺口、plushie 已被 try_plushie 实测胜任视觉层
+
+owner 逐字（本轮）："bar_stream_chart 不是基于 plushie/iced/Elm 写的？用这个库不是解决了你抱怨plushie没有chart的问题？plushie是不是已经被 try_plushie 验证可以胜任？" 三问都是确认性的，本轮实查实跑逐条作答，并更新两处过时实测数字。**不是新裁决，是证据闭合。**
+
+### 逐问作答（证据均本轮取得）
+
+1. **chart 包是否基于 plushie/iced/Elm 写的？——不是，零 GUI 框架依赖。** 实读 `bar_stream_chart/src/bar_stream_chart.gleam` 全部 import：`gleam/float`、`gleam/int`、`gleam/list`、`gleam/option`，只有 stdlib；README 逐字 "no GUI-framework dependency"、"a framework-neutral shape IR is returned for a renderer to translate"。**诚实细节**：源码注释第 8 行提到 "plushie canvas in this project"、第 184 行提到 "Elm `lazy` boundary"——那是语境说明/比喻，**不是依赖**；真正 import plushie 的是它上面那层翻译壳 `try_plushie/src/fusion_view.gleam`（import `plushie/canvas/shape`、`plushie/node`）。分清两层：图表规范层零 GUI 依赖，plushie 只出现在把它翻成显示节点的适配层。
+2. **用这个库是否解决了"plushie 没有 chart"的抱怨？——是。** 这正是 11-18 08:23 记的过时边界的闭合：图表规范层（增量 K 线、轴、视口、O(1) 边界、SpecShape IR）现在全在自有包里，`fusion_view` 退成 `SpecShape → PropValue` 翻译壳（本轮实读 imports + 代码）。11-17 17:28 那条"自算 K 线几何 + 无金融图表 widget"已彻底不成立。
+3. **plushie 是否已被 try_plushie 验证可胜任？——视觉层（眼这半）是，本轮实测。** `gleam build --warnings-as-errors` exit 0、`gleam test` **48 passed**（本轮实跑）。测试覆盖：三 app 独立 chart、单 bar 增量、无重复 id、zoom/pan、crosshair、实时 feed 到图、live bar 经 glib gate、1m K 线解码等（实读 test/ 七个文件与函数名）。昨天 16:50 真窗口 `gleam run` 无 `init_timeout` / renderer panic。
+
+### 两处实测数字更新（被测对象在变，如实刷新）
+
+- `bar_stream_chart` 版本 **1.0.0 → 1.2.0**（`gleam.toml` 本轮实读；try_plushie 依赖声明 `>= 1.2.0 and < 2.0.0`）。11-18 记的 1.0.0 是当时事实，现已升级。
+- try_plushie 主项目测试 **35 → 48**（本轮 `gleam test`）；新增五个测试文件 live_feed / live_binance / live_websocket / live_export / multi_chart。owner "很快会有更好的状态"正在兑现。
+
+### 边界（客观状态，不是裁决回避）
+
+- 本条确认的是**视觉层胜任**，即"眼"这半；"耳/口"声控半不在这条链里——glib 主树零声控代码（11-17 实测），lab `voice.gleam` 仍是 stub。owner 自己说过两 app 可分可合，这是分工不是缺口。
+- `plushie_gleam` 0.6.0（`<1.0.0`，pre-1.0）；try_plushie 仍在实时开发（本轮查时多个文件在途修改）。这些是客观版本/开发状态。
+- 不翻案 11-17 三项占优、11-18 图表资产、11-19 web 出局任何结论；本条只确认三问 + 刷新数字。视觉路线证据链已闭合，最终落地 app 仍属 owner。
+- 本条只改文档（RULINGS / STATE / memory），未改任何 tree 源码；try_plushie 的在途修改是 owner 侧，非本轮所为。

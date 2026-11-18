@@ -4,7 +4,17 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-19 00:03 (当前状态 — web front 出局，决策区清空为 0 项)
+## 2026-11-19 00:07 (当前状态 — 视觉层胜任已被实测确认；chart 包零 GUI 依赖；两处数字刷新)
+
+owner 三连确认："bar_stream_chart 不是基于 plushie/iced/Elm 写的？用这个库不是解决了你抱怨plushie没有chart的问题？plushie是不是已经被 try_plushie 验证可以胜任？" **三问皆实查实跑确认**（本轮）：
+
+- **chart 包零 GUI 框架依赖**：`bar_stream_chart` src 全部 import 只有 stdlib（float/int/list/option），README 逐字 "no GUI-framework dependency"。源码注释提 plushie/Elm 只是语境，真正 import plushie 的是上层翻译壳 `fusion_view.gleam`。
+- **"plushie 无 chart"缺口已补**：图表规范层全在自有包，`fusion_view` 退成 `SpecShape → PropValue` 翻译壳；11-17 "自算 K 线几何"边界彻底不成立。
+- **plushie 视觉层胜任已被实测**：try_plushie `gleam build --warnings-as-errors` exit 0、`gleam test` **48 passed**（本轮实跑）；覆盖多图隔离/单 bar 增量/zoom-pan/crosshair/实时 feed 到图/live bar 经 glib gate。昨天真窗口无 panic。
+- **数字刷新**：`bar_stream_chart` **1.0.0 → 1.2.0**；try_plushie 测试 **35 → 48**（新增 live_feed/live_binance/live_websocket/live_export/multi_chart 五文件）。"更好状态"在兑现。
+- 边界（客观）：胜任的是"眼"这半，声控半不在此链且 plushie_gleam 0.6.0 pre-1.0、lab 仍在开发。不翻案任何旧结论，最终落地属 owner。见 `docs/RULINGS.md`「2026-11-19 00:07」。
+
+## 2026-11-19 00:03 (历史 — web front 出局，决策区清空为 0 项)
 
 owner："你如果采用 bar_stream_chart 就不在需要web front了是不是？这还需要裁决吗？"
 **结论对，因果链修正**：排除 web 的不是 `bar_stream_chart` 这个包（它框架中立 +
