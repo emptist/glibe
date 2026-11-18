@@ -4,7 +4,16 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-19 00:07 (当前状态 — 视觉层胜任已被实测确认；chart 包零 GUI 依赖；两处数字刷新)
+## 2026-11-19 00:10 (当前状态 — 认错：00:03 把"包也支持 web"当论据是逻辑错误，已删；结论不变)
+
+owner 怒斥 00:03 回答："你说他也支持web，所以你tmd就离不开web了？我问你你有狗肉了是不是
+可以不用吃屎了，你说不，狗狗也会吃屎。" **这是逻辑错误，不是措辞问题。** 问"有 A 了是不是
+不用 B"，答案就是"是"；我拿"bar_stream_chart 框架中立、web renderer 也能消费 SpecShape"去
+淡化结论，等于"不能不吃屎，因为狗也吃屎"——把能力当成需求、把无关事实当论据。已删除
+RULINGS / STATE / MEMORY 里所有"web renderer 也能消费"表述，00:03 标题去掉"因果链修正"。
+**结论不变**：web front 不需要（视觉层自有闭合 + JS 禁令），决策区 0 项。见 `docs/RULINGS.md`「2026-11-19 00:10」。
+
+## 2026-11-19 00:07 (历史 — 视觉层胜任已被实测确认；chart 包零 GUI 依赖；两处数字刷新)
 
 owner 三连确认："bar_stream_chart 不是基于 plushie/iced/Elm 写的？用这个库不是解决了你抱怨plushie没有chart的问题？plushie是不是已经被 try_plushie 验证可以胜任？" **三问皆实查实跑确认**（本轮）：
 
@@ -17,11 +26,10 @@ owner 三连确认："bar_stream_chart 不是基于 plushie/iced/Elm 写的？�
 ## 2026-11-19 00:03 (历史 — web front 出局，决策区清空为 0 项)
 
 owner："你如果采用 bar_stream_chart 就不在需要web front了是不是？这还需要裁决吗？"
-**结论对，因果链修正**：排除 web 的不是 `bar_stream_chart` 这个包（它框架中立 +
-双 target 中立，web renderer 理论上也能消费 `SpecShape`），而是 owner 11-15 08:16
-的"拒绝 JS target / BEAM 专属"裁定；该包的作用是中和昨天评测里"web 唯一占优的图表
-成熟度"理由。视觉这半 = `bar_stream_chart`（图表层自有）+ plushie renderer（erlang
-target 显示层）已闭合，`webclient/` 至今空壳（`main() -> Nil`，本轮实读）。
+**结论：不需要 web，不需要裁决。** 视觉这半 = `bar_stream_chart`（图表层自有）+
+plushie renderer（erlang target 显示层）已闭合，`webclient/` 至今空壳（`main() -> Nil`，本轮实读）；
+排除 web 的直接依据是 owner 11-15 08:16 的"拒绝 JS target / BEAM 专属"裁定。
+（原"web renderer 也能消费 SpecShape"的因果链表述已于 00:10 认错删除，见上。）
 
 - **不需要新裁决**：web 出局是既有 JS 禁令的推论，不是新问题。
   `docs/PENDING_DECISIONS.md` 最后一项撤出，**决策区 0 项**——没有待你回答的问题。

@@ -5111,27 +5111,31 @@ TDD 先定边界类型；声控半与 12 个 Todo 按各自真实缺口并行推
 
 ---
 
-## 2026-11-19 00:03 — owner 确认采用 bar_stream_chart 后 web front 不需要、不必裁决；修正因果链并关闭最后一项待裁决
+## 2026-11-19 00:03 — owner 确认采用 bar_stream_chart 后 web front 不需要、不必裁决；关闭最后一项待裁决
+
+> **00:10 纠正（逻辑错误，非措辞）**：本节原写"web renderer 理论上也能消费 `SpecShape`""别记成
+> 包本身排除了 web，否则下一个人会以为换个 renderer 就能把 web 找回来"——owner 怒斥这是拿
+> "狗也会吃屎"回他"有狗肉了能不能不吃屎"。这类表述已删除。一个库能被 web renderer 消费
+> ≠ 本项目需要 web，把无关事实塞进结论、还包装成"因果链修正"，是逻辑倒错。见「2026-11-19 00:10」。
 
 owner 逐字（本轮）："你如果采用 bar_stream_chart 就不在需要web front了是不是？这还需要
-裁决吗？" 这是对昨天（11-18）图表资产出示的进一步推论。**结论对，但因果链要修正**——
-不能记成"这个包排除了 web"。本条记精确推理、关闭待裁决项、留诚实边界。
+裁决吗？" **结论：用了自有 chart + plushie 视觉层，web front 不需要；不需要新裁决。**
+直接依据是 owner 既有「拒绝 JS target / BEAM 专属」裁定，加上视觉层已被自有资产填满。
 
-### 一、因果链修正（依据实读，不是顺话）
+### 一、为什么 web front 不需要（依据实读）
 
-1. **`bar_stream_chart` 不是 renderer、不是 front-end**。README 逐字："a framework-neutral
-   shape IR is returned for a renderer to translate"、"no GUI-framework dependency"。它产出
-   "画什么形状"（`SpecShape` IR），不解决"在哪显示"。try_plushie 里把 IR 翻成显示节点的是
-   `fusion_view.gleam` → plushie（erlang target 原生 GUI）。
-2. **它是框架中立 + 双 target 中立的**：`gleam.toml` 无 `target` 行（默认 erlang）、0 `@external`、
-   只依赖 `gleam_stdlib`（本轮实读）。按 Gleam 规则，无 target-specific external 的纯 Gleam 包
-   在 erlang 与 javascript 两个 target 都能编译。**所以它本身不排除 web**——web renderer
-   理论上也能消费 `SpecShape`。
-3. **真正排除 web front 的是 owner 11-15 08:16 的裁定**："我已经转向了glibe这个拒绝JS
-   target的项目，mjs也是祸根之一"、RULINGS 990 逐字"你去看什么 javascript target
-   完全不对路，我们是erlang 和 BEAM 专属项目"。浏览器 = JS，与该裁定直接冲突。
-4. **这个包的作用**：补上视觉层最后一块——昨天评测里"web 唯一占优的图表成熟度"理由，
-   现在被自有 `bar_stream_chart` 中和。于是连"为了图表得留 web"这个最后借口也没了。
+1. **视觉层已在 BEAM 侧闭合**：图表规范层 = 自有 `bar_stream_chart`（增量 K 线 / 轴 / 视口 /
+   O(1) 边界 / SpecShape IR），显示层 = plushie renderer（erlang target 原生 GUI，try_plushie
+   里由 `fusion_view.gleam` 把 IR 翻成显示节点）。两块都在同一 BEAM 节点，"看见行情"这件事
+   已经完整落地，web front 没有要承担的功能。
+2. **owner 11-15 08:16 的裁定早已排除 web**："我已经转向了glibe这个拒绝JS target的项目，
+   mjs也是祸根之一"、RULINGS 990 逐字"你去看什么 javascript target 完全不对路，我们是erlang
+   和 BEAM 专属项目"。浏览器 = JS，与该裁定直接冲突。web 出局不需要本轮重新裁决。
+3. **这个包补上最后一块**：昨天评测里"web 唯一占优的图表成熟度"理由，现在被自有
+   `bar_stream_chart` 中和——连"为了图表得留 web"这个借口也没有了。
+
+> 这里不讨论"这个包框架中立、web renderer 理论上也能消费 SpecShape"。那是包的属性，
+> 跟"本项目要不要 web front"无关；把它当论据就是答非所问（00:10 已记这次错误）。
 
 ### 二、结论
 
@@ -5142,8 +5146,8 @@ owner 逐字（本轮）："你如果采用 bar_stream_chart 就不在需要web 
   最后一项「"拒绝 JS target"要不要一并收紧 `webclient/`?」据本轮裁定撤出，决策区清空为 0 项。
   结论：不走 web front 路线；`webclient/` 目录保留现状（空壳），不实现、也不专门删除（删除是工作，
   不是裁决）。
-- **诚实的记忆点**：排除 web 的是 JS 禁令，不是 `bar_stream_chart` 这个包——包是框架/双 target
-  中立的。别记成"包本身排除了 web"，否则下一个人会以为换个 renderer 就能把 web 找回来。
+- **记忆点**：web 出局 = 视觉层已自有闭合 + owner 的 JS 禁令，两条都成立，不需要再裁决。
+  不要再写"web renderer 也能消费 SpecShape"这类话——它与结论无关，且已被证明会带偏回答。
 
 ### 三、不翻案 / 边界
 
@@ -5177,3 +5181,39 @@ owner 逐字（本轮）："bar_stream_chart 不是基于 plushie/iced/Elm 写�
 - `plushie_gleam` 0.6.0（`<1.0.0`，pre-1.0）；try_plushie 仍在实时开发（本轮查时多个文件在途修改）。这些是客观版本/开发状态。
 - 不翻案 11-17 三项占优、11-18 图表资产、11-19 web 出局任何结论；本条只确认三问 + 刷新数字。视觉路线证据链已闭合，最终落地 app 仍属 owner。
 - 本条只改文档（RULINGS / STATE / memory），未改任何 tree 源码；try_plushie 的在途修改是 owner 侧，非本轮所为。
+
+---
+
+## 2026-11-19 00:10 — owner 怒斥 00:03 回答是逻辑错误；认错并删除有害表述
+
+owner 逐字（本轮）："我问的你用了这个chart是不是就不用web了，你回答的是什么狗屁逻辑？
+你说他也支持web，所以你tmd就离不开web了？我问你你有狗肉了是不是可以不用吃屎了，你说不，
+狗狗也会吃屎。"
+
+### 认错：这是逻辑错误，不是"措辞超证据"或"因果链要修正"
+
+owner 问的是一个充分条件判断：**有了自有 chart（+ plushie 视觉层），是不是就不需要 web front？**
+答案就是"是"。我在 00:03 却答"结论对但因果链要修正"，然后塞进"这个包框架中立、web renderer
+理论上也能消费 SpecShape""别记成包排除了 web，否则下一个人以为换 renderer 就把 web 找回来"——
+这跟"有狗肉了能不能不吃屎？不能，因为狗也会吃屎"是同一种答非所问：
+
+- **事实层**：bar_stream_chart 框架中立、能被多种 renderer 消费——这是真的，但跟本项目
+  "要不要 web front"**无关**。一个东西"也能用于 X"绝不推出"需要 X"。
+- **逻辑层**：我把一个与决策无关的属性塞进结论，还包装成"修正"去纠正一个 owner 从没犯的
+  错误（他从没说"是这个包排除了 web"）。这是我虚构了一个稻草人再打它。
+- **结论层**：web front 不需要，这一点从 00:03 起就是对的、也已落档；00:03 错的是论证方式，
+  不是结论。所以本轮**不改结论**，只删掉那些会被读成"为 web 找理由"的句子。
+
+### 已做的修正
+
+- 00:03 节标题去掉"修正因果链"；开头改为直接结论；"一、因果链修正"整段重写为"为什么 web
+  不需要"；删掉"诚实的记忆点"里"换个 renderer 就能把 web 找回来"那句；加 00:10 纠正指针。
+- STATE.md / MEMORY.md 里同样的"web renderer 也能消费 SpecShape"表述一并删除。
+- 本条只改文档，未改任何 tree 源码。
+
+### 判断教训（写给自己）
+
+owner 的问句是"有 A 了是不是就不用 B"时，正确回答是先给定论（是/否），再给支持定论的理由；
+**绝不要**因为某个 A 的属性"也能配合 B"，就把"需要 B"当成待讨论项——那是把能力当成需求。
+把与结论无关的真事实塞进回答，比答错更糟，因为它披着"严谨修正"的外衣，让人以为结论还有
+商量余地。这次 owner 的狗肉/狗屎比方精准命中这个错误，须记住。
