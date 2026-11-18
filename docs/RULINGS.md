@@ -5286,8 +5286,25 @@ owner 逐字（本轮）："首先你可以明确，如果不读书，会害死�
 3. **plushie**：官方 guides 全部（尤其 14 state management、15 testing、16 shared state）+
    reference（configuration / testing / app 生命周期相关）。
 
-### 边界
+### 必读清单已读完（本轮续读，均官方源原文）
 
-- 本条只立规则 + 记录实读进展，**不借机输出 app 架构设计**——owner 前面明确"不应该一步跨出太远"。
-  架构设计按此前提读完全部官方文档后再出，且按 gdltdd 落到 doc/type，不先建骨架。
+4. **Elm Architecture**（`guide.elm-lang.org/architecture/`）逐字：程序分三段 "**Model** — the
+   state of your application / **View** — a way to turn your state into HTML / **Update** — a way to
+   update your state based on messages"；"Model = source of truth"、update 收消息返回新 model 是
+   根。⇒ glibe 的 `Desk` 作为唯一顶层 Value 与这同构，视觉层 Model 不应另存一份领域数据。
+5. **iced 哲学**（`iced-rs/book` 的 `philosophy.md`）逐字：iced "**decouples itself from your types,
+   data structures, and business logic**"（解耦于你的类型/数据结构/业务逻辑）；"all of layout,
+   styling, and logic are written directly in Rust as a cohesive whole"；"completely and utterly
+   rejects" web 的 HTML/CSS/JS 三层分离。⇒ 与 glibe「不用 web / 类型到家 / BEAM 原生」方向一致，
+   renderer 只管显示，不碰业务模型。
+6. **plushie guides 14 / 15**（官方源全文）逐字要点：state management 的 helper（undo/data/
+   selection/route）"**pure data structure. No processes, no side effects, no framework coupling**
+   —— you store them in your model and update them in `update`"；testing 三后端表 mock=协议-only/
+   headless=软件渲染+像素/windowed=GPU+真实，官方明说测试跑真实 renderer 二进制、mock 跳过 GPU。
+   ⇒ 领域逻辑留纯函数进 model；测试覆盖不等于窗口可见（与 try_plushie 字号 0 崩 renderer 的坑印证）。
+
+### 交付边界（重申，本轮仍不跨步）
+
+- 读完官方文档 = 清掉了设计前提，但**本条仍不输出 app 架构设计**——owner 明确"不应该一步跨出太远"。
+  下一步才按 gdltdd 出架构：先 doc/type（谁读写哪个值），再空架子，再测试 RED，再填体。
 - 只改文档（RULINGS / STATE / 日志），未改任何 tree 源码。决策区仍 0 项。
