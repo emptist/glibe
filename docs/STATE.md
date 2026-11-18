@@ -4,7 +4,23 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-19 00:22 (当前状态 — 架构定案：全面依赖 BEAM 自身能力完成前端后端一切)
+## 2026-11-19 00:26 (当前状态 — 方法论前提：不读书会害死你；用 plushie 必读 Elm/iced/plushie 官方文档)
+
+owner 逐字："首先你可以明确，如果不读书，会害死你。所以用plushie你要去读Elm 读iced 读plushie
+的官方文档。try_plushie 就是不读书，所以后来推翻重来，用了官方的做法，很快就完成了自己瞎编
+半天搞不出来的东西。"
+
+- **读书先于设计**：任何对 plushie / Elm MVU / iced 的架构判断，先读官方文档原文，不凭代码
+  形状或想象。try_plushie 实证（我本轮核实的逐字）：`plushie-architecture.md:2198/2200/2302`
+  owner "按官方的指引做，你自己挖下的很多坑都不会有"、"十根手指套一只手套"、"什么都重来一遍
+  自己瞎整"——它推翻重来、用官方做法很快完成。
+- **本轮实读**：官方 `guides/16-shared-state.md` 全文（shared actor + 每 renderer 一个 runtime，
+  "each runtime is a full Elm loop"）+ 官方 docs 完整索引（17 guides + reference）。发现当前版
+  guide 措辞已与 try_plushie 旧引用不同（文档在重梳）→ 必读当前官方源，不引用旧二手记录。
+- **必读清单**：Elm Architecture、iced book（`book.iced.rs`）、plushie 官方 guides（14/15/16）+
+  reference。读完全部再出架构设计，按 gdltdd 落 doc/type，不先建骨架、不跨步。见 `docs/RULINGS.md`「2026-11-19 00:26」。
+
+## 2026-11-19 00:22 (历史 — 架构定案：全面依赖 BEAM 自身能力完成前端后端一切)
 
 owner 逐字："现在你的项目不是缺少一个环节吗？就是App究竟用什么架构做，现在不应该一步跨出
 太远，记住 gdltdd gleam document led tdd. 所以你目前可以决定的事是：项目全面依赖BEAM自身

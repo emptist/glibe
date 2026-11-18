@@ -5245,3 +5245,49 @@ BEAM 自身能力足够完成前端后端一切。架构定了。"
 - 决策区维持 0 项——这是一条已裁定，不是新问题，不进 PENDING_DECISIONS。
 - 不翻案任何旧结论；本条只落这一句架构裁定，不替 owner 决定 app 模块怎么切。
 - 本条只改文档（RULINGS / STATE / memory），未改任何 tree 源码。
+
+---
+
+## 2026-11-19 00:26 — owner 立方法论前提：不读书会害死你；用 plushie 必读 Elm / iced / plushie 官方文档
+
+owner 逐字（本轮）："首先你可以明确，如果不读书，会害死你。所以用plushie你要去读Elm 读iced
+读plushie的官方文档。try_plushie 就是不读书，所以后来推翻重来，用了官方的做法，很快就完成了
+自己瞎编半天搞不出来的东西。"
+
+### 这就是设计架构的第一前提（不是补作业）
+
+- **读书先于设计**。本条属于 owner 明确要求"你可以明确"的规则：任何对 plushie / Elm MVU /
+  iced 的架构判断，**先读官方文档原文**，不凭我自己的代码形状或想象推断能力边界。这是
+  R19 之外对"读文档"的再一次显式强调，且 owner 直接把它绑在"会害死你"的后果上。
+- **try_plushie 的实证**（本轮核实的逐字）：`plushie-architecture.md:2198` owner "按照官方的
+  指引做，你自己挖下的很多坑都不会有，代码反而会精简很多"、`:2200` "你是想把十根手指套进去
+  一只手套"、`:2302` "你是什么都喜欢重来一遍自己瞎整，而且做的都不对"。`§30.1` 记着：带着
+  "我可能错"复查官方 `guides/16-shared-state.md`，才发现"一个 MVU loop 服务多窗口"是我归因
+  错层（wrong shape），官方给的是多 runtime 模式；按官方做法重写后很快完成。
+
+### 本轮实读（不是转述 try_plushie 的二手记录）
+
+- 从 GitHub 源 `plushie-ui/plushie-gleam` 读到官方 `docs/guides/16-shared-state.md` **全文**：
+  权威模型住在一个 `gleam_otp` shared actor，每个连接的 renderer 起**自己的 plushie runtime**
+  （"Each runtime is a full Elm loop: its own subscriptions, event coalescing, error isolation"）；
+  `dispatch_event` 注入广播、`Broadcast(Model)` 纯替换、`per-client state` 拆 shared/local。
+- 读到官方 docs 完整索引：17 篇 guides（01 introduction → 17 wasm deployment）+ reference
+  （configuration / testing / built-in-widgets 等）。
+- **一个要记住的发现（如实，不夸大）**：try_plushie §30.1 记录的旧引用措辞（"wrong shape is
+  a single MVU loop … right shape is N MVU loops"）**不在当前版 guide 16 全文里**——文档已重梳，
+  当前版讲的是 shared actor + 多 runtime。方向一致（都是"单 loop 多窗口"不成立、要多个 runtime），
+  但**具体措辞必须读当前官方文档，不能引用旧二手记录**。这正印证 owner 反复说的"文档在重梳、
+  很快有更好的状态"。
+
+### 必读清单（设计 glibe app 架构前读完，按官方源）
+
+1. **Elm**：Elm Architecture（init / update / view 的来源，plushie MVU 的根）。
+2. **iced**：`https://book.iced.rs/`（plushie renderer 底座）。
+3. **plushie**：官方 guides 全部（尤其 14 state management、15 testing、16 shared state）+
+   reference（configuration / testing / app 生命周期相关）。
+
+### 边界
+
+- 本条只立规则 + 记录实读进展，**不借机输出 app 架构设计**——owner 前面明确"不应该一步跨出太远"。
+  架构设计按此前提读完全部官方文档后再出，且按 gdltdd 落到 doc/type，不先建骨架。
+- 只改文档（RULINGS / STATE / 日志），未改任何 tree 源码。决策区仍 0 项。
