@@ -4,7 +4,24 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-18 08:23 (当前状态 — owner 出示自研 `bar_stream_chart` 1.0.0，昨日图表边界过时)
+## 2026-11-19 00:03 (当前状态 — web front 出局，决策区清空为 0 项)
+
+owner："你如果采用 bar_stream_chart 就不在需要web front了是不是？这还需要裁决吗？"
+**结论对，因果链修正**：排除 web 的不是 `bar_stream_chart` 这个包（它框架中立 +
+双 target 中立，web renderer 理论上也能消费 `SpecShape`），而是 owner 11-15 08:16
+的"拒绝 JS target / BEAM 专属"裁定；该包的作用是中和昨天评测里"web 唯一占优的图表
+成熟度"理由。视觉这半 = `bar_stream_chart`（图表层自有）+ plushie renderer（erlang
+target 显示层）已闭合，`webclient/` 至今空壳（`main() -> Nil`，本轮实读）。
+
+- **不需要新裁决**：web 出局是既有 JS 禁令的推论，不是新问题。
+  `docs/PENDING_DECISIONS.md` 最后一项撤出，**决策区 0 项**——没有待你回答的问题。
+  `webclient/` 保留空壳、不实现、也不专门删除。
+- 不翻案：11-17 三项占优、11-18 图表资产更新其余结论不变；声控两缺、都不复用
+  glibe model 两条边界不变。若 owner 另有用 web 的打算（如只当远程监视屏）本条可推翻。
+- 只改文档（RULINGS / PENDING_DECISIONS / STATE / memory），未改任何 tree 源码。
+  见 `docs/RULINGS.md`「2026-11-19 00:03」。
+
+## 2026-11-18 08:23 (历史 — owner 出示自研 `bar_stream_chart` 1.0.0，昨日图表边界过时)
 
 owner："our own made https://hex.pm/packages/bar_stream_chart"。实查（hex 页 + 本地源码 +
 主项目接线）：`bar_stream_chart` 1.0.0，描述逐字"Incremental candlestick chart: one bar in,

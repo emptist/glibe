@@ -5108,3 +5108,48 @@ hex 发布清单（AI 不执行发布，owner 本人执行）。
 出示这个包，说明自有图表基础设施已在推进——这与整个项目 BEAM-native / 自有资产 /
 type-first 的方向一致。下一步仍不替定案：若要把它纳入 glibe 的 app 落地，按 R19 doc-led
 TDD 先定边界类型；声控半与 12 个 Todo 按各自真实缺口并行推进。
+
+---
+
+## 2026-11-19 00:03 — owner 确认采用 bar_stream_chart 后 web front 不需要、不必裁决；修正因果链并关闭最后一项待裁决
+
+owner 逐字（本轮）："你如果采用 bar_stream_chart 就不在需要web front了是不是？这还需要
+裁决吗？" 这是对昨天（11-18）图表资产出示的进一步推论。**结论对，但因果链要修正**——
+不能记成"这个包排除了 web"。本条记精确推理、关闭待裁决项、留诚实边界。
+
+### 一、因果链修正（依据实读，不是顺话）
+
+1. **`bar_stream_chart` 不是 renderer、不是 front-end**。README 逐字："a framework-neutral
+   shape IR is returned for a renderer to translate"、"no GUI-framework dependency"。它产出
+   "画什么形状"（`SpecShape` IR），不解决"在哪显示"。try_plushie 里把 IR 翻成显示节点的是
+   `fusion_view.gleam` → plushie（erlang target 原生 GUI）。
+2. **它是框架中立 + 双 target 中立的**：`gleam.toml` 无 `target` 行（默认 erlang）、0 `@external`、
+   只依赖 `gleam_stdlib`（本轮实读）。按 Gleam 规则，无 target-specific external 的纯 Gleam 包
+   在 erlang 与 javascript 两个 target 都能编译。**所以它本身不排除 web**——web renderer
+   理论上也能消费 `SpecShape`。
+3. **真正排除 web front 的是 owner 11-15 08:16 的裁定**："我已经转向了glibe这个拒绝JS
+   target的项目，mjs也是祸根之一"、RULINGS 990 逐字"你去看什么 javascript target
+   完全不对路，我们是erlang 和 BEAM 专属项目"。浏览器 = JS，与该裁定直接冲突。
+4. **这个包的作用**：补上视觉层最后一块——昨天评测里"web 唯一占优的图表成熟度"理由，
+   现在被自有 `bar_stream_chart` 中和。于是连"为了图表得留 web"这个最后借口也没了。
+
+### 二、结论
+
+- **web front 出局**。在 owner 已定约束（erlang target、同一 BEAM 节点、眼耳并用）下，视觉这半
+  = `bar_stream_chart`（图表规范层，自有）+ plushie renderer（显示层，erlang target）已闭合，
+  web front 没有位置。glibe 的 `webclient/` 至今是空壳（`main() -> Nil`，本轮实读），从未实现。
+- **不需要新裁决**。web 出局不是新问题，是既有"拒绝 JS target"裁定的推论。`docs/PENDING_DECISIONS.md`
+  最后一项「"拒绝 JS target"要不要一并收紧 `webclient/`?」据本轮裁定撤出，决策区清空为 0 项。
+  结论：不走 web front 路线；`webclient/` 目录保留现状（空壳），不实现、也不专门删除（删除是工作，
+  不是裁决）。
+- **诚实的记忆点**：排除 web 的是 JS 禁令，不是 `bar_stream_chart` 这个包——包是框架/双 target
+  中立的。别记成"包本身排除了 web"，否则下一个人会以为换个 renderer 就能把 web 找回来。
+
+### 三、不翻案 / 边界
+
+- 11-17 17:28 的三项占优、11-18 的图表资产更新，其余结论原样保留；声控两缺、都不复用 glibe
+  model 两条边界不变。本条只关闭 web front 这条推论，不重写评测。
+- 若 owner 另有用 web 的打算（例如只把浏览器当远程监视屏、不承担主视觉），本条可推翻——依据是
+  他的推理语气与既有 JS 禁令，不是他逐字说"删除 webclient"。
+- 本条只改文档（RULINGS / PENDING_DECISIONS / STATE / memory），未改任何 tree 源码。下一步视觉壳
+  按 R19 doc-led TDD 逐模块推进，不预先堆机制。

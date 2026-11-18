@@ -13,69 +13,31 @@
 > 弹选择卡片、不催答复、选项不预设推荐。全文见 `docs/RULINGS.md`
 > 「2026-11-15 08:27」。
 >
-> 最后更新：2026-11-17 10:16
+> 最后更新：2026-11-19 00:03
 
 ---
 
 ## 需要你决定（只看这一节）
 
-### 当前 1 项（2026-11-17 10:16；原第 3 项导出格式、原第 1 项 buffer 已裁定撤出）
+### 当前 0 项（2026-11-19 00:03）
 
-owner 09:22 逐字 *"你担心依赖BEAM的问题，不用担心，我就是打算靠BEAM
-吃饭的。你没看到我最近的项目都是gleam"* ⇒ BEAM 原生是性质不是代价；
-该项与 2026-11-17 09:40「定最优格式」共同促成 ETF term 定案，逐字见
-`docs/RULINGS.md`「2026-11-15 09:22」与「2026-11-17 09:40」。
+决策区已清空。**最后一项（原「"拒绝 JS target"要不要一并收紧 `webclient/`?」）**
+由 owner 2026-11-19 00:03 裁定撤出。owner 逐字："你如果采用 bar_stream_chart
+就不在需要web front了是不是？这还需要裁决吗？" 结论：**不走 web front 路线**——
+web front 出局是既有「拒绝 JS target / BEAM 专属」裁定（11-15 08:16）的推论，
+不是新问题；自有 `bar_stream_chart` 图表层（11-18）+ plushie renderer（erlang
+target）已把视觉这半闭合。`webclient/` 保留现状（空壳 `main() -> Nil`）、不实现、
+也不专门删除。精确因果链与诚实边界见 `docs/RULINGS.md`「2026-11-19 00:03」。
 
-owner 07:59 逐字 *"Was glib doing properly? You have to ask."* 与
-*"The same question should be asked if there are other ocassions reverse()
-is used on a list"*。逐处查证与提问表在 `DEVELOPER_GUIDE.md` §7(e)，
-owner 逐字全文与查证链在 `docs/RULINGS.md`「2026-11-15 07:59」。
-**已裁定、整条撤出决策区的项**：plushie / `try_plushie` 选型
-（owner 08:13）、导出格式 ETF term（owner 09:40）、以及
-`sourcebar_list` 合法 / `sourcebar_buffer` 非法（owner 10:16），
-结论分别在 `docs/RULINGS.md`「2026-11-15 08:13」、
-「2026-11-17 09:40」、「2026-11-17 10:16」。
-下面唯一一项由 owner 08:16 逐字引出，逐字与三个探针实测在
-`docs/RULINGS.md`「2026-11-15 08:16」。其余各处只记事实与提问。
+**已裁定、整条撤出决策区的项（历史，结论均在 `docs/RULINGS.md`）**：
 
-#### 1. 「拒绝 JS target」要不要一并收紧 `webclient/`？
+- plushie / `try_plushie` 选型（owner 2026-11-15 08:13）。
+- 导出格式 ETF term（owner 2026-11-17 09:40）。
+- `sourcebar_list` 合法 / `sourcebar_buffer` 非法（owner 2026-11-17 10:16）。
+- web front 路线 + `webclient/` 收紧（owner 2026-11-19 00:03，本条）。
 
-owner 08:16 逐字：*"注意经过对比和实证，我已经转向了glibe这个拒绝JS
-target的项目，mjs也是祸根之一，AI不会自我约束，所以要换成erlang
-target，并且禁止手写erl"*。他没有点名 `webclient/`，所以本轮**没有**
-删改它；以下是需要他一句话的那处张力，全文与三个探针实测在
-`docs/RULINGS.md`「2026-11-15 08:16」，external 术语的订正见
-「2026-11-15 08:28 / 08:30」。
-
-事实：根包 `gleam.toml:3` 已是 `target = "erlang"`，`src/` 15 个
-`.gleam`、零 `@external`（**这只是骨架现状，不是目标、不是成绩**；
-owner 08:28 逐字 *"0 external 并不一定是好事"*，`@external` 是
-正常且必要的 Gleam 设计）、零 `.erl` / `.mjs`。但
-`webclient/gleam.toml:3` 是 `target = "javascript"`（R18 裁定的独立
-包），`webclient/gleam.toml:8` 逐字 *"a hand-written .mjs is
-permitted HERE AND ONLY HERE"*，`webclient/src/webclient.gleam:20`
-的 `////` 同义 —— 这是 R16 / R18 给的手写 `.mjs` 兜底，形状正是
-「AI 自我约束」：靠一句 HERE AND ONLY HERE 限制，而不是靠目标声明。
-当前该目录**实际**只有 1 个 `.gleam` 和编译器生成的 `.mjs`、
-零手写 JS。探针另证：erlang target 下 JS-only external 是编译错误
-（`Unsupported target`），但手写 `.erl` 会被静默编译成 `.beam`、
-编译全绿 —— 所以「禁止手写 erl」这一半不能靠构建工具代守。
-
-- **A. 只约束引擎，取消兜底**：`webclient/` 保持 R18
-  的独立 JS-target 包，但删掉手写 `.mjs` 的许可（只许编译器生成的
-  `.mjs`、npm 库、以及 hex/OTP 提供的能力）；引擎边界不变。
-- **B. 整个项目不要 JS target**：`webclient/` 也收敛到 erlang target
-  或退役，浏览器页面由 BEAM 侧 Mist / Wisp 提供；R18 的 split
-  需按 owner 当前陈述改写。
-- **C. R16 / R18 原样不动**：本次只把「禁止手写 erl」与实证写进
-  文档，手写 `.mjs` 兜底继续留在 `webclient/`，等真实消费方再说。
-
-> 导出格式（原第 3 项，ETF term）已由 owner 2026-11-17 09:40 定案；
-> `sourcebar_buffer` 导出路径（原第 1 项）已由 owner 2026-11-17 10:16
-> 裁定为非法、glibe 不引入（`sourcebar_list` 只用于之后离线导出）。
-> 两项按本文件「裁决后整条删除」的约定从决策区撤出，结论写进
-> `docs/RULINGS.md`「2026-11-17 09:40」与「2026-11-17 10:16」、
-> `DEVELOPER_GUIDE.md` §6.6 / §7(e)。决策区现为 1 项。
+owner 逐字全文与查证链：`docs/RULINGS.md` 对应各日期节。现在决策区为 0 项——
+没有需要你回答的问题。
 
 ---
 
