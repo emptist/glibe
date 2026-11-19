@@ -5394,3 +5394,59 @@ owner 逐字（本轮两条合并）：
   未建 `src/` 骨架、未写函数体、未加依赖、未定库版本——owner 明确"App 部分也需要用 gdltdd 做"，
   下一步才逐模块 doc/type → 空架子 → 测试 RED → 填体 GREEN。
 - 决策区维持 0 项；不翻案任何旧结论。除 webclient 删除外未改任何 tree 源码。
+
+---
+
+## 2026-11-19 08:35 — owner 追问多×多×多 view 层方案；gd 落地：难点笔记 + doc-first 骨架（不搬 list 从类型上做）
+
+owner 逐字："比如多 broker 多 instrument 多 timeframe同时跑，model层可能解决了，view层
+（app 层）如何解决？view model通信与你熟知的做法有何不同？如何做到在View层绝不出现搬运
+model层各种list过去的现象？都要从书上找到官方的设计方案。"
+
+### 一、从官方源找到的方案（不是我熟悉的做法，逐条带出处）
+
+1. **我熟悉的 Web/React 做法是 `view(state)=state.items.map(Row)`——把整个集合搬进 view**，
+   这正是 owner 禁止的。官方 plushie canvas tutorial 也这么写（`bar_shapes(model.series)`、
+   "one `shape.rect` per value in `model.series`", guide 12），但那是小 demo，**不是多 timeframe
+   的架构**；照它做每帧重算全部 bar 形状。诚实记下这个张力，不拿 demo 当方案。
+2. **官方机制 1 — composite widget 自持 state**（reference/custom-widgets 逐字）：`WidgetDef(state,
+   props)` 的 state "arbitrary and opaque to the runtime... **threads state through renders**"、
+   "keep it small and pure... participates in view memoisation"；事件先经 widget handler
+   （Consumed/UpdateState/Emit），才到 app update。⇒ 一个 (broker,symbol,interval) 一个稳定 ID
+   的 widget，增量状态住 widget state，由 runtime 持有。
+3. **官方机制 2 — bar_stream_chart 增量 Chart**（README 设计规则逐字）：`push(chart, bar)` 唯一
+   输入，"no batch / no replay / no way to **load a list of bars**"；Chart opaque，"never a copy of
+   the caller's bar list"；`shapes` 只装配已生成形状。⇒ 搬 list 在类型上无入口。
+4. **view-model 通信不同点**：不是 view 读整棵树 map；是一根 bar 经 Msg→按稳定 ID 派发到对应
+   widget→widget 增量 push→view 只读派生 SpecShape IR。**Desk 仍是唯一 source of truth（R33），
+   view 看到的是派生增量数据，不是原始集合。** 领域纯核 `Desk->Desk`（L1）与图表形状累积
+   （表现层派生、住 widget state、不回写 Desk）必须分开——写进 `dashboard.gleam` `////`。
+5. **一个版本实证**：当前官方 guide 16 用 `event.Custom`，但 pin 的 plushie_gleam 0.6.0 无此
+   变体（全树 grep 只有 theme/font 的 Custom）。on_event 归一只用 `fn(Event)->Msg`，不受影响。
+
+### 二、gd 落地（gdltdd ①文档 ②空架子 ③测试，本轮做到这三层，不填 body）
+
+- **笔记** `.planning/phases/06-app-architecture/06-02-CHALLENGES.md`：A 进程所有权 / B 消息边界 /
+  C update-view 形状 / D 与 Desk 的接口 / E 测试坑 / **F 落点表** / **G 多×多×多与不搬 list**（本轮新增）。
+- **依赖**：`gleam.toml` 加 `plushie_gleam >=0.6.0<1.0.0` + `bar_stream_chart >=1.2.0<2.0.0` +
+  `plushie_rust_version=0.7.1`（版本来自 try_plushie 实证，非新裁决）；manifest 解析到 0.6.0/1.2.0。
+- **骨架** `src/glibe/app/message.gleam`（Msg 三来源闭集 + `from_event` 闸）、
+  `src/glibe/app/dashboard.gleam`（ChartWidgetState/Props + chart_widget_def + push_one + chart_node +
+  widget_view/handle_event/subscriptions + view），全部 `////` 引用 06-02、`///` 覆盖每个 type/fn、
+  body 全 `todo as`。所有签名用具体类型（Bar/Chart/Viewport/Desk/WidgetDef/Node），**不用 Dynamic
+  占位**（core §2）。
+- **测试** `test/app_shape_test.gleam` 4 个 shape test 钉契约：`on_event: Event->Msg`、
+  **`push_one: fn(...,Bar)->...`（编译器证明无 List 入口）**、`chart_widget_def` 类型、`
+  view: Desk->List(Node)`。一个测试初版调用 todo body 导致 RED，改为绑定函数引用（不调用）后绿。
+
+### 三、门禁
+
+format 0 / check 0 / **test 50 passed**（46+4）/ docs build 0 / export 0；WAE exit 1 =
+20 todo + 41 unused arg（R48 逐条清单，skeleton 预期，不 bulk `_` 静音）。package-interface
+17 模块，app 两模块文档 53/25 行已导出（anti-drift 通过）。
+
+### 四、边界与不跨步
+
+- 本轮只到 doc/type + 空架子 + shape 测试；**未填任何 body、未实现 widget/chart 适配**。下一步按
+  gdltdd：RED→GREEN 逐个填 body（先是能填的 `from_event` 映射、`push_one`、SpecShape→Node 翻译）。
+- 决策区维持 0 项；不翻案旧结论。最终 app 落地属 owner。

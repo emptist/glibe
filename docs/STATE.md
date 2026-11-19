@@ -4,7 +4,25 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-19 08:30 (当前状态 — 删 webclient；读书笔记落地；设计 plan 按读书+owner 更正修订)
+## 2026-11-19 08:35 (当前状态 — 多×多×多 view 方案从官方找出；gd 落地：难点笔记 + doc-first 骨架 + shape 测试)
+
+- owner 追问：多 broker×instrument×timeframe 的 view 层怎么做、view-model 通信与熟知做法的差异、
+  **如何绝不搬运 model 的 list**，要求从书上找官方方案。
+- **官方答案**（06-02 §G，逐条带出处）：我熟知的 React `view=state.items.map` 正是被禁的搬运；
+  官方 canvas tutorial 也这么写但是小 demo。真正机制 = (1) composite widget `WidgetDef(state,props)`
+  自持增量 state、runtime threads across renders、事件在 widget 层消化；(2) bar_stream_chart 的
+  `push(chart,bar)` 是唯一入口、**没有 load-list/batch**，Chart 不存 bar 列表副本、`shapes` 出
+  SpecShape IR。⇒ "搬 list 进 view" 在类型上无入口，是机制不是纪律。view 只读派生 IR；Desk 仍
+  唯一 source of truth（L1 领域纯核 `Desk->Desk` 与 L2 图表形状累积分开）。
+- **gd 落地**：笔记 `06-02-CHALLENGES.md`（A–G 节）；依赖 plushie_gleam 0.6.0 + chart 1.2.0
+  （try_plushie 实证版本）；骨架 `src/glibe/app/{message,dashboard}.gleam`（`////` 引用 06-02，
+  全签名具体类型、body 全 todo）；`test/app_shape_test.gleam` 4 个 shape test（`push_one` 签名
+  编译证明无 List 入口）。
+- **门禁**：format 0 / check 0 / test **50 passed** / docs 0 / export 0；WAE 1 = 20 todo + 41
+  unused arg（R48 skeleton 预期）。package-interface 17 模块、app 两模块文档已导出。
+- **不跨步**：未填 body、未实现适配；下一步 RED→GREEN 逐 body。决策区 0 项。见 RULINGS「08:35」。
+
+## 2026-11-19 08:30 (历史 — 删 webclient；读书笔记落地；设计 plan 按读书+owner 更正修订)
 
 owner 逐字两条合并（本轮）："webclient删除，继续做" / "try_plushie 重在 try 给别的项目探路，
 type 结构业务流程可能都有问题……只需知道 plushie 走得通" / "业务流程根据我的设计指导，实现

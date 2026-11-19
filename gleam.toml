@@ -1,6 +1,8 @@
 name = "glibe"
 version = "1.0.0"
 target = "erlang"
+# Renderer binary version expected by plushie_gleam (proven in try_plushie).
+plushie_rust_version = "0.7.1"
 
 [dependencies]
 gleam_stdlib = ">= 1.0.0 and < 2.0.0"
@@ -13,6 +15,9 @@ gleam_http = ">= 4.4.0 and < 5.0.0"
 mist = ">= 6.0.3 and < 7.0.0"
 wisp = ">= 2.2.2 and < 3.0.0"
 gleam_time = ">= 1.11.0 and < 2.0.0"
+# App layer (doc-first skeleton). Versions proven in try_plushie, 2026-11-19.
+plushie_gleam = ">= 0.6.0 and < 1.0.0"
+bar_stream_chart = ">= 1.2.0 and < 2.0.0"
 
 [dev_dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"
