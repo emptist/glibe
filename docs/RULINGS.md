@@ -5450,3 +5450,42 @@ format 0 / check 0 / **test 50 passed**（46+4）/ docs build 0 / export 0；WAE
 - 本轮只到 doc/type + 空架子 + shape 测试；**未填任何 body、未实现 widget/chart 适配**。下一步按
   gdltdd：RED→GREEN 逐个填 body（先是能填的 `from_event` 映射、`push_one`、SpecShape→Node 翻译）。
 - 决策区维持 0 项；不翻案旧结论。最终 app 落地属 owner。
+
+---
+
+## 2026-11-19 08:40 / 08:46 — owner 澄清 gdltdd「空架子」里的 todo 粒度：复合 todo 可用，非必须
+
+owner 逐字（两条）：
+1. 08:40 "todo也可以是细化的todo我演示过，就是case 或 use 等等之下的各小点的todo，本质是函数细节不做，框架却可以先架好。"
+2. 08:42 "演示过，用 <{human: ...搜"；08:46 "I mean you can, not you must use compond todos"
+
+### 一、owner 演示的出处（本轮按 `<{human:` 搜 git 历史确认，非我推断）
+
+- `src/glibe/instrument.gleam:116`，提交 `2c54535` 的 `<**human: …**>`：`"you can still do
+  meaningful basic things with todo here, for example, a case match to todo in each case, so you
+  can find if the args are designed well"`。
+- **落地实证** = 提交 `f839c71` 的 `compose_ib_realtime_bar`：`case interval` 九臂，每臂一个
+  `todo as "05-01: ib_sourcebar.five_second_to_*; read and write growing_target_sourcebar"`。
+  九个构造子被编译器穷尽检查（R13）；每臂的 todo 文本已钉死它将调用哪个具体函数——**这正是
+  "find if the args are designed well" 的意思**：复选的分支让类型/参数设计当场被编译器验证。
+- 同批 `<**human: …**>` 旁证 `api/symbol.gleam:70`：`"you can still use todo here, but it's so
+  simple why wait?"`（有的臂已是实体 `-> string`，一臂仍 todo）；`now, this will cause a compile
+  warning, I intend this`。
+
+### 二、裁定：R19 ②「空架子」的 todo 是一个**谱**，不是一种固定形状
+
+- **可用（can）**：`case` / `use` / 各小点之下逐臂放 leaf `todo as "..."`，把框架先架好、只留函数
+  细节未做。适用判据 = 各臂**不同**、每臂的 todo 文本能钉死一个具体设计选择（如九 Interval →
+  九个不同 provider），此时穷尽检查真的在验证设计。
+- **非必须（not must）**：不是每个函数都要拆臂。当所有臂做同一件事时（本轮实证反例：
+  `app/message.gleam from_event` 的 12 个 Event 臂全部映射到同一个 `MsgEye(event)`），拆成 12 个
+  相同 leaf todo **不增加任何设计信息**，浪费 WAE 清单而行数翻倍。
+- **本轮我的错与即时撤销**：我先把 `from_event` 强拆成 12 臂 case-of-todos；owner 08:46 纠正
+  "you can, not you must"。随即回退——`src/glibe/app/message.gleam` 已 `git diff` 归零，
+  `gleam check` 0，树干净。**没有留下任何过度应用的代码。**
+
+### 三、边界
+
+- 裁定只改「方法理解」，不改任何代码/类型/依赖；R19 ② 措辞（空架子）不变，仅补明 todo 粒度
+  是一个从「整函数一个 todo」到「每臂一个 todo」的谱，按各臂是否携带不同设计信息来选。
+- 决策区维持 0 项；不翻案任何旧结论。

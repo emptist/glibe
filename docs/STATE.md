@@ -4,7 +4,20 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-19 08:35 (当前状态 — 多×多×多 view 方案从官方找出；gd 落地：难点笔记 + doc-first 骨架 + shape 测试)
+## 2026-11-19 08:46 (当前状态 — owner 澄清 gdltdd todo 粒度：复合 todo 可用非必须；我的过度应用已撤销)
+
+- owner："todo也可以是细化的todo我演示过，就是case 或 use 等等之下的各小点的todo，本质是函数细节
+  不做，框架却可以先架好" + "you can, not you must use compond todos"。
+- **出处按 `<{human:` 搜 git 历史确认**：`instrument.gleam:116` @ `2c54535` 的 `<**human: …**>`
+  "a case match to todo in each case, so you can find if the args are designed well"；落地 = `f839c71`
+  的 `case interval` 九臂各带一个钉死具体 provider 的 todo。判据：各臂**不同**、每臂能钉一个设计
+  选择时才拆；各臂相同（如 `from_event` 12 臂都是 `MsgEye`）则不必拆。
+- **我的错 + 撤销**：先把 `from_event` 强拆 12 臂 case-of-todos，owner 纠正后回退，`git diff` 归零，
+  `gleam check` 0，树干净。RULINGS「08:40 / 08:46」记全。
+- **代码状态不变**：app 骨架仍是 08:35 的整函数 todo 形态；门禁基线 check 0（其余同 08:35）。
+  未填 body、未改类型/依赖。决策区 0 项。
+
+## 2026-11-19 08:35 (历史 — 多×多×多 view 方案从官方找出；gd 落地：难点笔记 + doc-first 骨架 + shape 测试)
 
 - owner 追问：多 broker×instrument×timeframe 的 view 层怎么做、view-model 通信与熟知做法的差异、
   **如何绝不搬运 model 的 list**，要求从书上找官方方案。
