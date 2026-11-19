@@ -5484,8 +5484,27 @@ owner 逐字（两条）：
   "you can, not you must"。随即回退——`src/glibe/app/message.gleam` 已 `git diff` 归零，
   `gleam check` 0，树干净。**没有留下任何过度应用的代码。**
 
-### 三、边界
+### 三、08:51 owner 补充：复合 todo 能把 import 映射进结构，并让 WAE 警告更有用
+
+owner 逐字："sometime compond todos can map your imports into structure without actual working
+code, while the compiler warnings now become more helpful"。仍是 "sometime"——补充的是**何时可用**
+的第二条判据，不是把它升格为 must。
+
+- **编译器实证**（本轮 throwaway probe `/tmp/gleam_todo_probe`，`gleam build --warnings-as-errors`）：
+  - 整函数 todo 版：只 import `{type Grade}`，三个构造子从未进入代码 → 无结构。
+  - case-of-todos 版：import `{type Grade, Low, Mid, High}`，三个构造子各引用在一个 `todo` 臂里
+    → **无 unused-import 警告**：import 被 frame 当作结构消费掉了，虽然没有一行 working code。
+  - WAE 输出从「一个 Todo found」变成「三个带文件行号的 Todo found」，每条钉住一个具体分支
+    （`pick: Low reader` / `Mid` / `High`）——即 R48 的「per-line Todo list」更细、更可操作。
+- **git 历史同源证据**：`f839c71` 把 `interval.{type Interval}` 扩成九个 import 构造子，各由一个
+  `case interval` 臂的 todo 消费；臂体全是 todo，却把「九档 Interval 是闭集」写进了结构。
+- **合并后的判据**（两条都是 can，互为理由）：当 (a) 各臂携带不同设计选择 **或** (b) 想让 import
+  成为可编译检查的结构、并把 WAE 变成细粒度清单时，可用复合 todo；两条件都不满足（各臂相同如
+  `from_event`）就用整函数 todo。依旧不是 must。
+
+### 四、边界
 
 - 裁定只改「方法理解」，不改任何代码/类型/依赖；R19 ② 措辞（空架子）不变，仅补明 todo 粒度
-  是一个从「整函数一个 todo」到「每臂一个 todo」的谱，按各臂是否携带不同设计信息来选。
+  是一个从「整函数一个 todo」到「每臂一个 todo」的谱，按上面两条判据来选。
+- **本轮未改任何 `src/` 代码**：`from_event` 的过度应用已回退、树干净；probe 在 `/tmp`，不进仓库。
 - 决策区维持 0 项；不翻案任何旧结论。

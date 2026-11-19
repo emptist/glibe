@@ -4,7 +4,19 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-19 08:46 (当前状态 — owner 澄清 gdltdd todo 粒度：复合 todo 可用非必须；我的过度应用已撤销)
+## 2026-11-19 08:51 (当前状态 — owner 补充复合 todo 第二条判据：import→结构 + WAE 更细；仍是 can)
+
+- owner："sometime compond todos can map your imports into structure without actual working code,
+  while the compiler warnings now become more helpful"（08:46 的 "you can, not you must" 之后补充）。
+- **编译器实证**（throwaway probe）：case-of-todos 版把唯一 import 从 `{type Grade}` 扩成
+  `{type Grade, Low, Mid, High}`，三构造子各被一个 todo 臂消费 → **无 unused-import 警告**，import
+  被 frame 当结构用；WAE 从 1 个 Todo 变 3 个带 file:line 的 Todo（R48 per-line 清单更细）。
+  git 同源：`f839c71` 的九臂 `case interval`。
+- **合并判据**（两条都是 can）：(a) 各臂携带不同设计选择 或 (b) 想让 import 进结构 + WAE 变细
+  清单 → 用复合 todo；各臂相同（`from_event`）→ 整函数 todo。RULINGS「08:40/08:46」§三记全。
+- **代码不变**：`from_event` 过度应用已回退、树干净；probe 在 /tmp。决策区 0 项。
+
+## 2026-11-19 08:46 (历史 — owner 澄清 gdltdd todo 粒度：复合 todo 可用非必须；我的过度应用已撤销)
 
 - owner："todo也可以是细化的todo我演示过，就是case 或 use 等等之下的各小点的todo，本质是函数细节
   不做，框架却可以先架好" + "you can, not you must use compond todos"。
