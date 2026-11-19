@@ -5538,3 +5538,38 @@ owner："回顾和评审项目，然后继续。"
   WAE todo 20→19、unused arg 41→40（恰好抵消一个 body）。`////` 状态行同步改为"first body filled"，
   不再声称"no working line here"（doc/code 一致，R19）。
 - 未碰其他 body / 类型 / 依赖；format/check/test/docs/export 全 0。决策区仍 0 项。
+
+## 2026-11-20 — plushie update 唯一触发点 = `working_databar_archived`（owner 裁定）
+
+owner："App View 和交易层面继续搭架子……确保单 bar 更新，View 和 App 任何部分不得另搞一套，
+完全使用 model 方面的 working_databar_archived 作为 plushie update 的触发点……chart 代码不一定
+都对，错的部分自己报告 issue，并制定计划改掉它。" 纠正："dashboard 怎么做在 glib 里面有完整
+的计划文档……我的设计 AI 记录下来了，你不要在瞎搞一套，跟我设计完全对不上。"
+
+- **错误层**：我拿 glibe `.planning` 笔记 + 个人推断当设计，在 dashboard 骨架写了"bar 经 Msg
+  直接派发到 widget push"，没读 owner 让 AI 记录的 glib 权威设计（`SYSTEM_MODEL.md` / `DESIGN.md`）。
+  与"不读书就推断"是同一类错误；旧说法已作废。
+- **触发点裁定（C1）**：唯一发布点是 model 的 `timeframe.working_databar_archived`——bar 经
+  `sourcebar_gate` → `databar_processing` 直线跑完 → 归档进 `databar_list` head、`working_databar`
+  回 `None`，这一步**完成**才触发 plushie update。bar 不经 Msg payload 直接喂 widget。
+- **取 bar 点（C2）**：owner 选"归档后读 history head"——从 `Timeframe.databar_list` head 取刚
+  归档的 `DataBar`，映射成 `bar_stream_chart.Bar`，`push` 进对应稳定 ID 的 widget chart。消解了
+  glib 文档 `DESIGN.md:2474`（before / 读 working_databar）与 `SYSTEM_MODEL.md:527`（after /
+  读 databar_list）的措辞张力，以 owner 当前话为准。
+- **权威原文**：`SYSTEM_MODEL.md:1356` "model changes at working_databar_archived and view
+  follows"；`:1364` "one writer, one door, no dedup"；`:330/344` "bars from databar_list —
+  history only, working bar never drawn"；`:626-639` no shadow copy。落点：
+  `.planning/phases/06-app-architecture/06-05-TRIGGER-RULING.md`；06-02 §G3 与 dashboard `////`
+  已按此改写。
+- **触发理由 = model 完整性（owner 追加追问）**：*"working_databar 如果还在工作，就不能更新
+  view，因为事情没有做完，model 不完整，怎么更新 view？这里的 model 是 Desk 展开的一些列的
+  types，他们各自的 field 什么时候完成，你不懂就去看文档。"* 回读 glib `SYSTEM_MODEL.md:236-254`
+  逐字段完成时序：bar→gate、SMA/band/KDJ→indicator、leaf CMA→leaves、branch field→branches、
+  signal→strategy、history+None→archive。`Some` = 各 field 半成品 = model 不完整 = **禁止 view**；
+  只有 `None`（`:487-489` "nothing is half-built here; everything you are about to draw is
+  finished"）才可画。完整表在 `06-05-TRIGGER-RULING.md` §C1；runtime `////`/`///` 已写入。
+  bar 的 half-built 是 bug、growing 结构的 unfinished 是真实状态（`:349-355`），但都在 fold 完成后才读。
+- **chart 包缺陷（外部，非 glibe 设计）**：`bar_stream_chart` 1.2.0 的 KDJ live 轴被第一根 bar
+  收窄（`:421-422`）而 reference 固定 `[0,100]`（`:459`），致 frame affine 非恒等（实测
+  `Affine(16,5,14,-1890)`）。探针锁定根因（K/D/J 铺满 [0,100] 时恒等）。issue + 修复计划：
+  `.planning/phases/06-app-architecture/06-04-CHART-ISSUE.md`。本轮不改外部包源码。

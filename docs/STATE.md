@@ -4,7 +4,41 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-19 21:40 (当前状态 — 项目评审 + app 第一个 body 填绿：from_event)
+## 2026-11-20 (当前状态 — owner 纠正 dashboard 设计的错误层 + 触发点裁定 + chart issue)
+
+- **被纠正**：我拿 glibe `.planning` 笔记 + 推断搭 dashboard（"bar 经 Msg 直接派发到 widget
+  push"），没读 owner 让 AI 记录的 glib 权威设计。owner："不要在瞎搞一套，跟我设计完全对不上。"
+  先读 `glib/docs/SYSTEM_MODEL.md` §12.4/§12.8、`DESIGN.md` §1.23 全文，撤销旧推断。
+- **逐条对齐的 glib 设计原文**：one writer / one door / no dedup（`SYSTEM_MODEL.md:1344/1364`）；
+  "model changes at working_databar_archived and the view follows"（`:1356`）；bar 只从
+  `databar_list` history 画、working bar 永不画（`:330/344/618/622`）；no shadow（`:626-639`）；
+  结构不画只列表（`:388-399`）。
+- **触发点裁定**（问 owner 一个精确问题后定）：唯一触发 = `working_databar_archived` 完成；
+  owner 选"归档后读 history head"（非 DESIGN.md:2474 的 before/读 working_databar）——从
+  `databar_list` head 取刚归档的 bar 交 chart。落点 `06-05-TRIGGER-RULING.md` + RULINGS 同节；
+  06-02 §G3 / dashboard `////` 已改写，旧推断标作废。
+- **chart bug 实测（owner 要"报告 issue + 制定计划"）**：`bar_stream_chart` 1.2.0 KDJ affine
+  缺陷，探针证根因 = 第一根 bar 把 live_kdj 收窄（`:421-422`）而 reference 固定 `[0,100]`
+  （`:459`）。issue + 4 步修复计划（根因/回归测试/发版 1.2.1/glibe update）写入
+  `06-04-CHART-ISSUE.md`。本地 chart repo 与 hex 缓存逐字节同源；本轮未改外部包。
+- **触发理由的深一层（owner 追加追问）**：*"working_databar 还在工作就不能更新 view，因为
+  model 不完整……他们各自的 field 什么时候完成，你不懂就去看文档。"* 回读 glib `SYSTEM_MODEL.md:236-254`
+  得到逐字段完成时序表（bar→gate、SMA/KDJ→indicator、CMA→leaves、branch→branches、signal→strategy、
+  history+None→archive），写进 `06-05` §C1 + runtime `////`/`///` + RULINGS。`Some`=半成品=禁 view；
+  `None`=完整=可画（`:487-489` 逐字保证）。我之前 runtime 注释只说"bar 换位置"，漏了"各层 field
+  完成度"这一层，已补正。
+- 已搭 `app/runtime.gleam` 骨架（Model=Desk，init/update/view/on_event；trigger=archive 完成）。
+  `init` 填绿（空 Desk + `runtime_init_is_empty_desk_test`），`update` 仍 todo。
+- **单 bar 更新机制填绿**：`dashboard.push_one` = `bar_stream_chart.push(state.chart, bar)`。
+  RED（`push_one_increments_chart_test` 失败于 `dashboard.gleam:107` todo）→ GREEN：
+  **54 passed**，count 0→1→2。`////` 状态行同步（不再声称 no working line）。
+- **两个待补缺口（非待决，R26/R32 随 consumer 落）**：① DataBar→chart.Bar 字段映射——glibe
+  DataBar 只有 sma_tiny，chart Bar 需 sma_medium/yin_cma/yang_cma/k/d/j/bb_u3/bb_l3（glib 原始
+  DataBar 全有），加哪些由 owner 定，本轮不发明；② identity keys + carrier（glib 用 JS
+  lightweight-charts，无对应，待 owner 裁定）。详见 `06-05` 待补缺口段。
+- 决策区仍 0 项（触发点是 owner 裁定，非待决）。下一步：全门禁。
+
+## 2026-11-19 21:40 (历史 — 项目评审 + app 第一个 body 填绿：from_event)
 
 - owner："回顾和评审项目，然后继续。" 先评审再按 gdltdd 继续填 body。
 - **评审结论（全实测）**：doc-tdd 干净、与 origin 同步；format/check/test(50)/docs/export 全 0；WAE 1 =

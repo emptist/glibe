@@ -9,9 +9,14 @@
 //// representable. Real assertions arrive with the bodies (R19).
 
 import bar_stream_chart.{type Bar}
+import gleam/dict
+import gleam/option
 import glibe/app/dashboard
 import glibe/app/message.{MsgEye, MsgSourceBarArrived, MsgVoice}
-import glibe/desk.{type Desk}
+import glibe/app/runtime
+import glibe/desk.{type Desk, Desk}
+import plushie/app.{type App}
+import plushie/command.{type Command}
 import plushie/event.{type Event, Timer, TimerEvent}
 import plushie/node.{type Node}
 import plushie/widget.{type WidgetDef}
@@ -64,5 +69,69 @@ pub fn chart_widget_def_shape_test() {
 /// Desk. Signature pinned as `Desk -> List(Node)` (plushie view shape).
 pub fn dashboard_view_shape_test() {
   let _view: fn(Desk) -> List(Node) = dashboard.view
+  Nil
+}
+
+/// 06-05 C1/C2: the MVU loop holds exactly ONE Desk (no shadow chart/bar state)
+/// and its trigger is the archive step, not a Msg payload carrying a bar. The
+/// signatures are pinned so a drift (e.g. Model = #(Desk, Charts)) fails here.
+pub fn runtime_mvu_shape_test() {
+  let _app: fn() -> App(Desk, message.Msg) = runtime.app
+  let _init: fn() -> #(Desk, Command(message.Msg)) = runtime.init
+  let _update: fn(Desk, message.Msg) -> #(Desk, Command(message.Msg)) =
+    runtime.update
+  Nil
+}
+
+/// The empty Desk at boot holds no brokers — the one Value, built with no
+/// shadow and no constructor taking an invented parameter (R42 / R49 / R50).
+pub fn runtime_init_is_empty_desk_test() {
+  let #(desk, _) = runtime.init()
+  assert desk == Desk(dict.new())
+  Nil
+}
+
+fn chart_bar(idx: Int) -> Bar {
+  bar_stream_chart.Bar(
+    idx: idx,
+    open: 100.0,
+    high: 102.0,
+    low: 99.0,
+    close: 101.0,
+    volume: 1200,
+    sma_medium: 100.5,
+    yin_leaf_cma: 100.2,
+    yang_leaf_cma: 101.1,
+    k: 50.0,
+    d: 50.0,
+    j: 50.0,
+    bb_u3: 103.0,
+    bb_l3: 97.0,
+    signal: bar_stream_chart.SignalHold,
+  )
+}
+
+fn empty_chart_state() -> dashboard.ChartWidgetState {
+  dashboard.ChartWidgetState(
+    chart: bar_stream_chart.empty(
+      bar_stream_chart.Geometry(width: 800.0, height: 600.0),
+      bar_stream_chart.PriceScaleLinear,
+    ),
+    viewport: bar_stream_chart.default_viewport(0),
+    mouse: option.None,
+  )
+}
+
+/// 06-05 "single bar update": push_one pushes exactly ONE bar into the widget's
+/// own incremental chart. Against the todo body this panics = RED. Two pushes
+/// advance the carried count by one each; the state's chart is the only thing
+/// changed — no bar list is stored in the model (06-02 G3).
+pub fn push_one_increments_chart_test() {
+  let s0 = empty_chart_state()
+  assert bar_stream_chart.len(s0.chart) == 0
+  let s1 = dashboard.push_one(s0, chart_bar(0))
+  assert bar_stream_chart.len(s1.chart) == 1
+  let s2 = dashboard.push_one(s1, chart_bar(1))
+  assert bar_stream_chart.len(s2.chart) == 2
   Nil
 }

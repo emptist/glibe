@@ -24,17 +24,30 @@
 ////      framework-neutral SpecShape IR, and translates it to plushie Nodes.
 ////      It never maps over brokers / instruments / bar lists from the model.
 ////
-//// VIEW-MODEL COMMUNICATION — HOW IT DIFFERS FROM THE FAMILIAR WAY (challenge G3):
+//// VIEW-MODEL COMMUNICATION — THE ONE DOOR (owner 2026-11-20, 06-05 TRIGGER RULING):
 //// The familiar (Web/React) shape is `view(state) = state.items.map(Row)`, i.e.
 //// the whole collection is carried from model into view every render. The
 //// official plushie tutorial's canvas demo does this too (`bar_shapes(model.series)`)
-//// but that is a small demo, NOT the architecture for many timeframes. Here:
-//// one bar arrives as a Msg (app/message.gleam) -> app routes it to the target
-//// widget by its stable ID -> the widget pushes it into its own chart state ->
-//// view reads only the derived IR. The model `Desk` remains the single source
-//// of truth (R33); what view sees is DERIVED, INCREMENTAL shape data, not the
-//// raw model collection. This is "keep the computation at the boundary", not
-//// "move lists around".
+//// but that is a small demo, NOT the architecture for many timeframes.
+////
+//// THE ONLY PUBLISH POINT is the model's `timeframe.working_databar_archived`:
+//// a qualified SourceBar becomes `working_databar` (sourcebar_gate), the pure
+//// `databar_processing` straight line runs (R40/R41), then archive moves that bar
+//// into `databar_list` head and clears `working_databar` back to None. AFTER that
+//// completes, update reads the just-archived bar from `databar_list` head (owner
+//// 2026-11-20 ruling: "归档后读 history head"), maps it to a `bar_stream_chart.Bar`
+//// and `push`es it into the target stable-ID widget's chart state. View reads only
+//// the derived IR. glib authority: SYSTEM_MODEL.md:527/1344/1356 — "one writer,
+//// one door, no dedup"; "the model changes at working_databar_archived() and the
+//// view follows"; bars drawn from `databar_list` (history only), never the
+//// working bar. CORRECTED 2026-11-20: an earlier draft here said "one bar arrives
+//// as a Msg -> app routes it to the widget" — that was my inference, ruled out by
+//// the owner; bar does NOT enter through a Msg payload, only through the archive
+//// step. See `.planning/phases/06-app-architecture/06-05-TRIGGER-RULING.md`.
+////
+//// The model `Desk` remains the single source of truth (R33); what view sees is
+//// DERIVED, INCREMENTAL shape data, not the raw model collection. "Keep the
+//// computation at the boundary", never "move lists around"; no shadow copy (R50).
 ////
 //// DOMAIN vs PRESENTATION SPLIT (must stay explicit, challenges D3/G3):
 //// - L1 domain core: leaf / branch / timeframe recompute is a pure `Desk -> Desk`
@@ -50,7 +63,9 @@
 //// a future release") — do not rely on it. Primary mechanism is widget state +
 //// incremental push, not memo.
 ////
-//// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
+//// R19 status: first body filled 2026-11-20 — `push_one` is the working line
+//// (RED→GREEN via `push_one_increments_chart_test`): one bar into the widget's
+//// own opaque chart via `bar_stream_chart.push`. All other bodies stay `todo`.
 
 import bar_stream_chart.{type Bar, type Chart, type PriceScale, type Viewport}
 import gleam/option.{type Option}
@@ -91,7 +106,7 @@ pub fn chart_widget_def() -> WidgetDef(ChartWidgetState, ChartWidgetProps) {
 /// `push(chart, bar)`. One bar in, never a list. The field mapping is the
 /// DataBar -> bar_stream_chart.Bar boundary (06-02 D4).
 pub fn push_one(state: ChartWidgetState, bar: Bar) -> ChartWidgetState {
-  todo as "bar_stream_chart.push(chart, bar) into state.chart; no load-list path exists by design"
+  ChartWidgetState(..state, chart: bar_stream_chart.push(state.chart, bar))
 }
 
 /// Project a chart's derived IR into plushie Nodes. Reads only the opaque Chart

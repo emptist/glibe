@@ -130,13 +130,22 @@ model层各种list过去的现象？都要从书上找到官方的设计方案�
   widget 的 state 里持有一个 opaque `Chart`，数据到达时 `push(chart, bar)`（一根），view 只把
   `shapes(chart, viewport, mouse)` 的 **SpecShape IR** 翻成 Node。多图隔离由 node ID + scoped ID
   保证（try_plushie 48 测试实测多图互不干扰，这是"走得通"的证据，不抄它的业务 type）。
-- **view-model 通信的不同**：不是"view 读 model 整棵树然后 map"。是 **(a) 一根 bar 经 Msg 进入
-  app；(b) app 把这一根派发到对应 ID 的 chart widget；(c) widget 自己的 state 增量 push；(d)
-  view 从 widget state 取 IR 画**。model 仍是 `Desk` 唯一 source of truth（R33）——但**view 读到
-  的是派生/增量后的 IR，不是 brokers/instruments 的原始 list**。这是"把计算留在边界内"，
-  不是"把 list 搬来搬去"。**注意张力**：R33 说重算是纯 `Desk -> Desk`；G2 的 chart 增量状态在
-  widget state 里——两者需要明确分工：领域重算（leaf/branch/timeframe）在 L1 纯核；**图表形状
-  的增量累积是表现层派生**，放 widget state，不回写 Desk。这条必须在 codefile `////` 写死。
+- **view-model 通信的不同**：不是"view 读 model 整棵树然后 map"。真正的门在 model 层——
+  **唯一触发点是 `timeframe.working_databar_archived`**（owner 2026-11-20 裁定，见 `06-05`）：
+  **(a)** 一根合格 SourceBar 经 `sourcebar_gate` 成为 `working_databar`；
+  **(b)** `databar_processing` 这条纯 `Timeframe -> Timeframe` 直线跑完（R40/R41）；
+  **(c)** `working_databar_archived` 把那根 bar 放进 `databar_list` head 并清空 `working_databar`；
+  **(d)** update 在这个归档**完成之后**，从 `Timeframe.databar_list` head 取刚归档的那根 bar，
+  经 `push(chart, bar)`（一根）送进对应稳定 ID 的 widget chart state；
+  **(e)** view 只把 `shapes(...)` 的 IR 翻成 Node。
+  model 仍是 `Desk` 唯一 source of truth（R33）——view 读到的是派生/增量后的 IR，不是
+  brokers/instruments 的原始 list。
+  **⚠ 本节 original 文本曾写"bar 经 Msg 直接派发到 widget push"，那是我的推断，与 owner 设计
+  不符，2026-11-20 由 owner 纠正并作废**：app 不经 Msg 把 bar 直接喂给 widget；bar 只能从
+  归档完成后的 model history head 来（同 glib `SYSTEM_MODEL.md:527/1344/1356`：one writer,
+  one door, no dedup；model changes at `working_databar_archived` and the view follows）。
+  **职责分工**：领域重算（leaf/branch/timeframe）在 L1 纯核 `Desk -> Desk`；图表形状的增量累积
+  是表现层派生，放 widget state，不回写 Desk。这条必须在 codefile `////` 写死。
 - **绝不搬运 list 的机制（是类型设计，不是纪律）**：chart 库**根本没有 load-list/batch API**，
   `push` 一根本上是唯一入口；widget state opaque 由 runtime 持有，`Emit` 只发小 payload。
   想搬运在类型上就做不到——这就是"原则要有机制承接"（SOUL / skill：a principle without a
