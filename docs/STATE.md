@@ -4,7 +4,26 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-19 02:18 (当前状态 — 决策区 0 项 → 出 app 架构设计 doc/type 层；未建骨架)
+## 2026-11-19 08:30 (当前状态 — 删 webclient；读书笔记落地；设计 plan 按读书+owner 更正修订)
+
+owner 逐字两条合并（本轮）："webclient删除，继续做" / "try_plushie 重在 try 给别的项目探路，
+type 结构业务流程可能都有问题……只需知道 plushie 走得通" / "业务流程根据我的设计指导，实现
+参考 glib（违反我设计的不要照搬）" / "view 层……本来都是 Dashboard，对应 model 的 desk……
+不要跟随 try 用 Desk" / "要想设计好，必须先读书，写好读书笔记"。
+
+- **webclient 已删**：`git rm -r webclient/`（3 跟踪文件）+ build 残留。00:03 裁定的执行收尾。
+  删后门禁实跑 format 0 / check 0 / **test 46 passed**。历史裁定里提到 webclient 的陈述不动。
+- **读书笔记**：`.planning/phases/06-app-architecture/06-00-READING.md`（书单记对没问：Elm /
+  iced / plushie 官方当前源）。系统读 plushie guides 01/14/15/16 + reference app-lifecycle /
+  composition-patterns / configuration + Elm Architecture + iced philosophy。
+- **设计 plan 修订**（06-01）：加资料可靠性分级（owner 设计=依据 / glib=实现参考 / 官方文档=
+  接口契约 / try_plushie=仅证 plushie 走得通）；加裁定 H **view 叫 Dashboard**（不叫 Desk）；
+  读书纠正两处——多窗口≠多 runtime（官方共享一个 model/update/view）、消息归一用官方
+  `app.application` + `on_event`；候选模块 `view.gleam`→`dashboard.gleam`。
+- **App 实现未动手**：未建骨架/未写函数体/未加依赖/未定库版本。决策区维持 0 项。
+  下一步 gdltdd 逐模块。见 `docs/RULINGS.md`「2026-11-19 08:30」。
+
+## 2026-11-19 02:18 (历史 — 决策区 0 项 → 出 app 架构设计 doc/type 层；未建骨架)
 
 - owner："需要我决定什么？不需要就不用等我发话。" 实读 `PENDING_DECISIONS.md` = **当前 0 项**；
   不弹卡片、不追问，继续推进 app 架构设计。

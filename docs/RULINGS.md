@@ -5347,3 +5347,50 @@ owner 逐字（本轮）："需要我决定什么？不需要就不用等我发�
   属 owner。决策区维持 0 项，不翻案任何旧结论。
 - **未建 `src/` 骨架、未写函数体、未加依赖、未定库版本、未改任何 tree 源码。** 下一步才按
   gdltdd 逐模块：doc/type → 空架子 → 测试 RED → 填体 GREEN。
+
+---
+
+## 2026-11-19 08:30 — owner 四道指令：删 webclient / 读书先于设计 / 资料可靠性分级 / view 层叫 Dashboard
+
+owner 逐字（本轮两条合并）：
+1. "webclient删除，继续做；注意try_plushie 重在try给别的项目探路，所以他里面的type结构业务流程
+   等等可能都有问题，他本身是从glib直接抄过去部分，自己瞎编部分。你只需知道plushie走得通即可，
+   其他的，业务流程主要根据我的设计指导意见，实现参考glib（有些违反我设计的不要照搬），App部分
+   也需要用 gdltdd 来做，注意一点，view层，glib和glibe本来都是Dashboard，对应model的desk，
+   这一点保留，不要跟随try去try用Desk，因为常用的就是Dashboard实际作用也是Dashboard"
+2. "要想设计好，必须先读书，写好读书笔记，什么书，我告诉过你，想不起来就问我。"
+
+### 一、四道指令逐条落地
+
+1. **删 webclient**：`git rm -r webclient/`（3 个跟踪文件：gleam.toml / manifest.toml /
+   src/webclient.gleam）+ 清理 build 残留。这是 00:03「web front 出局」裁定的执行收尾——
+   此前保留空壳，本轮 owner 明确删除。删后根包门禁实跑：format 0 / check 0 / test 46 passed。
+   历史裁定（R16–R18）与 STATE 旧节里提到 webclient 的**历史陈述不动**（它们是当时事实）。
+2. **读书先于设计 + 写读书笔记**（owner 先前 00:26 立的方法论，本轮重申）：
+   书单记对了（Elm / iced / plushie 官方文档，00:26 逐字在档），**没问**。系统读当前官方源
+   （plushie guides 01/14/15/16 + reference app-lifecycle / composition-patterns / configuration；
+   Elm Architecture；iced philosophy），写成 `.planning/phases/06-app-architecture/06-00-READING.md`。
+   上轮只读 14/15/16 就直奔设计不够，本轮补齐并落笔记。
+3. **资料可靠性分级**（写入 06-01-PLAN §0）：owner 设计 = 业务流程 / type / 边界 / 命名的依据；
+   glib = 实现参考（违反 owner 设计的部分不照搬）；plushie 官方文档 = 接口契约；
+   **try_plushie = 仅证明 plushie 走得通 + 坑，其 type / 业务流程（抄 glib + 瞎编）不照抄**。
+4. **view 层叫 `Dashboard`**：对应 model 的 `Desk`，glib/glibe 一直是 Dashboard，不跟随 try
+   把 view 也叫 Desk（R20 `docs/RULINGS.md:487` 早有此意："若只需给 UI 起名字，朴素的词是
+   Dashboard"）。06-01-PLAN 加裁定 H，`app/view.gleam` 改名 `app/dashboard.gleam`。
+
+### 二、读书纠正了我上轮（02:18）架构设计里的两处错
+
+- **多窗口 ≠ 多 runtime**：官方 composition-patterns 逐字 "All windows share the same model,
+  `update`, and `view`. That's the whole multi-window story; there is no separate window-manager
+  state." 上轮"眼耳口各起一个独立 runtime"错。多 runtime 只对应多 renderer / 多客户端
+  （guide 16 shared actor）。已改 06-01-PLAN §2 与坑表。
+- **消息归一是官方 `app.application` + `on_event: Event -> Msg`**，比我上轮笼统写的更准。已改。
+- 另记一条：try_plushie §30.1 旧措辞（"wrong shape = single MVU loop"）不在当前版 guide 16
+  原文里，方向一致但措辞必须引当前官方源。
+
+### 三、边界
+
+- 本轮交付 = 删 webclient + 读书笔记（06-00）+ 修订设计 plan（06-01）。**App 实现仍未动手**：
+  未建 `src/` 骨架、未写函数体、未加依赖、未定库版本——owner 明确"App 部分也需要用 gdltdd 做"，
+  下一步才逐模块 doc/type → 空架子 → 测试 RED → 填体 GREEN。
+- 决策区维持 0 项；不翻案任何旧结论。除 webclient 删除外未改任何 tree 源码。

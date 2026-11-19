@@ -26,8 +26,11 @@
 就不在需要web front了是不是？这还需要裁决吗？" 结论：**不走 web front 路线**——
 web front 出局是既有「拒绝 JS target / BEAM 专属」裁定（11-15 08:16）的推论，
 不是新问题；自有 `bar_stream_chart` 图表层（11-18）+ plushie renderer（erlang
-target）已把视觉这半闭合。`webclient/` 保留现状（空壳 `main() -> Nil`）、不实现、
-也不专门删除。精确因果链与诚实边界见 `docs/RULINGS.md`「2026-11-19 00:03」。
+target）已把视觉这半闭合。精确因果链与诚实边界见 `docs/RULINGS.md`「2026-11-19 00:03」。
+
+> **08:30 更新（执行，非新裁决）**：owner 08:30 逐字"webclient删除"——`webclient/` 已
+> `git rm -r` 删除（00:03「出局」裁定的执行收尾）。上文"保留空壳、不专门删除"是 00:03
+> 当时陈述，至此作废；R16–R18 历史裁定原文不动。见 `docs/RULINGS.md`「2026-11-19 08:30」。
 
 **已裁定、整条撤出决策区的项（历史，结论均在 `docs/RULINGS.md`）**：
 
