@@ -321,7 +321,7 @@ the design, so I don't believe 'Code untouched' is some good news"*。真去读�
 ## 2026-11-16 03:09 (历史 — 当前状态见上节)
 
 - **owner 逐字**（上一会话末，授权提交）：*"你可以提交你所说的知识中心
-  里面的变动，很好的。"* ⇒ **已提交** `~/gits/gleam-language` 的
+  里面的变动，很好的。"* ⇒ **已提交** `~/gits/gl-center` 的
   **`dc736df`**，5 files / 363 insertions(+) / 3 deletions(-)：
   `README.md`、`knowledge/SKILL.md`（M），`beam-doors-measured.md` /
   `beam-cross-platform-measured.md` / `externals.md`（A）。提交后工作树
@@ -333,7 +333,7 @@ the design, so I don't believe 'Code untouched' is some good news"*。真去读�
   `21 files / 3 new / sixteen references`，并把
   `beam-cross-platform-measured.md` 补进「same way」那句。
 - **更正（我自己的错）**：上一轮答复称 `~/.workbuddy/skills/
-  gleam-language` 是「另一个独立 git 仓库、没提交那边」——是推断、
+  gl-center` 是「另一个独立 git 仓库、没提交那边」——是推断、
   未经实测、且是错的。实测 `git rev-parse --show-toplevel` 报
   *"fatal: not a git repository (or any of the parent directories):
   .git"*，三层候选 `.git` 全不存在 ⇒ **没有第二个仓库，也没有
@@ -360,13 +360,13 @@ the design, so I don't believe 'Code untouched' is some good news"*。真去读�
 ## 2026-11-15 09:22 (历史状态)
 
 - **owner 逐字**（三条，全文在 `docs/RULINGS.md`「2026-11-15 09:22」）：
-  ① 经实测验证的 Gleam 语言感悟写入 `~/gits/gleam-language`，或用
+  ① 经实测验证的 Gleam 语言感悟写入 `~/gits/gl-center`，或用
   **硬 `ln`**（*"注意我说的是硬，不是symbol link，this is unix family
   OS filesystem"*）连接过去；② *"你担心依赖BEAM的问题，不用担心，
   我就是打算靠BEAM吃饭的。你没看到我最近的项目都是gleam"*；
   ③ *"你可把exteranl.md ln 过来方便查阅"*。
 - **语言知识落点（已落地）**：新建
-  `~gits/gleam-language/knowledge/beam-doors-measured.md`（编译实证、
+  `~gits/gl-center/knowledge/beam-doors-measured.md`（编译实证、
   真实 exit code、未取证边界），`ln` 到 skill `references/`，同
   inode `340468671`、links 2；`ln -f` 把原本字节相同但 inode 不同的
   两份 `externals.md`（`339942506` / `339942149`）并为一名，再 `ln`
@@ -412,7 +412,7 @@ the design, so I don't believe 'Code untouched' is some good news"*。真去读�
   编译目标仍是 `erlang`；Elixir 库只多一个 `ERL_LIBS` code path，
   OTP 内置 BIF 连这一步都不用。`monotonic_time()` 本次实测为
   `-576460751688905208`（我原先 `>0` 的假设不成立，只记测量值）。
-- **语言知识落点**：`~gits/gleam-language/knowledge/externals.md`
+- **语言知识落点**：`~gits/gl-center/knowledge/externals.md`
   §2 / §4 / §5 与 core §9 已逐字同向；按 08:30 **不写进全局
   Memory**。本轮另把项目 `.workbuddy/memory/MEMORY.md` 压缩成
   索引（逐字仍只在 `docs/RULINGS.md` 与当日日志），历史日志未删。
@@ -549,12 +549,12 @@ the design, so I don't believe 'Code untouched' is some good news"*。真去读�
 - **08:30 owner 逐字**（全文「2026-11-15 08:30」）：*"如果没有找到
   关于FFI仅限于JS的原因，那么AI没记下来，他可能记录到workbuddy的
   全局Memory里面去了。很愚蠢的做法。"* 查证：FFI 限于 JS 的
-  **理由找到了**，在 `~gits/gleam-language/knowledge/externals.md:14-20`
+  **理由找到了**，在 `~gits/gl-center/knowledge/externals.md:14-20`
   §2（BEAM 同 VM ⇒ external；JS 跨运行时 ⇒ FFI），skill 副本 `cmp`
   exit 0；但该文件在知识中心仓库是 **`??` 未跟踪**、`SKILL.md` 是
   `M`、仓库无 remote ⇒ **没进版本历史**。WorkBuddy 全局 Memory 里
   只有 R14/R15 一句摘要，没有这个理由。⇒ 语言知识的家是
-  `~gits/gleam-language`；本轮**不往全局 Memory 写语言知识**，也不
+  `~gits/gl-center`；本轮**不往全局 Memory 写语言知识**，也不
   擅自提交那个带别人未提交改动的仓库。
 - **改动（仍只写文档）**：`docs/RULINGS.md` 追加 08:27 / 08:28 /
   08:30 三条注记；`README.md` 去掉「zero @external」成绩写法、写明
@@ -944,7 +944,7 @@ the design, so I don't believe 'Code untouched' is some good news"*。真去读�
 - **R49：`new` 是 Python 式垃圾，见到即当 bug，无 container 豁免**。
   现行 `src/` / `test/` 的 `new` 零出现（R46 已删净）；core §3 那个
   `pub fn new(...)` 示例已改成 `clamp_positive`，§5 新增「No `new`」，
-  `gleam-language/SKILL.md` 的豁免作废，镜像 `cmp` 一致。主动核验另抓到
+  `gl-center/SKILL.md` 的豁免作废，镜像 `cmp` 一致。主动核验另抓到
   `config.gleam` 把 AI 裁定正文写成「R33 owner 逐字命名 `default_config()`」
   —— R33 四段逐字原话只命名 `Desk`、无任何函数名，已如实改标词源；
   同时改掉把这个函数称作 "constructor" 的 Python 式措辞。

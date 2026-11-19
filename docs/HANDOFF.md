@@ -2,8 +2,8 @@
 
 > **新会话先读这一节。** 再读 `docs/RULINGS.md` R44–R50。
 > **不要读 `deprecated/`**：里面是旧实现，只读、不是依据、不是词库（R44/R45）。
-> **动手前**：载入 `gleam-language` 技能并**全文**读
-> `~/.workbuddy/skills/gleam-language/references/gleam-core.md`
+> **动手前**：载入 `gl-center` 技能并**全文**读
+> `~/.workbuddy/skills/gl-center/references/gleam-core.md`
 > （仓库镜像 `docs/gleam-thinking-core-to-memory.md`，`cmp` 一致，R19）。
 > **list 效率设计与骨架填写**：`DEVELOPER_GUIDE.md`（2026-11-15 起，
 > 导航文件，不是第二份规格）。
@@ -21,7 +21,7 @@
   （fast-forward，无 force）；工作树干净。本 §1 其余数字是 2026-11-13
   快照，当前实测见 `docs/STATE.md` **顶部（2026-11-16 03:09）**；
   待裁决项现为 **1 项**（2026-11-17 10:16，`sourcebar_buffer` 已裁定
-  非法撤出），见该节。知识中心 `~gits/gleam-language` 已于
+  非法撤出），见该节。知识中心 `~gits/gl-center` 已于
   2026-11-16 提交 `dc736df`（owner 授权），**无 remote、无法 push**；
   skill 目录不是 git 仓库，只是硬 `ln` 的消费者。
 - `src/` = **14 个 Gleam 模块、零行实代码**（函数体全 `todo as "…"`）。
@@ -49,7 +49,7 @@
 
 ### 1.1 新会话（载入核心卡片后）实测
 
-- `gleam-language` 技能已载入；核心卡片全文读过，
+- `gl-center` 技能已载入；核心卡片全文读过，
   `gleam-core.md` 与 `docs/gleam-thinking-core-to-memory.md` `cmp` exit 0。
 - 上表六条命令在**源码改动前后各跑一次**，数字逐项相同：WAE 仍 73；
   `package-interface` 复验 **14 模块** `////` 全渲染、无 `//` 截断。
@@ -158,11 +158,11 @@ line here yet; nonsense」*，已恢复原句。
   08:28 逐字，见 `docs/RULINGS.md` 同名注记）。但**`@external(erlang, …)`
   是必须、正常、合理的 Gleam 设计**：它不等于 FFI、不基于手写 erl；
   「FFI 只限于 JS」的理由是 BEAM 同 VM / JS 跨运行时
-  （`~gits/gleam-language/knowledge/externals.md` §2）。需要运行时 API
+  （`~gits/gl-center/knowledge/externals.md` §2）。需要运行时 API
   就调 OTP 模块或 `gleam add` 的包，**零 external 不是目标、不是成绩**。
   根包的 target 声明会让 JS 外实现编译失败，但**手写 `.erl` 会被静默
   编译成 `.beam`**，所以禁手写这一半不靠编译绿来证明，靠 `src/` 的
-  文件清单。Gleam 语言知识的家是 `~gits/gleam-language`，不是 WorkBuddy
+  文件清单。Gleam 语言知识的家是 `~gits/gl-center`，不是 WorkBuddy
   全局 Memory（owner 08:30）；owner 09:22 追加：实测验证的语言感悟
   **写进知识中心**，消费方用**单文件硬 `ln`**接过去，
   **不得用 symbol link、不得链接目录结构**，检查用
@@ -187,7 +187,7 @@ line here yet; nonsense」*，已恢复原句。
 
 ## 7. 读文件顺序
 
-0. `gleam-language` 技能 + `gleam-core.md` 全文（见文件首）
+0. `gl-center` 技能 + `gleam-core.md` 全文（见文件首）
 1. 本文件
 2. `docs/RULINGS.md` **R44–R50**（R50 §7 = 删 `config.gleam`）
 3. `.planning/phases/05-doc-tdd/05-01-PLAN.md`（§4 模块清单、§5 六轮核验）

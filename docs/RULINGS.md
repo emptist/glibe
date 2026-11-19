@@ -414,10 +414,10 @@ anybody noticing it"*。
 都存在，却没有和计划连起来，也没有写在函数体之前。R19 正是补这两处。
 
 **执行边界：** 这条裁定定的是工作方式，**不是改代码的许可**。`src/` 本次
-**未改动**；`docs/RULINGS.md`、开发指南、`gleam-language` skill 的工作流与
+**未改动**；`docs/RULINGS.md`、开发指南、`gl-center` skill 的工作流与
 浓缩核心已按此更新。第一个完整的文档先行 / TDD 循环落在下一件真正开工的
 模块上。可运行的红→绿样例在
-`~/.workbuddy/skills/gleam-language/docs-first-probe/`。
+`~/.workbuddy/skills/gl-center/docs-first-probe/`。
 **该循环已在 R20 落到 `src/glibe/desk.gleam`，实测数字见下。**
 
 ---
@@ -582,7 +582,7 @@ codec / adapter（`to_string`、`from_string`、Binance 拼写函数、配置文
 - **机制是穷尽性检查，不是 sh 守卫。** 增加一个构造子，`case` 缺臂就是编译
   错误，编译器列出所有要改的地方。命名规则写进
   `docs/gleam-thinking-core-to-memory.md` §0 / §5 / §13，以及
-  `gleam-language` skill 的工作流与可运行探针；两份核心用 `cmp` 保持一致。
+  `gl-center` skill 的工作流与可运行探针；两份核心用 `cmp` 保持一致。
 - **已改名：** `src/`、`test/` 全部构造子引用；`webclient/` 无引用；当前计划
   `.planning/phases/04-domain-cleanup/04-02-PLAN.md`；「Interval 闭集」那一项
   的现行表述；`README.md`、`docs/DESIGN.md`、
@@ -1788,7 +1788,7 @@ gleam能不能这样写呢？要试试看，不能的话，则换成gleam能允�
     `glib/docs/reference/timeframe-cleanup-audit-2026-10-28.md:671`
     把「改成 `tf |> leaves |> branches |> strategy`」列为第 6 步；
     `timeframe-cleanup-audit-review-2026-10-30.md:331` 记为 plan 52-03。
-    `~/.workbuddy/skills/gleam-language/probe/src/q_settled_field.gleam`
+    `~/.workbuddy/skills/gl-center/probe/src/q_settled_field.gleam`
     （2026-10-28）已在迷你类型上编译过 `seeded |> leaves |> branches`。
   - 实现：`glib/src/glib/timeframe.gleam`（2026-11-05）**全文没有一根
     `|>`**；`databar_processing`（`:338-490`）是五次
@@ -2476,7 +2476,7 @@ core §10 `:281`、§13 `:346`、§14 `:358` 三处早就写着这个命令 —�
 以下都是我写下的、把 warning 归类为可忽略的文本，本条一并作废：
 - 本文件 R19 第 2 步「warnings 合法，`--warnings-as-errors` 只是
   **GREEN gate**」（已改）；
-- `gleam-language/references/gleam-core.md` §14 末句「therefore fails in
+- `gl-center/references/gleam-core.md` §14 末句「therefore fails in
   the RED phase and is the GREEN gate」（已改）；
 - skill `gleam-document-led-tdd` 第 3 步「Todo and unused-argument
   warnings are the expected skeleton shape, not failures」、第 6 步
@@ -2502,7 +2502,7 @@ WAE 会给每条 unused argument 一个 hint：`_settings`。实测
 
 **Landed in**：`.github/workflows/test.yml`（加
 `gleam build --warnings-as-errors`）、本文件 R19 / R23 §3 / R48、
-`gleam-language/references/gleam-core.md` §14 及其仓库镜像、
+`gl-center/references/gleam-core.md` §14 及其仓库镜像、
 skill `gleam-document-led-tdd`、05-01-PLAN §5.3 / §6、
 `docs/STATE.md`、工作区记忆与当日日志。**`src/` 与 `test/` 未改一行**，
 不用 `_` 洗信号。决策区仍 **0 项**；**未 push**。
@@ -2545,9 +2545,9 @@ field 看起来有来处** —— 两者互相指认，正是 R46 / R48 说的�
   不存在。
 - **作废 core / SKILL.md 里那句「A container may be `new`」**：豁免一开，
   AI 就把它当许可证。今后**每一个 `new` 都先按 bug 查**，直到证明不是。
-- 已改：`gleam-language/references/gleam-core.md` §3 示例
+- 已改：`gl-center/references/gleam-core.md` §3 示例
   `pub fn new(i: Int) -> PositiveInt` → `clamp_positive(...)`，§5 新增
-  「No `new`」条目；`gleam-language/SKILL.md` 的 `<do_not>` 条目去掉豁免
+  「No `new`」条目；`gl-center/SKILL.md` 的 `<do_not>` 条目去掉豁免
   并写入本裁定；仓库镜像 `docs/gleam-thinking-core-to-memory.md` 同步
   （`cmp` 一致）。
 
@@ -2570,7 +2570,7 @@ field 看起来有来处** —— 两者互相指认，正是 R46 / R48 说的�
 
 ### 4. 落地与诚实标注
 
-**Landed in**：`gleam-language` 的 `SKILL.md` 与
+**Landed in**：`gl-center` 的 `SKILL.md` 与
 `references/gleam-core.md`、仓库镜像、`src/glibe/config.gleam`、
 本文件 R49、05-01-PLAN §5.4、`docs/STATE.md`、工作区记忆、当日日志、
 skill `gleam-document-led-tdd`。
@@ -3446,7 +3446,7 @@ R14 / R15 / R16 / R17 / R18 的历史原文。「经过对比和实证」是 own
 
 - 引擎的 BEAM 能力只有两个来源：**OTP 模块**经
   `@external(erlang, …)`，或 **`gleam add` 的 hex 包**的纯 Gleam API。
-  与 `~/.workbuddy/skills/gleam-language/references/externals.md` §5
+  与 `~/.workbuddy/skills/gl-center/references/externals.md` §5
   「绝不手寫 `.erl` / `.ex`」（owner 2026-11-13）是同一条。
 - 不新增项目级 guard sh（R44 / `gleam-core.md` §12：能用包边界表达的，
   不写 shell 去 grep 扩展名）。根包用 `gleam.toml` 的 target 表达；
@@ -3521,9 +3521,11 @@ owner 逐字（原样，含原拼写）：
 > based on handwritten erlang or elixir, while handwritten erlang and elixir
 > by you are prohibited, external 是必须的正常的合理的gleam设计"*
 
-### 查证一：`~gits/gleam-language` 里到底记了什么
+  [2026-11-19 注：目录已更名为 `gl-center`；上面 owner 逐字原文保留当时的 `gleam-language` 路径，未改。]
 
-owner 指的路是 `/Users/jk/gits/gleam-language/`。**找到的是边界，
+### 查证一：`~gits/gl-center` 里到底记了什么
+
+owner 指的路是 `/Users/jk/gits/gl-center/`。**找到的是边界，
 没找到这句正面逐字**：
 
 - `knowledge/externals.md` §2（逐字）：*"BEAM 目标下，Gleam 调用 Erlang /
@@ -3603,12 +3605,12 @@ external 正是官方给的答案。官方文档也确实展示了一段
 （**历史节原文不改写**）；`docs/HANDOFF.md` §5、待裁决区第 2 项的
 事实描述、项目 memory 同步。**08:16、08:27 及更早注记原文不改写**
 （append-only，更正写在这里）；不改
-`/Users/jk/gits/gleam-language/` 任何文件，不改 `src/` / `test/` /
+`/Users/jk/gits/gl-center/` 任何文件，不改 `src/` / `test/` /
 `webclient/`，不新增 R 编号，不新增 guard sh。
 
 ---
 
-## 2026-11-15 08:30 — owner 逐字：语言知识的家是 `~gits/gleam-language`，不是 WorkBuddy 全局 Memory（执行注记，不新增编号）
+## 2026-11-15 08:30 — owner 逐字：语言知识的家是 `~gits/gl-center`，不是 WorkBuddy 全局 Memory（执行注记，不新增编号）
 
 owner 逐字（原样）：
 
@@ -3618,12 +3620,12 @@ owner 逐字（原样）：
 ### 查证结果（逐条，不替 owner 猜）
 
 1. **「FFI 仅限于 JS」的理由找到了，就在知识中心**：
-   `/Users/jk/gits/gleam-language/knowledge/externals.md:14-20` §2 逐字
+   `/Users/jk/gits/gl-center/knowledge/externals.md:14-20` §2 逐字
    *"它们同跑在一个 BEAM VM 上，运行时表示一致，是同一个世界的兄弟
    语言"* / *"JS 是完全不同的运行时；跨运行时才叫 Foreign Function
    Interface（FFI）。JS 目标的外部源文件（`.mjs` / `.js`）才是 FFI"*，
    并标注 owner ruling 2026-11-13。
-   `~/.workbuddy/skills/gleam-language/references/externals.md` 与它
+   `~/.workbuddy/skills/gl-center/references/externals.md` 与它
    **byte-identical**（`cmp` exit 0）。⇒ 08:28 注记说的「没找到」
    只针对**「external 是必须/正常/合理的设计」「0 external 并不一定
    是好事」那两句正面逐字**，不针对 FFI 理由；两者不是同一句。
@@ -3646,12 +3648,12 @@ owner 逐字（原样）：
 
 ### 执行边界（按逐字，不扩大）
 
-- Gleam 语言事实与 owner 逐字的家是 **`~gits/gleam-language`**，
+- Gleam 语言事实与 owner 逐字的家是 **`~gits/gl-center`**，
   不是 WorkBuddy 全局 Memory。本轮**不往任何全局 Memory 写语言
   知识**（08:28 / 08:30 两条逐字只归位到本文件与项目 memory）。
 - 08:28 与 08:30 的正面裁定补记在 glibe 的 `docs/RULINGS.md`
   （本项目 owner 逐字的家）与项目 memory；**不擅自提交或改写
-  `gleam-language` 仓库** —— 它已有不属于本轮的未提交改动
+  `gl-center` 仓库** —— 它已有不属于本轮的未提交改动
   （`SKILL.md` 被改、`externals.md` 未跟踪），替别人提交正是
   owner 说的「AI 不会自我约束」。该仓库的状态如实报给他，不代他决定。
 - 「不许手写 `.erl`/`.ex`」与「`@external(erlang, …)` 是正常设计」
@@ -3661,7 +3663,7 @@ owner 逐字（原样）：
 
 不新增 R 编号，不改写 08:16 / 08:27 / 08:28 及更早注记原文，
 不改 `src/` / `test/` / `webclient/`，不改
-`/Users/jk/gits/gleam-language/` 任何文件、不提交那个仓库，
+`/Users/jk/gits/gl-center/` 任何文件、不提交那个仓库，
 不新增 guard sh。
 
 ---
@@ -3790,7 +3792,7 @@ oldest-first，A 的 reverse 只是让它追上 B / C 已经是的形状**；它
 ### 先认三处错
 
 - **08:49 批评成立，但要如实说清边界**：本轮开头确实按 R19 加载了
-  `gleam-language` skill 并**全文**读了 `references/gleam-core.md`
+  `gl-center` skill 并**全文**读了 `references/gleam-core.md`
   （379 行），08:50 又 `cmp` 过 `docs/gleam-thinking-core-to-memory.md`
   → **exit 0，字节一致**。所以不是「没加载」，是**加载了却没照着做**：
   第一版探针里手写了 `int_to_string` / `digits` / `one_digit` /
@@ -3977,7 +3979,7 @@ owner 08:58 *"旧数据放前面？那不是prepend是什么"* 说的就是这�
 
 **这条说的是「为什么前面那串事实成立」，不是新增机制。** 08:16
 （转 erlang target、禁手写 erl）、08:28（external ≠ FFI、≠ 手写 erl、
-零 external 不是成绩）、08:30（语言知识的家在 `~gits/gleam-language`）、
+零 external 不是成绩）、08:30（语言知识的家在 `~gits/gl-center`）、
 08:49（`gleam add` + `@external` 直接用）、08:55（OTP 自带数据库、
 JSON 是懒做法）都指向同一件事：能力已经在 VM 里，取用不需要另造
 桥接层、codec 或手写目标源码；差别只是从哪扇门进去。
@@ -4019,7 +4021,7 @@ JSON 是懒做法）都指向同一件事：能力已经在 VM 里，取用不�
 
 ### 与既有裁定、知识中心的关系
 
-- `/Users/jk/gits/gleam-language/knowledge/externals.md:14-24` §2
+- `/Users/jk/gits/gl-center/knowledge/externals.md:14-24` §2
   逐字：*"BEAM 目标下，Gleam 调用 Erlang / Elixir / LFE = external
   （外部），但绝不是 foreign（外来）。它们同跑在一个 BEAM VM 上，
   运行时表示一致，是同一个世界的兄弟语言"*；官方逐字
@@ -4045,7 +4047,7 @@ JSON 是懒做法）都指向同一件事：能力已经在 VM 里，取用不�
 不新增 R 编号，不改写 08:44–08:58 及更早注记原文（append-only）；
 不改 glibe 的 `src/` / `test/` / `webclient/` / `gleam.toml` /
 `manifest.toml`；探针全在 `/tmp`；不改
-`/Users/jk/gits/gleam-language/` 任何文件、不提交那个仓库；
+`/Users/jk/gits/gl-center/` 任何文件、不提交那个仓库；
 不新增 guard sh；不在对话里弹决策卡片、不催、不预设推荐；
 不把这句扩大成「任何库都无需配置」或「可以手写 erl」；
 不替 owner 选导出格式，决策区不增不减。
@@ -4056,7 +4058,7 @@ JSON 是懒做法）都指向同一件事：能力已经在 VM 里，取用不�
 
 **owner 逐字**（同一轮三条）：
 
-1. *"你对于gleam语言经过实测验证的感悟，应该写入 ~/gits/gleam-language,
+1. *"你对于gleam语言经过实测验证的感悟，应该写入 ~/gits/gl-center,
    或者用硬ln连接过去，注意我说的是硬，不是symbol link，this is unix
    family OS filesystem"*
 2. *"你担心依赖BEAM的问题，不用担心，我就是打算靠BEAM吃饭的。
@@ -4066,7 +4068,7 @@ JSON 是懒做法）都指向同一件事：能力已经在 VM 里，取用不�
 
 ### A. 语言知识的家：知识中心，单文件硬 `ln`
 
-- 此前注记里「不改 `/Users/jk/gits/gleam-language/` 任何文件、不提交
+- 此前注记里「不改 `/Users/jk/gits/gl-center/` 任何文件、不提交
   那个仓库」**是我自己设的边界，不是 owner 的裁定**；owner 当前陈述
   优先（Authority 第一条）。本轮按逐字把实测感悟写进知识中心；
   历史注记原文不改写（append-only），更正写在这里。
@@ -4150,7 +4152,7 @@ owner 逐字：
 
 - **观点部分（BEAM 好、群众追热点、Gleam 是 AI 的救星/好药）是 owner 的
   看法**，逐字归位，不当作语言事实断言；记入知识中心
-  `~/gits/gleam-language/knowledge/beam-cross-platform-measured.md`，
+  `~/gits/gl-center/knowledge/beam-cross-platform-measured.md`，
   硬 `ln` 进 skill `references/`（inode `340471733` / links 2），`SKILL.md`
   索引就地加一条（inode `324709842` / links 2 不变）。与 09:09「一 BEAM
   多门」同向。
@@ -4194,7 +4196,7 @@ owner 逐字（上一会话末，授权提交）：
 
 ### 落地（事实，不是计划）
 
-- `~/gits/gleam-language` 提交 **`dc736df`**（`docs(knowledge): add
+- `~/gits/gl-center` 提交 **`dc736df`**（`docs(knowledge): add
   measured BEAM-door & cross-platform proofs; link externals.md`），
   **5 files changed / 363 insertions(+) / 3 deletions(-)**：
   `README.md`、`knowledge/SKILL.md`（M），
@@ -4208,11 +4210,11 @@ owner 逐字（上一会话末，授权提交）：
   `"21 files / 3 new / sixteen references"`，并把
   `beam-cross-platform-measured.md` 补进「same way」那句。
 - **更正（我自己的错）**：上一轮答复里「`~/.workbuddy/skills/
-  gleam-language` 是另一个独立 git 仓库，共享同一组 inode，我只提交了
+  gl-center` 是另一个独立 git 仓库，共享同一组 inode，我只提交了
   知识中心，没提交 skill 那边」是**推断、未经实测、且是错的**。
   实测 `git rev-parse --show-toplevel` 在该目录返回
   *"fatal: not a git repository (or any of the parent directories): .git"*；
-  `~/.workbuddy/skills/gleam-language/.git`、`~/.workbuddy/skills/.git`、
+  `~/.workbuddy/skills/gl-center/.git`、`~/.workbuddy/skills/.git`、
   `~/.workbuddy/.git` **三者均不存在**。⇒ 没有第二个仓库，**不存在
   「把 skill 那份一起提交」这个动作**；skill 目录只是硬 `ln` 的消费者，
   字节进不进版本历史由知识中心那个名字决定（git 存字节、不存 inode）。
@@ -4237,7 +4239,7 @@ owner 逐字（上一会话末，授权提交）：
   `2 Unused private constructor` + `1 Unreachable pattern` = 196，
   与 `docs/STATE.md`「2026-11-15 09:22」逐项一致，**零漂移**（R48 清单）。
 - 核心镜像 `docs/gleam-thinking-core-to-memory.md` 与
-  `~/.workbuddy/skills/gleam-language/references/gleam-core.md` `cmp` exit 0。
+  `~/.workbuddy/skills/gl-center/references/gleam-core.md` `cmp` exit 0。
 - `glibe` 工作树干净，`HEAD` = `origin/doc-tdd` = `b17dae4`。
 
 ### 本注记不做什么
