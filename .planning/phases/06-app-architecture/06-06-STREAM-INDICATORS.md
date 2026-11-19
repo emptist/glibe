@@ -72,6 +72,16 @@ bar was the cached extreme, so it is the rare path (UC-64)"* —— **不是**�
   `sourcebar.to_databar` 出生种 0.0，`dashboard.data_bar_to_chart_bar` 是真实消费方（RED→GREEN，
   56 passed）。这些字段的 writer 是 `timeframe.indicator`——将来填它时**必须**用 §3 的
   stream 递推，禁止 §1 的批量 fold。
-- 窗口大小等参数在 R46 被删（settings 容器作废）；按 R32 参数须作为字段落到真正拥有它的
-  type，随真实消费方出现再加，不预先造 settings。`timeframe.indicator` 的完整实现依赖这些
-  参数归属 + PENDING_DECISIONS R.5 登记的 leaves/branches 开放点，本轮不擅自实现。
+- **2026-11-20 更正（owner 逐字：*"R46 作废了 settings 容器，这是错的，config.gleam is a
+  must, see glib for some of the use case"*）**：上面「窗口参数在 R46 被删、不预先造
+  settings」是**错误泛化**。R46 只作废 AI 自造的空壳 `TimeframeSettings`（塞进
+  `Timeframe` 的字段 + `new()`），**没有**作废 config.gleam。config.gleam 是 must：
+  窗口数字各有出处（glib `config.gleam:216-294` 引 owner 的 idib/seib：SMA 7/70/140/
+  252/504、KDJ 7/3/2/10、bb 1.99、sma_for_bbm 与 branch_exit_leaf_size 按 interval），
+  它产出 `IntervalSettings` 被 `indicator/sma/bollinger/kdj` 当**参数**消费
+  （`glib/indicator.gleam:35-39`），不是「瞎编的 settings」。
+- 落实：active `src/glibe/config.gleam` 按 gdltdd 新建（每个 code file 都走
+  `////`→类型→`///`→todo→测试 RED→填体 GREEN），键用 glibe 9 个全名 Interval（R21），
+  不回加 `Timeframe.settings` 字段、不造 `new()`（R46/R49 仍有效）。
+  `timeframe.indicator` 的填体仍依赖 PENDING_DECISIONS R.5 登记的 leaves/branches 开放点，
+  本轮只建参数源 config.gleam，不擅自实现四个 step。

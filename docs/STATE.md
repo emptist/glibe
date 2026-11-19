@@ -4,6 +4,26 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
+## 2026-11-20 (III) (当前状态 — R46 误读更正 + config.gleam 落地 + glib 冻结裁定)
+
+- **认错层（owner 逐字）**：*"R46 作废了 settings 容器，这是错的，config.gleam is a must,
+  see glib for some of the use case"*。R46 只作废 AI 自造空壳 `TimeframeSettings` +
+  `Timeframe.settings` 字段 + `new()`；我错误泛化成「config 整体作废」，拿它当借口不填
+  indicator。已修正 RULINGS R46 更正段、R.5 两条、06-06 §5。
+- **glib 冻结裁定（owner 逐字）**：*"glib project 已经冻结…文档和代码都不会再改变，他并
+  没有完成，也不会完成，glibe 将会取代他，纯 BEAM 无 JS，所以你引用 glib 文档和代码
+  都可以"*。glib = 冻结稳定快照、可放心引用（R38 文档/实现对比仍执行）；已记 RULINGS R42
+  澄清。引用效力：owner 原话 > 冻结 glib 文本。
+- **config.gleam 落地（gdltdd，每个 code file 都走）**：active `src/glibe/config.gleam`
+  新建——`Settings`/`IndicatorSettings`/`StructureSettings`/`IntervalSettings`/
+  `SettingsError` + `default_settings`/`for_interval(_default)`/`validate`/`describe_error`。
+  窗口数字照抄 glib `config.gleam:216-294`（有出处：SMA 7/70/140/252/504、KDJ 7/3/2/10、
+  bb 1.99、两 per-interval 表），键用 glibe 9 个全名 Interval（R21）；不含
+  `Timeframe.settings`/`new()`。`api/interval.all()` 同步新增（对位 glib，config 完整性检查
+  的枚举源）。8 条 config 测试 + 1 round-trip：RED（8 failures 全是 todo）→ 逐体 GREEN。
+- 决策区仍 0 项（均为 owner 裁定/认错，非待决）。config 是参数源，`timeframe.indicator`
+  四个 step 仍 todo（R.5 leaves/branches 开放点未到位）。
+
 ## 2026-11-20 (II) (当前状态 — chart 自有包修复 + DataBar 字段补齐 + O(n²) 禁令)
 
 - **chart 修复完成**（owner 裁定自有包直接改）：`bar_stream_chart` 1.2.0→1.2.1，

@@ -229,9 +229,12 @@ sourcebar 同构」。
     `branch.recognised_move`（enter→exit 窗口，无 exit_bar 则 `None`）。
   - **真实规格缺口（不是待裁决项、不臆造），12 个 todo = leaf 3 + branch 5 +
     timeframe 4**：
-    - `leaf.leaf_cma` 需要「twin 的均值 reader」——`yin_leaf_cma` /
-      `yang_leaf_cma` 两个字段在本设计里**未声明**（R46 把携带它们的 settings
-      容器删了，没说这两字段落在哪）；不猜。
+    - ~~`leaf.leaf_cma` 需要「twin 的均值 reader」——`yin_leaf_cma` /
+      `yang_leaf_cma` 两个字段在本设计里未声明（R46 把携带它们的 settings
+      容器删了，没说这两字段落在哪）；不猜。~~ **2026-11-20 更正**：这两个
+      字段已按 glib 原始 DataBar 补进 `databar.gleam`（本轮，chart 是真实消费方），
+      writer 是 `timeframe.indicator`；「R46 删了携带它们的容器」是错误泛化——
+      R46 只删空壳 `TimeframeSettings`，config.gleam 是 must（owner 逐字）。
     - `leaf.next_yin_leaf` / `next_yang_leaf` 需要叶子何时死亡/转向的判据；
       glibe R1/R3/R6 给了 end_bar 语义与「closing 是长度测试」，**没有**给
       「yin 死在新高 sma_tiny、corner 跟新低」这条触发条件（它在 glib 文档里，
@@ -241,8 +244,12 @@ sourcebar 同构」。
       （glib 用库内 `let assert` 掩盖，core §7 禁止库 panic）。判据随真实消费方
       定，不擅自改签名。
     - `branch.next_yang/yin_branch` + `branch_exit_leaf_size()`：关闭计数在
-      参考实现里**按 interval 取值**（D1=40 / W1=8），旧容器 `TimeframeSettings`
-      已被 R46 删；本骨架 `branch_exit_leaf_size()` 无参。形态随真实消费方定。
+      参考实现里**按 interval 取值**（D1=40 / W1=8 / MO1=2）。**2026-11-20 更正**：
+      这些值现在有家——active `src/glibe/config.gleam` 的 `branch_exit_leaf_size:
+      Dict(Interval, Int)` 按 interval 表持有（照 glib `config.gleam:259-274`，数字有出处）。
+      R46 只删空壳 `TimeframeSettings` 字段，config.gleam 是 must（owner 逐字）。
+      `branch_exit_leaf_size()` 的调用形态（从 config 读还是传参）随真实消费方落地时定，
+      但「参数无家可归」不再是挡箭牌。
     - `timeframe` 4 步 `indicator` / `leaves` / `branches` / `strategy`，各依赖
       上面已登记的开放点，留白。
   - 这些不是「需要你决定」项：owner 的原则是字段与值随真实消费方一个一个加

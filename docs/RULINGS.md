@@ -2043,6 +2043,15 @@ function(...),所以你如果以为这是限定，那么就很难做，因为只
     不再开桶。
   - 决策区仍 **0 项**；**未 push**。
 
+> **2026-11-20 澄清（owner 逐字：*"glib project 已经冻结，所以所有的文档和代码都不会再改变，
+> 他并没有完成，也不会完成，glibe 将会取代他，纯 BEAM 无 JS，所以你引用 glib 文档和代码
+> 都可以，因为他们已经冻结了"*）：** R42 说的「抄 owner 要求、不抄没落实的代码」与「glib
+> 文档和代码常脱节」仍然成立，但 glib 的**引用效力**现在定了：它是**冻结快照**——不会
+> 再变、没完成也不会完成，glibe 取代它、纯 BEAM 无 JS。因此引用 glib 的文档**和**代码
+> 都是安全的稳定来源（不再是「活项目、可能漂移」）；本轮照抄 `glib/config.gleam` 的窗口
+> 数字与结构即据此。R38「参考 glib 必须文档与实现对比」仍执行：冻结不等于免核对，
+> 抄之前仍要读对该行。owner 设计原话 > 冻结的 glib 文本，这条效力排序不变。
+
 ## R43 — 空架子让「如是我闻」成为「信受奉行」；反复推敲是核验架子，不是测试互相推翻（2026-11-12 07:51 owner 指示）
 
 **owner 逐字（07:51，两条连发）**：
@@ -2279,6 +2288,20 @@ function(...),所以你如果以为这是限定，那么就很难做，因为只
 `.planning/phases/05-doc-tdd/05-01-PLAN.md` §1 / §3 / §4 / §5.1、
 `docs/STATE.md`、`docs/PENDING_DECISIONS.md`。
 决策区仍 **0 项**；**未 push**。
+
+> **2026-11-20 更正（owner 逐字：*"R46 作废了 settings 容器，这是错的，config.gleam is a
+> must, see glib for some of the use case"*）：** 本条作废的**只是** AI 自造的空壳
+> `TimeframeSettings` type + `Timeframe.settings` 字段 + 为喂它而造的 `new()`（owner
+> *"不知道是什么玩意"*）。我把它**错误泛化**成「settings / config 整体作废」，并把
+> `:2256-2257` 写成了「真需要参数时随消费方落进 field、现在填就是转录旧实现或瞎编」——
+> 这句作废。**config.gleam 是 must**：它是设置文件本身，产出 `IntervalSettings`（数字
+> 各有出处：glib `config.gleam:216-294` 引 owner 的 idib/seib），被
+> `indicator.gleam:35-39` / `sma` / `bollinger` / `kdj` 当**参数**消费（`compute_bar(databar,
+> databar_list, settings)`），与「塞进 `Timeframe` 的空壳字段」是两件事，glib 里两者
+> 共存且 config 被四个指标模块全部 import。R46 删字段 / 删 `new` **仍然有效**；
+> 被推翻的只是「不得有 config.gleam / 参数无家可归」这个泛化。落实见
+> `.planning/phases/06-app-architecture/06-06-STREAM-INDICATORS.md` §5 与 active
+> `src/glibe/config.gleam`（本轮新建）。
 
 ## R47 — 自检必须自己触发；`///` 要能译成「谁读写哪个值」（2026-11-12 12:03 owner 质问）
 
