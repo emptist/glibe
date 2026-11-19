@@ -10,9 +10,9 @@
 
 import bar_stream_chart.{type Bar}
 import glibe/app/dashboard
-import glibe/app/message
+import glibe/app/message.{MsgEye, MsgSourceBarArrived, MsgVoice}
 import glibe/desk.{type Desk}
-import plushie/event.{type Event}
+import plushie/event.{type Event, Timer, TimerEvent}
 import plushie/node.{type Node}
 import plushie/widget.{type WidgetDef}
 
@@ -21,6 +21,25 @@ import plushie/widget.{type WidgetDef}
 pub fn on_event_shape_test() {
   let _gate: fn(Event) -> message.Msg = message.from_event
   Nil
+}
+
+/// First real assertion of the app layer (R19 step 5→6): the gate maps an
+/// Event to `MsgEye` carrying that SAME event. No Eq on Event/Msg, so pattern
+/// match the payload. Against the `todo` body this panics = RED; filling the
+/// one-line body makes it GREEN. One representative Event is enough: the body
+/// is total over all twelve constructors (documented B1/B2), not a per-arm map.
+pub fn from_event_wraps_event_test() {
+  let wire = Timer(TimerEvent("tick", 42))
+  case message.from_event(wire) {
+    MsgEye(Timer(TimerEvent(tag, timestamp))) -> {
+      assert tag == "tick" as "tag preserved through the gate"
+      assert timestamp == 42 as "timestamp preserved through the gate"
+    }
+    MsgEye(_) -> panic as "the same Event variant must be carried"
+    MsgVoice(_) -> panic as "renderer wire events never produce MsgVoice"
+    MsgSourceBarArrived(_) ->
+      panic as "renderer wire events never produce MsgSourceBarArrived"
+  }
 }
 
 /// 06-02 G2/G3: the chart accepts ONE bar, never a list. This annotation is the

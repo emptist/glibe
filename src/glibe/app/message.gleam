@@ -22,7 +22,10 @@
 //// has NO `Custom` Event variant. `on_event` needs only `fn(Event) -> Msg`, so
 //// this gate is version-safe; do not build Msg around `Custom`.
 ////
-//// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
+//// R19 status: first body filled 2026-11-19 — `from_event` is the working
+//// line (RED→GREEN via `from_event_wraps_event_test`). All other bodies in this
+//// module are `todo as "..."`; the Speaker/SourceBar payloads stay placeholders
+//// until the BEAM-side injection carrier lands (not invented here).
 
 import plushie/event.{type Event}
 
@@ -81,5 +84,5 @@ pub type SourceBarArrived {
 /// Total by construction: every framework Event -> `MsgEye(event)`. No panic,
 /// no dropped event, no catch-all over OUR Msg.
 pub fn from_event(event: Event) -> Msg {
-  todo as "every framework Event -> MsgEye(event); voice and SourceBar enter via BEAM-side injection, not this gate"
+  MsgEye(event)
 }

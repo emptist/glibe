@@ -5510,3 +5510,31 @@ code, while the compiler warnings now become more helpful"。仍是 "sometime"�
   是一个从「整函数一个 todo」到「每臂一个 todo」的谱，按上面两条判据来选。
 - **本轮未改任何 `src/` 代码**：`from_event` 的过度应用已回退、树干净；probe 在 `/tmp`，不进仓库。
 - 决策区维持 0 项；不翻案任何旧结论。
+
+## 2026-11-19 21:40 — 项目评审（R43）+ app 第一个 body 填绿（gdltdd §5→6）
+
+owner："回顾和评审项目，然后继续。"
+
+### 一、评审 = 按 R43 回读设计，不是靠绿灯放行
+
+- 全门禁实测：format/check/test(50)/docs/export 0；WAE 1 = 20 todo + 41 unused arg（骨架基线）；
+  doc-tdd 干净、与 origin 同步；决策区 0 项。
+- R43 引用回读（本轮亲验源码，非沿用旧结论）：`widget.gleam:84-86` 确有 "The normalizer does not use
+  this field yet … the optimization will land in a future release" 原文（dashboard `////` 的引用准确）；
+  `SpecShape@122` / `Chart opaque@201` / `empty@289` / `push@400` / `shapes@805` 全部对位；Event 12 变体、
+  `dispatch_event@plushie.gleam:376` 存在。**结论：app 骨架无编造、无引用漂移**。
+- 已知开放点（非缺陷）：`MsgVoice(VoiceEvent)` / `MsgSourceBarArrived(SourceBarArrived)` 的 payload 是
+  placeholder；owner 设计里二者从 BEAM 侧注入、不经过 renderer wire，carrier 随 shared actor 落地时再定，
+  不在 doc-first 阶段发明（06-02 B3：0.6.0 无 `event.Custom`）。
+
+### 二、第一个 body 按 gdltdd 走完 RED→GREEN
+
+- **RED**：新增真实断言测试 `from_event_wraps_event_test`（`test/app_shape_test.gleam`）——用
+  `Timer(TimerEvent("tick", 42))` 作代表 Event，pattern-match `MsgEye` 内payload（Event/Msg 无 Eq），
+  并穷举 Msg 三构造器（不在我们自己的闭集上用 catch-all，R13）。跑测：`50 passed, 1 failures`，
+  失败点 = `message.gleam:84` 的 todo，RED 成立。
+- **GREEN**：`from_event(event) = MsgEye(event)` 一行（doc 已钉死"total，every Event → MsgEye"，
+  不需要逐臂拆——同 08:46 can-not-must 判据：12 臂全做同一件事）。跑测 **51 passed**；
+  WAE todo 20→19、unused arg 41→40（恰好抵消一个 body）。`////` 状态行同步改为"first body filled"，
+  不再声称"no working line here"（doc/code 一致，R19）。
+- 未碰其他 body / 类型 / 依赖；format/check/test/docs/export 全 0。决策区仍 0 项。

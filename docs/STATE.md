@@ -4,7 +4,23 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-19 08:51 (当前状态 — owner 补充复合 todo 第二条判据：import→结构 + WAE 更细；仍是 can)
+## 2026-11-19 21:40 (当前状态 — 项目评审 + app 第一个 body 填绿：from_event)
+
+- owner："回顾和评审项目，然后继续。" 先评审再按 gdltdd 继续填 body。
+- **评审结论（全实测）**：doc-tdd 干净、与 origin 同步；format/check/test(50)/docs/export 全 0；WAE 1 =
+  20 todo + 41 unused arg（骨架基线）；决策区 0 项。R43 抽查引用：`cache_key` 的 "future release" 原文、
+  `SpecShape@122`/`Chart opaque@201`/`empty@289`/`push@400`/`shapes@805`、12 变体 Event、
+  `dispatch_event@plushie.gleam:376` 全部与真实源码一致，**无编造/漂移**。`MsgVoice`/
+  `MsgSourceBarArrived` payload 仍是 placeholder（injection carrier 未落，非漂移）。
+- **填第一个 body（gdltdd §5→6）**：`app/message.gleam from_event` = `MsgEye(event)`。
+  先加真实断言测试 `from_event_wraps_event_test`（pattern-match 内 Event，不用 Eq；穷举 Msg 三构造器
+  无 catch-all）→ RED：`50 passed, 1 failures`，失败点正是 `message.gleam:84` todo。
+  填一行 body → GREEN：**51 passed**；WAE todo 20→19、unused arg 41→40（恰好一个 body）。
+  `////` 状态行同步更新（不再声称"no working line"）。
+- 门禁：format/check/test(51)/docs/export 全 0；WAE 1 = 19 todo + 40 unused arg。未动其他 body/类型/依赖。
+  决策区 0 项。下一步：`push_one`（需 Chart 构造 + bar 映射）或 `SpecShape→Node` 翻译。
+
+## 2026-11-19 08:51 (历史 — owner 补充复合 todo 第二条判据：import→结构 + WAE 更细；仍是 can)
 
 - owner："sometime compond todos can map your imports into structure without actual working code,
   while the compiler warnings now become more helpful"（08:46 的 "you can, not you must" 之后补充）。
