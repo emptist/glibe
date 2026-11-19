@@ -7,7 +7,7 @@
 # You should check this file into your source control repository.
 
 packages = [
-  { name = "bar_stream_chart", version = "1.2.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "bar_stream_chart", source = "hex", outer_checksum = "C02A502495BB33798D56E741EC52BBA7F720E3695DC96113BC75B09203D769F4" },
+  { name = "bar_stream_chart", version = "1.2.1", build_tools = ["gleam"], requirements = ["gleam_stdlib"], source = "local", path = "../bar_stream_chart" },
   { name = "directories", version = "1.2.0", build_tools = ["gleam"], requirements = ["envoy", "gleam_stdlib", "platform", "simplifile"], otp_app = "directories", source = "hex", outer_checksum = "D13090CFCDF6759B87217E8DDD73A75903A700148A82C1D33799F333E249BF9E" },
   { name = "envoy", version = "1.2.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "envoy", source = "hex", outer_checksum = "9C6FBB6BFA02A52798BEEC5977A738CAD6E4A057F4B67FD0C8061AD2502C191A" },
   { name = "exception", version = "2.1.1", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "exception", source = "hex", outer_checksum = "6BDEA95248093599391C3B5DF1835C5C6A86C353C2F99CE539B450E3432FE117" },
@@ -37,7 +37,7 @@ packages = [
 ]
 
 [requirements]
-bar_stream_chart = { version = ">= 1.2.0 and < 2.0.0" }
+bar_stream_chart = { path = "../bar_stream_chart" }
 gleam_erlang = { version = ">= 1.0.0 and < 2.0.0" }
 gleam_http = { version = ">= 4.4.0 and < 5.0.0" }
 gleam_httpc = { version = ">= 5.0.0 and < 6.0.0" }

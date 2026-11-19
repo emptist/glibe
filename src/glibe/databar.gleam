@@ -73,6 +73,22 @@ pub type DataBar {
     /// deleted the WINDOW-SIZE settings, not this field. `timeframe.indicator`
     /// is its writer (todo); `sourcebar.to_databar` seeds it at birth.
     sma_tiny: Float,
+    /// The measured fields the Dashboard chart consumes. These are the exact
+    /// names/glibe-owner design in `glib/src/glib/databar.gleam` (the five SMA
+    /// series, the Bollinger outer bands, the KDJ oscillator and the two leaf
+    /// CMAs). `bar_stream_chart.Bar` — our own package — is the real consumer
+    /// (06-02 D4); `DataBar -> chart.Bar` in `app/dashboard.gleam` maps them
+    /// one-for-one. Their writers are the indicator/leaves steps of
+    /// `databar_processing` (todo in this phase); `sourcebar.to_databar` seeds
+    /// each at birth with a neutral 0.0, exactly as it does `sma_tiny`.
+    sma_medium: Float,
+    yin_leaf_cma: Float,
+    yang_leaf_cma: Float,
+    k: Float,
+    d: Float,
+    j: Float,
+    bb_u3: Float,
+    bb_l3: Float,
   )
 }
 

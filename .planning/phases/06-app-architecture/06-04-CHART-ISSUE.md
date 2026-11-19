@@ -43,19 +43,20 @@ live 却取 bar 范围，二者不一致。
 当 live_kdj 恰好等于 reference `[0,100]` 时 affine 恒等——证明缺陷就是第一根
 bar 把 live_kdj 收窄，而非 axis_transform 本身。
 
-### 修复计划（待 owner 批准后在 bar_stream_chart repo 执行）
+### 修复（2026-11-20 已执行，owner 裁定 chart 是自有包直接改）
 
-1. **根因修复**：K/D/J 是 0-100 bounded 指标，live 轴不该被 bar 收窄。让
-   `carried_bounds` 的 kdj live 边界**恒为 `[0,100]`**（或第一根分支也设
-   `live_kdj_min: 0.0 / live_kdj_max: 100.0`，与 `:459` 的 reference 对齐）。
-   这样 affine 对所有 K/D/J 值恒等，`:847` 的 `axis_transform` 退化为恒等映射。
-2. **回归测试**（bar_stream_chart 包内，`gleam test`）：加一条断言——窄范围
-   K/D/J（如 70/60/80）单 bar push 后 `frame(...).kdj.scale_y == 1.0` 且 `dy == 0.0`；
-   再一条多 bar 后仍恒等。当前包测试全绿但无此断言，这正是漏网原因。
-3. **发版**：修复 + 测试绿后，bar_stream_chart 从 1.2.0 → 1.2.1（patch，不破坏 API）。
-4. **glibe 跟进**：`gleam.toml` 的 `bar_stream_chart` 约束已含 patch
-   (`>= 1.2.0 and < 2.0.0`)，`gleam update bar_stream_chart` + 重跑门禁即可。
-   本轮 glibe 不修改 chart 包源码（跨 repo、且需 owner 批准）；本文件即 issue 报告。
+1. **根因修复 ✓**：`carried_bounds` 两分支的 kdj live 边界恒设 `0.0 / 100.0`，与 `:459`
+   reference 对齐；删掉不再用的 `kdj_lo/kdj_hi`（WAE 无 unused）。`empty()` `:300-301`
+   本就初始化 `[0,100]`，佐证设计为固定量程。
+2. **回归测试 ✓**：包内加 `kdj_axis_stays_fixed_on_first_bar_test` /
+   `kdj_axis_stays_fixed_across_bars_test`——窄范围 K/D/J 单/双 bar 后 bounds.kdj 恒
+   `[0,100]`、`frame.kdj` 恒 `Affine(_,1.0,_,0.0)`。包测试 15→17 passed。
+3. **版本 ✓**：1.2.0 → 1.2.1（patch，API 不变）。
+4. **glibe 跟进 ✓**：`gleam.toml` 改本地 path `{ path = "../bar_stream_chart" }`
+   （manifest 同步为 source=local，仅此一条变；未让 `gleam update` 升级其他包）。等 owner
+   定稿后重新 publish 1.2.1，再 `gleam add bar_stream_chart` 恢复 hex 引用。
+5. **探针闭环 ✓**：连本地 repo 的探针实测——窄范围 K/D/J 单 bar 与双 bar 的 bounds 都是
+   `BoundsSnapshot(_,_,_,0.0,100.0)`、affine 都是 `Affine(16.0,1.0,14.0,0.0)`。
 
 ### 影响对 glibe 的判断
 

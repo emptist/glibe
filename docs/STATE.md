@@ -4,6 +4,25 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
+## 2026-11-20 (II) (当前状态 — chart 自有包修复 + DataBar 字段补齐 + O(n²) 禁令)
+
+- **chart 修复完成**（owner 裁定自有包直接改）：`bar_stream_chart` 1.2.0→1.2.1，
+  `carried_bounds` 两分支 live_kdj 恒 `[0,100]`，两条回归测试 GREEN（包内 17 passed），
+  探针实测 affine 恒等 `Affine(16,1,14,0)`。glibe 依赖改本地 path
+  `{ path = "../bar_stream_chart" }`（manifest 仅此一条变 source=local，未升级其他包）。
+  owner 定稿后重新 publish 1.2.1，再 `gleam add` 恢复 hex。详见 06-04 + RULINGS。
+- **DataBar 补全 8 字段**（owner："glibe 不是你写的吗"）：承认是我漏加、非待决；照抄 glib 原始
+  DataBar 的 sma_medium/yin_leaf_cma/yang_leaf_cma/k/d/j/bb_u3/bb_l3，birth 种 0.0；
+  `dashboard.data_bar_to_chart_bar` 一一映射（NoSignal→chart.SignalHold），RED→GREEN。
+  chart 成为这 8 字段的真实消费方（R26/R32）。收回"需 owner 拍板加哪些字段"说法。
+- **O(n²) 禁令**（owner："Qn2 一律指 O(n²)"）：指标计算必须与 glib 比对、排除 O(n²) 批量黑代码、
+  用 O(1) stream。实测生效源码全是 stream；O(n²) 批量 `list.fold` 方差法只在废弃 notes，
+  已被 stream 取代；owner 裁定 `DESIGN.md:1427` 明禁 `Σx²−(Σx)²/n`。约束落点 06-06；
+  将来填 `timeframe.indicator` 必须 Welford / add-subtract-leaving / amortised KDJ。
+  **本轮未实现**四个 step（窗口参数归属见 R46/R32 + PENDING_DECISIONS R.5）。
+- **门禁（本地 chart 1.2.1）**：format/check/test(56)/docs/export 全 0；WAE=1 =
+  19 todo + 40 unused arg（骨架基线，无新增 warning）。两个 repo 分别提交。
+
 ## 2026-11-20 (当前状态 — owner 纠正 dashboard 设计的错误层 + 触发点裁定 + chart issue)
 
 - **被纠正**：我拿 glibe `.planning` 笔记 + 推断搭 dashboard（"bar 经 Msg 直接派发到 widget

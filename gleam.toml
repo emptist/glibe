@@ -17,7 +17,9 @@ wisp = ">= 2.2.2 and < 3.0.0"
 gleam_time = ">= 1.11.0 and < 2.0.0"
 # App layer (doc-first skeleton). Versions proven in try_plushie, 2026-11-19.
 plushie_gleam = ">= 0.6.0 and < 1.0.0"
-bar_stream_chart = ">= 1.2.0 and < 2.0.0"
+# Local path until owner re-publishes the KDJ fix (ISSUE-1, 1.2.1) to hex;
+# then restore `gleam add bar_stream_chart` and delete this path override.
+bar_stream_chart = { path = "../bar_stream_chart" }
 
 [dev_dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"

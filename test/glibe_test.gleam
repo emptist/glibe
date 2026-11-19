@@ -112,6 +112,14 @@ fn listed_bar(idx: Int) -> DataBar {
     volume: 0,
     signal: signal.SignalNoSignal,
     sma_tiny: 0.0,
+    sma_medium: 0.0,
+    yin_leaf_cma: 0.0,
+    yang_leaf_cma: 0.0,
+    k: 0.0,
+    d: 0.0,
+    j: 0.0,
+    bb_u3: 0.0,
+    bb_l3: 0.0,
   )
 }
 
@@ -128,6 +136,14 @@ fn ma_bar(idx: Int, sma: Float) -> DataBar {
     volume: 0,
     signal: signal.SignalNoSignal,
     sma_tiny: sma,
+    sma_medium: 0.0,
+    yin_leaf_cma: 0.0,
+    yang_leaf_cma: 0.0,
+    k: 0.0,
+    d: 0.0,
+    j: 0.0,
+    bb_u3: 0.0,
+    bb_l3: 0.0,
   )
 }
 
@@ -261,6 +277,14 @@ pub fn sourcebar_to_databar_birth_test() {
       volume: 100,
       signal: signal.SignalNoSignal,
       sma_tiny: 0.0,
+      sma_medium: 0.0,
+      yin_leaf_cma: 0.0,
+      yang_leaf_cma: 0.0,
+      k: 0.0,
+      d: 0.0,
+      j: 0.0,
+      bb_u3: 0.0,
+      bb_l3: 0.0,
     )
     as "one whole bar born with the caller's idx and a neutral decision"
 }
@@ -378,6 +402,14 @@ pub fn databar_readers_test() {
       volume: 100,
       signal: signal.SignalBuy,
       sma_tiny: 0.0,
+      sma_medium: 0.0,
+      yin_leaf_cma: 0.0,
+      yang_leaf_cma: 0.0,
+      k: 0.0,
+      d: 0.0,
+      j: 0.0,
+      bb_u3: 0.0,
+      bb_l3: 0.0,
     )
   assert databar.idx(bar) == 7 as "idx is the bar's stream index"
   assert databar.timestamp(bar) == ts as "absolute Timestamp, not a spelling"

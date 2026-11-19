@@ -11,10 +11,13 @@
 import bar_stream_chart.{type Bar}
 import gleam/dict
 import gleam/option
+import gleam/time/timestamp
 import glibe/app/dashboard
 import glibe/app/message.{MsgEye, MsgSourceBarArrived, MsgVoice}
 import glibe/app/runtime
+import glibe/databar as glibe_databar
 import glibe/desk.{type Desk, Desk}
+import glibe/trading/signal
 import plushie/app.{type App}
 import plushie/command.{type Command}
 import plushie/event.{type Event, Timer, TimerEvent}
@@ -133,5 +136,75 @@ pub fn push_one_increments_chart_test() {
   assert bar_stream_chart.len(s1.chart) == 1
   let s2 = dashboard.push_one(s1, chart_bar(1))
   assert bar_stream_chart.len(s2.chart) == 2
+  Nil
+}
+
+/// 06-06: the DataBar -> chart.Bar boundary copies all eight measurement
+/// fields one-for-one and maps the 3-value Signal to the chart's 6-value shape
+/// (NoSignal -> Hold). Against the todo body this panics = RED.
+pub fn data_bar_to_chart_bar_maps_fields_test() {
+  let db =
+    glibe_databar.DataBar(
+      idx: 3,
+      timestamp: timestamp.from_unix_seconds(1_499_040_000),
+      open: 100.0,
+      high: 105.0,
+      low: 98.0,
+      close: 103.0,
+      volume: 500,
+      signal: signal.SignalBuy,
+      sma_tiny: 99.0,
+      sma_medium: 101.5,
+      yin_leaf_cma: 100.2,
+      yang_leaf_cma: 102.3,
+      k: 70.0,
+      d: 60.0,
+      j: 80.0,
+      bb_u3: 104.0,
+      bb_l3: 96.0,
+    )
+  let b = dashboard.data_bar_to_chart_bar(db)
+  assert b.idx == 3
+  assert b.open == 100.0
+  assert b.high == 105.0
+  assert b.low == 98.0
+  assert b.close == 103.0
+  assert b.volume == 500
+  assert b.sma_medium == 101.5
+  assert b.yin_leaf_cma == 100.2
+  assert b.yang_leaf_cma == 102.3
+  assert b.k == 70.0
+  assert b.d == 60.0
+  assert b.j == 80.0
+  assert b.bb_u3 == 104.0
+  assert b.bb_l3 == 96.0
+  assert b.signal == bar_stream_chart.SignalBuy
+  Nil
+}
+
+/// NoSignal maps to the chart's no-marker Hold value (glib SignalType shape).
+pub fn data_bar_to_chart_bar_no_signal_is_hold_test() {
+  let db =
+    glibe_databar.DataBar(
+      idx: 0,
+      timestamp: timestamp.from_unix_seconds(1_499_040_000),
+      open: 0.0,
+      high: 0.0,
+      low: 0.0,
+      close: 0.0,
+      volume: 0,
+      signal: signal.SignalNoSignal,
+      sma_tiny: 0.0,
+      sma_medium: 0.0,
+      yin_leaf_cma: 0.0,
+      yang_leaf_cma: 0.0,
+      k: 0.0,
+      d: 0.0,
+      j: 0.0,
+      bb_u3: 0.0,
+      bb_l3: 0.0,
+    )
+  assert dashboard.data_bar_to_chart_bar(db).signal
+    == bar_stream_chart.SignalHold
   Nil
 }

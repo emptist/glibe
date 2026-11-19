@@ -20,6 +20,7 @@ R12 floor · R13 closed sets=types · R14 src Gleam only · R15 IB=stocks/ETFs �
 Gleam 1.19.2 / OTP 29. `import mod.{type T, Ctor}`; no `T(..)`; qualified ctor patterns are a syntax error (import unqualified: `Widget(_)` not `Event.Widget(_)`). `@external` may coexist with a Gleam body; `.abstr`→`.beam`, no per-module `.erl`. opaque ctor cross-module = private error; mutual imports = cycle; `fn(of: T)` syntax error; fn names can't start `_`. Tests: `assert … as "msg"`, `let assert`; never panic/case Bool. OTP built-ins need no dep / hand-written erl.
 
 ## Conventions
+- **Owner types with difficulty: "Qn2" ALWAYS means O(n²)** (verbatim 2026-11-20: *"我打字不方便所有写Qn2都是指 O(n²)"*) — never treat it as an unknown term to research. In indicator code O(n²) = the banned batch full-window recompute / `Σx²−(Σx)²/n` variance (`DESIGN.md:1427`); correct = O(1) stream (Welford / add-subtract-leaving / amortised KDJ). See `06-06-STREAM-INDICATORS.md`.
 - No bare `Qn` labels — cite full path + section title.
 - Pending decisions ONLY in `docs/PENDING_DECISIONS.md` (decisions first, rest under `# REFERENCE`); no other doc references it; queue = 0. No choice cards; flat options, no preset recommendation.
 - `.gitignore` before artifacts; one concern per commit; never `rm -rf build`. FF push just do it; `--force` / force-with-lease / any remote-history rewrite MUST ask.

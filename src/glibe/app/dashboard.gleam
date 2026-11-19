@@ -69,7 +69,9 @@
 
 import bar_stream_chart.{type Bar, type Chart, type PriceScale, type Viewport}
 import gleam/option.{type Option}
+import glibe/databar.{type DataBar}
 import glibe/desk.{type Desk}
+import glibe/trading/signal.{SignalBuy, SignalNoSignal, SignalSell}
 import plushie/event.{type Event}
 import plushie/node.{type Node}
 import plushie/subscription.{type Subscription}
@@ -100,6 +102,45 @@ pub type ChartWidgetProps {
 /// subscriptions/cache_key — wired when the chart adapter lands; type here only.
 pub fn chart_widget_def() -> WidgetDef(ChartWidgetState, ChartWidgetProps) {
   todo as "WidgetDef(init/view/handle_event/subscriptions/cache_key); handle_event consumes zoom/pan locally, no bar-list prop"
+}
+
+/// Map the ONE archived domain bar onto our own `bar_stream_chart.Bar` — the
+/// DataBar -> chart.Bar boundary (06-02 D4). Every measured field is a direct
+/// one-for-one copy (the chart Bar was designed from glib's original DataBar);
+/// the only translation is the decision: glibe's closed `Signal` has three
+/// values, the chart's has six, and `SignalNoSignal` maps to `SignalHold`
+/// (the chart's no-marker value, exactly glib's `SignalType` shape).
+///
+/// This is the real consumer that makes the eight chart-measurement fields on
+/// `DataBar` exist (R26 / R32). It copies SCALARS off one archived bar — it
+/// never walks `databar_list` and never re-computes an indicator. Indicator
+/// values were already written onto the bar upstream by `databar_processing`;
+/// their writer must use the O(1) stream recurrences in `glib/{sma,bollinger,
+/// kdj}` — NEVER the O(n²) batch full-window recompute (DESIGN.md:1427,
+/// 06-06-STREAM-INDICATORS.md).
+pub fn data_bar_to_chart_bar(bar: DataBar) -> Bar {
+  let signal = case bar.signal {
+    SignalBuy -> bar_stream_chart.SignalBuy
+    SignalSell -> bar_stream_chart.SignalSell
+    SignalNoSignal -> bar_stream_chart.SignalHold
+  }
+  bar_stream_chart.Bar(
+    idx: bar.idx,
+    open: bar.open,
+    high: bar.high,
+    low: bar.low,
+    close: bar.close,
+    volume: bar.volume,
+    sma_medium: bar.sma_medium,
+    yin_leaf_cma: bar.yin_leaf_cma,
+    yang_leaf_cma: bar.yang_leaf_cma,
+    k: bar.k,
+    d: bar.d,
+    j: bar.j,
+    bb_u3: bar.bb_u3,
+    bb_l3: bar.bb_l3,
+    signal: signal,
+  )
 }
 
 /// Convert ONE arriving standard bar into the chart library's Bar, then

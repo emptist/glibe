@@ -264,5 +264,15 @@ pub fn to_databar(sourcebar: SourceBar, idx: Int) -> DataBar {
     // born whole with a neutral seed, never a fabricated mean (R46 removed
     // the settings, not this field).
     sma_tiny: 0.0,
+    // The Dashboard chart's measured fields: same neutral seed at birth; the
+    // indicator / leaves steps of databar_processing write their real values.
+    sma_medium: 0.0,
+    yin_leaf_cma: 0.0,
+    yang_leaf_cma: 0.0,
+    k: 0.0,
+    d: 0.0,
+    j: 0.0,
+    bb_u3: 0.0,
+    bb_l3: 0.0,
   )
 }

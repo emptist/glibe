@@ -5569,7 +5569,27 @@ owner："App View 和交易层面继续搭架子……确保单 bar 更新，Vie
   只有 `None`（`:487-489` "nothing is half-built here; everything you are about to draw is
   finished"）才可画。完整表在 `06-05-TRIGGER-RULING.md` §C1；runtime `////`/`///` 已写入。
   bar 的 half-built 是 bug、growing 结构的 unfinished 是真实状态（`:349-355`），但都在 fold 完成后才读。
-- **chart 包缺陷（外部，非 glibe 设计）**：`bar_stream_chart` 1.2.0 的 KDJ live 轴被第一根 bar
-  收窄（`:421-422`）而 reference 固定 `[0,100]`（`:459`），致 frame affine 非恒等（实测
-  `Affine(16,5,14,-1890)`）。探针锁定根因（K/D/J 铺满 [0,100] 时恒等）。issue + 修复计划：
-  `.planning/phases/06-app-architecture/06-04-CHART-ISSUE.md`。本轮不改外部包源码。
+- **chart 包缺陷（自有包，已修复 2026-11-20）**：`bar_stream_chart` 1.2.0 的 KDJ live 轴被第一根
+  bar 收窄（`:421-422`）而 reference 固定 `[0,100]`（`:459`），致 frame affine 非恒等（实测
+  `Affine(16,5,14,-1890)`）。owner 裁定：chart 是自有包，直接改；本地 path 引用，定稿后 owner
+  自行重新 publish + `gleam add`。修复：`carried_bounds` 两分支 live_kdj 恒设 `[0,100]`；
+  `empty()` `:300-301` 的初始值本就是 `[0,100]`，证明设计为固定量程。两条回归测试 GREEN
+  （17 passed）；探针实测窄范围 K/D/J 单/双 bar 均 `Affine(16,1,14,0)`。版本 1.2.0→1.2.1。
+  issue + 修复记录：`.planning/phases/06-app-architecture/06-04-CHART-ISSUE.md`。
+
+## 2026-11-20（II）— DataBar 字段补齐 + O(n²) 禁令（owner 三条连续指令）
+
+- **DataBar 缺字段 = 我的实现状态，非待决缺口**：owner *"glibe 不是你写的吗"*。glibe 是我
+  （AI）在前面会话写的；DataBar 只有 sma_tiny 是我漏加，不是外部约束。按 R42/R26/R32，chart
+  是真实消费方，glib 原始 DataBar（`glib/src/glib/databar.gleam`）已定死这 8 字段，照抄即可，
+  无设计待决。已补 `sma_medium/yin_leaf_cma/yang_leaf_cma/k/d/j/bb_u3/bb_l3` 到 DataBar，
+  `sourcebar.to_databar` 出生种 0.0，`dashboard.data_bar_to_chart_bar` 做一一映射（NoSignal→
+  chart.SignalHold）；测试 RED→GREEN（56 passed）。收回上一轮"需 owner 拍板加哪些字段"的说法。
+- **Qn2 = O(n²)（owner 输入约定）**：owner *"我打字不方便所有写 Qn2 都是指 O(n²)"*。
+  指标计算必须与 glib 旧代码比对、排除 O(n²) 批量黑代码、用 O(1) stream。实测：生效源码
+  `glib/src/glib/{sma,bollinger,kdj}` 全是 O(1) 递推；O(n²) 批量 `list.fold` 方差法只在废弃
+  notes（`deprecated/.../CHANGES_Bollinger_Welford.md:11-19`），已被 stream 移植取代。
+  owner 设计裁定 `DESIGN.md:1427` 明禁 `Σx²−(Σx)²/n`（浮点灾难性抵消 + 无界漂移）。
+  约束落点 `.planning/phases/06-app-architecture/06-06-STREAM-INDICATORS.md`；将来填
+  `timeframe.indicator` 必须照 Welford / add-subtract-leaving / amortised KDJ，**禁止批量 fold**。
+  本轮不实现四个 step（窗口参数归属见 R46/R32 + PENDING_DECISIONS R.5，未臆造 settings）。
