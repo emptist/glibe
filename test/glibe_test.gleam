@@ -71,11 +71,13 @@ pub fn databar_processing_shape_test() {
   Nil
 }
 
-/// R39 / R23: the gate receives one bar and the interval key the caller
-/// already holds; it never asks the Timeframe for its own identity.
+/// R39 / 2026-11-21 二选一: the gate receives ONE closed SourceBar — the single
+/// type carrier of the grade (sourcebar variant). No separate `interval` param:
+/// that was a dead argument (WAE Unused) and a second encoding of the same fact.
+/// It never asks the Timeframe for its own identity (R37).
 pub fn sourcebar_gate_shape_test() {
-  let _gate: fn(Timeframe, Interval, SourceBar) ->
-    Result(Timeframe, SourceBarRejection) = timeframe.sourcebar_gate
+  let _gate: fn(Timeframe, SourceBar) -> Result(Timeframe, SourceBarRejection) =
+    timeframe.sourcebar_gate
   Nil
 }
 
@@ -1009,21 +1011,13 @@ pub fn timeframe_sourcebar_gate_test() {
       volume: 5,
     )
   let assert Ok(updated) =
-    timeframe.sourcebar_gate(
-      empty_timeframe(),
-      interval.IntervalOneHour,
-      qualified,
-    )
+    timeframe.sourcebar_gate(empty_timeframe(), qualified)
   let assert Some(working) = updated.working_databar
   assert working.idx == 0
   assert working.close == 11.0
   // an unqualified bar (negative volume) is refused, timeframe unchanged
   let bad = sourcebar.SourceBarOneHour(..qualified, volume: -1)
-  assert timeframe.sourcebar_gate(
-      empty_timeframe(),
-      interval.IntervalOneHour,
-      bad,
-    )
+  assert timeframe.sourcebar_gate(empty_timeframe(), bad)
     == Error(sourcebar.SourceBarRejectionUnqualified)
   Nil
 }

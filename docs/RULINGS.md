@@ -5616,3 +5616,42 @@ owner："App View 和交易层面继续搭架子……确保单 bar 更新，Vie
   约束落点 `.planning/phases/06-app-architecture/06-06-STREAM-INDICATORS.md`；将来填
   `timeframe.indicator` 必须照 Welford / add-subtract-leaving / amortised KDJ，**禁止批量 fold**。
   本轮不实现四个 step（窗口参数归属见 R46/R32 + PENDING_DECISIONS R.5，未臆造 settings）。
+
+## 2026-11-21 — interval 参数的来源 = SourceBar 变体；grade 只编码一次（owner 二连问）
+
+两条 owner 逐字（2026-11-21，先问来源、再定二选一）：
+
+1. *"indicator 计算，如果需要 interval相关参数，应该从 timeframe 所接受的 标准SourceBar
+   多周期变体这里可以得到。你琢磨一下是不是。"*
+2. *"Instrument 一定会把 timesframe对应的SourcBar variant 告诉他，这样 timeframe里面
+   可能会有一个field是记那个type 信息的。这样就不需要传递 interval。也就是二选一。
+   要么传sourcebar type要么传interval type（enum is a type in gleam）"*
+   （owner 随后更正拼写：写错字的是 *instructor* → **instrument**。）
+
+**裁定**（核验后成立，非附和）：
+- **grade 的唯一 type 载体 = 到手的 closed `SourceBar` 变体**，不是调用方另传的
+  `Interval`。`api/sourcebar.interval(of:)`（`src/glibe/api/sourcebar.gleam:203-215`，已填绿）
+  从九个变体读回 Interval；owner「校服就是变体，通过类型即可知道是什么」/ 冻结 glib
+  `docs/RULINGS.md:2323,2332`「the grade is in the type, and not in a field」；
+  `glib/src/glib/sourcebar.gleam:234-237`「interval must come from the source, not from the
+  consumer … a converter that stamped the bar with whatever the caller claimed would erase the
+  only comparison left」。
+- **`sourcebar_gate` 删去 `interval: Interval` 参数**。实测 `gleam build --warnings-as-errors`
+  报 `timeframe.gleam:145` 的 `interval` 为 `Unused function argument`——它是死参数。
+  模块 `////` 里「caller-key 与 bar-variant 被比较」（`timeframe.gleam:50-53`）是
+  **未实现的意图，不是代码**，我上一轮据此说它「不冗余」是错的，已收回。
+- **不给 `Timeframe` 加常驻 grade/interval 字段**。gate 收到的 closed `SourceBar` 参数本身就是
+  载体；加字段违反 R37/R46（不存身份、不存 settings），且和 `growing_target_sourcebar:
+  Option(SourceBar)` 重复——后者到 `databar_processing` 时已是 `None`。owner 说的「可能有个
+  field 记 type 信息」：不必，变体即答案。
+- 生效链路：gate 收到变体 → `sourcebar.interval(of: bar)` 读 grade → `config.for_interval_default(grade)`
+  得 `IntervalSettings` → 作为 R40-A pipe 参数交给 `databar_processing(timeframe, settings)`。
+  **读变体在 `sourcebar_gate`（唯一还持有 SourceBar 的门），不在 `indicator`**（到那一步手上
+  已是无变体的 DataBar，owner 2026-11-13 *"等到了 databar_processing 你按到手的都是弄好的
+  databar"*）。
+- 收回上一轮（本文件 2026-11-21 之前的 plan/日志）两处错误：① interval key 来自 Instrument
+  Dict key（错，那是 consumer 侧）；② gate 的 interval 参数不冗余（错，实测是死参数）。
+
+**Landing:** `.planning/phases/02-domain-stream/02-01-PLAN.md`（SOURCE OF THE INTERVAL KEY /
+ONE TYPE SOURCE / NO NEW FIELD 三段）；本轮先落文档，签名变更按 gdltdd 随后执行（测试 RED →
+改签名 → GREEN）。决策区仍 0 项——这是 owner 裁定 + 实测纠错，非待决。

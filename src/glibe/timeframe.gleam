@@ -6,8 +6,9 @@
 //// mechanism module; there is none here. This file holds the record and
 //// every transition of it.
 ////
-//// READS: `Interval`, `SourceBar`, `SourceBarRejection`, `DataBar`,
-//// `DataLeaf`, `DataBranch`.
+//// READS: `SourceBar`, `SourceBarRejection`, `DataBar`, `DataLeaf`,
+//// `DataBranch`. (No `Interval` param since the 2026-11-21 二选一 — the
+//// closed `SourceBar` variant is the grade's one type source.)
 //// WRITES: `Timeframe` — the working databar, the archived bars, and the
 //// intermediate facts that keep the pipeline a straight line.
 ////
@@ -47,10 +48,10 @@
 //// The composition FUNCTIONS are defined in the module that owns IB's bar
 //// (R50); a call site is not an owner. `sourcebar.validate` refuses the
 //// closed `SourceBar` if unqualified
-//// (R8). The key reaches `sourcebar_gate` below because the caller
-//// selected this timeframe by it; `sourcebar.interval` reads the grade
-//// back off the bar's variant and the two are compared. No bar and no
-//// `Timeframe` stores the key, and NO period is ever changed here.
+//// (R8). The closed bar's variant is the ONE type source of its grade
+//// (owner 2026-11-21 二选一): `sourcebar_gate` takes only the `SourceBar`,
+//// not a second `interval` argument. No bar and no `Timeframe` stores a
+//// grade or a key, and NO period is ever changed here.
 //// Nothing in this module decodes a provider or invents a bar type —
 //// that boundary is upstream of the `Timeframe`.
 ////
@@ -77,7 +78,6 @@
 //// rule), all recorded in `docs/PENDING_DECISIONS.md` R.5. None invented.
 
 import gleam/option.{type Option, None, Some}
-import glibe/api/interval.{type Interval}
 import glibe/api/sourcebar.{type SourceBar, type SourceBarRejection} as sb
 import glibe/branch.{type DataBranch}
 import glibe/databar.{type DataBar}
@@ -130,25 +130,25 @@ pub type Timeframe {
 /// is refused with a typed reason; a `SourceBar` that has not closed is
 /// ignored and held nowhere (R39).
 ///
-/// `interval` is the key the caller already held to reach this timeframe
-/// through `Instrument.timeframes` (R23 / R37). The standard bar carries
-/// its own grade as a variant, read by `sourcebar.interval`; the caller's
-/// key and that grade are the two facts this gate can compare. A
-/// `Timeframe` does not know its own name, and no bar carries a period
-/// field. Composition ended upstream (or in a call made here), so this
-/// gate receives ONE closed `SourceBar` and never accumulates one: owner
-/// 2026-11-13 *"等到了 databar_processing 你按到手的都是弄好的 databar"*.
-/// `bars_listed` supplies the index of the next bar from
-/// `databar_list` (R39).
+/// The closed `SourceBar` carries its own grade as a variant, read by
+/// `sourcebar.interval(of:)`; that variant is the ONE type source of the
+/// grade — no separate `interval` argument (owner 2026-11-21 二选一: pass the
+/// sourcebar type OR the interval type, never both; the interval argument was
+/// a dead param and a second encoding of the same fact). A `Timeframe` does
+/// not know its own name, and no bar carries a period field. Composition
+/// ended upstream, so this gate receives ONE closed `SourceBar` and never
+/// accumulates one: owner 2026-11-13 *"等到了 databar_processing 你按到手的
+/// 都是弄好的 databar"*. `bars_listed` supplies the index of the next bar
+/// from `databar_list` (R39).
 pub fn sourcebar_gate(
   timeframe: Timeframe,
-  interval: Interval,
   sourcebar: SourceBar,
 ) -> Result(Timeframe, SourceBarRejection) {
   // R8 / R39: the ONE door. validate rejects (never repairs); a qualified bar
   // is born whole as working_databar with idx from bars_listed (the head's
-  // idx + 1, O(1), never a list count). The caller's `interval` stays the key
-  // held by Instrument and is not written into this timeframe (R23 / R37).
+  // idx + 1, O(1), never a list count). The ONE grade is carried by the bar's
+  // closed variant (2026-11-21 二选一): no separate `interval` argument — that
+  // was a dead param (WAE Unused) and a second encoding of the same fact.
   case sb.validate(sourcebar) {
     Error(rejection) -> Error(rejection)
     Ok(qualified) -> {

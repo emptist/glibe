@@ -4,7 +4,24 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-20 (III) (当前状态 — R46 误读更正 + config.gleam 落地 + glib 冻结裁定)
+## 2026-11-21 (当前状态 — interval 来源 = SourceBar 变体 + 二选一；planning 重建已落地)
+
+- **二选一裁定（owner 逐字 + 实测）**：grade 的唯一 type 载体 = 到手的 closed `SourceBar`
+  变体；`sourcebar_gate` 删去 `interval: Interval` 参数（实测 WAE 报 `timeframe.gleam:145`
+  `Unused function argument`——死参数）；不给 `Timeframe` 加常驻 grade 字段（违反 R37/R46、
+  与 `growing_target_sourcebar` 重复）。生效链路：gate 读 `sourcebar.interval(of: bar)` →
+  `config.for_interval_default(grade)` → 作为 R40-A pipe 参数进 `databar_processing`。
+  **收回我上一轮两处错**：① interval key 来自 Instrument Dict key（错，consumer 侧）；
+  ② gate 的 interval 参数不冗余（错，是死参数；模块 `////` 那句「两个事实被比较」是未实现意图）。
+  详见 `docs/RULINGS.md` 2026-11-21 节 + plan 02-01 三段。决策区 0 项。
+- **planning 重建落地（2 个已推送 commit）**：`2a4ade5` 归档旧 glibe `.planning/`（45 文件
+  `git mv` 到 `.planning-archived-2026-11-20/`，glib 的 `.planning` 只读未动），新 BRIEF +
+  ROADMAP + 6 个 skill 格式 PLAN；`4e8a0fc` 执行 01-01 重定向 24+3 条悬空 `////` 引用
+  （src+test），只改注释行，门禁全绿（format/check 0、test 64、docs 0、interface 5 新路径）。
+- **待执行**：plan 02-01（四个 `timeframe` step 填体）——前置是 gate 签名变更（本轮），
+  之后 indicator 的 O(1) carried 字段 + settings 参数链路。R.5 leaves/branches 开放点仍在。
+
+## 2026-11-20 (III) (历史 — R46 误读更正 + config.gleam 落地 + glib 冻结裁定)
 
 - **认错层（owner 逐字）**：*"R46 作废了 settings 容器，这是错的，config.gleam is a must,
   see glib for some of the use case"*。R46 只作废 AI 自造空壳 `TimeframeSettings` +
