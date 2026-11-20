@@ -1,5 +1,5 @@
 //// The decision a strategy writes on the working databar. Implements
-//// `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
+//// `.planning/BRIEF.md`.
 ////
 //// READS: nothing.
 //// WRITES: `Signal`, a field of `DataBar` (R39: every decision is made IN

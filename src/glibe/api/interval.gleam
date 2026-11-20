@@ -1,5 +1,5 @@
 //// The closed set that keys `Instrument.timeframes`. Implements
-//// `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
+//// `.planning/BRIEF.md`.
 ////
 //// READS: `gleam_time.Timestamp`.
 //// WRITES: `Interval`, the key of `Instrument.timeframes:

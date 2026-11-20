@@ -1,8 +1,8 @@
 //// The one closed set of messages the Dashboard (view layer, R20 / owner
 //// 2026-11-19 08:28) handles. Implements
-//// `.planning/phases/06-app-architecture/06-01-PLAN.md`; the non-obvious
-//// design is recorded in
-//// `.planning/phases/06-app-architecture/06-02-CHALLENGES.md` §B.
+//// `.planning/phases/03-app-view/03-01-PLAN.md`; the non-obvious
+//// design constraint (former §B: open framework Event → our closed Msg) is
+//// carried by the frozen glib source cited below and in the plan.
 ////
 //// WHY THIS MODULE EXISTS (challenge B1, official `app.gleam`): plushie's
 //// `app.simple` uses the framework's `Event` directly as its msg — a 12-variant

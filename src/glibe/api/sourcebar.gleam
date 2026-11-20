@@ -1,5 +1,5 @@
 //// The ONE internal standard bar — a family of nine variants, one per time
-//// span. Implements `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
+//// span. Implements `.planning/BRIEF.md`.
 ////
 //// WORK OF THIS MODULE, three reads and writes of `SourceBar` values only:
 //// ① hold the family of nine graded standard bars and read a bar's grade

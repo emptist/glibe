@@ -1,5 +1,5 @@
 //// Every identity of the chain, in ONE module. Implements
-//// `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
+//// `.planning/BRIEF.md`.
 ////
 //// R50 (owner, verbatim, review of `desk.gleam`): *"try put all id types in
 //// one file/module, to avoid circular, and to make it easier to check"*.

@@ -1,5 +1,5 @@
 //// One instrument and the timeframes it holds. Implements
-//// `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
+//// `.planning/BRIEF.md`.
 ////
 //// R50 (owner, verbatim, review of `desk.gleam`): *"should be in its own
 //// file"* on this type and on `get_timeframe` / `put_timeframe`; and

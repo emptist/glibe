@@ -1,5 +1,5 @@
 //// The ONE bar this system computes on, and the reads of its own values.
-//// Implements `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
+//// Implements `.planning/BRIEF.md`.
 ////
 //// WORK OF THIS MODULE: hold `DataBar`, read the values it carries, and be
 //// the one place those values are named. It does not compute an indicator,

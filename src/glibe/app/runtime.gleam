@@ -1,7 +1,7 @@
 //// The MVU event loop that drives the one `Desk`. Implements
-//// `.planning/phases/06-app-architecture/06-01-PLAN.md`; the trigger ruling is
-//// `.planning/phases/06-app-architecture/06-05-TRIGGER-RULING.md` (owner
-//// 2026-11-20). Read that before changing any signature here.
+//// `.planning/phases/03-app-view/03-01-PLAN.md`; the trigger ruling (owner
+//// 2026-11-20) is carried by that plan and `docs/RULINGS.md`. Read those before
+//// changing any signature here.
 ////
 //// MODEL = the ONE `Desk` (R33 / R50). No second copy, no shadow: this module
 //// does not hold chart state, broker lists or a bar buffer. The `Chart` an

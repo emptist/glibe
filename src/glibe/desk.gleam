@@ -1,5 +1,5 @@
 //// The ONE top-level Value. Implements
-//// `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
+//// `.planning/BRIEF.md`.
 ////
 //// R50 (owner, verbatim, review of this file): *"most of the code should
 //// not be here"* and *"there will always be only one desk in the system"*.

@@ -1,5 +1,5 @@
 //// IB's OWN external source bar, and the ONLY place IB's period is changed.
-//// Implements `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
+//// Implements `.planning/BRIEF.md`.
 ////
 //// WORK OF THIS MODULE: hold the shape IB actually serves, and accumulate
 //// ONE arriving five-second bar at a time into ONE whole standard bar of

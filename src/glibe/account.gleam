@@ -1,6 +1,6 @@
 //// `Account` — the value stored under one `AccountId` key of
 //// `Broker.accounts`. Implements
-//// `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
+//// `.planning/BRIEF.md`.
 ////
 //// WORK OF THIS MODULE: define the `Account` value. R50 (owner, verbatim):
 //// *"should be in its own file"*. Its identity is the `AccountId` KEY held

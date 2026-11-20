@@ -1,5 +1,5 @@
 //// Binance's OWN external bar, before this system has any bar at all.
-//// Implements `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
+//// Implements `.planning/BRIEF.md`.
 ////
 //// WORK OF THIS MODULE: hold the shape Binance sends as a FAMILY of grades
 //// and normalise one of them into the matching variant of the ONE internal

@@ -1,6 +1,6 @@
 //// The leaves — `YinLeaf` / `YangLeaf` and every function that builds or
 //// reads one. Implements
-//// `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
+//// `.planning/phases/02-domain-stream/02-02-PLAN.md`.
 ////
 //// This module owns `DataLeaf` and the leaf's measurements: a function here
 //// constructs a leaf, reads one of its three bars, or computes a value that

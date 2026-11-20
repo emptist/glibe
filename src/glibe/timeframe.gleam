@@ -1,5 +1,5 @@
 //// The `Timeframe` type and ALL of its functions, in ONE module. Implements
-//// `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
+//// `.planning/phases/02-domain-stream/02-01-PLAN.md`.
 ////
 //// R42 (owner, verbatim): *"timeframe.gleam 定义 Timeframe type以及相关的
 //// fn，你那个是什么鬼东西"* — a separate `engine.gleam` was an invented

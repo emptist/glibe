@@ -1,10 +1,10 @@
 //// The settings file. Gleam IS the config: no external data file, no parser,
 //// no `panic` on an unknown spelling. Implements the plan in
-//// `.planning/phases/06-app-architecture/06-07-CONFIG.md` (doc-first; written
+//// `.planning/phases/02-domain-stream/02-01-PLAN.md` (doc-first; written
 //// before this code) and the 2026-11-20 correction to `docs/RULINGS.md` R46
 //// (owner verbatim: *"R46 作废了 settings 容器，这是错的，config.gleam is a
 //// must, see glib for some of the use case"*). The O(n²) ban the parameters
-//// feed into is `.planning/phases/06-app-architecture/06-06-STREAM-INDICATORS.md`.
+//// feed into is carried by the same plan, sourced to `glib/docs/DESIGN.md:1427`.
 ////
 //// WHAT THIS IS (against the R46 misreading): `config.gleam` is the settings
 //// file itself. It holds the indicator numbers as Gleam literals, each under

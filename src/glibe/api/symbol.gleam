@@ -1,5 +1,5 @@
 //// The one name glibe owns. Implements
-//// `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
+//// `.planning/BRIEF.md`.
 ////
 //// READS: nothing — the bottom of the chain.
 //// WRITES: `Symbol`, the key of `Broker.instruments`.

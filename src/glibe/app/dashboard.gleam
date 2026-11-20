@@ -1,7 +1,7 @@
 //// The view layer. Implements
-//// `.planning/phases/06-app-architecture/06-01-PLAN.md`; the non-obvious
-//// design is in `.planning/phases/06-app-architecture/06-02-CHALLENGES.md`
-//// §D and §G (read those before changing any type here).
+//// `.planning/phases/03-app-view/03-02-PLAN.md`; the non-obvious
+//// design constraints (former §D/§G) are carried by the frozen glib sources
+//// cited below and in the plan (read those before changing any type here).
 ////
 //// NAMING (owner 2026-11-19 08:28, R20): this layer is the **Dashboard** — the
 //// view of the `Desk` model. It is NOT named `Desk` (that is the model root),
@@ -43,7 +43,8 @@
 //// working bar. CORRECTED 2026-11-20: an earlier draft here said "one bar arrives
 //// as a Msg -> app routes it to the widget" — that was my inference, ruled out by
 //// the owner; bar does NOT enter through a Msg payload, only through the archive
-//// step. See `.planning/phases/06-app-architecture/06-05-TRIGGER-RULING.md`.
+//// step. Ruling carried by `.planning/phases/03-app-view/03-01-PLAN.md` and
+//// `docs/RULINGS.md`.
 ////
 //// The model `Desk` remains the single source of truth (R33); what view sees is
 //// DERIVED, INCREMENTAL shape data, not the raw model collection. "Keep the
