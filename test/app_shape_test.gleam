@@ -1,6 +1,7 @@
 //// Shape tests for the app layer. Implements
-//// `.planning/phases/06-app-architecture/06-01-PLAN.md`; design rationale in
-//// `.planning/phases/06-app-architecture/06-02-CHALLENGES.md` §B/§D/§G.
+//// `.planning/phases/03-app-view/03-01-PLAN.md` and `03-02-PLAN.md`; the
+//// design constraints (former §B/§D/§G) are in those plans and the frozen
+//// glib sources they cite.
 ////
 //// These bind each app contract to an explicit type: a drift in the view/model
 //// boundary fails to COMPILE here. In particular `push_one_shape_test` pins

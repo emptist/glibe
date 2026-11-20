@@ -1,5 +1,5 @@
 //// Empty skeleton tests. Implements
-//// `.planning/phases/05-doc-tdd/05-01-PLAN.md`.
+//// `.planning/BRIEF.md`.
 ////
 //// R42 07:39 (owner, verbatim): *"最初的空架子，unit test 跟对应的 type fn
 //// 也都一样是空的，仅仅要求将 in out types 搞对；这一步gleam test or
