@@ -162,9 +162,10 @@ pub fn default_settings() -> Settings {
   Settings(indicators: indicators, structures: structures)
 }
 
-/// Which build this tree is compiled for — kept out of glibe: R33 retired the
-/// runtime test steps this flag gated in glib (`config.gleam:62-86`). Documented
-/// here only so no one mistakes its absence for an omission.
+// Module note (not an item doc): this tree has no `is_product_version` flag —
+// R33 retired the runtime test steps that flag gated in glib
+// (`config.gleam:62-86`). Recorded here only so its absence is not mistaken for
+// an omission. Kept as `//` so `gleam docs` does not attach it to `for_interval`.
 /// One interval's settings, read from a caller-supplied `Settings`. The only
 /// way to obtain `IntervalSettings` from a `Settings`; no fabricated fallback.
 pub fn for_interval(

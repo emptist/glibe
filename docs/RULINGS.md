@@ -5655,3 +5655,28 @@ owner："App View 和交易层面继续搭架子……确保单 bar 更新，Vie
 **Landing:** `.planning/phases/02-domain-stream/02-01-PLAN.md`（SOURCE OF THE INTERVAL KEY /
 ONE TYPE SOURCE / NO NEW FIELD 三段）；本轮先落文档，签名变更按 gdltdd 随后执行（测试 RED →
 改签名 → GREEN）。决策区仍 0 项——这是 owner 裁定 + 实测纠错，非待决。
+
+## 2026-11-21（二）— config.gleam 的定位：随项目逐步增减的设置模块（owner 裁定）
+
+owner 逐字（2026-11-21）：*"config这个模块是随着项目开发，逐步增减调整的，类似 gleam.toml
+是随着项目开展变动的. when you have something to be set by user, you add them into
+config.gleam"*
+
+**裁定**：
+- `config.gleam` 是**随项目开展逐步增减**的设置模块，类比 `gleam.toml`（同样随项目变动），
+  **不是冻结清单、更不是一次性照抄 glib 的 415 行**。判断标准只有一条：**有东西需要被 user
+  设置时，就加进 `config.gleam`**（owner 逐字 "when you have something to be set by user,
+  you add them into config.gleam"）。
+- 这与 R46 更正「config.gleam is a must」是同一条的两面：R46 说它不能没有，本条说它会长。
+  新增项照旧守 R26/R32（字段/值随真实 consumer 加，不臆造）；glib `config.gleam:42-46`
+  的分界继续有效——派生数学常量（band weights、KDJ alpha）不是 setting，market/broker/provider
+  无外部 oracle 不臆造。
+- 因此上一轮我对两份 config 的「得失」结论要收窄一处措辞：glibe 收窄到「有真实 consumer 的
+  部分」不是永久上限，而是**当前**状态；将来某个值变成 user-settable，就往 config 加——这正是
+  owner 本条要求的动作，不是违反 R26/R32。
+- **不因此把所有硬编码数字搬进 config**：上一轮扫描确认 src 里剩下的数字是 wire codes（R21）、
+  interval 固有 UTC 网格、price checker 真实判定（R8）、递推算术——它们不是 "to be set by
+  user"，不满足本条的加入条件。本条给的是**加入触发器**（user-settable），不是「把字面量都收编」。
+
+**Landing:** 本文件本节 + `docs/STATE.md` 当前状态节 + 项目 `MEMORY.md`。决策区仍 0 项——这是
+owner 对 config 定位的裁定，非待决。

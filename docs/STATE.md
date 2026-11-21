@@ -20,6 +20,12 @@ sections are kept as history, not as the current answer.
   （src+test），只改注释行，门禁全绿（format/check 0、test 64、docs 0、interface 5 新路径）。
 - **待执行**：plan 02-01（四个 `timeframe` step 填体）——前置是 gate 签名变更（本轮），
   之后 indicator 的 O(1) carried 字段 + settings 参数链路。R.5 leaves/branches 开放点仍在。
+- **config.gleam 定位（owner 逐字）**：*"config这个模块是随着项目开发，逐步增减调整的，类似
+  gleam.toml 是随着项目开展变动的. when you have something to be set by user, you add them
+  into config.gleam"*。config 是随项目开展逐步增减的设置模块，加入触发器 = **user-settable**；
+  不因此把所有硬编码字面量收编（wire codes / UTC 网格 / R8 判定 / 递推算术都不是 setting）。
+  与 R46「config is a must」互补（一个说不能没有、一个说会增长），新增项仍守 R26/R32。
+  详见 `docs/RULINGS.md` 2026-11-21（二）。
 
 ## 2026-11-20 (III) (历史 — R46 误读更正 + config.gleam 落地 + glib 冻结裁定)
 
