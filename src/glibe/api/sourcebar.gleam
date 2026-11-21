@@ -2,7 +2,7 @@
 //// span. Implements `.planning/BRIEF.md`.
 ////
 //// WORK OF THIS MODULE, three reads and writes of `SourceBar` values only:
-//// ① hold the family of nine graded standard bars and read a bar's grade
+//// ① hold the family of nine standard bar variants and read a bar's interval
 //// back off its variant; ② refuse an unqualified bar; ③ give ONE qualified
 //// bar ONE whole birth as a `DataBar`. It does not decode any provider's
 //// wire format, does not CHANGE a bar's period, does not read or write a
@@ -42,10 +42,10 @@
 //// 都一样，就Type不一样，就错不了，什么代价都没有，什么计算都不需要，编译
 //// 器知道你自己错了"*. So there is NO `interval` field: a number could
 //// disagree with the bar around it, a variant cannot. The period is IN the
-//// type, and only `interval` has to name every grade; every other reader
-//// writes `sourcebar.close` and never learns the grade (R13 / R21).
+//// type, and only `interval` has to name every variant; every other reader
+//// writes `sourcebar.close` and never learns the interval (R13 / R21).
 ////
-//// THE NINE GRADES ARE A CLOSED SET. They are the nine constructors of
+//// THE NINE INTERVAL VARIANTS ARE A CLOSED SET. They are the nine constructors of
 //// `api/interval.Interval`, the nine keys of `Instrument.timeframes`, and
 //// the nine variants below — one set, three places. A source's finer native
 //// granularity (IB's 5 seconds) is NOT a tenth variant: it belongs to that
@@ -54,13 +54,13 @@
 //// of them.
 ////
 //// DESIGN EVIDENCE, NOT A STRUCTURE TO COPY: glib never reached this part
-//// — it stopped at the grade family and wrote no fold. seib did write one:
+//// — it stopped at the interval-variant family and wrote no fold. seib did write one:
 //// `joinNew(aBar, period)` fuses the candles of ONE period, `_fillIn`
 //// takes the first open, max high, min low, latest close and summed volume,
 //// and `dataflow_base.coffee:176` says *"方便在沒有某級別數據比如hour數據
 //// 時,採用合成方法形成數據,見joinNew"*. That is the DESIGN THOUGHT only.
 //// seib is OOP — `@bar`, `this`, a mutable object living across calls —
-//// and glibe is pure type / functional: a grade is a variant, and ONE
+//// and glibe is pure type / functional: an interval is carried by a variant, and ONE
 //// arriving bar is accumulated into ONE `growing_target_sourcebar` value
 //// (owner 2026-11-13) passed in and returned, with the three states of
 //// `working_databar`. There is no list of saved bars and no object
@@ -192,10 +192,10 @@ pub type SourceBarRejection {
 /// }
 /// **>
 /// Which interval a bar is — read FROM its variant, never from a field.
-/// `timeframe.sourcebar_gate` reads it to compare the grade of the bar a
+/// `timeframe.sourcebar_gate` reads it to compare the interval of the bar a
 /// provider just wrote with the `Interval` key the caller holds for
-/// `Instrument.timeframes` (R23 / R37). This is a READ of the grade, not a
-/// way to build a bar: a provider's converter takes the grade from its own
+/// `Instrument.timeframes` (R23 / R37). This is a READ of the interval, not a
+/// way to build a bar: a provider's converter takes the interval from its own
 /// bar's variant, and a provider's composition takes the target from its
 /// own function name, never from a caller's claim. This function must name
 /// every variant, so a tenth span is an `Inexhaustive patterns` error here
@@ -218,7 +218,7 @@ pub fn interval(of sourcebar: SourceBar) -> Interval {
 /// unqualified one is refused with a typed reason — reject, never repair
 /// (R8). This is the ONLY door (R38). Its six fields are reachable on every
 /// variant without a `case`. The bar it reads is already of its final
-/// grade: a checker never changes a period.
+/// interval: a checker never changes a period.
 pub fn validate(sourcebar: SourceBar) -> Result(SourceBar, SourceBarRejection) {
   // R8 reject-never-repair. The six fields are on all nine variants, so they
   // are reachable without a case. The single-constructor refusal is deliberate

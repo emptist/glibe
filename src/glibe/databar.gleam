@@ -32,7 +32,7 @@
 //// 5分钟等等，你就需要自己合成。合成也很简单。等到了 databar_processing
 //// 你按到手的都是弄好的 databar, 所以databar无需时间周期变体"*. A
 //// variant exists to CARRY a period change, and NO function in this system
-//// changes a `DataBar`'s period. A source that lacks a grade accumulates
+//// changes a `DataBar`'s period. A source that lacks an interval accumulates
 //// ONE arriving bar at a time into `Timeframe.growing_target_sourcebar`,
 //// dispatched by `instrument.compose_ib_realtime_bar` by its `Interval`
 //// key to ONE of `ib/sourcebar.five_second_to_*`. That accumulation ends

@@ -37,18 +37,18 @@
 //// ③ the input boundary — `growing_target_sourcebar` would leave the
 ////    `Timeframe`, and the key held here would be wasted.
 //// So `Instrument` is the ONE place that knows which timeframe gets which
-//// grade. It still does not define a composition function: R50 (owner,
+//// interval. It still does not define a composition function: R50 (owner,
 //// verbatim) *"even if it is called, it should be defined in its
 //// belonging to module"*, and owner 2026-11-13 put
 //// `five_second_to_one_minute` and its siblings in `ib/sourcebar.gleam`.
 //// A CALL SITE is not an owner; this module only dispatches by its key.
 ////
-//// THE TARGET GRADE IS NEVER A FIELD. `Timeframe.growing_target_sourcebar`
-//// is an `Option(SourceBar)` and the bar's variant IS its grade —
+//// THE TARGET INTERVAL IS NEVER A FIELD. `Timeframe.growing_target_sourcebar`
+//// is an `Option(SourceBar)` and the bar's variant IS its interval —
 //// `SourceBarOneHour` and friends. That is why adding this field does NOT
 //// give a `Timeframe` an `interval` field: the period is in the type, not
 //// in the record (owner: *"校服就是变体，通过类型即可知道是什么"*). The
-//// nine `Interval` constructors are the whole `case` below; a tenth grade
+//// nine `Interval` constructors are the whole `case` below; a tenth interval
 //// is a compile error here and in `sourcebar.interval` (R13).
 ////
 //// THIS IS NOT THE `working_databar` ACCUMULATOR. R39 struck
@@ -89,7 +89,7 @@ pub type Instrument {
 // `growing_target_sourcebar`; WRITES the new growing value back into the
 // timeframe (record update) and the recomputed timeframe back under the key.
 // `compose` is the provider function — the caller passes the one whose NAME
-// fixes the target grade, so no Interval parameter can disagree with it
+// fixes the target interval, so no Interval parameter can disagree with it
 // (R23 / R37). The return type has NO error channel and R33 has the system
 // already live as ONE Value: a timeframe for this key exists from the
 // instrument's own setup, so a missing key has nothing to compose and the
@@ -134,7 +134,7 @@ pub fn put_timeframe(
 /// ONE arriving IB five-second bar, composed into the timeframe named by
 /// `interval`. Reads `Instrument.timeframes` under that key and reads that
 /// `Timeframe.growing_target_sourcebar`; `case interval` selects ONE of
-/// the nine `ib_sourcebar.five_second_to_*` functions (the target grade is
+/// the nine `ib_sourcebar.five_second_to_*` functions (the target interval is
 /// in the function name, never a parameter that could disagree with the
 /// key). Writes the new growing value back into that `Timeframe` and puts
 /// the recomputed timeframe back under the same key.
@@ -145,7 +145,7 @@ pub fn put_timeframe(
 /// other bar. `growing_target_sourcebar` has the three states of
 /// `working_databar` — `None → Some(bar) → None` (R39). The call happens
 /// ONCE per arriving bar: no list, no batch, no saved bars (owner
-/// 2026-11-13). A provider that already serves every grade (Binance) has
+/// 2026-11-13). A provider that already serves every interval (Binance) has
 /// no such function here — a one-to-one `kline.to_sourcebar` already gives
 /// one closed `SourceBar` of the right variant (R28).
 ///
@@ -159,9 +159,9 @@ pub fn compose_ib_realtime_bar(
   arriving: ib_sourcebar.IbSourceBar,
 ) -> #(Option(SourceBar), Instrument) {
   // The nine arms ARE the nine `Interval` constructors: an incomplete
-  // `case` is a compile error (R13), so the key and the nine target grades
+  // `case` is a compile error (R13), so the key and the nine target intervals
   // are ONE closed set. Each arm hands `dispatch_compose` the ONE provider
-  // function whose name fixes that grade. A missing key returns the
+  // function whose name fixes that interval. A missing key returns the
   // instrument unchanged (see `dispatch_compose`): the return type has no
   // error channel and there is no timeframe to compose into.
   case interval {

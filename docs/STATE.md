@@ -6,11 +6,11 @@ sections are kept as history, not as the current answer.
 
 ## 2026-11-21 (当前状态 — interval 来源 = SourceBar 变体 + 二选一；planning 重建已落地)
 
-- **二选一裁定（owner 逐字 + 实测）**：grade 的唯一 type 载体 = 到手的 closed `SourceBar`
+- **二选一裁定（owner 逐字 + 实测）**：周期（interval）的唯一 type 载体 = 到手的 closed `SourceBar`
   变体；`sourcebar_gate` 删去 `interval: Interval` 参数（实测 WAE 报 `timeframe.gleam:145`
-  `Unused function argument`——死参数）；不给 `Timeframe` 加常驻 grade 字段（违反 R37/R46、
+  `Unused function argument`——死参数）；不给 `Timeframe` 加常驻 interval 字段（违反 R37/R46、
   与 `growing_target_sourcebar` 重复）。生效链路：gate 读 `sourcebar.interval(of: bar)` →
-  `config.for_interval_default(grade)` → 作为 R40-A pipe 参数进 `databar_processing`。
+  `config.for_interval_default(interval)` → 作为 R40-A pipe 参数进 `databar_processing`。
   **收回我上一轮两处错**：① interval key 来自 Instrument Dict key（错，consumer 侧）；
   ② gate 的 interval 参数不冗余（错，是死参数；模块 `////` 那句「两个事实被比较」是未实现意图）。
   详见 `docs/RULINGS.md` 2026-11-21 节 + plan 02-01 三段。决策区 0 项。
@@ -26,6 +26,11 @@ sections are kept as history, not as the current answer.
   不因此把所有硬编码字面量收编（wire codes / UTC 网格 / R8 判定 / 递推算术都不是 setting）。
   与 R46「config is a must」互补（一个说不能没有、一个说会增长），新增项仍守 R26/R32。
   详见 `docs/RULINGS.md` 2026-11-21（二）。
+- **术语更正：弃用 `grade`（owner 逐字）**：*"the word grade is not from me … I have no idea"*。
+  查证 `grade` 是 AI 造词（glib `NAMING.md:358` "mine to propose"），owner 用词 = variant/变体 +
+  interval。本状态节与 2026-11-21 裁定节里的 `grade` 一律改读 `interval`（周期值）/ `variant`
+  （九成员类型）；裁定本身不变，只换词。历史节与冻结 glib 引文里的 `grade` 保留原样。
+  详见 `docs/RULINGS.md` 2026-11-21（三）。
 
 ## 2026-11-20 (III) (历史 — R46 误读更正 + config.gleam 落地 + glib 冻结裁定)
 

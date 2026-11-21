@@ -5617,7 +5617,11 @@ owner："App View 和交易层面继续搭架子……确保单 bar 更新，Vie
   `timeframe.indicator` 必须照 Welford / add-subtract-leaving / amortised KDJ，**禁止批量 fold**。
   本轮不实现四个 step（窗口参数归属见 R46/R32 + PENDING_DECISIONS R.5，未臆造 settings）。
 
-## 2026-11-21 — interval 参数的来源 = SourceBar 变体；grade 只编码一次（owner 二连问）
+## 2026-11-21 — interval 参数的来源 = SourceBar 变体；周期只编码一次（owner 二连问）
+
+> 用词已按本节之后「2026-11-21（三）」更正：原文用 `grade`，owner 明确不是他的词，
+> glibe 改读 `interval`（周期值）/ `variant`（九成员类型）。裁定不变，只换词；下方冻结
+> glib 的英文引号保留原文（真实引文）。
 
 两条 owner 逐字（2026-11-21，先问来源、再定二选一）：
 
@@ -5629,10 +5633,11 @@ owner："App View 和交易层面继续搭架子……确保单 bar 更新，Vie
    （owner 随后更正拼写：写错字的是 *instructor* → **instrument**。）
 
 **裁定**（核验后成立，非附和）：
-- **grade 的唯一 type 载体 = 到手的 closed `SourceBar` 变体**，不是调用方另传的
+- **周期（interval）的唯一 type 载体 = 到手的 closed `SourceBar` 变体**，不是调用方另传的
   `Interval`。`api/sourcebar.interval(of:)`（`src/glibe/api/sourcebar.gleam:203-215`，已填绿）
   从九个变体读回 Interval；owner「校服就是变体，通过类型即可知道是什么」/ 冻结 glib
-  `docs/RULINGS.md:2323,2332`「the grade is in the type, and not in a field」；
+  `docs/RULINGS.md:2323,2332`「the grade is in the type, and not in a field」（glib 原文用
+  `grade`，glibe 改读 interval/variant，见 2026-11-21（三））；
   `glib/src/glib/sourcebar.gleam:234-237`「interval must come from the source, not from the
   consumer … a converter that stamped the bar with whatever the caller claimed would erase the
   only comparison left」。
@@ -5640,11 +5645,11 @@ owner："App View 和交易层面继续搭架子……确保单 bar 更新，Vie
   报 `timeframe.gleam:145` 的 `interval` 为 `Unused function argument`——它是死参数。
   模块 `////` 里「caller-key 与 bar-variant 被比较」（`timeframe.gleam:50-53`）是
   **未实现的意图，不是代码**，我上一轮据此说它「不冗余」是错的，已收回。
-- **不给 `Timeframe` 加常驻 grade/interval 字段**。gate 收到的 closed `SourceBar` 参数本身就是
+- **不给 `Timeframe` 加常驻 interval 字段**。gate 收到的 closed `SourceBar` 参数本身就是
   载体；加字段违反 R37/R46（不存身份、不存 settings），且和 `growing_target_sourcebar:
   Option(SourceBar)` 重复——后者到 `databar_processing` 时已是 `None`。owner 说的「可能有个
   field 记 type 信息」：不必，变体即答案。
-- 生效链路：gate 收到变体 → `sourcebar.interval(of: bar)` 读 grade → `config.for_interval_default(grade)`
+- 生效链路：gate 收到变体 → `sourcebar.interval(of: bar)` 读 interval → `config.for_interval_default(interval)`
   得 `IntervalSettings` → 作为 R40-A pipe 参数交给 `databar_processing(timeframe, settings)`。
   **读变体在 `sourcebar_gate`（唯一还持有 SourceBar 的门），不在 `indicator`**（到那一步手上
   已是无变体的 DataBar，owner 2026-11-13 *"等到了 databar_processing 你按到手的都是弄好的
@@ -5680,3 +5685,32 @@ config.gleam"*
 
 **Landing:** 本文件本节 + `docs/STATE.md` 当前状态节 + 项目 `MEMORY.md`。决策区仍 0 项——这是
 owner 对 config 定位的裁定，非待决。
+
+## 2026-11-21（三）— `grade` 不是 owner 的词：弃用，改用 `interval` / `variant`
+
+owner 逐字（2026-11-21）：*"the word grade is not from me, you should double check it to decide
+if it is the right word for your purpose. I have no idea."*
+
+**核查结论（查证，非附和）**：
+- `grade` 是 **AI 造词**，有冻结 glib 的自证：`glib/docs/NAMING.md:358-360` 对 `grade(bar)` 明写
+  *"**mine to propose** … Overrulable by him the way `sourcebar_stream` is"*。owner 这次说的
+  *"not from me"* 正是那句 "overrulable" 的实现——他被推翻了一个 AI 提议的命名。
+- owner 实际用的词（冻结 glib `src/glib/sourcebar.gleam:26-27` 引其逐字）：*"要变体"*、*"校服就是
+  变体，通过类型即可知道是什么"*、*"interval相关参数"*、*"SourcBar variant"*。即 **variant / 变体**
+  （九成员类型）和 **interval**（周期值）。owner 原话里没有 `grade`。
+- 语义上 `grade` 与 `interval` 完全同义且多余：glibe 自己的 API 早就用对了——`sourcebar.interval(of: bar)
+  -> Interval`，返回的就是 Interval。且 `grade` 在英文里误暗示「等级/高低」（1m 与 1h 不是等级关系）。
+
+**裁定**：
+- glibe **弃用 `grade`**：指周期值/Interval 用 `interval`，指 SourceBar 九成员类型用 `variant` / 变体。
+  新增文字（文档、注释、plan）不再用 `grade`。
+- **归属错误纠正**：本文件 2026-11-21 节与 plan 02-01 曾把 `grade` 写进「owner 逐字 / 二选一裁定」
+  的语境（如「grade 只编码一次」标题、「grade 唯一 type 载体」），那是我把 AI 术语挂到了 owner
+  话上——本轮改为 owner 的词。裁定本身（一个类型来源、gate 读变体、删 interval 参数）**不变**，只换词。
+- **历史保留**：更早的历史节（RULINGS 3842/3865/3916…、STATE 569/580…）与冻结 glib 原文引号里的
+  `grade` 是当时的记录 / 真实引文，不改写；以本节用词为准。
+- 对冻结 glib 的引用：glib `RULINGS.md:2323/2332` 的 *"the grade is in the type, and not in a
+  field"* 是 glib 文档原句，引用时保留原文并标注「glib 原文用 grade，glibe 改用 interval/variant」。
+
+**Landing:** 本节 + `docs/STATE.md` 当前节 + plan 02-01 + src 注释 + 今日日志。决策区仍 0 项——这是
+owner 的命名裁定 + 我上一轮归属失误的纠正，非待决。

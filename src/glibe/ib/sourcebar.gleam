@@ -3,7 +3,7 @@
 ////
 //// WORK OF THIS MODULE: hold the shape IB actually serves, and accumulate
 //// ONE arriving five-second bar at a time into ONE whole standard bar of
-//// each grade the system needs. It does not hold a `Timeframe`, does not
+//// each interval the system needs. It does not hold a `Timeframe`, does not
 //// write a `DataBar`, does not validate a price and does not compute an
 //// indicator.
 ////
@@ -15,7 +15,7 @@
 //// says *"Currently, only 5 seconds bars are provided"*. `seib/ibtests/
 //// reqRealTimeBars.coffee:25-40` passes `barSize = 5` on every request. So
 //// the realtime shape is five seconds, and `IbSourceBarFiveSecond` is not
-//// an invented grade. Owner 2026-11-13 (verbatim): *"比如Ib来源的实时数据，
+//// an invented interval. Owner 2026-11-13 (verbatim): *"比如Ib来源的实时数据，
 //// 你可以查一下到底是不是5s数据，如果是你就需要 IbSourceBarFiveSecond
 //// 然后再 ib sourcebar 的模块里面，定义 pub fn five_second_to_one_minute,
 //// etc."*
@@ -36,12 +36,12 @@
 //// alone could not say whose bar it is. The ONE internal standard bar has
 //// no source prefix because there is exactly one of it.
 ////
-//// WHY ONE VARIANT. IB's realtime subscription gives ONE grade, so the
+//// WHY ONE VARIANT. IB's realtime subscription gives ONE interval, so the
 //// family has ONE constructor. That is a type-level guarantee, not a
 //// convention: every `IbSourceBar` handed to a composition below IS a
 //// five-second bar, and no `case` is needed to check it. A finer or a
 //// historical IB barSize is a NEW variant added here when that source
-//// really serves it (R26 / R28 / R32) — never a grade smuggled into the
+//// really serves it (R26 / R28 / R32) — never an interval smuggled into the
 //// standard layer.
 ////
 //// WHERE A PERIOD IS CHANGED, AND WHY HERE. Owner 2026-11-13 (verbatim):
@@ -68,7 +68,7 @@
 //// half-built bar. There is NO list of saved bars, no batch fold, no
 //// second accumulator, no actor / clock / poll (R33). The value is named
 //// `growing_target_sourcebar` and its type is `Option(SourceBar)` — the
-//// ONE internal standard bar, already carrying its target grade as a
+//// ONE internal standard bar, already carrying its target interval as a
 //// variant, so no invented container type is needed. A `SourceBar` that
 //// has not closed is simply not emitted: the only way out is the boundary.
 ////
@@ -76,7 +76,7 @@
 //// per arriving five-second bar and returns
 //// `#(closed_sourcebar, growing_target_sourcebar)`:
 //// ① `None` growing + a bar arrives → start ONE `SourceBar` of the target
-////    grade from that bar; `closed_sourcebar` is `None`;
+////    interval from that bar; `closed_sourcebar` is `None`;
 //// ② `Some(bar)` growing + the bar's `Timestamp` is still in the SAME UTC
 ////    grid period → keep the FIRST open, take MAX high, MIN low, the arriving
 ////    close as the LAST close, ADD its volume; `closed_sourcebar` is `None`;
@@ -94,10 +94,10 @@
 //// NOT `Timeframe.working_databar`, and NOT a value floating at the input
 //// boundary. `instrument.gleam` is the layer that reads and writes it:
 //// that layer holds the `Interval` key and knows which timeframe gets
-//// which grade, so it dispatches by `case interval` to ONE of the nine
+//// which interval, so it dispatches by `case interval` to ONE of the nine
 //// functions below. The FUNCTIONS stay in this module (R50) — a call
 //// site is not an owner. A `Timeframe` still has NO `interval` field:
-//// the target grade is the variant of the growing `SourceBar` itself
+//// the target interval is the variant of the growing `SourceBar` itself
 //// (R37). R39 struck `fold_sourcebar(working, bar)` for accumulating
 //// source bars INSIDE `working_databar`; this is a DIFFERENT field, and
 //// only ONE whole closed `SourceBar` is emitted when the UTC grid
@@ -117,13 +117,13 @@
 //// set is the whole list, not a guess.
 ////
 //// DESIGN EVIDENCE, NOT A STRUCTURE TO COPY. glib never reached this part
-//// — it stopped at the grade family and wrote no fold. seib did write one:
+//// — it stopped at the interval-variant family and wrote no fold. seib did write one:
 //// `joinNew(aBar, period)` fuses the candles of ONE period, `_fillIn`
 //// takes the first open, max high, min low, latest close and summed
 //// volume, and `dataflow_base.coffee:176` says *"方便在沒有某級別數據比如
 //// hour數據時,採用合成方法形成數據,見joinNew"*. seib is OOP — a mutable
 //// `@bar` living across calls — and glibe is pure type / functional: the
-//// grade is a variant and the growing bar is a VALUE passed in and
+//// interval is carried by a variant and the growing bar is a VALUE passed in and
 //// returned. No seib class, field or method name is a model here (owner
 //// 2026-11-13). `wap` and `count` are IB's own wire fields, kept because
 //// R28 requires the native shape preserved; each gains a reader in THIS
@@ -131,7 +131,7 @@
 ////
 //// R19 status (2026-11-17): all nine `five_second_to_*` bodies are filled.
 //// The three-state accumulation lives in ONE private `accumulate`; each
-//// public function fixes its target grade by passing its own `Interval` and
+//// public function fixes its target interval by passing its own `Interval` and
 //// `SourceBar` constructor. Pinned by three assertions in `test/glibe_test.gleam`
 //// (start / accumulate / close). No `todo` remains here.
 
@@ -144,8 +144,8 @@ import glibe/api/sourcebar.{type SourceBar}
 // Accumulate ONE arriving 5s bar into the growing target bar — the three
 // states of `working_databar` (R39). READS the growing SourceBar, this one
 // arriving bar and the UTC grid for `target_interval`; WRITES #(closed,
-// growing). `make` is the target grade's constructor: a value passed by the
-// caller, so the grade is fixed by the PUBLIC FUNCTION'S NAME, never read
+// growing). `make` is the target interval's constructor: a value passed by the
+// caller, so the interval is fixed by the PUBLIC FUNCTION'S NAME, never read
 // from a parameter a caller could claim (R23 / R37). First bar starts the
 // period; a bar still inside the grid keeps the first open, takes MAX high /
 // MIN low / latest close and adds volume; a bar reaching the grid boundary
@@ -208,7 +208,7 @@ pub type IbSourceBar {
 /// `#(closed, growing)` — `Some(SourceBarOneMinute)` and `None` growing
 /// only when the `Timestamp` reaches the boundary, otherwise `None` closed
 /// and the accumulated `Some(SourceBarOneMinute)`. `None` growing starts a
-/// period with this bar. `sourcebar_gate` reads the closed bar's grade
+/// period with this bar. `sourcebar_gate` reads the closed bar's interval
 /// back with `sourcebar.interval`.
 pub fn five_second_to_one_minute(
   growing_target_sourcebar: Option(SourceBar),

@@ -8,7 +8,7 @@
 ////
 //// READS: `SourceBar`, `SourceBarRejection`, `DataBar`, `DataLeaf`,
 //// `DataBranch`. (No `Interval` param since the 2026-11-21 二选一 — the
-//// closed `SourceBar` variant is the grade's one type source.)
+//// closed `SourceBar` variant is the interval's one type source.)
 //// WRITES: `Timeframe` — the working databar, the archived bars, and the
 //// intermediate facts that keep the pipeline a straight line.
 ////
@@ -37,8 +37,8 @@
 //// not a `SourceBar` and not a `DataBar`. The caller already holds the
 //// `Interval` as the key of `Instrument.timeframes` (R23 / R37; owner:
 //// *"你的左手不知道他是左还是右"*). Each provider writes ONE whole
-//// standard `SourceBar` of the grade the caller selected. Binance serves
-//// all nine grades and maps one-to-one with `kline.to_sourcebar`; IB's
+//// standard `SourceBar` of the interval the caller selected. Binance serves
+//// all nine intervals and maps one-to-one with `kline.to_sourcebar`; IB's
 //// realtime stream serves ONLY five seconds, so
 //// `ib/sourcebar.five_second_to_*` accumulates ONE arriving bar at a time
 //// into ONE `growing_target_sourcebar` and emits a closed standard
@@ -48,10 +48,10 @@
 //// The composition FUNCTIONS are defined in the module that owns IB's bar
 //// (R50); a call site is not an owner. `sourcebar.validate` refuses the
 //// closed `SourceBar` if unqualified
-//// (R8). The closed bar's variant is the ONE type source of its grade
+//// (R8). The closed bar's variant is the ONE type source of its interval
 //// (owner 2026-11-21 二选一): `sourcebar_gate` takes only the `SourceBar`,
-//// not a second `interval` argument. No bar and no `Timeframe` stores a
-//// grade or a key, and NO period is ever changed here.
+//// not a second `interval` argument. No bar and no `Timeframe` stores an
+//// interval or a key, and NO period is ever changed here.
 //// Nothing in this module decodes a provider or invents a bar type —
 //// that boundary is upstream of the `Timeframe`.
 ////
@@ -91,7 +91,7 @@ import glibe/leaf.{type DataLeaf}
 /// `growing_target_sourcebar` is the ONE bar being composed from a finer
 /// source stream (owner 2026-11-13): `None → Some(bar) → None`, the same
 /// three states as `working_databar`. It is an `Option(SourceBar)`, so its
-/// target grade IS the bar's variant — this `Timeframe` still does not
+/// target interval IS the bar's variant — this `Timeframe` still does not
 /// know its own name (R37). `Instrument` holds the `Interval` key and is
 /// the layer that reads / writes this field through
 /// `instrument.compose_ib_realtime_bar`; this module never composes and
@@ -130,9 +130,9 @@ pub type Timeframe {
 /// is refused with a typed reason; a `SourceBar` that has not closed is
 /// ignored and held nowhere (R39).
 ///
-/// The closed `SourceBar` carries its own grade as a variant, read by
+/// The closed `SourceBar` carries its own interval as a variant, read by
 /// `sourcebar.interval(of:)`; that variant is the ONE type source of the
-/// grade — no separate `interval` argument (owner 2026-11-21 二选一: pass the
+/// interval — no separate `interval` argument (owner 2026-11-21 二选一: pass the
 /// sourcebar type OR the interval type, never both; the interval argument was
 /// a dead param and a second encoding of the same fact). A `Timeframe` does
 /// not know its own name, and no bar carries a period field. Composition
@@ -146,7 +146,7 @@ pub fn sourcebar_gate(
 ) -> Result(Timeframe, SourceBarRejection) {
   // R8 / R39: the ONE door. validate rejects (never repairs); a qualified bar
   // is born whole as working_databar with idx from bars_listed (the head's
-  // idx + 1, O(1), never a list count). The ONE grade is carried by the bar's
+  // idx + 1, O(1), never a list count). The ONE interval is carried by the bar's
   // closed variant (2026-11-21 二选一): no separate `interval` argument — that
   // was a dead param (WAE Unused) and a second encoding of the same fact.
   case sb.validate(sourcebar) {

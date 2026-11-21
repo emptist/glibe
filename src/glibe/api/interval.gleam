@@ -124,7 +124,7 @@ pub fn from_string(name: String) -> Result(Interval, Nil) {
 ///
 /// The readers are `ib/sourcebar.five_second_to_one_minute` and its eight
 /// siblings: each takes ONE arriving five-second bar and uses this grid to
-/// know whether a whole `SourceBar` of the target grade has closed.
+/// know whether a whole `SourceBar` of the target interval has closed.
 /// `instrument.compose_ib_realtime_bar` dispatches them by the key held
 /// here, which is why the boundary is a PERIOD and not a count of bars.
 ///

@@ -42,10 +42,10 @@
 //// `Interval` has exactly ONE home — the key of `Instrument.timeframes`
 //// (R23 / R37; owner: *"你的左手不知道他是左还是右"*). A provider sits at
 //// the input boundary and never holds that key. If `to_sourcebar` accepted
-//// an `Interval`, the grade would be a number claimed by a caller that
+//// an `Interval`, the interval would be a number claimed by a caller that
 //// could disagree with the bar in hand — the same disagreement owner
 //// ruled out with *"校服就是变体，通过类型即可知道是什么，不需要改变bar到
-//// 身体，懂吗？"* (2026-10-26). So the grade of an external bar is a
+//// 身体，懂吗？"* (2026-10-26). So the interval of an external bar is a
 //// VARIANT of `BinanceKline`, just as it is a variant of `SourceBar`: the decoder
 //// builds the variant for the stream it subscribed to, and `to_sourcebar`
 //// maps it one-to-one. Owner 2026-11-01 (verbatim): *"sourcebar存在利用
@@ -54,8 +54,8 @@
 //// `Timeframe`; that key never crosses into this module.
 ////
 //// WHY THIS MODULE HAS NO COMPOSITION. Binance's kline endpoint ALREADY
-//// serves all nine grades the system needs, one native variant each, so
-//// `to_sourcebar` is a one-to-one mapping and every `SourceBar` grade has
+//// serves all nine intervals the system needs, one native variant each, so
+//// `to_sourcebar` is a one-to-one mapping and every `SourceBar` interval has
 //// a way in. A source that does NOT serve them — IB's realtime stream
 //// gives only five seconds — accumulates ONE arriving bar at a time into
 //// `Timeframe.growing_target_sourcebar`, dispatched by
@@ -70,7 +70,7 @@
 ////
 //// EACH VARIANT CARRIES THE SAME NATIVE FIELDS, in the same order and with
 //// the same types, so a reader writes `kline.close` without matching the
-//// grade. The wire spellings `closeTime`, `quoteAssetVolume`,
+//// interval. The wire spellings `closeTime`, `quoteAssetVolume`,
 //// `numberOfTrades`, `takerBuyBaseAssetVolume`,
 //// `takerBuyQuoteAssetVolume`, `ignore` (R28) are spelled here the way
 //// Gleam fields are spelled, never kept as a `String` to be parsed later
@@ -79,7 +79,7 @@
 ////
 //// WHERE IT GOES AND HOW: `to_sourcebar` is this provider's ONLY exit
 //// (R28) and takes ONLY its own bar. It writes the standard `SourceBar`
-//// variant of the same grade; the standard layer is the only meeting point
+//// variant of the same interval; the standard layer is the only meeting point
 //// and absorbs none of these native names. From there `sourcebar.validate`
 //// refuses an unqualified bar (R8), `sourcebar.to_databar` gives it one
 //// whole birth (R39 / R42), and `timeframe.sourcebar_gate` writes it into
@@ -103,7 +103,7 @@ import glibe/api/sourcebar.{
   SourceBarThirtyMinute, SourceBarThreeMinute,
 }
 
-/// One Binance kline, in the provider's own shape, graded by its variant.
+/// One Binance kline, in the provider's own shape, its interval carried by its variant.
 /// It is not the standard `SourceBar` and not a `DataBar`.
 pub type BinanceKline {
   BinanceKlineOneMinute(
@@ -235,8 +235,8 @@ pub type BinanceKline {
 }
 
 /// This provider's ONE normalisation into the internal standard bar (R28),
-/// one external grade to the standard variant of the same grade. It takes
-/// ONLY its own bar: the grade is read from the `BinanceKline` variant, never
+/// one external interval to the standard variant of the same interval. It takes
+/// ONLY its own bar: the interval is read from the `BinanceKline` variant, never
 /// handed in as a parameter that could disagree with it (R23 / R37).
 ///
 /// Failure has nothing to say here, so the error type is `Nil` (core §6);
@@ -245,7 +245,7 @@ pub type BinanceKline {
 /// exit carries it across unchanged instead of folding an epoch a second
 /// time. `volume` arrives as a `Float` while the standard bar holds an `Int`,
 /// so the exit truncates it here — R28 puts every conversion at this exit
-/// only. This function names every grade, so a tenth span becomes an
+/// only. This function names every interval, so a tenth span becomes an
 /// `Inexhaustive patterns` error here (R13).
 pub fn to_sourcebar(kline: BinanceKline) -> Result(SourceBar, Nil) {
   let open_time = kline.open_time
