@@ -31,6 +31,41 @@ sections are kept as history, not as the current answer.
   interval。本状态节与 2026-11-21 裁定节里的 `grade` 一律改读 `interval`（周期值）/ `variant`
   （九成员类型）；裁定本身不变，只换词。历史节与冻结 glib 引文里的 `grade` 保留原样。
   详见 `docs/RULINGS.md` 2026-11-21（三）。
+- **术语：Gleam 只有 type，不说 enum（owner 逐字）**：*"gleam doesn't have enum, it only has
+  type. Since there is type there, why do we still need an enum?"*。不需要；glibe 新文字写
+  `custom type` / `closed type` / `variant`，`enum` 仅限 owner 引文与 byte-equal core 镜像。
+  src 四处注释已改词。owner 进一步澄清：*"when we talk about enum in gleam, we are just doing a 比喻 for coders who are coming from other languages."*——`enum` 只是面向外来程序员的比喻，不是设计名词。详见 `docs/RULINGS.md` 2026-11-21（四）。
+- **名字/沿革/定位（owner 逐字）**：`gl`=gleam、`ib`=IB、`b`=binance、`be`=BEAM、`e`=erlang+elixir；
+  祖先是 Smalltalk（3D、大 Kline 嵌套小 Kline、View 直映 model，原始文件已失）→ seib（CoffeeScript）
+  → glib / idib → glibe。owner 的简单画法：`Smalltalk → seib (-> ibOptions) → glib → idib →
+  glibe`。`ibOptions`（Python+Pandas）**从 `seib` 分出**，不在直系代码/语言路线上；但 owner 追加
+  逐字：*"手工策略以及一些设计，来自ibOptions……细节丰富，结构迥异，语言垃圾（Python+Pandas）"*——
+  手工策略与部分设计来自它。我此前写「侧支不回流」过强，按此更正；不等于要搬 Python/Pandas 结构。
+  **glibe = 今后唯一开发项目**；
+  简化 Smalltalk、保留最简指标体系、多 broker、AI 策略模块是 owner 的产品目标，不是已落地代码。
+  owner 追加归宿声明（逐字）：*"我用了几十年时间，从Smalltalk出发，归宿到BEAM，以后不会再变化了"*——
+  BEAM 是路线终点，不再换语言/平台重写；与 R16–18/R42 一致，不新增实现义务。
+  owner 追加技术理由（逐字，属判断非实测）：Gleam 比其它语言极其简单（但不如 Smalltalk）、
+  小巧语言里有完整严格 type / 纯 functional / 无成本分布式并发；BEAM 唯一做对分布式计算，
+  BEAM 语言互通直接互动——*"这是技术选择落地的根本原因"*。另举 Swift 做对照：owner 说其多年加设计、
+  6.x 严格设计难用，同时明确它是「很负责任的高质量语言」。按 owner 指示已查官方版本史
+  （5.5 async/await+actors → 5.7 Sendable → 5.10 complete checking=warning → 6 opt-in=error，
+  官方称多年演进、迁移期数百上千 warning 不罕见；源见 `docs/RULINGS.md` 2026-11-21（五））。
+  owner 的质量评价仍是判断，版本史是我核实的公开事实。owner 又指出：其它语言同样的问题不是没有/
+  已解决，而是作者没看到 / 无法彻底纠正 / 成本太高（判断，未逐语言核验）；Swift 早期无 actor、
+  多线程靠 ObjC 旧框架（WWDC16 GCD + Apple 论坛 2018 答复已核实）；好的多任务语言设计困难，
+  即便 LLVM 作者也要多年团队努力，Gleam 令 owner 惊艳（owner 评价，非我的量化比较）。
+  owner 亲测 Mojo 后不喜欢：借助 Python 资源的 Swift 简化版、太早期、绑定 Python 世界；结论仍是
+  gleam+BEAM，BEAM 经实战考验（owner 判断，我未实测 Mojo）。  owner 又以 PHP2Shell 事件为例说明
+  语言/平台选择要慎重（判断；owner 追加指认逐字：*"你提到PHP，对，我指的是这件事"*——确指 PHP 漏洞，
+  不是泛指 IT 故障集群）。按 owner 指认重查：PHP2Shell = CVE-2026-109618/109619，CVSS 9.2，潜伏十余年，
+  OpenAI "Patch the Planet" 下 Calif/Wiz 用 GPT-5.6 Sol + Gemini 4 Argon 于 2026-10-21 发现并披露；
+  在野利用两面（Amazon/CISA KEV 有据，OpenAI/Wordfence/Wiz 说无大规模成功利用）；NSA 故障是 Clayton
+  明说的「打 PHP 补丁后系统没按预期起来」（多家引 Fox Business 原话 + 国会听证，上一轮「单一来源」
+  记法作废）。同周 Microsoft/FAA/Chase/Apple 各有自身归因、官方称无协同攻击。owner 又推理：PHP 广泛
+  采用、全行业必须跟进补丁，若真有组织黑客/地下势力介入就不简单，*"好在没有那么大的后台"*（判断，
+  无证据支持或反证）。详见 RULINGS 本日节。只解释归宿，不新增实现义务。逐字与全文见
+  `docs/RULINGS.md` 2026-11-21（五）；README 已加对应章节。
 
 ## 2026-11-20 (III) (历史 — R46 误读更正 + config.gleam 落地 + glib 冻结裁定)
 

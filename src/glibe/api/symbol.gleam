@@ -28,7 +28,7 @@
 
 /// The one standard name for an instrument. Opaque: a spelling can only be
 /// made here and is never confused with a bare `String`. Names are an open
-/// set, so this is a single constructor over a `String`, not an enumeration
+/// set, so this is a single constructor over a `String`, not a closed set
 /// of broker dialects — those belong to their brokers (R28, governance root).
 pub opaque type Symbol {
   Symbol(spelling: String)

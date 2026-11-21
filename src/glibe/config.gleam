@@ -224,12 +224,12 @@ fn at_interval(
   }
 }
 
-/// The present interval keys in the enum's order, not the dict's hash order.
+/// The present interval keys in `Interval`'s constructor order, not the dict's hash order.
 fn present(table: Dict(Interval, value)) -> fn(Interval) -> Bool {
   fn(each) { dict.get(table, each) |> result.is_ok }
 }
 
-/// A table over intervals is total or it is wrong — the enum says which
+/// A table over intervals is total or it is wrong — the closed type says which
 /// intervals exist. Load-time check (called from a test), completeness only.
 pub fn validate(settings: Settings) -> Result(Nil, SettingsError) {
   use _ <- result.try(covers_all(

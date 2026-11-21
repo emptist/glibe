@@ -5714,3 +5714,161 @@ if it is the right word for your purpose. I have no idea."*
 
 **Landing:** 本节 + `docs/STATE.md` 当前节 + plan 02-01 + src 注释 + 今日日志。决策区仍 0 项——这是
 owner 的命名裁定 + 我上一轮归属失误的纠正，非待决。
+
+## 2026-11-21（四）Gleam 没有 enum，只有 type（owner 提问）
+
+- owner 逐字：*"or you can say, gleam doesn't have enum, it only has type. Since there is type there, why do we still need an enum?"*
+- owner 进一步澄清（逐字）：*"when we talk about enum in gleam, we are just doing a 比喻 for coders who are coming from other languages."* 即 `enum` 只是给外来程序员的**比喻 / analogy**，不是 Gleam 的概念，也不是 glibe 的设计名词。比喻可用于解释（须注明是比喻），不进 `///`、类型名、模型叙述。
+- **裁定**：glibe 不再把 `enum` 当名词用在模型、注释、文档、plan 的新文字里。`pub type X { … }`
+  就是 custom type；要说清时写 `custom type` / `closed type`，九成员类型写 `variant`，周期值写
+  `interval`。`enum` 只保留在**真实引文**里：owner 上一条原话 *"enum is a type in gleam"*
+  （`docs/RULINGS.md` 本日节 + plan 02-01），以及 byte-equal 语言镜像
+  `docs/gleam-thinking-core-to-memory.md`；引文和镜像不改写。
+- 这是 R45 的语言层实例：Gleam 无 `enum` 关键字，也没有 enum 专属语义（ordinal / values /
+  方法）——今日编译探针实测 `>` 只吃 Int、`a.label()` 报 Unknown record field、同名 ctor 的
+  两个 custom types 互传报 Type mismatch。用 `enum` 这个词只会把 C/Java 的期待带进来。
+- **Landing**：src 三处注释改词（`interval.gleam:68`、`config.gleam:227/232`、`symbol.gleam:31`）；
+  `.planning/03-01` 的动词 "enumerate" 不是 `enum` 名词，保留；本节 + STATE + 今日日志。
+  决策区仍 0 项。
+
+## 2026-11-21（五）名字拆解、系统沿革、glibe 的定位（owner 逐字，写入 README）
+
+owner 逐字（2026-11-21，本轮）：
+
+> "glibe，拆解：gl - gleam， ib- ib， b-binance， be- BEAM， e- erlang and elixir"
+>
+> "祖先是Smalltalk程序，也是最完整最疯狂的版本，用3D做图，大Kline里面嵌套小Kline，View直接
+> 映射model关系，用kline高度宽度厚度分别映射价格、时间、成交金额，横看侧看反转看全凭鼠标
+> 操作，完全动态，直接在图形下方点开修改策略等等，可惜由于imagebased的原因，也因为产品来自
+> Cincom，随着我旧电脑淘汰，目前已经没有原始文件。seib是用coffeescript重新开发的，仅保留了
+> 部分设计，ibOptions 是在coffeescript2出现后，coffee走下坡路后试图选择一个大众语言，用了
+> Python+Pandas重做，完全不是以前的设计路线，受制于pandas，交易要素齐全，能交易，但是非常
+> 不满意，本项目前身glib, idib, 可能还有其他不记得了，都是各种尝试，主要的参考对象是glib，
+> idib来自他，glibe也来自他。"
+>
+> "glibe是未来的最终产品，简化了Smalltalk中的设计，去掉了大量研究平台部分，保留最简化也是
+> 最实用的技术指标体系，新增多broker支持，新增人工智能策略模块。将会是今后的唯一开发项目。"
+>
+> "换句话说，我用了几十年时间，从Smalltalk出发，归宿到BEAM，以后不会再变化了。"
+>
+> "你用我那种方式画图吧，简单且更准确，因为手工策略以及一些设计，来自ibOptions，换句话说，
+> 他细节丰富，结构迥异，语言垃圾（Python+Pandas）"
+>
+> "gleam没有Smalltalk简单，但是相比其他语言，都已经极其简单，尤其是在如此简单的小巧语言中，
+> 实现完整的严格type系统，纯粹functional，以及无成本的分布式并发，堪称奇妙。BEAM也是唯一做对
+> 分布式计算的。BEAM上面的各种语言互通，直接互动。也是一绝。这是技术选择落地的根本原因。
+> 论优劣，各种候选语言于此有天壤之别。"
+>
+> "你看Swift作为一种苹果加持、业界高度评价的新近语言，为了解决数据竞争篡位问题，用了多少年加了
+> 多少设计进去，搞到现在很多程序员都搞不定他的6.x版严格设计要求"
+>
+> "其实你可以实地考察一下Swift设计，看看并发计算多任务等等版本演变历史，这已经是一种很负责任的
+> 高质量语言了。"
+>
+> "同样的问题，在其他语言中不是没有，不是已经解决了，而是作者根本没看到问题，或看到问题，但是
+> 已经没办法彻底纠正，或者有办法彻底纠正，但是成本太高，Swift早期版本是没有Actor的，多任务多线程
+> 是通过 objc写的旧的框架实现的。"
+>
+> "一个好的多任务语言设计是困难的，即便是对于llvm 作者来说，也一样是需要很多年经过团队努力才能
+> 逐步完成的。gleam就很惊艳了。"
+>
+> "我也试过Mojo语言，但是经过比较，是一个试图借助Python资源获得优势的Swift简化版，有新的东西他会
+> 放进mojo，因为公司是他的，Apple的东西不太好驾驭，但是还是太早起，并且跟python世界绑定，不喜欢。
+> 不如gleam+BEAM，BEAM是实战考验出来的。"
+>
+> "前段时间，美国一些重要的IT科技公司系统出现问题，是长期未被发现的bug被利用造成的，有心人利用AI
+> 发现了那些隐藏的bug。语言和平台的选择，需要慎重的原因在此。"
+>
+> "你提到PHP，对，我指的是这件事。PHP语言相关的一个事件。"
+>
+> "PHP是广泛采用的语言，这件事情出来后，影响很大，重度使用PHP的公司当然需要跟进查漏洞补补丁。所以
+> 如果真是有组织大黑客或者地下组织，想要做点什么，就不是这么简单了。好在没有那么大的后台。"
+
+**记录，不改设计**：
+- 名字按 owner 的五段拆解；这是他对字的解释，不是我推断的 acronym。
+- 沿革链（owner 2026-11-21 追加更正，逐字见下）：Smalltalk（原始、3D、View 直映 model；文件已失）
+  → `seib`（CoffeeScript，部分设计）→ `glib` / `idib` 等尝试 → `glibe`；**`ibOptions` 是侧支循环，
+  不在直系主线上**。
+- 追加更正（owner 逐字）：*"ibOptions 算是一个侧支循环，设计完全受制于pandas，所以如果画图，
+  应该是 (-> ibOptions) ->"*；分叉点逐字：*"分岔点是 ... seib (-> ibOptions) -> glib ..."*。
+  用 owner 的简单画法：`Smalltalk → seib (-> ibOptions) → glib → idib → glibe`。`ibOptions`
+  **从 `seib` 分出**，不在直系代码/语言路线上。此前我记成「owner 未指明分叉节点」是错的；
+  我又写「侧支不回流」也过强——owner 追加逐字明确 *"手工策略以及一些设计，来自ibOptions"*，
+  并定性为 *"细节丰富，结构迥异，语言垃圾（Python+Pandas）"*。正确说法：它不是直系一站，
+  但贡献了手工策略与部分设计。这条只记录来源与定性，**不推出把 Python/Pandas 结构或实现搬进
+  glibe 的义务**（与 R34 一致）。
+- 追加归宿声明（owner 逐字，见上）：*"从Smalltalk出发，归宿到BEAM，以后不会再变化了"*。
+  owner 把 BEAM 定为几十年路线的终点：不再换语言/平台、不再另起重写。这是 owner 的路线承诺，
+  与既有 BEAM-native（R16–18）、glib 冻结（R42）一致，**不推出新的实现义务**。
+- 技术选择理由（owner 逐字，见上）：Gleam 比其它语言极其简单（但不如 Smalltalk）、在小巧语言里
+  有完整严格 type / 纯 functional / 无成本分布式并发；BEAM 做对分布式计算，且 BEAM 语言互通直接
+  互动；owner 称这是技术选择落地的根本原因、候选语言优劣有天壤之别。**这是 owner 的技术判断，
+  不是我实测或比较得出的结论**，只解释归宿，不推出新的实现义务，也不改变 R31（BEAM facts ≠ system）。
+  owner 另举 Swift 为对照（逐字，见上）：苹果加持、业界高度评价，为解决数据竞争问题多年加设计，
+  6.x 严格设计要求让很多程序员搞不定；owner 又明确 Swift 是「很负责任的高质量语言」，并要求我
+  实地考察版本演变。**已按 owner 指示查官方资料**（见下条，证据来源 swift.org）；owner 的质量
+  评价仍是判断，但版本史不再是「未核验」。本条不改 BEAM 归宿、不新增实现义务。
+- Swift 并发版本史（**我核实的公开事实，逐条标源**，2026-11-21）：2020 并发路线图起做 data isolation，
+  官方称历经多年多版本（swift.org/blog/swift-5.10-released）；Swift 5.5（2021 秋）一次引入
+  async/await（SE-0296）、structured concurrency（SE-0304）、actors（SE-0306）（swift.org/blog/swift-5.5-released）；
+  5.7 引入 `Sendable`（5.10 发布文）；5.10 的 `-strict-concurrency=complete` 覆盖全语言但仍只是 warning，
+  官方承认误报、把改善可用性列为 6.0 重点（5.10 发布文）；Swift 6 用 opt-in 语言模式把竞态诊断变 error，
+  可按 target 渐进迁移、旧模式互通，官方迁移指南说数百乃至上千 warning 并不罕见
+  （swift.org/blog/announcing-swift-6、swift.org/migration/documentation/swift-6-concurrency-migration-guide/migrationstrategy）。
+  官方原话 Swift 6 *"marks the start of the journey to make data-race safety dramatically easier"*。
+  **推断（我的，不是 owner 说的）**：复杂度来自在已有成熟语言/生态上补静态竞态安全；「高质量」与
+  「6.x 难用」不矛盾。此推断不改任何裁定。
+- owner 再把对照推到其它语言（逐字，见上）：同样的问题在别的语言里**不是没有、也不是已解决**，而是
+  作者没看到问题 / 看到但已无法彻底纠正 / 能纠正但成本太高；并指出 Swift 早期无 actor，多任务多线程
+  靠 ObjC 旧框架。**三分法是 owner 的判断，未逐语言核验**；Swift 早期部分我查证属实：WWDC16
+  *Concurrent Programming With GCD in Swift 3* 讲的是 GCD dispatch queues / run loops / 自建线程，
+  Apple 开发者论坛 2018 官方答复说 Swift *"provides no automatic mechanism"*，须用 dispatch queues、
+  NSOperation、NSThread、pthreads 等平台框架，Swift 5 不会有大并发改动（developer.apple.com/wwdc16/720、
+  developer.apple.com/forums/thread/111009）；actor 直到 5.5 才进语言。这条只作对照记录。
+- owner 收束（逐字，见上）：好的多任务语言设计困难，即便 LLVM 作者也要多年团队努力逐步完成；
+  Gleam 很惊艳。**这是 owner 的难度判断与评价，不是我的量化比较**，只作技术选择背景，不新增实现义务。
+- owner 亲测 Mojo 的结论（逐字，见上）：Mojo 是「试图借助 Python 资源获得优势的 Swift 简化版」；新东西
+  会放进 Mojo 因为公司是他自己的、Apple 的东西不好驾驭；但太早期、与 Python 世界绑定，owner 不喜欢，
+  结论是 **gleam+BEAM 更好，BEAM 是实战考验出来的**。这是 owner 的亲测评价，**我未实测 Mojo、未核验
+  「太早期/绑定 Python」等判断**，不替它背书；只强化归宿裁定，不新增实现义务。
+- owner 再补充（逐字，见上）：2026-11 美国重要 IT 公司系统故障源于长期未发现的 bug 被利用，有心人
+  用 AI 找到了隐藏 bug；因此语言/平台选择要慎重。**owner 2026-11-21 追加指认（逐字，见上）**：
+  *"你提到PHP，对，我指的是这件事。PHP语言相关的一个事件。"* —— 确指就是 **PHP2Shell** 漏洞，
+  不是我上一轮泛化成的「IT 故障集群」。
+- **PHP2Shell 事件核查（新闻，不是本项目事实；我按 owner 指认重查，逐条标源）**：
+  - 漏洞本身确凿：两个 critical 内存破坏漏洞 `CVE-2026-109618` / `CVE-2026-109619`，CVSS v4.0
+    **9.2/10**，未认证 RCE。OpenAI "Patch the Planet" 下 Calif（GPT-5.6 Sol）与 Wiz（Gemini 4 Argon
+    + GPT-5.6 Sol）于 **2026-10-21** 发现并协调披露，PHP 项目同日紧急发补丁（8.5.12/8.4.27/8.3.36/
+    8.2.35）。漏洞自 PHP 5.x（约 2004）即存在、潜伏十余年；Wiz 说「太难利用」此前是它无害的原因，
+    LLM 能把 exploit 适配到不同版本/配置/内存布局——*"With AI this is no longer a barrier"*。
+    PHP 驱动约 70% 网站（Axios 2026-10-22、Wiz、Ars Technica、csoh.org）。
+  - 「被利用」有两面：Amazon 称被 *"broadly exploited in the wild"*、蜜罐记录 10-17（披露前 4 天）
+    探测、CISA 10-26 把两 CVE 纳入 KEV（Ars Technica、csoh.org）；但 OpenAI 说「据我们所知，前沿 AI
+    在攻击者之前发现」、披露时无在野利用确证，Wordfence / Wiz 到 10 月底也没看到大规模成功端到端利用。
+  - NSA 故障 = 打补丁引起（非被攻击）：DNI Clayton 对 Fox Business 说 *"The patching that has gone on
+    following [a PHP vulnerability] has caused some of these systems to not come back up when you patch
+    them as expected… That is what has happened at the NSA today."*；11-18 众议院国土安全委员会说高度确信
+    非协同/国家支持攻击、各故障彼此无关（Breitbart、Apex Globe Media、pengnewtech 引 Fox Business 与听证）。
+    NSANet 11-17 下线并蔓延到 Georgia 密码中心，NSA 对外仍称「例行维护期间的临时降级」。
+    **上一轮记的「Clayton 说法是单一来源转述」已作废**——多家媒体引 Fox Business 原话与国会听证。
+  - 同周其它故障各有自身归因：微软 7 月更新 bug + 高流量、Chase 自身软件 bug、FAA 老化设备 + 换线数据
+    洪流、Apple 内部更新；Rubio / Mullin / FAA 否认协同攻击或 AI 关联；Warner 说 AI 以空前速度找漏洞
+    导致多系统同时仓促打补丁（Business Insider 2026-11-18）。
+  - 结论「语言/平台选择要慎重」是 owner 判断；这些是新闻事实核查，不改 glibe 裁定、不新增实现义务。
+- owner 追加推理（逐字，见上）：PHP 广泛采用、影响大，重度用户必须跟进查漏补补丁；若真有组织大黑客
+  或地下组织想借机行事就「不是这么简单」，而 *"好在没有那么大的后台"*。这是 owner 在上述事实上的
+  推理判断：前提（PHP 驱动约 70% 网站、各国与厂商同日紧急补丁/下线）已由上条核实；结论（有组织势力
+  介入会更复杂、幸而背后的「后台」不大）是 owner 的判断，**我没有证据支持或反证它**，不替它背书。
+  结合上条官方「无协同/国家支持攻击」的说法记录，只作背景，不改 glibe 裁定、不新增实现义务。
+- 事实核查（回答 owner 追问，非裁定）：owner 前句「LLVM 作者」指 **Chris Lattner**——Swift 创建者，
+  也是 LLVM / Clang / MLIR / CIRCT 共同创建者；Mojo 出自他创立的 Modular AI。其个人主页
+  （nondot.org/sabre/AboutMe.html，2026-09 更新）按时间线列现职 Qualcomm EVP, Advanced AI and
+  Platforms（Modular 2022–2026 后被收购）。来源为主页原文，未做额外推断。
+- `seib = CoffeeScript`、`ibOptions` 的定位与 R34 一致；本节补的是 Smalltalk 祖先与
+  glib→idib→glibe 血缘，均出自 owner 本轮原话，**不推出新的实现义务**。
+- 产品定位：glibe 是**唯一继续开发**的最终产品；Simplified Smalltalk、多 broker、AI 策略模块
+  是**owner 的产品目标**，不是已落地的代码。多 broker 的类型层已在（`Broker` / `Instrument`），
+  AI 策略模块目前只有 R24 提到的 demo 层，不得据此造伪待决项或新架构。
+- **Landing**：`README.md` 新增「Name and lineage」节（逐字引用 + 目标/现状区分）；本节 +
+  STATE 当前节 + 今日日志。README 内四处过时陈述同步修正（15→19 `.gleam`、失效知识库路径、
+  已删的 `webclient/`、失效的 05-01 plan 路径），依据是实测与 `docs/RULINGS.md` 旧节。

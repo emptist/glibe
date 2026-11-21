@@ -65,7 +65,7 @@ pub type Interval {
   IntervalOneMonth
 }
 
-/// The closed set of all nine intervals, in the enum's declaration order.
+/// The closed set of all nine intervals, in `Interval`'s constructor order.
 /// This list is the one assertion about the system's interval set (glib
 /// `interval.gleam:84-86`); config's completeness check and the round-trip test
 /// read it. Adding a constructor makes `to_string` / `from_string` / `sourcebar_closed`
