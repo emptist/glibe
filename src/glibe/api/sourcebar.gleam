@@ -260,19 +260,42 @@ pub fn to_databar(sourcebar: SourceBar, idx: Int) -> DataBar {
     close: sourcebar.close,
     volume: sourcebar.volume,
     signal: signal.SignalNoSignal,
-    // R3: the selected MA is computed later by timeframe.indicator; a bar is
-    // born whole with a neutral seed, never a fabricated mean (R46 removed
-    // the settings, not this field).
+    // R3: every measured field is computed later by databar_processing; a bar
+    // is born whole with a neutral seed, never a fabricated mean (R46 removed
+    // the settings, not these fields). Owner 2026-11-23: glib's complete
+    // indicator set is carried here, not only the eight the chart draws.
+    // Five SMA series (glib databar.gleam:41-45).
     sma_tiny: 0.0,
-    // The Dashboard chart's measured fields: same neutral seed at birth; the
-    // indicator / leaves steps of databar_processing write their real values.
+    sma_small: 0.0,
     sma_medium: 0.0,
-    yin_leaf_cma: 0.0,
-    yang_leaf_cma: 0.0,
+    sma_large: 0.0,
+    sma_huge: 0.0,
+    // Seven Bollinger lines (glib databar.gleam:47-53).
+    bb_m: 0.0,
+    bb_u3: 0.0,
+    bb_l3: 0.0,
+    bb_u2: 0.0,
+    bb_u1: 0.0,
+    bb_l1: 0.0,
+    bb_l2: 0.0,
+    // O(1) recurrence state for timeframe.indicator (R26/R32): neutral at
+    // birth; the first indicator step seeds sigma from the first close and
+    // the KDJ cache from the first bar's own high/low (glib bollinger/kdj).
+    sigma_n: 0,
+    sigma_mean: 0.0,
+    sigma_m2: 0.0,
+    // KDJ oscillator K/D/J/M (glib databar.gleam:60-63).
     k: 0.0,
     d: 0.0,
     j: 0.0,
-    bb_u3: 0.0,
-    bb_l3: 0.0,
+    m: 0.0,
+    // Cached KDJ RSV extremes (glib databar.gleam:68-71).
+    kdj_h: 0.0,
+    kdj_h_idx: 0,
+    kdj_l: 0.0,
+    kdj_l_idx: 0,
+    // The YinLeaf / YangLeaf CMAs (glib databar.gleam:76-77).
+    yin_leaf_cma: 0.0,
+    yang_leaf_cma: 0.0,
   )
 }

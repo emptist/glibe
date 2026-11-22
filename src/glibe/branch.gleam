@@ -248,7 +248,42 @@ pub fn next_yang_branch(
   recognised: Bool,
   branch_exit_leaf_size: Int,
 ) -> #(Option(DataBranch), Option(DataBranch)) {
-  todo as "05-01: birth on recognition, close when leaf_size >= branch_exit_leaf_size, carry a growing branch unchanged"
+  // Frozen glib `branch.gleam:354-383`. A yang branch rides yin leaves (R2).
+  case growing {
+    // Birth on recognition from the just-settled leaf's corner_bar (R4/R5);
+    // databar is the manual enter point (R11); no late bars while growing (R1).
+    None ->
+      case recognised, previous {
+        True, Some(prev) -> #(
+          None,
+          Some(YangBranch(
+            start_bar: leaf.corner_bar(prev),
+            enter_bar: databar,
+            end_bar: None,
+            exit_bar: None,
+          )),
+        )
+        _, _ -> #(None, None)
+      }
+    // Closing is a LENGTH test, never a price test (R6): when the riding leaf
+    // has lived branch_exit_leaf_size bars, end_bar = where it died (the leaf's
+    // start), exit_bar = this bar (found dead). Both late bars filled here only.
+    Some(b) ->
+      case leaf.leaf_size(riding, databar) >= branch_exit_leaf_size {
+        True -> #(
+          Some(YangBranch(
+            start_bar: b.start_bar,
+            enter_bar: b.enter_bar,
+            end_bar: Some(leaf.start_bar(riding)),
+            exit_bar: Some(databar),
+          )),
+          None,
+        )
+        // Carried, not rebuilt: nothing about a growing branch changes until
+        // the bar it is recognised as dead on.
+        False -> #(None, Some(b))
+      }
+  }
 }
 
 /// The mirror of `next_yang_branch` — a `YinBranch` rides yang leaves
@@ -264,7 +299,36 @@ pub fn next_yin_branch(
   recognised: Bool,
   branch_exit_leaf_size: Int,
 ) -> #(Option(DataBranch), Option(DataBranch)) {
-  todo as "05-01: birth on recognition, close when leaf_size >= branch_exit_leaf_size, carry a growing branch unchanged"
+  // Frozen glib `branch.gleam:396-423` — the polarity mirror: a yin branch
+  // rides yang leaves (R2); the rule is identical with polarities swapped.
+  case growing {
+    None ->
+      case recognised, previous {
+        True, Some(prev) -> #(
+          None,
+          Some(YinBranch(
+            start_bar: leaf.corner_bar(prev),
+            enter_bar: databar,
+            end_bar: None,
+            exit_bar: None,
+          )),
+        )
+        _, _ -> #(None, None)
+      }
+    Some(b) ->
+      case leaf.leaf_size(riding, databar) >= branch_exit_leaf_size {
+        True -> #(
+          Some(YinBranch(
+            start_bar: b.start_bar,
+            enter_bar: b.enter_bar,
+            end_bar: Some(leaf.start_bar(riding)),
+            exit_bar: Some(databar),
+          )),
+          None,
+        )
+        False -> #(None, Some(b))
+      }
+  }
 }
 
 /// How many bars the riding leaf may live before the branch closes (R5 /

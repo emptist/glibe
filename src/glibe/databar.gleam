@@ -8,6 +8,16 @@
 //// belongs to the source: `sourcebar.to_databar` is the one conversion
 //// (R39 / R42).
 ////
+//// THE COMPLETE MEASUREMENT SET (owner 2026-11-23: *"所有技术指标，glib有的，
+//// 你不能残缺不全"*): this bar carries EVERY field frozen glib's
+//// `databar.gleam:40-77` computes — the five SMA series, the seven Bollinger
+//// lines, the Welford σ state, all four KDJ values (K/D/J/M), the cached RSV
+//// extremes and the YinLeaf / YangLeaf CMAs — not just the eight the chart
+//// happens to draw. A field the chart does not consume is still a measurement
+//// the model owns; "chart 不消费" is never a reason to omit one. The chart
+//// projection (`dashboard.data_bar_to_chart_bar`) is a downstream reader, not
+//// the reason a field exists.
+////
 //// WHO WRITES: `sourcebar.to_databar` writes one whole bar from ONE
 //// qualified `SourceBar` (R39); `timeframe.strategy` writes `signal` onto
 //// the working bar with a record update (R10 / R11); each indicator step
@@ -67,28 +77,87 @@ pub type DataBar {
     close: Float,
     volume: Int,
     signal: Signal,
-    /// The selected moving average the leaf rides (R3, owner verbatim:
-    /// *"CMA 当然同样是选定均线的均值呀"*). `leaf.leaf_depth` and
-    /// `branch.move_between` read it off the two bars a structure names; R46
-    /// deleted the WINDOW-SIZE settings, not this field. `timeframe.indicator`
-    /// is its writer (todo); `sourcebar.to_databar` seeds it at birth.
+    /// The five simple moving averages — the exact field set of frozen glib
+    /// `databar.gleam:41-45`. `sma_tiny` is the series the YinLeaf / YangLeaf
+    /// rides (R3, owner verbatim *"CMA 当然同样是选定均线的均值呀"*):
+    /// `leaf.leaf_depth` and
+    /// `branch.move_between` read it off the two bars a structure names. All
+    /// five are WRITTEN by `timeframe.indicator` (O(1) add-arriving /
+    /// subtract-leaving, glib `sma.gleam:60-108`); each is READ back on the next
+    /// bar off the head of `databar_list` as the carried mean of its own window.
+    /// `bb_m` selects one of the five via `config.sma_for_bbm`. R46 deleted the
+    /// WINDOW-SIZE settings, not these fields. `sourcebar.to_databar` seeds all
+    /// five at birth with a neutral 0.0.
     sma_tiny: Float,
-    /// The measured fields the Dashboard chart consumes. These are the exact
-    /// names/glibe-owner design in `glib/src/glib/databar.gleam` (the five SMA
-    /// series, the Bollinger outer bands, the KDJ oscillator and the two leaf
-    /// CMAs). `bar_stream_chart.Bar` — our own package — is the real consumer
-    /// (06-02 D4); `DataBar -> chart.Bar` in `app/dashboard.gleam` maps them
-    /// one-for-one. Their writers are the indicator/leaves steps of
-    /// `databar_processing` (todo in this phase); `sourcebar.to_databar` seeds
-    /// each at birth with a neutral 0.0, exactly as it does `sma_tiny`.
+    sma_small: Float,
     sma_medium: Float,
-    yin_leaf_cma: Float,
-    yang_leaf_cma: Float,
+    sma_large: Float,
+    sma_huge: Float,
+    /// Bollinger Bands — the seven lines of frozen glib `databar.gleam:47-53`.
+    /// `bb_m` is not recomputed here: it is the selected SMA centre
+    /// (`sma_of(working, settings.sma_for_bbm)`); the outer u3/l3 are the
+    /// `bb_multiplier·σ` edges (l3 floored before interpolation, glib
+    /// `bollinger.gleam:199-225`) and u2/u1/l1/l2 are the 0.618/0.382 blends.
+    /// WRITER: `timeframe.indicator`. READER: `indicator.single_bar_test`
+    /// enforces the strict l3≤l2≤l1≤m≤u1≤u2≤u3 order; the chart consumes the
+    /// two outer lines through `dashboard.data_bar_to_chart_bar`. Born 0.0.
+    bb_m: Float,
+    /// See `bb_m` — outer upper edge, the centre plus `bb_multiplier·σ`.
+    bb_u3: Float,
+    /// See `bb_m` — outer lower edge, floored to a positive fraction of the
+    /// centre when it would fall to or below zero (glib `band_floor_ratio`).
+    bb_l3: Float,
+    /// See `bb_m` — upper inner line at 0.618·u3 + 0.382·m.
+    bb_u2: Float,
+    /// See `bb_m` — upper inner line at 0.382·u3 + 0.618·m.
+    bb_u1: Float,
+    /// See `bb_m` — lower inner line at 0.382·l3 + 0.618·m.
+    bb_l1: Float,
+    /// See `bb_m` — lower inner line at 0.618·l3 + 0.382·m.
+    bb_l2: Float,
+    /// Welford moving-window state for σ, carried bar to bar so
+    /// `timeframe.indicator` updates it in O(1) (glib `bollinger.gleam:69-71`;
+    /// R26/R32 — the indicator step is its real consumer). WRITER:
+    /// `timeframe.indicator` on this bar; READER: `timeframe.indicator` on the
+    /// next bar, off the HEAD of `databar_list` (never a full-window fold).
+    /// Born neutral at `sourcebar.to_databar` and never read by the chart.
+    sigma_n: Int,
+    /// See `sigma_n` — the running mean of the closes in the σ window.
+    sigma_mean: Float,
+    /// See `sigma_n` — the running sum of squared deviations (Welford M2).
+    sigma_m2: Float,
+    /// KDJ oscillator — K, D, J and M of frozen glib `databar.gleam:60-63`.
+    /// WRITER: `timeframe.indicator` (RSV from cached extremes, one alpha for
+    /// K/D, J = 3K−2D, M the rolling mean of K — glib `kdj.gleam:15-72`).
+    /// K/D/J are READ by the chart through `dashboard.data_bar_to_chart_bar`;
+    /// M is the carried mean of K, read off the head of `databar_list` on the
+    /// next bar for the O(1) `sma_stream` recurrence. Born 0.0.
     k: Float,
     d: Float,
     j: Float,
-    bb_u3: Float,
-    bb_l3: Float,
+    /// See `k` — the mean of the last `kdj_m_period` K values (glib
+    /// `kdj.gleam:50-63`), the fourth KDJ line; not drawn by the chart.
+    m: Float,
+    /// Cached highest-high of this bar's KDJ window and the idx carrying it.
+    /// WRITER / READER: `timeframe.indicator` — the next bar rescans only when
+    /// the bar leaving the window was this extreme (glib `kdj.gleam:74-114`,
+    /// amortised O(1)). Born neutral; never read by the chart.
+    kdj_h: Float,
+    /// See `kdj_h` — the idx of the bar that set the cached high.
+    kdj_h_idx: Int,
+    /// Cached lowest-low of this bar's KDJ window and the idx carrying it.
+    /// WRITER / READER: `timeframe.indicator`; mirror of `kdj_h`.
+    kdj_l: Float,
+    /// See `kdj_l` — the idx of the bar that set the cached low.
+    kdj_l_idx: Int,
+    /// The YinLeaf / YangLeaf CMAs of frozen glib `databar.gleam:76-77` (the
+    /// four `inner_*` were retired there — Question 31 — and are not revived
+    /// here). WRITER: `timeframe.leaves` via `leaf.leaf_cma` (R3: the mean of
+    /// the selected `sma_tiny` series, not of price). READER: the chart through
+    /// `dashboard.data_bar_to_chart_bar`, and the next bar's `leaf_cma` as the
+    /// carried mean of the same YinLeaf / YangLeaf. Born 0.0.
+    yin_leaf_cma: Float,
+    yang_leaf_cma: Float,
   )
 }
 

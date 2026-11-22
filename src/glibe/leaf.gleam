@@ -28,14 +28,15 @@
 //// says what its body has to write (R19); `gleam build --warnings-as-errors`
 //// reports each one until it is written.
 ////
-//// R19 status (2026-11-17): 8 bodies filled — `born_yin/born_yang`,
+//// R19 status (2026-11-23): 9 bodies filled — `born_yin/born_yang`,
 //// `start_bar/end_bar/corner_bar`, `leaf_size` (R6 idx arithmetic),
-//// `cma_recurrence` (R3 forward step), and `leaf_depth` (R3 share of the
-//// selected MA, R26 field now landed with its consumer). Three remain:
-//// `leaf_cma` needs the twin's mean-reader fields on `DataBar` (not declared
-//// in this design), and `next_yin_leaf` / `next_yang_leaf` need the
-//// leaf-death/turn criterion that this skeleton's `///` does not specify.
-//// Recorded in `docs/PENDING_DECISIONS.md` R.5; none is invented here.
+//// `cma_recurrence` (R3 forward step), `leaf_depth` (R3 share of the selected
+//// MA), and `leaf_cma` (2026-11-23: the twin-mean fields `yin_leaf_cma` /
+//// `yang_leaf_cma` now live on `DataBar`, so it reads them off the head; ported
+//// from frozen glib `leaf.gleam:147-159`). Two remain: `next_yin_leaf` /
+//// `next_yang_leaf` need the leaf-death/turn criterion that this skeleton's
+//// `///` does not specify — a registered open point in
+//// `docs/PENDING_DECISIONS.md` R.5, NOT invented here.
 
 import gleam/int
 import gleam/option.{type Option, None, Some}
@@ -178,7 +179,17 @@ pub fn leaf_cma(
   databar_list: List(DataBar),
   leaf: DataLeaf,
 ) -> Float {
-  todo as "05-01: pick the twin's mean reader and call cma_recurrence on the head of databar_list"
+  // R3: the twin of the SAME polarity carries the previous mean; the raw
+  // value averaged is the selected MA (sma_tiny), never the price. Ported from
+  // the frozen glib leaf.gleam:147-159. cma_recurrence reads the previous twin
+  // off the newest-first head in O(1); a leaf born this bar returns its own MA.
+  let prev_cma_of: fn(DataBar) -> Float = case leaf {
+    YinLeaf(_, _, _) -> fn(b: DataBar) { b.yin_leaf_cma }
+    YangLeaf(_, _, _) -> fn(b: DataBar) { b.yang_leaf_cma }
+  }
+  cma_recurrence(databar, databar_list, start_bar(leaf).idx, prev_cma_of, fn(b) {
+    b.sma_tiny
+  })
 }
 
 /// One bar of a yin leaf's life. `timeframe.leaves` reads
@@ -192,7 +203,23 @@ pub fn next_yin_leaf(
   leaf: DataLeaf,
   last_bar: DataBar,
 ) -> #(Option(DataLeaf), DataLeaf) {
-  todo as "05-01: settle with end_bar last_bar, birth the next leaf on databar, move corner_bar otherwise"
+  // Frozen glib `leaf.gleam:212-223` (leaf law 3): a yin leaf dies on a new
+  // HIGH sma_tiny above its OWN start (the threshold is read off the bar the
+  // leaf holds, no list walked). It settles ending at `last_bar` — the killing
+  // bar belongs to the newborn, which starts and corners on it.
+  case databar.sma_tiny >. start_bar(leaf).sma_tiny {
+    True -> #(
+      Some(YinLeaf(start_bar(leaf), Some(last_bar), corner_bar(leaf))),
+      YinLeaf(databar, None, databar),
+    )
+    // Otherwise the leaf lives on: a new LOW moves the corner, else the corner
+    // is held. Start never moves while the leaf is alive.
+    False ->
+      case databar.sma_tiny <. corner_bar(leaf).sma_tiny {
+        True -> #(None, YinLeaf(start_bar(leaf), None, databar))
+        False -> #(None, YinLeaf(start_bar(leaf), None, corner_bar(leaf)))
+      }
+  }
 }
 
 /// The mirror of `next_yin_leaf` for a yang leaf. `timeframe.leaves` writes
@@ -203,5 +230,17 @@ pub fn next_yang_leaf(
   leaf: DataLeaf,
   last_bar: DataBar,
 ) -> #(Option(DataLeaf), DataLeaf) {
-  todo as "05-01: settle with end_bar last_bar, birth the next leaf on databar, move corner_bar otherwise"
+  // Frozen glib `leaf.gleam:236-246` — the polarity mirror: a yang leaf dies
+  // on a new LOW sma_tiny below its own start and corners on a new HIGH.
+  case databar.sma_tiny <. start_bar(leaf).sma_tiny {
+    True -> #(
+      Some(YangLeaf(start_bar(leaf), Some(last_bar), corner_bar(leaf))),
+      YangLeaf(databar, None, databar),
+    )
+    False ->
+      case databar.sma_tiny >. corner_bar(leaf).sma_tiny {
+        True -> #(None, YangLeaf(start_bar(leaf), None, databar))
+        False -> #(None, YangLeaf(start_bar(leaf), None, corner_bar(leaf)))
+      }
+  }
 }

@@ -38,6 +38,7 @@ import glibe/api/symbol.{type Symbol, string_to_symbol}
 import glibe/binance/kline.{type BinanceKline}
 import glibe/branch
 import glibe/broker.{type Broker}
+import glibe/config.{type IntervalSettings}
 import glibe/databar.{type DataBar}
 import glibe/desk.{type Desk}
 import glibe/ib/sourcebar as ib_sourcebar
@@ -51,23 +52,28 @@ pub fn main() {
   gleeunit.main()
 }
 
-/// R40 / R41: every step of the straight line is ONE shape, so the body of
-/// `databar_processing` can be a single pipe. A step that starts taking a
-/// bar, or returning anything but `Timeframe`, fails to compile here.
+/// R40 / R40-A / R41: every step of the straight line has the subject FIRST
+/// and returns `Timeframe`; steps that need numbers take `IntervalSettings`
+/// as a pipe-call argument (not a `Timeframe` field, R46). A step that takes
+/// a bar, or returns anything but `Timeframe`, fails to compile here.
 pub fn pipeline_steps_shape_test() {
-  let _steps: List(fn(Timeframe) -> Timeframe) = [
+  let _with_settings: List(fn(Timeframe, IntervalSettings) -> Timeframe) = [
     timeframe.indicator,
-    timeframe.leaves,
     timeframe.branches,
+  ]
+  let _plain: List(fn(Timeframe) -> Timeframe) = [
+    timeframe.leaves,
     timeframe.strategy,
     timeframe.working_databar_archived,
   ]
   Nil
 }
 
-/// R40: the whole line is itself one `fn(Timeframe) -> Timeframe` step.
+/// R40-A: the whole line takes `Timeframe` first and the settings it hands
+/// to the two steps that need numbers; it returns `Timeframe`.
 pub fn databar_processing_shape_test() {
-  let _line: fn(Timeframe) -> Timeframe = timeframe.databar_processing
+  let _line: fn(Timeframe, IntervalSettings) -> Timeframe =
+    timeframe.databar_processing
   Nil
 }
 
@@ -114,14 +120,30 @@ fn listed_bar(idx: Int) -> DataBar {
     volume: 0,
     signal: signal.SignalNoSignal,
     sma_tiny: 0.0,
+    sma_small: 0.0,
     sma_medium: 0.0,
+    sma_large: 0.0,
+    sma_huge: 0.0,
     yin_leaf_cma: 0.0,
     yang_leaf_cma: 0.0,
     k: 0.0,
     d: 0.0,
     j: 0.0,
+    m: 0.0,
+    bb_m: 0.0,
     bb_u3: 0.0,
     bb_l3: 0.0,
+    bb_u2: 0.0,
+    bb_u1: 0.0,
+    bb_l1: 0.0,
+    bb_l2: 0.0,
+    sigma_n: 0,
+    sigma_mean: 0.0,
+    sigma_m2: 0.0,
+    kdj_h: 0.0,
+    kdj_h_idx: 0,
+    kdj_l: 0.0,
+    kdj_l_idx: 0,
   )
 }
 
@@ -138,14 +160,30 @@ fn ma_bar(idx: Int, sma: Float) -> DataBar {
     volume: 0,
     signal: signal.SignalNoSignal,
     sma_tiny: sma,
+    sma_small: 0.0,
     sma_medium: 0.0,
+    sma_large: 0.0,
+    sma_huge: 0.0,
     yin_leaf_cma: 0.0,
     yang_leaf_cma: 0.0,
     k: 0.0,
     d: 0.0,
     j: 0.0,
+    m: 0.0,
+    bb_m: 0.0,
     bb_u3: 0.0,
     bb_l3: 0.0,
+    bb_u2: 0.0,
+    bb_u1: 0.0,
+    bb_l1: 0.0,
+    bb_l2: 0.0,
+    sigma_n: 0,
+    sigma_mean: 0.0,
+    sigma_m2: 0.0,
+    kdj_h: 0.0,
+    kdj_h_idx: 0,
+    kdj_l: 0.0,
+    kdj_l_idx: 0,
   )
 }
 
@@ -279,14 +317,30 @@ pub fn sourcebar_to_databar_birth_test() {
       volume: 100,
       signal: signal.SignalNoSignal,
       sma_tiny: 0.0,
+      sma_small: 0.0,
       sma_medium: 0.0,
-      yin_leaf_cma: 0.0,
-      yang_leaf_cma: 0.0,
+      sma_large: 0.0,
+      sma_huge: 0.0,
+      bb_m: 0.0,
+      bb_u3: 0.0,
+      bb_l3: 0.0,
+      bb_u2: 0.0,
+      bb_u1: 0.0,
+      bb_l1: 0.0,
+      bb_l2: 0.0,
+      sigma_n: 0,
       k: 0.0,
       d: 0.0,
       j: 0.0,
-      bb_u3: 0.0,
-      bb_l3: 0.0,
+      m: 0.0,
+      yin_leaf_cma: 0.0,
+      yang_leaf_cma: 0.0,
+      sigma_mean: 0.0,
+      sigma_m2: 0.0,
+      kdj_h: 0.0,
+      kdj_h_idx: 0,
+      kdj_l: 0.0,
+      kdj_l_idx: 0,
     )
     as "one whole bar born with the caller's idx and a neutral decision"
 }
@@ -404,14 +458,30 @@ pub fn databar_readers_test() {
       volume: 100,
       signal: signal.SignalBuy,
       sma_tiny: 0.0,
+      sma_small: 0.0,
       sma_medium: 0.0,
-      yin_leaf_cma: 0.0,
-      yang_leaf_cma: 0.0,
+      sma_large: 0.0,
+      sma_huge: 0.0,
+      bb_m: 0.0,
+      bb_u3: 0.0,
+      bb_l3: 0.0,
+      bb_u2: 0.0,
+      bb_u1: 0.0,
+      bb_l1: 0.0,
+      bb_l2: 0.0,
+      sigma_n: 0,
       k: 0.0,
       d: 0.0,
       j: 0.0,
-      bb_u3: 0.0,
-      bb_l3: 0.0,
+      m: 0.0,
+      yin_leaf_cma: 0.0,
+      yang_leaf_cma: 0.0,
+      sigma_mean: 0.0,
+      sigma_m2: 0.0,
+      kdj_h: 0.0,
+      kdj_h_idx: 0,
+      kdj_l: 0.0,
+      kdj_l_idx: 0,
     )
   assert databar.idx(bar) == 7 as "idx is the bar's stream index"
   assert databar.timestamp(bar) == ts as "absolute Timestamp, not a spelling"
