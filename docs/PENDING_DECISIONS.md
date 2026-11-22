@@ -19,10 +19,11 @@
 
 ## 需要你决定（只看这一节）
 
-### 当前 1 项（2026-11-23 02:xx，carrier）
+### 当前 1 项（2026-11-23，carrier / widget-set 入口）
 
-**决策 1 — identity keys 与 archived bar 如何到达 chart widget（03-01 BLOCKED）**。
+**决策 1 — app 层与 widget 层之间如何交换「要渲染哪些 chart + 哪个 bar」**。
 这是自 2026-11-19 清空以来第一个够格的架构决策项，不是工作项（R.5）、不是可推断的实现细节。
+两个面同源（model 无向下枚举入口 + widget state 隔离在 runtime），一起裁定：
 
 - **为什么必须你决定**：`runtime.update` 的 body 被两处 carrier 缺口堵死，两处都在 pinned
   `plushie_gleam` 0.6.0 源码里实测（详见 `.planning/phases/03-app-view/03-01-SUMMARY.md`）：
@@ -41,8 +42,19 @@
 - **待你指定**：用哪种 carrier 把 identity keys + archived bar 从数据流送到 widget 的 chart。
   选项由你裁定，我在这里不预设、不挑选（候选方向仅供你参考：扩充 `SourceBarArrived` payload
   并让 BEAM 侧注入 / 升级 plushie 版本取得 Custom-like 广播 / 别的机制）。
-- **不阻塞**：03-02（dashboard 的 WidgetDef/view 投影）不依赖 carrier，`view` 投影 `Desk`、
-  `push_one` 已填，可独立推进。
+- **同一决策的第二面 — `view(desk)` 如何知道要渲染哪些 chart（03-02 BLOCKED）**：
+  plushie 的 widget state 由 runtime 持有（`widget.build` 只把 def+props 放进节点 meta，
+  `plushie/widget.gleam:206-215`）；app 级 `view(desk) -> List(Node)` 必须为每个
+  (broker,symbol,interval) 生成一个 widget 占位节点，要知道"有哪些三元组"就得从
+  `Desk` 向下枚举。但 `desk.gleam:51-60` 只有 `get_broker`/`put_broker`，R50 明确删了
+  `timeframe_under`、"no function here walks from Desk down to Timeframe"（`:25-29`）。
+  glib 从没建过这个 app 级 view（用 JS lightweight-charts series），无冻结裁定可抄。
+  详见 `.planning/phases/03-app-view/03-02-SUMMARY.md`。**更正**：我先前在 03-01-SUMMARY
+  写"03-02 不依赖 carrier、可独立推进"——经源码审计，那是错的：`view` 与 carrier 同源被堵。
+  `dashboard` 中拿 state/props 参数的函数（chart_node/widget_view/widget_def/handle_event/
+  subscriptions）不依赖此决策，待 owner 放行即可按 GDLTDD 填。
+- **不阻塞的部分**：`push_one` / `data_bar_to_chart_bar` 已填；SpecShape→PropValue 的 API
+  （`plushie/canvas/shape.gleam:123-398`）真实存在，翻译器本身可独立实现和测试。
 
 ---
 

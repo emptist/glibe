@@ -71,6 +71,9 @@ owner to decide; none is assumed here.
 ## Open
 - `docs/PENDING_DECISIONS.md`: register the carrier as an owner decision item
   (first real decision-queue entry), with the file:line evidence above.
-- 03-02 (`dashboard` widget/view bodies) does NOT depend on the carrier: `view`
-  projects `Desk`, `push_one` is already filled. It can proceed independently —
-  proposed as the next executable work.
+- CORRECTED 2026-11-23 after source audit: 03-02's `view(desk)` DOES depend on the
+  same gap — plushie holds widget state in the runtime, and `view` would need to
+  enumerate (broker,symbol,interval) down from `Desk`, which R50 forbids (no
+  walk-down API). See `03-02-SUMMARY.md`. Only the state/props-parameterised
+  dashboard functions (chart_node/widget_view/widget_def/handle_event/
+  subscriptions) and the SpecShape→PropValue translator are independent.

@@ -41,7 +41,7 @@ Plans:
 
 Plans:
 - [ ] 03-01 (Task 1 done 2026-11-23 — carrier question answered from plushie 0.6.0 source: NO carrier; Task 2/3 BLOCKED on owner ruling, registered in PENDING_DECISIONS decision 1): fill `runtime.update` with the identity-key route → gate → `databar_processing` → archive → head-bar → stable-ID chart push sequence; resolve the carrier question from actual plushie 0.6.0 capability, not invention.
-- [ ] 03-02: fill `dashboard` widget/view bodies (`WidgetDef`, `SpecShape → Node` translation, per-(broker,symbol,interval) stable-ID composition) so `view(Desk) -> List(Node)` renders the Dashboard window.
+- [ ] 03-02 (source-audited 2026-11-23: rendering API real and usable; `view(desk)` BLOCKED on the same widget-set/carrier decision as 03-01 — R50 forbids enumerating Desk downward. state/props-parameterised bodies remain independently fillable pending owner go-ahead): fill `dashboard` widget/view bodies (`WidgetDef`, `SpecShape → Node` translation, per-(broker,symbol,interval) stable-ID composition) so `view(Desk) -> List(Node)` renders the Dashboard window.
 
 ### Phase 04: Full gate green
 **Goal**: no skeleton warnings remain; docs and package interface match code.
