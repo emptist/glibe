@@ -13,13 +13,40 @@
 > 弹选择卡片、不催答复、选项不预设推荐。全文见 `docs/RULINGS.md`
 > 「2026-11-15 08:27」。
 >
-> 最后更新：2026-11-23（决策区当前 0 项；一度误登的「carrier / widget-set」决策已撤销）
+> 最后更新：2026-11-23（决策区当前 1 项：03-01 发布点测试被 domain R.5 未完成步骤阻塞；
+> 一度误登的「carrier / widget-set」决策已撤销）
 
 ---
 
 ## 需要你决定（只看这一节）
 
-### 当前 0 项 —— 没有需要你回答的问题。
+### 当前 1 项 —— 03-01 发布点测试被 domain R.5 未完成步骤阻塞
+
+**问题**：`runtime.step` 必须调用 `timeframe.databar_processing` 才能满足 06-05 C1
+「归档完成 = 唯一发布点」，但 `databar_processing` 现在是
+`indicator |> leaves |> branches |> strategy |> working_databar_archived`
+（`src/glibe/timeframe.gleam:185-190`）；其中 `indicator` 已填绿，
+`leaves` / `branches` / `strategy` 仍是 `todo`（`:571, 580, 586`）。
+因此「归档后从 `databar_list` head 取一根 bar 并发布」的 RED→GREEN 测试无法执行：
+任何真实 `MsgSourceBarArrived` 都会在剩下的 `todo` 上崩溃。
+
+**为什么我不能自己定**：把那三步当无操作会直接违反 owner 的 model 完整性裁定
+（`.planning-archived-2026-11-20/phases/06-app-architecture/06-05-TRIGGER-RULING.md` C1：
+`working_databar` 为 `Some` 时每层 field 未写完，view 不得动）；而
+`docs/PENDING_DECISIONS.md` R.5（本文件 `:278-282`）已把
+`branch.branch_size` / `branch_stat` 的签名写成「属架构决策，保留 todo，不擅自改签名」。
+修签名会牵动 `DataBranch` 定义，属我不能发明的设计。
+
+**可选方向（不预设推荐）**：
+1. 先做 05-01 domain，按冻结 glib 补完 `leaves` / `branches` / `strategy`，并在本文件
+   另行裁定 `branch_size` / `branch_stat` 签名；然后回来跑 03-01 的发布点测试。
+2. 让 03-01 只在「已归档 Desk 状态」上验证发布（例如增加 closed `Msg` 变体表示归档完成），
+   不执行未完成 pipe；这需要裁定 C1 的实现位置是否允许从 update 外触发。
+3. 暂停 03-01，仅保留已提交的 wire / publish doc-first 骨架
+   （`7d7f5ef`），等 domain R.5 完成后再继续。
+
+**已做且不受影响**：`wire.gleam` / `publish.gleam` / `message.gleam` / `runtime.gleam`
+的 doc-first 骨架已落并提交；编译探针通过；临时探针已删。未填任何 body，未改 domain。
 
 **撤销记录（2026-11-23，owner 当面纠正）**：我一度把「app 层与 widget 层如何交换要渲染的
 chart + bar」登记为决策 1，声称两处 carrier 缺口（Msg 无 identity keys、app.update 够不到

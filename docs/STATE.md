@@ -4,7 +4,22 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-23 (当前状态 — plan 02-01 完整指标集 + 02-02 四 helper 已落地，未提交)
+## 2026-11-23 (最新 — Phase 03 计划定稿，03-01 doc-first 骨架已提交，发布点测试被 domain R.5 阻塞)
+
+- **计划**：`b96ee8b` 03-00 架构研究；`7785cd6` 重写 03-01/03-02/03-03。结论：一个 App、一个
+  `Desk`，chart 是 View 的 widget state，归档后 targeted `CustomWidget` 单 bar 推送；
+  不照抄 try_plushie 的一图一 App（证据与反例见 `03-00-ARCH-FINDINGS.md`）。
+- **03-01 骨架**：`7d7f5ef` 新增 `app/wire.gleam` / `app/publish.gleam`，改
+  `app/message.gleam` / `app/runtime.gleam` 的 `////`/`///` 与签名；编译探针通过、临时探针已删。
+  未填 body。计划中固定 command tag 会在连续同图 bar 时互相取消，已自动改为按
+  `(chart id, bar idx)` 唯一 tag（SUMMARY 待写）。
+- **阻塞（真实，非签名确认）**：`runtime.step` 必须走 `databar_processing`（06-05 C1），
+  但 `leaves`/`branches`/`strategy` 仍是 todo（`timeframe.gleam:571/580/586`）；
+  `branch_size`/`branch_stat` 签名被记为架构决策（`PENDING_DECISIONS.md:278-282`）。
+  详情与三个方向已写入 `docs/PENDING_DECISIONS.md` 决策区。
+- **决策区当前 1 项**；工作树干净。
+
+## 2026-11-23 (历史 — plan 02-01 完整指标集 + 02-02 四 helper 已落地)
 
 - **02-02（同日，GDLTDD）**：8 个 leaf/branch helper 逐个对照冻结 glib 审计——
   4 个规则完整、签名一致的按 RED→GREEN 填实：`leaf.next_yin_leaf`/`next_yang_leaf`
