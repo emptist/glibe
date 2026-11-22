@@ -37,9 +37,12 @@ sections are kept as history, not as the current answer.
   Timeframe / 结构 / 依赖末端）；保留 20 处合法（owner 逐字原话、R33 规则陈述本身、专指
   YinLeaf/YangLeaf）。铁律写入项目 MEMORY.md。
 - **未做（R.5 开放点，不臆造）**：`leaves`/`branches`/`strategy` step 及其 helper 仍 todo
-  （叶子死亡判据、branch Option 签名、策略规则未裁决；PENDING 决策区 0 项，属工作项非待决）。
+  （死亡判据、branch Option 签名、策略规则未裁决；这些属工作项非待决，不进 PENDING）。
   gate 仍未读 interval 选 config（无 in-scope 消费方，插入会造 WAE unused）。
-- 决策区仍 0 项。旧 2026-11-21 节降为历史。
+- **决策区当前 1 项（2026-11-23）**：`docs/PENDING_DECISIONS.md`「需要你决定」节的决策 1
+  = app 层与 widget 层之间 carrier / widget-set 入口，两面同源（入口 identity keys/bar +
+  `view(desk)` 如何枚举 widget），卡住 03-01/03-02。旧「决策区 0 项」是 11-19 历史状态，
+  已随本轮更正。旧 2026-11-21 节降为历史。
 
 ## 2026-11-21 (历史 — interval 来源 = SourceBar 变体 + 二选一；planning 重建已落地)
 
