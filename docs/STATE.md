@@ -4,20 +4,21 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-23 (最新 — Phase 03 计划定稿，03-01 doc-first 骨架已提交，发布点测试被 domain R.5 阻塞)
+## 2026-11-23 (最新 — owner 纠正顺序：先补完 model 再做 View；决策区两次误登全部撤销)
 
-- **计划**：`b96ee8b` 03-00 架构研究；`7785cd6` 重写 03-01/03-02/03-03。结论：一个 App、一个
-  `Desk`，chart 是 View 的 widget state，归档后 targeted `CustomWidget` 单 bar 推送；
-  不照抄 try_plushie 的一图一 App（证据与反例见 `03-00-ARCH-FINDINGS.md`）。
-- **03-01 骨架**：`7d7f5ef` 新增 `app/wire.gleam` / `app/publish.gleam`，改
-  `app/message.gleam` / `app/runtime.gleam` 的 `////`/`///` 与签名；编译探针通过、临时探针已删。
-  未填 body。计划中固定 command tag 会在连续同图 bar 时互相取消，已自动改为按
-  `(chart id, bar idx)` 唯一 tag（SUMMARY 待写）。
-- **阻塞（真实，非签名确认）**：`runtime.step` 必须走 `databar_processing`（06-05 C1），
-  但 `leaves`/`branches`/`strategy` 仍是 todo（`timeframe.gleam:571/580/586`）；
-  `branch_size`/`branch_stat` 签名被记为架构决策（`PENDING_DECISIONS.md:278-282`）。
-  详情与三个方向已写入 `docs/PENDING_DECISIONS.md` 决策区。
-- **决策区当前 1 项**；工作树干净。
+- **顺序纠正（owner 当面）**：*"你 model 都没做完，你去做什么 View？"* ——
+  `databar_processing` 的四步里 `leaves`/`branches`/`strategy` 仍是 todo，
+  `branch.gleam` 仍有 `branch_size`/`branch_stat`/`branch_exit_leaf_size` 三个 todo。
+  Phase 03 依赖 Phase 02，我却先做了 View 的计划和骨架，再把由此产生的"阻塞"包装成
+  决策推给 owner。已撤回该决策（同日第二次，见 `PENDING_DECISIONS.md`），回到 model。
+- **撤销的两项决策**：① carrier / widget-set；② domain R.5 阻塞 03-01。
+  两项都是把按计划该自己做的实现工作当成 owner 决策。决策区恢复 **0 项**。
+- **仍有效的事实**：`b96ee8b`/`7785cd6` 的 03-00 架构研究 + 三份 Phase 03 计划、
+  `7d7f5ef` 的 03-01 doc-first 骨架（wire/publish/message/runtime）均已提交，未填 body；
+  它们保留，但排在 Phase 02 完成之后。
+- **下一步**：按 `.planning/phases/02-domain-stream/02-01-PLAN.md` Task 3 与
+  `02-02-PLAN.md` Task 3，用 GDLTDD 补完六个 todo（规则全部来自冻结 glib，
+  growing branch 签名按 Option 修、更新真实调用方），然后才回 03-01。
 
 ## 2026-11-23 (历史 — plan 02-01 完整指标集 + 02-02 四 helper 已落地)
 
