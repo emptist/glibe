@@ -1,8 +1,15 @@
-# 03-01 — runtime.update publish path (SUMMARY — PARTIAL: Task 1 done, Task 2/3 BLOCKED)
+# 03-01 — runtime.update publish path (SUMMARY — RETRACTED fake block; body is in-plan work)
 
-Date: 2026-11-23. Executed per plan `03-01-PLAN.md`. No signature or body changed;
-only `src/glibe/app/runtime.gleam`'s `////` and the `update` todo text were updated
-to carry the source-measured carrier finding. Gate still green (86 passed).
+Date: 2026-11-23. **Correction (owner, same day): the "carrier gap / owner decision"
+this file originally recorded was my invention, not a real block — RETRACTED.** I had
+fabricated composite widgets with runtime-held state and then declared app `update`
+could not reach them; that design is neither plushie's MVU nor glibe's recorded design.
+The measured facts (plushie 0.6.0 Event has no Custom; `update` takes only the model;
+`SourceBarArrived` is a placeholder) were true but their conclusion was wrong. Full
+retraction with owner's words: `docs/PENDING_DECISIONS.md` (queue back to 0) and
+`docs/STATE.md`. Below is kept as the historical record of that wrong turn, not as a
+statement of a real block. `runtime.update` is ordinary in-plan implementation
+(03-01-PLAN Tasks 2/3), not a decision awaiting the owner.
 
 ## Task 1 (DONE): the carrier question, answered from plushie 0.6.0 SOURCE
 

@@ -39,10 +39,15 @@ sections are kept as history, not as the current answer.
 - **未做（R.5 开放点，不臆造）**：`leaves`/`branches`/`strategy` step 及其 helper 仍 todo
   （死亡判据、branch Option 签名、策略规则未裁决；这些属工作项非待决，不进 PENDING）。
   gate 仍未读 interval 选 config（无 in-scope 消费方，插入会造 WAE unused）。
-- **决策区当前 1 项（2026-11-23）**：`docs/PENDING_DECISIONS.md`「需要你决定」节的决策 1
-  = app 层与 widget 层之间 carrier / widget-set 入口，两面同源（入口 identity keys/bar +
-  `view(desk)` 如何枚举 widget），卡住 03-01/03-02。旧「决策区 0 项」是 11-19 历史状态，
-  已随本轮更正。旧 2026-11-21 节降为历史。
+- **决策区当前 0 项**（2026-11-23 owner 当面纠正后恢复）：我一度误登的「carrier / widget-set」
+  决策 1 已整条撤销——那是我没读已有设计就凭自造的 widget-state 架构造出的假缺口。owner 逐字：
+  *"你提了一大段貌似专业实则愚蠢的问题……你无视 plushie 的基本技术架构 view-model-update，
+  也无视我反复要求并追问你的，Desk model 下的多broker 多 instrument 多 timeframe 如何在
+  View层面在 App中同时运行的设计要求如何实现，你也完全无视本项目中多次记录下的我的直接
+  指导意见。"* 设计本已在库（归档 06-02 §G + `dashboard.gleam ////` + try_plushie 实证）：
+  chart 状态在 app model（MVU），一个 stable-ID chart per (broker,symbol,interval)，glibe 一个
+  App（RULINGS:5408）。`runtime.update`/`view(desk)` 是按计划待填的实现工作，不是待决项。撤销
+  全文见 `docs/PENDING_DECISIONS.md`。旧 2026-11-21 节降为历史。
 
 ## 2026-11-21 (历史 — interval 来源 = SourceBar 变体 + 二选一；planning 重建已落地)
 

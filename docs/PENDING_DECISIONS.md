@@ -13,48 +13,45 @@
 > 弹选择卡片、不催答复、选项不预设推荐。全文见 `docs/RULINGS.md`
 > 「2026-11-15 08:27」。
 >
-> 最后更新：2026-11-23 02:36（决策区重新有 1 项：carrier / widget-set 入口）
+> 最后更新：2026-11-23（决策区当前 0 项；一度误登的「carrier / widget-set」决策已撤销）
 
 ---
 
 ## 需要你决定（只看这一节）
 
-### 当前 1 项（2026-11-23，carrier / widget-set 入口）
+### 当前 0 项 —— 没有需要你回答的问题。
 
-**决策 1 — app 层与 widget 层之间如何交换「要渲染哪些 chart + 哪个 bar」**。
-这是自 2026-11-19 清空以来第一个够格的架构决策项，不是工作项（R.5）、不是可推断的实现细节。
-两个面同源（model 无向下枚举入口 + widget state 隔离在 runtime），一起裁定：
+**撤销记录（2026-11-23，owner 当面纠正）**：我一度把「app 层与 widget 层如何交换要渲染的
+chart + bar」登记为决策 1，声称两处 carrier 缺口（Msg 无 identity keys、app.update 够不到
+widget state）堵死 `runtime.update` / `view(desk)`，要 owner 裁定。**这是错的，整条撤回**——
+不是新问题，是我没读本已有设计就凭自己发明的架构造出来的缺口。owner 原话：
+*"你提了一大段貌似专业实则愚蠢的问题……你无视 plushie 的基本技术架构 view-model-update，
+也无视我反复要求并追问你的，Desk model 下的多broker 多 instrument 多 timeframe 如何在
+View层面在 App中同时运行的设计要求如何实现，你也完全无视本项目中多次记录下的我的直接
+指导意见。"*
 
-- **为什么必须你决定**：`runtime.update` 的 body 被两处 carrier 缺口堵死，两处都在 pinned
-  `plushie_gleam` 0.6.0 源码里实测（详见 `.planning/phases/03-app-view/03-01-SUMMARY.md`）：
-  1. **入口**：`app/message.gleam:67-69` 的 `SourceBarArrived` 只有 placeholder
-     构造器，不带 `BrokerId`/`Symbol`/`Interval` → update 无法路由到目标 Timeframe；
-  2. **出口**：app `update` 签名 `fn(model,msg)->#(model,Command(msg))`
-     （`plushie/app.gleam:143-148`）只拿到 model，拿不到 widget state；chart state 由
-     runtime 持在 `WidgetDef` 里，只能经 `handle_event` 改（`widget.gleam:68-89`）；
-     `command.dispatch`/`Done` 把值送回 app.update 而非 widget（`command.gleam:20-51,291`）；
-  3. `Event` 无 `Custom`（`plushie/event.gleam:33-58`）——冻结 owner 裁定 06-02 B3
-     原文（归档 `06-02-CHALLENGES.md:41-44`）已明说："shared-actor 广播若要用 Custom，
-     须先核对包版本"。我不发明 `event.Custom`。
-- **我不能自己定的原因**：create-plans deviation rule 4（结构性改动→停下问）+ owner 逐字
-  "遇到不能决断的危险事件，需要问我"。骨架原有 KNOWN GAP（`runtime.gleam:41-47`）也从一开始
-  就声明 carrier 待裁决。
-- **待你指定**：用哪种 carrier 把 identity keys + archived bar 从数据流送到 widget 的 chart。
-  选项由你裁定，我在这里不预设、不挑选（候选方向仅供你参考：扩充 `SourceBarArrived` payload
-  并让 BEAM 侧注入 / 升级 plushie 版本取得 Custom-like 广播 / 别的机制）。
-- **同一决策的第二面 — `view(desk)` 如何知道要渲染哪些 chart（03-02 BLOCKED）**：
-  plushie 的 widget state 由 runtime 持有（`widget.build` 只把 def+props 放进节点 meta，
-  `plushie/widget.gleam:206-215`）；app 级 `view(desk) -> List(Node)` 必须为每个
-  (broker,symbol,interval) 生成一个 widget 占位节点，要知道"有哪些三元组"就得从
-  `Desk` 向下枚举。但 `desk.gleam:51-60` 只有 `get_broker`/`put_broker`，R50 明确删了
-  `timeframe_under`、"no function here walks from Desk down to Timeframe"（`:25-29`）。
-  glib 从没建过这个 app 级 view（用 JS lightweight-charts series），无冻结裁定可抄。
-  详见 `.planning/phases/03-app-view/03-02-SUMMARY.md`。**更正**：我先前在 03-01-SUMMARY
-  写"03-02 不依赖 carrier、可独立推进"——经源码审计，那是错的：`view` 与 carrier 同源被堵。
-  `dashboard` 中拿 state/props 参数的函数（chart_node/widget_view/widget_def/handle_event/
-  subscriptions）不依赖此决策，待 owner 放行即可按 GDLTDD 填。
-- **不阻塞的部分**：`push_one` / `data_bar_to_chart_bar` 已填；SpecShape→PropValue 的 API
-  （`plushie/canvas/shape.gleam:123-398`）真实存在，翻译器本身可独立实现和测试。
+设计本已在库里，只需照做，无需裁决：
+- **图表状态在 model 里，不在 runtime 持有的 widget state 里**。try_plushie 的实证
+  （`try_plushie.gleam:97-123` `ChartModel` 持 `chart`；`:247-263` `ingest_bar` 在 `update`
+  内 push；`:430-467` `chart_view(model)` 读它）就是标准 MVU。plushie 的 model 可以是任意
+  Gleam 类型；把 chart 放进 app model 后 `update` 直接可写 —— 我说的"够不到 widget state"
+  只在我自造的 composite-widget 方案里成立，而该方案 try_plushie 从未用过。
+- **多 broker × 多 instrument × 多 timeframe 在 view 层同时运行** = 一个 stable-ID chart per
+  (broker,symbol,interval)，身份在 key；这一设计早写在归档 `06-02-CHALLENGES.md` §G 和
+  `src/glibe/app/dashboard.gleam` 的 `////`（"one stable-ID widget per triple"、
+  "view consumes only SpecShape IR"）。glib `SYSTEM_MODEL.md:1457-1474` 的 subject-as-model
+  与 `:1501-1504` 的 top-Desk-holds-brokers 是同一件事的 model 侧表述。
+- **glibe 是一个 App，不是 N App**：`RULINGS.md:5408` 记官方 composition-patterns 逐字
+  "All windows share the same model, update, and view"。§31.6 的"desk 独立成 App"属
+  try_plushie 实验，其 type/业务流按 `RULINGS.md:5401` 不照抄。
+- **一周目的「无 carrier」实测发现**（plushie 0.6.0 `Event` 无 `Custom`、update 签名只拿
+  model、`SourceBarArrived` 是 placeholder）本身是正确的事实，但结论错：它证明的是"我那套
+  widget-state 方案走不通"，不是"设计缺一个 carrier 要 owner 裁决"。事实保留在本文件
+  `# REFERENCE` 与原 `03-01-SUMMARY.md`，不再当作待决项。
+
+工作性质更正：`runtime.update` / `view(desk)` 的 body 是**按计划正常待填的实现工作**，不是
+被架构缺口堵住、更不是待你指定方向。下一步 = 按 `03-01-PLAN` / `03-02-PLAN` 的 GDLTDD
+RED→GREEN 填体；不需要新的 owner 裁定。
 
 ---
 
@@ -76,9 +73,9 @@ target）已把视觉这半闭合。精确因果链与诚实边界见 `docs/RULI
 - `sourcebar_list` 合法 / `sourcebar_buffer` 非法（owner 2026-11-17 10:16）。
 - web front 路线 + `webclient/` 收紧（owner 2026-11-19 00:03，本条）。
 
-owner 逐字全文与查证链：`docs/RULINGS.md` 对应各日期节。**当时**（2026-11-19 00:03）
-决策区为 0 项；此后 2026-11-23 新增了本文件顶部的决策 1（carrier / widget-set），
-当前不是 0 项。
+owner 逐字全文与查证链：`docs/RULINGS.md` 对应各日期节。决策区自 2026-11-19 00:03
+起为 0 项；2026-11-23 一度误登的「决策 1」（carrier / widget-set）当日即被 owner 纠正
+并整条撤销（见本文件顶部撤销记录），**当前仍为 0 项**。
 
 ---
 

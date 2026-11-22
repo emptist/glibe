@@ -38,37 +38,34 @@
 //// READS: `Desk` + `Msg` (from `app/message.gleam`). WRITES: a new `Desk`
 //// through the level-owned read / write pairs; returns a `Command(Msg)`.
 ////
-//// KNOWN GAP — CARRIER (03-01 Task 1, resolved from plushie 0.6.0 SOURCE, no
-//// invention; re-checked 2026-11-23). TWO independent breaks block the
-//// `update` body, both measured in the pinned package:
-////   1. ENTRY: `Msg`'s `SourceBarArrived` is still a placeholder
-////      (`app/message.gleam:67-69`) and carries NO identity keys, so update
-////      cannot route a message to a target (BrokerId, Symbol, Interval).
-////   2. EXIT: plushie's app `update` is `fn(model, msg) -> #(model,
-////      Command(msg))` (`plushie/app.gleam:143-148`); it receives the MODEL,
-////      never a widget's state. A chart's accumulated state is held BY THE
-////      RUNTIME inside its `WidgetDef`, reachable only through
-////      `handle_event: fn(Event, state) -> #(EventAction, state)`
-////      (`plushie/widget.gleam:68-89`). The only app→widget command that
-////      carries a value is `command.dispatch(Dynamic, mapper)`
-////      (`plushie/command.gleam:291`), and it delivers back into the APP's
-////      `update`, not into a widget. `command.Renderer` variants carry widget
-////      /window ops only — none pushes a bar into chart state.
-////   3. `Event` has 12 variants and NO `Custom`
-////      (`plushie/event.gleam:33-58`) — pinned 0.6.0 matches the frozen glib
-////      ruling 06-02 B3 ("0.6.0 全树无 Custom 变体 … shared-actor 广播若要用
-////      Custom，须先核对包版本", archived `06-02-CHALLENGES.md:41-44`). So
-////      there is no typed wire from a BEAM-side bar into a widget's
-////      `handle_event` either.
-//// CONSEQUENCE: the archived bar CAN be read off `databar_list` head in the
-//// model, but delivering it to a widget's chart state has NO carrier in
-//// plushie 0.6.0's public API. This is an owner-level architecture decision
-//// (create-plans deviation rule 4; owner "遇到不能决断的危险事件需要问我"),
-//// never something to fabricate an `event.Custom` for. `update` stays `todo`
-//// until owner rules on the carrier. This skeleton fixes ONLY the confirmed
-//// MVU shape.
+//// THE APP MODEL HOLDS THE CHARTS (owner 2026-11-23 correction; MVU). An earlier
+//// draft of this section invented composite widgets with runtime-held state,
+//// then declared a "carrier gap" because app `update` could not reach that
+//// state. That was my own design, not plushie's and not the owner's — RETRACTED.
+//// The proven shape (try_plushie `src/try_plushie.gleam`: `ChartModel` holds
+//// `chart` at :97-123; `ingest_bar` pushes the archived bar into it inside
+//// `update` at :247-263; `chart_view(model)` reads it at :430-467) is plain MVU:
+//// the app model is an arbitrary Gleam value, so `update` writes the chart
+//// state directly — there is no separate widget whose state must be reached.
+//// glibe is ONE App (RULINGS.md:5408 — "All windows share the same model,
+//// update, and view"); the many brokers × instruments × timeframes are many
+//// stable-ID charts held in that one model, one per (broker,symbol,interval),
+//// exactly as the frozen design already says (06-02 §G; dashboard.gleam ////).
+////
+//// MEASURED FACTS (kept; they were never in dispute, only my conclusion was):
+//// `Event` has 12 variants and NO `Custom` (`plushie/event.gleam:33-58`); app
+//// `update` is `fn(model, msg) -> #(model, Command(msg))`
+//// (`plushie/app.gleam:143-148`). Neither blocks MVU: a SourceBar arrives as
+//// our closed `Msg` (`MsgSourceBarArrived`), carries its identity keys in the
+//// payload, and `update` writes the target chart in the app model. No
+//// `event.Custom` needs inventing. `SourceBarArrived` being a placeholder at
+//// `app/message.gleam:67-69` is simply an unfilled field of the skeleton, not
+//// an architectural void awaiting an owner ruling.
 ////
 //// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
+//// `update` is ordinary in-plan implementation (03-01-PLAN Tasks 2/3), NOT a
+//// blocked owner decision — the wrongly-filed "decision 1" was withdrawn
+//// 2026-11-23 (docs/PENDING_DECISIONS.md, queue back to 0).
 
 import gleam/dict
 import glibe/app/dashboard
@@ -98,5 +95,5 @@ pub fn init() -> #(Desk, Command(Msg)) {
 /// chart widget. Eye / voice Msgs follow their own boundaries and do NOT push
 /// a bar. See 06-05 C1/C2.
 pub fn update(desk: Desk, msg: Msg) -> #(Desk, Command(Msg)) {
-  todo as "03-01: route by identity keys -> gate -> databar_processing -> archive -> read databar_list head -> push to widget; BLOCKED on owner carrier ruling — Msg has no keys (message.gleam:67-69) and plushie 0.6.0 update cannot reach widget state (app.gleam:143-148, widget.gleam:68-89, event.gleam:33-58 no Custom)"
+  todo as "03-01: route by identity keys on MsgSourceBarArrived -> gate -> databar_processing -> archive -> read databar_list head -> push into the target chart held in the app model; identity keys are a Msg payload field (not a widget carrier), per MVU"
 }

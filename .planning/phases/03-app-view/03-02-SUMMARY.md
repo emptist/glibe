@@ -1,4 +1,13 @@
-# 03-02 — dashboard widget/view bodies (SUMMARY — AUDITED, BLOCKED at view; no body changed)
+# 03-02 — dashboard widget/view bodies (SUMMARY — RETRACTED fake block; body is in-plan work)
+
+> Correction (owner 2026-11-23): the "view blocked on same gap" finding below was
+> built on my invented composite-widget/runtime-held-state design — RETRACTED. The
+> design was already recorded (06-02 §G; `dashboard.gleam ////`): chart state lives
+> in the model (MVU, proven by try_plushie `ChartModel`), one stable-ID chart per
+> (broker,symbol,interval), glibe is one App (RULINGS.md:5408). `view(desk)` is
+> in-plan work, not blocked. The measured rendering-chain facts below (SpecShape
+> IR, shape→PropValue, canvas child Nodes) still stand. Retraction full text:
+> `docs/PENDING_DECISIONS.md`, `docs/STATE.md`.
 
 Date: 2026-11-23. Source audit of pinned plushie 0.6.0 + bar_stream_chart 1.2.1,
 per owner's "疑点先读源码/自己的文档". No signature or body changed. Gate green
