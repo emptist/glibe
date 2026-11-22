@@ -17,16 +17,18 @@
 //// READS: `plushie/event.Event` (the open framework event).
 //// WRITES: `Msg`, consumed by `app/runtime.gleam`'s update.
 ////
-//// VERSION NOTE (challenge B3): the current official guide 16 uses
-//// `event.Custom` for broadcast injection, but the pinned plushie_gleam 0.6.0
-//// has NO `Custom` Event variant. `on_event` needs only `fn(Event) -> Msg`, so
-//// this gate is version-safe; do not build Msg around `Custom`.
+//// VERSION NOTE (corrected 2026-11-23): the TOP-LEVEL `Event` of plushie_gleam
+//// 0.6.0 has no `Custom` variant (`plushie/event.gleam:33-58`), but
+//// `WidgetEvent.CustomWidget(kind, target, value, data)` DOES exist
+//// (`plushie/event.gleam:230`). The earlier "no Custom" conclusion used the
+//// wrong layer. `app/wire.gleam` owns both kinds; this gate only decodes them.
 ////
-//// R19 status: first body filled 2026-11-19 — `from_event` is the working
-//// line (RED→GREEN via `from_event_wraps_event_test`). All other bodies in this
-//// module are `todo as "..."`; the Speaker/SourceBar payloads stay placeholders
-//// until the BEAM-side injection carrier lands (not invented here).
+//// R19 status (2026-11-23): skeleton for 03-01. `Msg`, `VoiceEvent` and the
+//// typed `SourceBarArrived` alias are fixed; `from_event` is a `todo` until its
+//// new RED test proves the CustomWidget sourcebar gate. All pre-03-01 bodies
+//// were re-opened deliberately — no body may outrun its doc (R19/R44).
 
+import glibe/app/wire
 import plushie/event.{type Event}
 
 /// The three origins of an interaction, per owner's eye / ear-mouth split
@@ -61,28 +63,28 @@ pub type VoiceEvent {
   VoiceEventPlaceholder
 }
 
-/// A standard bar arriving on the one stream (R27/R28/R29): the instant,
-/// interval (in the key, R23) and the bar value. Kept as a value object so
-/// update stays a pure `Desk -> Desk` recompute (06-02 §D3 / R33).
-pub type SourceBarArrived {
-  SourceBarArrivedPlaceholder
-}
+/// A standard bar arriving on the one stream (R27/R28/R29). The full typed
+/// payload is owned by `app/wire.gleam`, the one module that writes and reads
+/// the CustomWidget kind; this alias keeps the Msg variants readable without
+/// creating a second type. The `publisher` Subject is a capability, not model
+/// state: main writes it, `runtime.update` reads it once to emit the publish
+/// command (R47).
+pub type SourceBarArrived =
+  wire.SourceBarArrived
 
 /// The gate from the OPEN framework Event to our CLOSED Msg (challenge B1/B2).
 /// Official `app.application` calls this `on_event` for every inbound WIRE event.
 ///
-/// THREE ENTRIES, NOT ONE (design solved here at doc level): the renderer wire
-/// carries only eye events, so `from_event` maps every framework Event to
-/// `MsgEye`. Voice and SourceBar do NOT come over the renderer wire — they are
-/// injected on the BEAM side with `plushie.dispatch_event` (official app-lifecycle:
-/// it enters the widget-handler chain and reaches `update` as any event). To
-/// carry a non-wire Msg through that path, the app wraps it as a framework Event
-/// carrying the value; the 0.6.0 pin has no `event.Custom` (challenge B3), so the
-/// exact carrier is resolved when the shared actor lands — NOT by inventing a
-/// Custom variant here. This is why Msg keeps all three origins explicit.
+/// THREE ENTRIES, NOT ONE: the renderer wire carries eye events, which map 1:1
+/// to `MsgEye`. SourceBar is injected on the BEAM side as a targeted
+/// `CustomWidget` event built by `app/wire.gleam`; its closed kind is decoded
+/// here into `MsgSourceBarArrived`. Every OTHER event — including any unknown
+/// CustomWidget kind — remains `MsgEye(event)`, so no input is dropped and no
+/// catch-all is needed over OUR Msg. Voice stays a placeholder until its own
+/// typed boundary lands; it never masquerades as an eye event.
 ///
-/// Total by construction: every framework Event -> `MsgEye(event)`. No panic,
-/// no dropped event, no catch-all over OUR Msg.
+/// R47 (readers/writers): `wire.sourcebar_event` writes the kind and payload;
+/// this function reads it; `runtime.update` consumes the resulting Msg.
 pub fn from_event(event: Event) -> Msg {
-  MsgEye(event)
+  todo as "03-01: wire.sourcebar_from_event -> MsgSourceBarArrived, else MsgEye"
 }
