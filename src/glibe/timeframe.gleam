@@ -90,6 +90,7 @@ import glibe/branch.{type DataBranch}
 import glibe/config.{type IntervalSettings}
 import glibe/databar.{type DataBar}
 import glibe/leaf.{type DataLeaf}
+import glibe/trading/signal
 
 /// One symbol at one interval — but it stores NEITHER as a name.
 /// `working_databar` is the bar being dealt with; `databar_list` holds the
@@ -569,7 +570,57 @@ fn rescan_window(
 /// Step: `YinLeaf` / `YangLeaf` recognition; a settled leaf is written into
 /// a FIELD so the next step needs no extra argument (R40 / R41).
 pub fn leaves(timeframe: Timeframe) -> Timeframe {
-  todo as "05-01: settle leaves into fields, return only Timeframe"
+  case timeframe.working_databar {
+    None -> timeframe
+    Some(working) -> {
+      // Frozen glib timeframe.gleam:515-535: born on this bar when growing is
+      // None; otherwise next_*_leaf settles / reborns. last_bar is the HEAD of
+      // databar_list (the bar before this one, not yet archived) — a growing
+      // leaf implies a prior bar, so this head exists; match it explicitly
+      // (no library let assert, core §7) and carry the leaf unchanged if not.
+      let previous = list.first(timeframe.databar_list)
+      let #(yin_settled, yin_grow) = case timeframe.growing_yin_leaf {
+        None -> #(None, leaf.born_yin(working))
+        Some(growing) ->
+          case previous {
+            Ok(last) -> leaf.next_yin_leaf(working, growing, last)
+            Error(_) -> #(None, growing)
+          }
+      }
+      let #(yang_settled, yang_grow) = case timeframe.growing_yang_leaf {
+        None -> #(None, leaf.born_yang(working))
+        Some(growing) ->
+          case previous {
+            Ok(last) -> leaf.next_yang_leaf(working, growing, last)
+            Error(_) -> #(None, growing)
+          }
+      }
+      // Frozen glib timeframe.gleam:542-545: the CMA is written onto the bar
+      // carried by the GROWING twin after this bar's growth (on a death bar,
+      // the newborn). leaf_cma reads the previous twin's CMA off the head in
+      // O(1); a bar born this bar returns its own sma_tiny.
+      let bar =
+        databar.DataBar(
+          ..working,
+          yin_leaf_cma: leaf.leaf_cma(working, timeframe.databar_list, yin_grow),
+          yang_leaf_cma: leaf.leaf_cma(
+            working,
+            timeframe.databar_list,
+            yang_grow,
+          ),
+        )
+      // R40/R42: settled leaves are FIELDS, not a tuple handed to branches;
+      // every step takes and returns only Timeframe.
+      Timeframe(
+        ..timeframe,
+        working_databar: Some(bar),
+        growing_yin_leaf: Some(yin_grow),
+        growing_yang_leaf: Some(yang_grow),
+        yin_leaf_settled: yin_settled,
+        yang_leaf_settled: yang_settled,
+      )
+    }
+  }
 }
 
 /// Step: branches; reads the settled leaf fields off the record and the
@@ -578,13 +629,123 @@ pub fn leaves(timeframe: Timeframe) -> Timeframe {
 /// `branch.next_yang_branch` / `next_yin_branch`. It arrives as a pipe-call
 /// argument (R40-A / R50), never as a `Timeframe` field (R46).
 pub fn branches(timeframe: Timeframe, settings: IntervalSettings) -> Timeframe {
-  todo as "02-01: read settled fields and settings.branch_exit_leaf_size, write branches, no bar argument"
+  case timeframe.working_databar {
+    None -> timeframe
+    Some(working) -> {
+      // Frozen glib timeframe.gleam:638-702. The exit count is THIS interval's
+      // branch rule, read from settings (R40-A: a pipe-call argument, never a
+      // Timeframe field, R46). The old no-arg branch.branch_exit_leaf_size()
+      // was deleted — this settings value is its one real consumer.
+      let exit_size = settings.branch_exit_leaf_size
+      // glib: yin leaves settle -> feed the YANG branch (the opposite polarity
+      // rides them, R2); the settled leaf's corner becomes its start_bar (R4/R5).
+      let yin_prev = timeframe.yin_leaf_settled
+      let yang_prev = timeframe.yang_leaf_settled
+      // A branch is recognised on the bar a leaf of the opposite class STARTS
+      // (R4): the growing twin's start_bar.idx == this bar. A growing twin
+      // implies `leaves` ran, so both are Some; match explicitly (core §7).
+      let yang_recognised = case timeframe.growing_yin_leaf {
+        Some(riding) -> start_idx_of_leaf(riding) == working.idx
+        None -> False
+      }
+      let yin_recognised = case timeframe.growing_yang_leaf {
+        Some(riding) -> start_idx_of_leaf(riding) == working.idx
+        None -> False
+      }
+      // glib: next_yang_branch rides the growing yin leaf; next_yin_branch
+      // rides the growing yang leaf. Both helpers are filled (02-02).
+      let #(yang_exited, yang_next) = case timeframe.growing_yin_leaf {
+        Some(riding) ->
+          branch.next_yang_branch(
+            timeframe.growing_yang_branch,
+            working,
+            yin_prev,
+            riding,
+            yang_recognised,
+            exit_size,
+          )
+        None -> #(None, timeframe.growing_yang_branch)
+      }
+      let #(yin_exited, yin_next) = case timeframe.growing_yang_leaf {
+        Some(riding) ->
+          branch.next_yin_branch(
+            timeframe.growing_yin_branch,
+            working,
+            yang_prev,
+            riding,
+            yin_recognised,
+            exit_size,
+          )
+        None -> #(None, timeframe.growing_yin_branch)
+      }
+      // An exited branch is prepended newest-first, O(1) (R39); none leaves
+      // the list unchanged. Growing branches are carried, never rebuilt.
+      let yang_branch_list = case yang_exited {
+        Some(closed) -> [closed, ..timeframe.yang_branch_list]
+        None -> timeframe.yang_branch_list
+      }
+      let yin_branch_list = case yin_exited {
+        Some(closed) -> [closed, ..timeframe.yin_branch_list]
+        None -> timeframe.yin_branch_list
+      }
+      Timeframe(
+        ..timeframe,
+        growing_yang_branch: yang_next,
+        growing_yin_branch: yin_next,
+        yang_branch_list: yang_branch_list,
+        yin_branch_list: yin_branch_list,
+      )
+    }
+  }
+}
+
+/// The idx of a leaf's `start_bar` — R4's one recognition comparison. Reads
+/// one field off the bar the leaf already holds; no list walk (R39).
+fn start_idx_of_leaf(riding: DataLeaf) -> Int {
+  leaf.start_bar(riding).idx
 }
 
 /// Step: the strategy decision, written as a `Signal` ON the working bar
 /// (R39). No `manual_enter` / `manual_exit` provisional fields.
 pub fn strategy(timeframe: Timeframe) -> Timeframe {
-  todo as "05-01: the decision lives on this very bar"
+  case timeframe.working_databar {
+    None -> timeframe
+    Some(working) -> {
+      // Frozen glib timeframe.gleam:738-754 + manual_signal (UC-62). The
+      // manual strategy trades ONLY the YangBranch: a yin branch's death is a
+      // branch-observer fact, not an action (a second strategy would be short
+      // selling, which UC-62 rules out). Recognition = its enter_bar is this
+      // bar; exit = the newest ended yang branch (list head) was found dead on
+      // this bar. Both readers are head/O(1), never a list search (R39).
+      let recognised_yang =
+        branch.recognised_this_bar(timeframe.growing_yang_branch, working.idx)
+      let exited_yang =
+        option.is_some(branch.exited_branch(
+          timeframe.yang_branch_list,
+          working.idx,
+        ))
+      let mark = manual_signal(recognised_yang, exited_yang)
+      // R39/R41: the signal is written onto the working bar — a bar is what
+      // gets archived and published; a signal left on Timeframe no chart can
+      // draw. No provisional manual_enter / manual_exit fields (owner 10-31).
+      Timeframe(
+        ..timeframe,
+        working_databar: Some(databar.DataBar(..working, signal: mark)),
+      )
+    }
+  }
+}
+
+/// The manual strategy's one output (UC-62, frozen glib `manual_signal`):
+/// recognised yang -> buy, exited yang -> sell, else no signal. A bar carries
+/// one mark; recognition and exit cannot collide (recognising a yang death
+/// births the opposite branch, never another yang).
+fn manual_signal(recognised_yang: Bool, exited_yang: Bool) -> signal.Signal {
+  case recognised_yang, exited_yang {
+    True, _ -> signal.SignalBuy
+    _, True -> signal.SignalSell
+    _, _ -> signal.SignalNoSignal
+  }
 }
 
 /// Archive the working databar into `databar_list`. Takes NO bar argument:

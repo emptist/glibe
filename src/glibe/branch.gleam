@@ -34,16 +34,20 @@
 //// what its body has to write (R19); `gleam build --warnings-as-errors`
 //// reports each one until it is written.
 ////
-//// R19 status (2026-11-17): 10 bodies filled — four bar readers,
+//// R19 status (2026-11-23): 12 bodies filled — four bar readers,
 //// `lower_case_type_name`, `recognised_this_bar`, `recognised_start_idx`,
-//// `exited_branch`, plus `move_between` / `recognised_move` (R3 share on the
-//// selected MA; R26 field now landed). Five remain: `branch_size`
-//// (growing branch has no exit_bar, yet the signature returns Int, not
-//// Option) and `branch_stat` (same Option problem via end_bar),
-//// `next_yang/yin_branch` + `branch_exit_leaf_size` (the closing count is
-//// per-interval in the reference — 40/8/2 — but this skeleton's
-//// `branch_exit_leaf_size()` takes no argument). Recorded in
-//// `docs/PENDING_DECISIONS.md` R.5; none is invented.
+//// `exited_branch`, `move_between` / `recognised_move` (R3 share on the
+//// selected MA), `next_yang/yin_branch` (closing rules from frozen glib
+//// `branch.gleam:346-424`), and `branch_size` / `branch_stat` (2026-11-23:
+//// signature corrected to `Option` — a growing branch has no exit_bar/end_bar,
+//// so a bare value was a type that let a wrong question be asked; R1 / core §2).
+//// No `todo` remains here. The old no-arg `branch_exit_leaf_size()` was DELETED:
+//// the closing count is per-interval and already lives in `config`'s
+//// `branch_exit_leaf_size` table, read by `config.for_interval` into
+//// `IntervalSettings.branch_exit_leaf_size` and passed by `timeframe.branches`
+//// to `next_yang/yin_branch`. A no-arg function had zero callers and could not
+//// express the interval it needs (R49 / core §5); the settings parameter chain
+//// IS its real consumer.
 
 import gleam/int
 import gleam/option.{type Option, None, Some}
@@ -115,9 +119,18 @@ pub fn exit_bar(branch: DataBranch) -> Option(DataBar) {
 }
 
 /// How many bars the branch spans, `start_bar` to `exit_bar`, both ends
-/// inclusive (R6). A growing branch has no `exit_bar` and no size.
-pub fn branch_size(branch: DataBranch) -> Int {
-  todo as "05-01: idx arithmetic, both ends included; never walk the branch lists"
+/// inclusive (R6). A growing branch has no `exit_bar` and therefore NO size —
+/// `None`, never a bare `Int` (R1: a wrong-but-well-formed value must be
+/// unrepresentable; core §2). `exit_bar.idx - start_bar.idx + 1`, no list walk.
+pub fn branch_size(branch: DataBranch) -> Option(Int) {
+  case exit_bar(branch) {
+    None -> None
+    Some(exit) -> {
+      let DataBar(idx: exit_idx, ..) = exit
+      let DataBar(idx: start_idx, ..) = start_bar(branch)
+      Some(exit_idx - start_idx + 1)
+    }
+  }
 }
 
 /// The polarity name a view projection reads to label a `YinBranch` or a
@@ -151,9 +164,13 @@ pub fn move_between(
 /// Three measurements of an ENDED branch: `branch_stat` reads `start_bar`
 /// and `end_bar` and hands them to `move_between`. A view projection reads
 /// the result off `yin_branch_list` / `yang_branch_list` (R20 / R30); a
-/// growing branch has no `end_bar` to measure (R1).
-pub fn branch_stat(branch: DataBranch) -> #(Float, Float, Float) {
-  todo as "05-01: move_between(start_bar, end_bar) for an ended branch"
+/// growing branch has no `end_bar` to measure, so the result is `None`
+/// (R1 / core §2), never a bare triple.
+pub fn branch_stat(branch: DataBranch) -> Option(#(Float, Float, Float)) {
+  case end_bar(branch) {
+    None -> None
+    Some(end) -> Some(move_between(start_bar(branch), end))
+  }
 }
 
 /// The actionable window of a branch, `enter_bar` to `exit_bar` (R11).
@@ -330,12 +347,10 @@ pub fn next_yin_branch(
       }
   }
 }
-
-/// How many bars the riding leaf may live before the branch closes (R5 /
-/// R6: `>=`, a length test, never a price test). This is THIS module's rule:
-/// `timeframe.branches` reads it and hands the value to
-/// `next_yang_branch` / `next_yin_branch`. No pipeline step carries it as
-/// an extra argument and no other layer owns a branch's closing rule (R50).
-pub fn branch_exit_leaf_size() -> Int {
-  todo as "05-01: the leaf length at which a branch is recognised as dead"
-}
+/// (DELETED 2026-11-23) The old `branch_exit_leaf_size() -> Int` had zero
+/// callers and no way to express the interval its per-interval value needs.
+/// The closing count now lives ONLY in `config`'s `branch_exit_leaf_size`
+/// table, selected by `config.for_interval` into
+/// `IntervalSettings.branch_exit_leaf_size`, read by `timeframe.branches`
+/// and handed to `next_yang_branch` / `next_yin_branch`. One owner (R50),
+/// no dead mechanism (core §5). See module `////`.
