@@ -40,7 +40,7 @@ Plans:
 **Plans**: 2 plans.
 
 Plans:
-- [ ] 03-01: fill `runtime.update` with the identity-key route → gate → `databar_processing` → archive → head-bar → stable-ID chart push sequence; resolve the carrier question from actual plushie 0.6.0 capability, not invention.
+- [ ] 03-01 (Task 1 done 2026-11-23 — carrier question answered from plushie 0.6.0 source: NO carrier; Task 2/3 BLOCKED on owner ruling, registered in PENDING_DECISIONS decision 1): fill `runtime.update` with the identity-key route → gate → `databar_processing` → archive → head-bar → stable-ID chart push sequence; resolve the carrier question from actual plushie 0.6.0 capability, not invention.
 - [ ] 03-02: fill `dashboard` widget/view bodies (`WidgetDef`, `SpecShape → Node` translation, per-(broker,symbol,interval) stable-ID composition) so `view(Desk) -> List(Node)` renders the Dashboard window.
 
 ### Phase 04: Full gate green
@@ -55,7 +55,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |---|---|---|---|
-| 1. Plan-reference integrity | 0/1 | Not started | - |
+| 1. Plan-reference integrity | 1/1 | Done | 01-01 done 2026-11-21 (24 plan refs repointed, archived paths zero, full gate green) |
 | 2. Domain stream completion | 1/2 | In progress | 02-02 done 2026-11-23 (4 helpers filled, 3 registered R.5); 02-01 indicator done, 3 steps still R.5 open |
 | 3. App view publish path | 0/2 | Not started | - |
 | 4. Full gate green | 0/1 | Not started | - |

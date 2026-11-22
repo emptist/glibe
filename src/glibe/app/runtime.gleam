@@ -38,13 +38,35 @@
 //// READS: `Desk` + `Msg` (from `app/message.gleam`). WRITES: a new `Desk`
 //// through the level-owned read / write pairs; returns a `Command(Msg)`.
 ////
-//// KNOWN GAP (not invented here): to route a bar to its widget, update needs
-//// the identity keys (BrokerId / Symbol / Interval). Whether they ride on
-//// `MsgSourceBarArrived`'s payload, and exactly how the archived bar reaches a
-//// widget's chart state under plushie 0.6.0, has NO counterpart in glib's
-//// design (glib used a JS lightweight-charts series). Those signatures stay
-//// `todo` until the owner rules on the carrier (06-02 B3: 0.6.0 has no
-//// `event.Custom`). This skeleton fixes ONLY the confirmed MVU shape.
+//// KNOWN GAP — CARRIER (03-01 Task 1, resolved from plushie 0.6.0 SOURCE, no
+//// invention; re-checked 2026-11-23). TWO independent breaks block the
+//// `update` body, both measured in the pinned package:
+////   1. ENTRY: `Msg`'s `SourceBarArrived` is still a placeholder
+////      (`app/message.gleam:67-69`) and carries NO identity keys, so update
+////      cannot route a message to a target (BrokerId, Symbol, Interval).
+////   2. EXIT: plushie's app `update` is `fn(model, msg) -> #(model,
+////      Command(msg))` (`plushie/app.gleam:143-148`); it receives the MODEL,
+////      never a widget's state. A chart's accumulated state is held BY THE
+////      RUNTIME inside its `WidgetDef`, reachable only through
+////      `handle_event: fn(Event, state) -> #(EventAction, state)`
+////      (`plushie/widget.gleam:68-89`). The only app→widget command that
+////      carries a value is `command.dispatch(Dynamic, mapper)`
+////      (`plushie/command.gleam:291`), and it delivers back into the APP's
+////      `update`, not into a widget. `command.Renderer` variants carry widget
+////      /window ops only — none pushes a bar into chart state.
+////   3. `Event` has 12 variants and NO `Custom`
+////      (`plushie/event.gleam:33-58`) — pinned 0.6.0 matches the frozen glib
+////      ruling 06-02 B3 ("0.6.0 全树无 Custom 变体 … shared-actor 广播若要用
+////      Custom，须先核对包版本", archived `06-02-CHALLENGES.md:41-44`). So
+////      there is no typed wire from a BEAM-side bar into a widget's
+////      `handle_event` either.
+//// CONSEQUENCE: the archived bar CAN be read off `databar_list` head in the
+//// model, but delivering it to a widget's chart state has NO carrier in
+//// plushie 0.6.0's public API. This is an owner-level architecture decision
+//// (create-plans deviation rule 4; owner "遇到不能决断的危险事件需要问我"),
+//// never something to fabricate an `event.Custom` for. `update` stays `todo`
+//// until owner rules on the carrier. This skeleton fixes ONLY the confirmed
+//// MVU shape.
 ////
 //// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
 
@@ -76,5 +98,5 @@ pub fn init() -> #(Desk, Command(Msg)) {
 /// chart widget. Eye / voice Msgs follow their own boundaries and do NOT push
 /// a bar. See 06-05 C1/C2.
 pub fn update(desk: Desk, msg: Msg) -> #(Desk, Command(Msg)) {
-  todo as "06-05 C1/C2: locate timeframe by identity keys -> gate -> databar_processing -> archive -> read databar_list head -> push to stable-ID chart widget; carrier for keys/bar pending owner ruling (06-02 B3)"
+  todo as "03-01: route by identity keys -> gate -> databar_processing -> archive -> read databar_list head -> push to widget; BLOCKED on owner carrier ruling — Msg has no keys (message.gleam:67-69) and plushie 0.6.0 update cannot reach widget state (app.gleam:143-148, widget.gleam:68-89, event.gleam:33-58 no Custom)"
 }

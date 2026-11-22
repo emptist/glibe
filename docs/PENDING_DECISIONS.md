@@ -19,9 +19,34 @@
 
 ## 需要你决定（只看这一节）
 
-### 当前 0 项（2026-11-19 00:03）
+### 当前 1 项（2026-11-23 02:xx，carrier）
 
-决策区已清空。**最后一项（原「"拒绝 JS target"要不要一并收紧 `webclient/`?」）**
+**决策 1 — identity keys 与 archived bar 如何到达 chart widget（03-01 BLOCKED）**。
+这是自 2026-11-19 清空以来第一个够格的架构决策项，不是工作项（R.5）、不是可推断的实现细节。
+
+- **为什么必须你决定**：`runtime.update` 的 body 被两处 carrier 缺口堵死，两处都在 pinned
+  `plushie_gleam` 0.6.0 源码里实测（详见 `.planning/phases/03-app-view/03-01-SUMMARY.md`）：
+  1. **入口**：`app/message.gleam:67-69` 的 `SourceBarArrived` 只有 placeholder
+     构造器，不带 `BrokerId`/`Symbol`/`Interval` → update 无法路由到目标 Timeframe；
+  2. **出口**：app `update` 签名 `fn(model,msg)->#(model,Command(msg))`
+     （`plushie/app.gleam:143-148`）只拿到 model，拿不到 widget state；chart state 由
+     runtime 持在 `WidgetDef` 里，只能经 `handle_event` 改（`widget.gleam:68-89`）；
+     `command.dispatch`/`Done` 把值送回 app.update 而非 widget（`command.gleam:20-51,291`）；
+  3. `Event` 无 `Custom`（`plushie/event.gleam:33-58`）——冻结 owner 裁定 06-02 B3
+     原文（归档 `06-02-CHALLENGES.md:41-44`）已明说："shared-actor 广播若要用 Custom，
+     须先核对包版本"。我不发明 `event.Custom`。
+- **我不能自己定的原因**：create-plans deviation rule 4（结构性改动→停下问）+ owner 逐字
+  "遇到不能决断的危险事件，需要问我"。骨架原有 KNOWN GAP（`runtime.gleam:41-47`）也从一开始
+  就声明 carrier 待裁决。
+- **待你指定**：用哪种 carrier 把 identity keys + archived bar 从数据流送到 widget 的 chart。
+  选项由你裁定，我在这里不预设、不挑选（候选方向仅供你参考：扩充 `SourceBarArrived` payload
+  并让 BEAM 侧注入 / 升级 plushie 版本取得 Custom-like 广播 / 别的机制）。
+- **不阻塞**：03-02（dashboard 的 WidgetDef/view 投影）不依赖 carrier，`view` 投影 `Desk`、
+  `push_one` 已填，可独立推进。
+
+---
+
+**历史 — 决策区曾为 0 项（2026-11-19 00:03）。最后一项（原「"拒绝 JS target"要不要一并收紧 `webclient/`?」）**
 由 owner 2026-11-19 00:03 裁定撤出。owner 逐字："你如果采用 bar_stream_chart
 就不在需要web front了是不是？这还需要裁决吗？" 结论：**不走 web front 路线**——
 web front 出局是既有「拒绝 JS target / BEAM 专属」裁定（11-15 08:16）的推论，
