@@ -4,21 +4,27 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-23 (最新 — owner 纠正顺序：先补完 model 再做 View；决策区两次误登全部撤销)
+## 2026-11-23 (最新 — Phase 02 domain 全部完成；决策区 0 项；工作树待提交本轮改动)
 
-- **顺序纠正（owner 当面）**：*"你 model 都没做完，你去做什么 View？"* ——
-  `databar_processing` 的四步里 `leaves`/`branches`/`strategy` 仍是 todo，
-  `branch.gleam` 仍有 `branch_size`/`branch_stat`/`branch_exit_leaf_size` 三个 todo。
-  Phase 03 依赖 Phase 02，我却先做了 View 的计划和骨架，再把由此产生的"阻塞"包装成
-  决策推给 owner。已撤回该决策（同日第二次，见 `PENDING_DECISIONS.md`），回到 model。
-- **撤销的两项决策**：① carrier / widget-set；② domain R.5 阻塞 03-01。
-  两项都是把按计划该自己做的实现工作当成 owner 决策。决策区恢复 **0 项**。
-- **仍有效的事实**：`b96ee8b`/`7785cd6` 的 03-00 架构研究 + 三份 Phase 03 计划、
-  `7d7f5ef` 的 03-01 doc-first 骨架（wire/publish/message/runtime）均已提交，未填 body；
-  它们保留，但排在 Phase 02 完成之后。
-- **下一步**：按 `.planning/phases/02-domain-stream/02-01-PLAN.md` Task 3 与
-  `02-02-PLAN.md` Task 3，用 GDLTDD 补完六个 todo（规则全部来自冻结 glib，
-  growing branch 签名按 Option 修、更新真实调用方），然后才回 03-01。
+- **顺序纠正（owner 当面）**：*"你 model 都没做完，你去做什么 View？"* —— 已先把
+  model 补完，再做 View。Phase 03 的计划和 03-01 骨架仍保留，但排在 Phase 02 之后。
+- **Phase 02 完成（GDLTDD，本轮）**：`test/domain_steps_test.gleam` 8 个 RED 测试先崩
+  （85 passed / 9 failures）→ 填 5 个 body + 删 1 个死函数 → GREEN **93 passed /
+  1 failure**（唯一失败是 Phase 03 既有的 `app_shape_test.from_event` todo）。
+  - `timeframe.leaves`/`branches`/`strategy` 按冻结 glib 填实：settled leaf 写字段
+    （R40/R42，非 glib 的 tuple）、exit 计数读 settings（R40-A）、Yang-only 手动策略
+    （UC-62）。无库内 panic，无 O(n²)。
+  - `branch.branch_size`/`branch_stat` 签名改 `Option`（growing branch 无 late bar →
+    None，R1）；零调用方，无需改调用点。
+  - `branch.branch_exit_leaf_size()` 无参零调用方 → 删除；值由 config 的 per-interval
+    表 → settings → branches 承载（R49/core §5/一 owner R50）。
+  - **domain 层 todo 清零**；WAE 21 Todo 全部在 app 层。
+- **门禁**：format --check 0 / check 0 / test 93 passed（1 known Phase 03 todo）/
+  docs build 0 / export 0 / WAE 1（仅 app 骨架 todo+unused，预期）。
+- **撤销的两项决策**：① carrier / widget-set；② domain R.5 阻塞 03-01。均为把按计划
+  该自己做的实现工作当 owner 决策；决策区恢复 **0 项**。
+- **下一步**：Phase 03（app/view）。仍按已提交的 03-01/03-02/03-03 计划，一个 App、
+  一个 Desk、chart 在 View widget state、归档后 targeted CustomWidget 单 bar 推送。
 
 ## 2026-11-23 (历史 — plan 02-01 完整指标集 + 02-02 四 helper 已落地)
 

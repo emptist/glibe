@@ -300,24 +300,26 @@ sourcebar 同构」。
       sma_tiny、corner 跟新低；yang 镜像），阈值读 leaf 自己 start_bar 的 sma_tiny。
       02-02 按 GDLTDD 用 5 个测试 RED→GREEN 填入。R38 说的是 glib 不作「设计正确」的
       证据，不等于 02-02-PLAN「用冻结实现规则填」这条授权失效。
-    - `branch.branch_size` / `branch_stat` 的**签名本身有问题**：growing branch
-      无 exit_bar / end_bar，签名却返回裸 `Int` / 裸三元组，不是 `Option`
-      （glib 用库内 `let assert` 掩盖，core §7 禁止库 panic）。正确的类型修复要让
-      参数本身携带「已结束」这一事实（牵动 `DataBranch` 定义），超出 02-02 范围，
-      属架构决策；`timeframe.strategy` 仍是 todo、无真实调用方。保留 todo，不擅自改签名。
+    - ~~`branch.branch_size` / `branch_stat` 的签名问题~~ **2026-11-23 已解决**：
+      growing branch 无 exit_bar / end_bar，签名改 `Option(Int)` /
+      `Option(#(Float,Float,Float))`，body 返回 `None`；无真实调用方，无需改调用点。
+      此前写作「属架构决策、保留 todo 不擅自改签名」是过度谨慎——owner 逐字
+      *"这些东西不需要我确认，你需要的是为这些东西的质量和准确性负责"*，
+      `02-02-PLAN` Task 3 本就授权「必要时改成 Option，属类型修复不是新机制」。
+      见 `02-02-SUMMARY.md` 续篇。
     - ~~`branch.next_yang/yin_branch`~~ **2026-11-23 已填**：关闭规则在冻结 glib
       `branch.gleam:346-424` 完整（按 recognition 出生、leaf_size>=exit_size 关闭、
       growing 原样 carry），签名已带 `branch_exit_leaf_size: Int` 参数（R40-A 消费方传入）。
       02-02 用 5 个测试 RED→GREEN 填入。
-    - `branch_exit_leaf_size()` 无参，但关闭计数按 interval 取值（D1=40 / W1=8 /
-      MO1=2），值已在 active `config.gleam` 的 `branch_exit_leaf_size: Dict(Interval,
-      Int)`（照 glib `config.gleam:259-274`）。无参签名无法表达按 interval 变化；
-      改签名需真实消费方（`timeframe.branches`）落地时定。保留 todo，不臆造。
-    - `timeframe` 4 步 `indicator` / `leaves` / `branches` / `strategy`：`indicator`
-      2026-11-23 已填完整指标集；其余 3 步依赖上面仍开放的签名/规则，留白。
+    - ~~`branch_exit_leaf_size()` 无参~~ **2026-11-23 已删除**：零调用方，计数已在
+      `config.branch_exit_leaf_size` 表 → `config.for_interval` → `IntervalSettings`
+      → `timeframe.branches` → `next_yang/yin_branch`（真实消费方）。无参函数表达不了
+      interval，且 R49/core §5 不留死机制。
+    - ~~`timeframe` 4 步~~ **2026-11-23 全部填实**：`indicator`（完整指标集）、
+      `leaves`/`branches`/`strategy` 按冻结 glib 规则补齐，规则来源与 RED→GREEN 见
+      `02-01-SUMMARY.md` 续篇。domain 层 todo 清零。
   - 这些不是「需要你决定」项：owner 的原则是字段与值随真实消费方一个一个加
-    （R26/R32），不预造、现在不臆造实现。**domain 层 R.5 todo（02-02 后）**
-    = branch 3（`branch_size`/`branch_stat`/`branch_exit_leaf_size`）+ timeframe 3
-    （`leaves`/`branches`/`strategy`）= 6；leaf helper 0。WAE 实测 13 Todo 另含
-    app 层（`runtime.update` 等）与别处骨架 todo。02-01/02-02 已填 indicator + 4 个
-    leaf/branch helper。
+    （R26/R32），不预造、现在不臆造实现。**domain 层 R.5 todo 已于 2026-11-23 全部清零**
+    （原 branch 3 + timeframe 3 = 6 已填/删除；leaf helper 0；indicator、4 个
+    leaf/branch helper 见上）。WAE 实测 21 Todo 现全部在 app 层（dashboard/wire/
+    publish/runtime/message），domain 层 0。Phase 02 完成，下一步才 Phase 03。

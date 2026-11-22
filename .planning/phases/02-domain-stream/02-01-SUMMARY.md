@@ -115,3 +115,46 @@ None of these were fabricated to turn a test green. They are work items in
   category; no `indicator` warning remains.
 - No `Σx²`, no whole-window `list.fold` in the indicator body (only the
   rare-path `rescan_window`, which is the documented amortised KDJ path).
+
+## Continuation 2026-11-23 — leaves / branches / strategy filled (Task 3)
+
+owner corrected the ordering (verbatim): *"你 model 都没做完，你去做什么 View？"*
+Phase 03 was paused; the three remaining `timeframe` steps were completed first
+by GDLTDD against frozen glib. RED→GREEN via `test/domain_steps_test.gleam`:
+
+- RED: `gleam test` → 85 passed / 9 failures; 8 new tests crashed on the
+  five remaining `todo`s (`branch.gleam:126/163`, `timeframe.gleam:572/581/587`).
+- GREEN after filling five bodies (+ deleting one dead function): **93 passed /
+  1 failure** — the sole failure is the pre-existing Phase 03
+  `app_shape_test.from_event` `todo`, intentionally left for Phase 03.
+
+Rules (all ported from frozen glib, none invented):
+- `leaves` (glib `timeframe.gleam:511-582`): born Yin/Yang on the first bar;
+  `next_yin/yang_leaf` settle+reborn; CMA written onto the growing twin's bar;
+  settled leaves kept as FIELDS (glibe R40/R42) instead of glib's tuple;
+  `last_bar` read off the `databar_list` head with an explicit match (core §7,
+  no library `let assert`).
+- `branches` (glib `timeframe.gleam:630-702`): exit count read from
+  `settings.branch_exit_leaf_size` (R40-A); recognition =
+  `start_bar.idx == working.idx` (R4); calls filled `next_yang/yin_branch`;
+  exited prepended newest-first, growing carried.
+- `strategy` (glib `timeframe.gleam:732-754` + `manual_signal`, UC-62): Yang
+  recognised → buy, Yang exited → sell, else no signal; written onto the
+  working bar's `signal`; only Yang trades (no second / short strategy).
+
+### Signature decisions (type fixes, not new mechanisms)
+- `branch.branch_size` / `branch_stat`: returned bare `Int` / triple while a
+  growing branch has no `exit_bar` / `end_bar` (R1). Corrected to `Option(Int)`
+  / `Option(#(Float,Float,Float))`, body returns `None` while growing.
+  No real callers existed, so no call site needed updating.
+- `branch.branch_exit_leaf_size()` (no-arg, zero callers) DELETED: the count is
+  per-interval, already in `config`'s `branch_exit_leaf_size` table, selected by
+  `config.for_interval` into `IntervalSettings` and passed by `branches` to the
+  next_* helpers (R49 / core §5, one owner R50).
+
+### Verification (2026-11-23, continuation)
+- `gleam format --check` → 0 (after `gleam format`)
+- `gleam check` → 0; `gleam test` → 93 passed / 1 known Phase 03 todo
+- `gleam docs build` → 0; `gleam export package-interface` → 0
+- `gleam build --warnings-as-errors` → 1: all 21 `Todo found` are now in `app/`
+  (dashboard/wire/publish/runtime/message); ZERO Todo in the domain layer.

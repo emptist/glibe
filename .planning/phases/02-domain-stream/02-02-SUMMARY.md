@@ -61,3 +61,25 @@ test green.
   warning category; none of the four filled helpers appears in WAE.
 - No O(n²) / no full-window fold in any new body (all four are O(1) field reads
   and idx comparisons).
+
+## Continuation 2026-11-23 — final 3 branch todos resolved (Task 3)
+
+- `branch.branch_size`: signature `Int → Option(Int)`; `None` while growing,
+  `Some(exit.idx - start.idx + 1)` when ended (R1/R6, glib `branch.gleam:96-98`).
+- `branch.branch_stat`: signature `#(Float,Float,Float) → Option(...)`; `None`
+  while growing, `Some(move_between(start, end))` when ended (glib `:201-204`).
+  Both had zero existing callers, so the signature fix needed no call-site edits.
+- `branch.branch_exit_leaf_size()` (no-arg): DELETED, not filled. Zero callers,
+  and the per-interval count already lives in `config`'s `branch_exit_leaf_size`
+  table → `config.for_interval` → `IntervalSettings.branch_exit_leaf_size` →
+  `timeframe.branches` → `next_yang/yin_branch`. A no-arg function could not
+  express which interval it meant (R49 / core §5 / one-owner R50).
+
+RED→GREEN (`test/domain_steps_test.gleam`): branch_size + branch_stat each had
+a test asserting both the ended value and the growing `None`; both were RED on
+the todo, GREEN after the body. The no-arg function had no test because it was
+removed as dead code, with the reason recorded in the module `////` and in
+`02-01-SUMMARY.md`.
+
+Result: **branch.gleam has zero `todo`**; domain layer fully green. WAE Todo
+count is now entirely app-layer (see 02-01 SUMMARY continuation).
