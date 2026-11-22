@@ -979,8 +979,8 @@ owner 原话（逐字）：*"在web 界面，应该采用本地时间显示日�
 
 > **2026-11-10 更正（R33）：本条的并发框架作为「系统结构」整体作废。**
 > owner：*"其实是每一个type都是活的，数据动，他就动，因为你定义好了的"*；
-> 「让叶子活起来」的运行时、actor、`process.spawn` 都不是这个系统的结构，
-> 且「叶子」特指 `YinLeaf` / `YangLeaf`。官网 / v0.12 的语言事实与
+> 「让每个 `Timeframe` 活起来」的运行时、actor、`process.spawn` 都不是这个
+> 系统的结构，且「叶子」特指 `YinLeaf` / `YangLeaf`。官网 / v0.12 的语言事实与
 > `gleam_otp` 事实更正仍成立，但**不描述本系统结构**。全文保留为历史记录，
 > 现行规格见 `docs/RULINGS.md` R33 与 `docs/DESIGN.md`「The system is
 > already live」。
@@ -992,7 +992,7 @@ owner 范围纠正（2026-11-09 06:09，逐字）：*"你去看什么javascript 
 - **裁定**：并行不是由「受监督 actor / 订阅 / 行情流 / replay CLI」组成的一整个
   Stage F 前置工程。`monitor.advance` 保持纯函数；并发单位是花园里**每个活着
   的 `Timeframe`**（R32），不是「把 N 根 bar 同时喂给 N 份 `Desk` 副本」。
-  BEAM 上让一个叶子活着只需 `gleam/erlang/process.spawn` + 类型化
+  BEAM 上让一个 `Timeframe` 随数据而动只需 `gleam/erlang/process.spawn` + 类型化
   `process.Subject` + `process.receive`。
   **不需要为并发新增类型、加锁、加依赖，也不改 `SourceBar` / `Timeframe`。**
   `docs/DESIGN.md`、`README.md`、`.planning/ROADMAP.md` 中「Stage F = 受监督
@@ -1021,7 +1021,7 @@ owner 范围纠正（2026-11-09 06:09，逐字）：*"你去看什么javascript 
   把同一份 `initial: Desk` 送进 6 个进程，每个调用 `monitor.advance` 返回
   **一整份新 `Desk`**，于是得到「6 份 partial Desk / 0 of 6 等于单一 owner
   fold / 必须选择合并或所有权形状」。真实结构里 **Desk 只有一个**，并发是
-  `Instrument` 的 `Dict(Interval, Timeframe)` 里每个叶子各自活着（owner
+  `Instrument` 的 `Dict(Interval, Timeframe)` 里每个 `Timeframe` 各自随数据而动（owner
   2026-11-10，R32）；不存在 N 份 `Desk`，也不存在合并问题。该 probe 保留为
   带作废注记的历史实验，**不再作为设计实证**；它的 6 个 Pid / 0 lock 只是
   `process.spawn` 的语言事实，与结构无关。
@@ -1045,7 +1045,7 @@ owner 范围纠正（2026-11-09 06:09，逐字）：*"你去看什么javascript 
 ## R32 — 结构是花园：新东西只是 Type 定义里的一个 field（2026-11-10 owner 指示）
 
 > **2026-11-10 更正（R33）：本条「并发在花园里的位置」段作废。**
-> 「每一个 Timeframe 都活着 / 花盆自己的生命 / 让叶子活起来」是错误措辞：
+> 「每一个 Timeframe 都活着 / 花盆自己的生命 / 让结构活起来」是错误措辞：
 > 系统本来就活（数据动 → type 的值动），没有「把结构变活」那一步；「叶子」
 > 特指 `YinLeaf` / `YangLeaf`。**花园、加 field、倒推隶属、集合对比研究、
 > R26 不预设层级仍然成立。** 另：本条及 STATE / ROADMAP / 记忆里
@@ -1109,7 +1109,7 @@ Desk是顶层的唯一的一个Value，整个系统都在他里面，然后逐�
   轮询、心跳或进程循环驱动；无数据到达时没有值被重算，也没有
   「让它保持活着」的后台动作。静止是正常状态，不是缺陷，不需要补救。
   这正好印证「每一个 type 随数据而动」：R31 / R32 里那套
-  「让叶子活起来的运行时 / actor / `process.spawn`」之所以是错的，
+  「让结构活起来的运行时 / actor / `process.spawn`」之所以是错的，
   就是它把静止当成了要修的故障。真正待落地的只有「把真实数据源的
   实时到达接到标准 bar 入口」（各家用各自方式）+ replay CLI，不是框架。
 - **裁定：系统本来就是活的，没有「把系统变活」这一步。** 流向是 owner 给出的
@@ -1119,7 +1119,7 @@ Desk是顶层的唯一的一个Value，整个系统都在他里面，然后逐�
   「实时」不是额外搭建的运行时，而是这根管道在收到数据时本来就会发生的事。
   **每一个 type 都是活的：数据动，它就动，因为 type 定义好了**（owner 逐字）。
   这是纯函数式的「值随数据重算」，不是进程活着、不是 actor、不是订阅、
-  不是调度，也不是「让叶子活起来的运行时」。
+  不是调度，也不是「让结构活起来的运行时」。
 - **裁定：Desk 是顶层唯一的一个 Value。** 整个系统都在它里面，逐层嵌套形成
   完整系统：`Desk ▸ Broker ▸ Instrument ▸ Interval ▸ Timeframe`（R20/R23），
   Broker 另有一组 `accounts`。`config.default_config()` 就是这一个 Value。
@@ -1149,7 +1149,7 @@ Desk是顶层的唯一的一个Value，整个系统都在他里面，然后逐�
 - **作废清单**：R31 的「并发 = `process.spawn` + 类型化 `Subject` 让结构
   活起来」作为**设计结论**作废（官网 / v0.12 的语言事实与 `gleam_otp`
   事实更正仍成立，但它们不描述这个系统的结构）；R32 的「每一个
-  Timeframe 都活着 / 花盆自己的生命 / 让叶子活起来的运行时」措辞作废；
+  Timeframe 都活着 / 花盆自己的生命 / 让结构活起来的运行时」措辞作废；
   04-08 的 `monitor.advance` 作为「系统缺的一步」这一论断作废；
   04-09 `probes/parallel-bars/` 已在 R32 作废，此处进一步确认它既非
   结构实证也非设计实证。**R32 仍然成立的部分**：花园、加一个新事物
@@ -2633,7 +2633,7 @@ skill `gleam-document-led-tdd`。
 2. **Desk 恒为一个**：无 `DeskId`、无第二个 Desk、无 Desk 集合、
    无 `AppConfig`；`config.default_config()` 是唯一出生点（R33 / R49）。
 3. **删除 `timeframe_under` 与 `put_timeframe_under`**。前者零调用方，
-   后者让根做叶子的活。**R42「倒推查出的真缺口 = WRITE 半边
+   后者让根做下层依赖的事。**R42「倒推查出的真缺口 = WRITE 半边
    `put_timeframe_under`」整句作废**：那不是缺口。R38「一条到来的
    bar 按序调用 pair，没有第三个函数」本来就已经否掉它；每层调用
    **自己**的 read / write pair。
@@ -2647,7 +2647,7 @@ skill `gleam-document-led-tdd`。
 | 探针 | 编译器原文 | 结论 |
 |---|---|---|
 | `opaque` 构造子在别的模块被调用 | `error: Use of private value` … *"does define `BrokerId`, but it is private and cannot be accessed by other modules"* | `broker_id` / `account_id` 必须与 id type **同模块** |
-| `a.gleam` ↔ `b.gleam` 互相 import | `error: Import cycle` … *"Gleam doesn't support dependency cycles like these, please break the cycle to continue."* | id 必须抽成**叶子**模块，否则 `desk ↔ broker` 成环 |
+| `a.gleam` ↔ `b.gleam` 互相 import | `error: Import cycle` … *"Gleam doesn't support dependency cycles like these, please break the cycle to continue."* | id 必须抽成**零依赖的最底层**模块，否则 `desk ↔ broker` 成环 |
 
 所以 owner 那句 *"to avoid circular"* 不是偏好，是编译期硬约束。
 
@@ -2745,7 +2745,7 @@ test，与 R50 删掉的 `timeframe_under` 同形）；两句文档关系删除�
 没有检查这个模块有没有存在理由。
 
 **依赖方向**：`config → desk` 是 import 方向，不是 `desk → config`。
-上一条回复我写「…→ `desk` → `config`，单向无环」时把**从叶子到根
+上一条回复我写「…→ `desk` → `config`，单向无环」时把**从最底层依赖到根
 的组装顺序**写成了箭头，读起来像根依赖上层 —— 表述错误，已更正。
 
 决策区仍 **0 项**；**未 push**。

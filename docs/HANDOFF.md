@@ -86,7 +86,7 @@ body 引用会报 `Found a discard name`）。
 `Desk` 是唯一顶层 Value，**上面不再有任何 module**（R42 / R50 §7）。
 
 ```
-id, account     零 import 叶子
+id, account     零 import 最底层模块
 instrument      Instrument + get/put_timeframe          → timeframes
 broker          Broker + get/put_instrument/account     → instruments, accounts
 desk            Desk   + get/put_broker                → brokers
@@ -97,7 +97,7 @@ timeframe       Timeframe + 直线 / 管道全部 fn
 
 依赖单向无环：`id` / `account` → `instrument` → `broker` → `desk`。
 实测约束：`pub opaque` 构造子跨模块 → `error: Use of private value`；
-互相 import → `error: Import cycle`。所以 id 必须是零 import 叶子，
+互相 import → `error: Import cycle`。所以 id 必须是零 import 的最底层模块，
 `broker_id` / `account_id` 必须与 id type 同模块。
 
 **已删除**：`config.gleam`（import desk、返回 Desk，是包在根上面的
