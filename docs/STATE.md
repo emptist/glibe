@@ -4,7 +4,44 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-21 (当前状态 — interval 来源 = SourceBar 变体 + 二选一；planning 重建已落地)
+## 2026-11-23 (当前状态 — plan 02-01 完整指标集 + 02-02 四 helper 已落地，未提交)
+
+- **02-02（同日，GDLTDD）**：8 个 leaf/branch helper 逐个对照冻结 glib 审计——
+  4 个规则完整、签名一致的按 RED→GREEN 填实：`leaf.next_yin_leaf`/`next_yang_leaf`
+  （glib `leaf.gleam:207-247`，death=新高/新低 sma_tiny，阈值读自己 start）、
+  `branch.next_yin_branch`/`next_yang_branch`（glib `branch.gleam:346-424`，recognition
+  出生、leaf_size>=exit_size 关闭、closing 是长度测试、growing 原样 carry）。
+  新建 `test/leaf_test.gleam`/`branch_test.gleam` 各 5 个断言；RED 76 passed/10 todo
+  崩溃 → GREEN **86 passed**。3 个真实缺口保留 todo + R.5：`branch_size`/`branch_stat`
+  的 Option 签名（牵动 DataBranch 定义，属架构决策）、`branch_exit_leaf_size()` 无参
+  却按 interval 取值。详见 `.planning/.../02-02-SUMMARY.md`。
+- **门禁（02-02 后）**：format/check/test/docs/export 全 0；test 86 passed；
+  WAE 53→ 13 Todo + 18 unused（已填 helper 的 todo/unused 消失），无新类别。
+
+- **owner 2026-11-23 裁定**：*"所有技术指标，glib有的，你不能残缺不全"*。此前我把 glib 的指标
+  砍掉一大半（five SMA 只算 tiny/medium、BB 只写 2 条外轨、KDJ 无 M、band 中心写死 medium），
+  拿"chart 不消费""字段不存在""待确认"当借口——这是错的，已纠正。旧的"band 中心 = sma_medium
+  是我的实现决定，待确认"整段作废。
+- **02-01 完整落地（本轮，未提交）**：`DataBar` 补齐 glib 全部计算字段——五条 SMA
+  （tiny/small/medium/large/huge）、七条 BB（bb_m/u3/u2/u1/l1/l2/l3）、四条 KDJ（K/D/J/M）、
+  Welford σ 三态、KDJ 极值缓存四字段、YinLeaf/YangLeaf CMA；出生全部播种 at
+  `api/sourcebar.to_databar`。`indicator` 按 glib `indicator.gleam:35-54` 顺序填全：
+  五条 SMA O(1) add/subtract → `bb_m = sma_of(sma_for_bbm)`（SELECTED 中心，week/month 选
+  small/tiny）→ σ 用该中心自身窗口 → band 七线（下轨插值前 floor）→ KDJ K/D/J/M。
+  全部 O(1)，无 `Σx²−(Σx)²/n`、无逐 bar 全窗 fold。`leaf.leaf_cma` 照 glib 填。
+  `IntervalSettings` 是 R40-A pipe 参数。详见 `.planning/.../02-01-SUMMARY.md`。
+- **门禁实测**：format/check/test/docs/export 全 0；`gleam test` **76 passed**（原 64）；
+  WAE 53（17 Todo + 36 unused），剩余都是未填的 R.5 step + skeleton unused，无新类别。
+- **术语清理（owner 要求"彻底清理，永不再犯"）**：全库中文"叶子"37 处逐段核对，清理 16 处
+  滥用（零 import 叶子、让叶子活起来、让根做叶子的活、从叶子到根、抽成叶子模块等 → 最底层模块 /
+  Timeframe / 结构 / 依赖末端）；保留 20 处合法（owner 逐字原话、R33 规则陈述本身、专指
+  YinLeaf/YangLeaf）。铁律写入项目 MEMORY.md。
+- **未做（R.5 开放点，不臆造）**：`leaves`/`branches`/`strategy` step 及其 helper 仍 todo
+  （叶子死亡判据、branch Option 签名、策略规则未裁决；PENDING 决策区 0 项，属工作项非待决）。
+  gate 仍未读 interval 选 config（无 in-scope 消费方，插入会造 WAE unused）。
+- 决策区仍 0 项。旧 2026-11-21 节降为历史。
+
+## 2026-11-21 (历史 — interval 来源 = SourceBar 变体 + 二选一；planning 重建已落地)
 
 - **二选一裁定（owner 逐字 + 实测）**：周期（interval）的唯一 type 载体 = 到手的 closed `SourceBar`
   变体；`sourcebar_gate` 删去 `interval: Interval` 参数（实测 WAE 报 `timeframe.gleam:145`
@@ -1067,7 +1104,7 @@ the design, so I don't believe 'Code untouched' is some good news"*。真去读�
 
 - **R50（owner 在 `desk.gleam` 留 12 条 review 评论后追加两轮追问）= 当前结构**：
   一个模块只读写它自己那一层**持有的** Dict；`desk.gleam` 233 → 56 行，
-  只留 `Desk` + `get/put_broker`。新增 `id`（零 import 叶子）、
+  只留 `Desk` + `get/put_broker`。新增 `id`（零 import 最底层模块）、
   `account`、`instrument`、`broker`；删 `timeframe_under` /
   `put_timeframe_under` / `LookupError` / **`config.gleam`**。
   **R42「Desk 上面不再有东西」也管模块，不只管 type**：唯一的一个
@@ -1274,9 +1311,9 @@ the design, so I don't believe 'Code untouched' is some good news"*。真去读�
   静止是正常状态，不需内部时钟、轮询或心跳补救。
 - **撤回三层外来概念**：`monitor.advance` / `TimeframeAddress` /
   `IncomingBar` / `MonitorError` 不是这个系统的 type（*"哪有这些type"*）；
-  actor 是结构没设计对才去找的补救；「每一个叶子活起来」既用错了「叶子」
-  （特指 `YinLeaf` / `YangLeaf`）也用错了「活」。R31 并发框架、R32
-  「每个 Timeframe 活着 / 让叶子活起来的运行时」措辞一并作废。
+  actor 是结构没设计对才去找的补救；「每一个 Timeframe 活起来」既用错了
+  对象（`YinLeaf` / `YangLeaf` 才是「叶子」）也用错了「活」。R31 并发框架、R32
+  「每个 Timeframe 活着 / 让结构活起来的运行时」措辞一并作废。
   **R32 花园方法论仍成立**：加 field、倒推隶属、集合对比、R26 不预设层级。
 - **glib 不是权威**：可能只记录了设计与计划、未必落实，已落实的也未必对。
   唯一权威是 owner 当前陈述；此前「glib 核实：四类型链已落地」类断言降级

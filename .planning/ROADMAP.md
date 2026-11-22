@@ -31,8 +31,8 @@ Plans:
 **Plans**: 2 plans.
 
 Plans:
-- [ ] 02-01: fill the four `timeframe` step bodies (`indicator` → `leaves` → `branches` → `strategy`), each `fn(Timeframe) -> Timeframe`, consuming `IntervalSettings` as a parameter.
-- [ ] 02-02: fill the `leaf` (3) and `branch` (5) remaining todos against real consumers, with the stream algorithms sourced from frozen glib implementation.
+- [ ] 02-01 (indicator step done 2026-11-23; `leaves`/`branches`/`strategy` remain R.5 open): fill the four `timeframe` step bodies (`indicator` → `leaves` → `branches` → `strategy`), each `fn(Timeframe) -> Timeframe`, consuming `IntervalSettings` as a parameter.
+- [ ] 02-02 (4 of 8 helpers filled 2026-11-23; 3 registered R.5): fill the `leaf` (3) and `branch` (5) remaining todos against real consumers, with the stream algorithms sourced from frozen glib implementation.
 
 ### Phase 03: App view publish path
 **Goal**: `runtime.update` drives the domain pipe and publishes exactly once at `working_databar_archived`, reading the just-archived bar from `databar_list` head; no second model, no shadow, no bar-list搬运.
@@ -56,6 +56,6 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |---|---|---|---|
 | 1. Plan-reference integrity | 0/1 | Not started | - |
-| 2. Domain stream completion | 0/2 | Not started | - |
+| 2. Domain stream completion | 1/2 | In progress | 02-02 done 2026-11-23 (4 helpers filled, 3 registered R.5); 02-01 indicator done, 3 steps still R.5 open |
 | 3. App view publish path | 0/2 | Not started | - |
 | 4. Full gate green | 0/1 | Not started | - |

@@ -185,7 +185,7 @@ sourcebar 同构」。
 - 真实数据源的实时到达接入、行情流、退役
   `data_generator.ex`、`no_minute_trading.sh`：输入边界工作；
   历史批次不是重放（R38）。
-  **没有并发机制 / actor / 调度前置**（R33），也没有「让叶子活起来的运行时」：
+  **没有并发机制 / actor / 调度前置**（R33），也没有「让结构活起来的运行时」：
   数据不来系统就睡觉等待，这是正常状态。
 - 真实数据图表对比试验（时机见上面「不需要你决定」）。
 
@@ -200,8 +200,8 @@ sourcebar 同构」。
 - 04-08 多品种 × 多周期同时监控的类型结构（地址 / 到达 bar / 领域错误 /
   纯 `advance`）：已完成，是 R26 按序工作，**不是待裁决项**，见
   `.planning/phases/04-domain-cleanup/04-08-PLAN.md` 与 `docs/DESIGN.md`。
-- R31 / R32（2026-11-09 / 11-10）：并发框架与「每个 `Timeframe` 叶子各自
-  活着」的措辞**已由 R33 作废**；R32 的花园方法论（新事物 = 已有 Type 定义
+- R31 / R32（2026-11-09 / 11-10）：并发框架与「每个 `Timeframe` 各自活起来」的
+  措辞**已由 R33 作废**；R32 的花园方法论（新事物 = 已有 Type 定义
   里的一个 field、倒推隶属、集合形状对比、R26 不预设层级）仍然成立。
   04-09 的「6 份 partial `Desk` / 合并属所有权」结论形状错误，已作废。
 - **R33（2026-11-10 owner 指示）**：系统本来就活 —— *"api provider / data
@@ -235,23 +235,29 @@ sourcebar 同构」。
       字段已按 glib 原始 DataBar 补进 `databar.gleam`（本轮，chart 是真实消费方），
       writer 是 `timeframe.indicator`；「R46 删了携带它们的容器」是错误泛化——
       R46 只删空壳 `TimeframeSettings`，config.gleam 是 must（owner 逐字）。
-    - `leaf.next_yin_leaf` / `next_yang_leaf` 需要叶子何时死亡/转向的判据；
-      glibe R1/R3/R6 给了 end_bar 语义与「closing 是长度测试」，**没有**给
-      「yin 死在新高 sma_tiny、corner 跟新低」这条触发条件（它在 glib 文档里，
-      R38 声明 glib 不是权威）。随 `timeframe.leaves` 的真实消费方落地。
+    - ~~`leaf.next_yin_leaf` / `next_yang_leaf` 需要叶子何时死亡/转向的判据~~
+      **2026-11-23 已填**：判据在冻结 glib `leaf.gleam:207-247` 完整给出（yin 死在新高
+      sma_tiny、corner 跟新低；yang 镜像），阈值读 leaf 自己 start_bar 的 sma_tiny。
+      02-02 按 GDLTDD 用 5 个测试 RED→GREEN 填入。R38 说的是 glib 不作「设计正确」的
+      证据，不等于 02-02-PLAN「用冻结实现规则填」这条授权失效。
     - `branch.branch_size` / `branch_stat` 的**签名本身有问题**：growing branch
       无 exit_bar / end_bar，签名却返回裸 `Int` / 裸三元组，不是 `Option`
-      （glib 用库内 `let assert` 掩盖，core §7 禁止库 panic）。判据随真实消费方
-      定，不擅自改签名。
-    - `branch.next_yang/yin_branch` + `branch_exit_leaf_size()`：关闭计数在
-      参考实现里**按 interval 取值**（D1=40 / W1=8 / MO1=2）。**2026-11-20 更正**：
-      这些值现在有家——active `src/glibe/config.gleam` 的 `branch_exit_leaf_size:
-      Dict(Interval, Int)` 按 interval 表持有（照 glib `config.gleam:259-274`，数字有出处）。
-      R46 只删空壳 `TimeframeSettings` 字段，config.gleam 是 must（owner 逐字）。
-      `branch_exit_leaf_size()` 的调用形态（从 config 读还是传参）随真实消费方落地时定，
-      但「参数无家可归」不再是挡箭牌。
-    - `timeframe` 4 步 `indicator` / `leaves` / `branches` / `strategy`，各依赖
-      上面已登记的开放点，留白。
+      （glib 用库内 `let assert` 掩盖，core §7 禁止库 panic）。正确的类型修复要让
+      参数本身携带「已结束」这一事实（牵动 `DataBranch` 定义），超出 02-02 范围，
+      属架构决策；`timeframe.strategy` 仍是 todo、无真实调用方。保留 todo，不擅自改签名。
+    - ~~`branch.next_yang/yin_branch`~~ **2026-11-23 已填**：关闭规则在冻结 glib
+      `branch.gleam:346-424` 完整（按 recognition 出生、leaf_size>=exit_size 关闭、
+      growing 原样 carry），签名已带 `branch_exit_leaf_size: Int` 参数（R40-A 消费方传入）。
+      02-02 用 5 个测试 RED→GREEN 填入。
+    - `branch_exit_leaf_size()` 无参，但关闭计数按 interval 取值（D1=40 / W1=8 /
+      MO1=2），值已在 active `config.gleam` 的 `branch_exit_leaf_size: Dict(Interval,
+      Int)`（照 glib `config.gleam:259-274`）。无参签名无法表达按 interval 变化；
+      改签名需真实消费方（`timeframe.branches`）落地时定。保留 todo，不臆造。
+    - `timeframe` 4 步 `indicator` / `leaves` / `branches` / `strategy`：`indicator`
+      2026-11-23 已填完整指标集；其余 3 步依赖上面仍开放的签名/规则，留白。
   - 这些不是「需要你决定」项：owner 的原则是字段与值随真实消费方一个一个加
-    （R26/R32），不预造、现在不臆造实现。**当前 todo 总分布（WAE 实测 12）**
-    = leaf 3 + branch 5 + timeframe 4。
+    （R26/R32），不预造、现在不臆造实现。**domain 层 R.5 todo（02-02 后）**
+    = branch 3（`branch_size`/`branch_stat`/`branch_exit_leaf_size`）+ timeframe 3
+    （`leaves`/`branches`/`strategy`）= 6；leaf helper 0。WAE 实测 13 Todo 另含
+    app 层（`runtime.update` 等）与别处骨架 todo。02-01/02-02 已填 indicator + 4 个
+    leaf/branch helper。
