@@ -10,7 +10,7 @@
 ////   - a missing key produces NO request — no panic, no invented error noun;
 ////   - `update` returns the new Desk AND the publish command from the SAME step.
 
-import gleam/dict
+import fixture
 import gleam/erlang/process
 import gleam/list
 import gleam/option.{None, Some}
@@ -22,10 +22,9 @@ import glibe/app/message.{type Msg, MsgEye, MsgVoice}
 import glibe/app/runtime
 import glibe/app/wire
 import glibe/broker
-import glibe/desk.{type Desk, Desk}
+import glibe/desk.{type Desk}
 import glibe/id
 import glibe/instrument
-import glibe/timeframe
 import plushie/event
 
 fn a_sourcebar() -> SourceBar {
@@ -53,29 +52,10 @@ fn an_eye_msg() -> Msg {
 }
 
 /// A Desk holding one broker -> one instrument -> one timeframe, so a bar for
-/// that identity has somewhere to land.
+/// that identity has somewhere to land. The records are built in `fixture` —
+/// ONE place (2026-11-23).
 fn a_desk_with_one_timeframe() -> Desk {
-  let tf =
-    timeframe.Timeframe(
-      growing_target_sourcebar: None,
-      working_databar: None,
-      databar_list: [],
-      growing_yin_leaf: None,
-      growing_yang_leaf: None,
-      growing_yin_branch: None,
-      growing_yang_branch: None,
-      yin_branch_list: [],
-      yang_branch_list: [],
-      yin_leaf_settled: None,
-      yang_leaf_settled: None,
-    )
-  let inst = instrument.Instrument(dict.from_list([#(IntervalOneMinute, tf)]))
-  let br =
-    broker.Broker(
-      instruments: dict.from_list([#(symbol.string_to_symbol("BTCUSD"), inst)]),
-      accounts: dict.new(),
-    )
-  Desk(dict.from_list([#(id.string_to_broker_id("broker-1"), br)]))
+  fixture.desk_with_one_timeframe()
 }
 
 /// An eye Msg never publishes a bar.

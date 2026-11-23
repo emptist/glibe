@@ -12,7 +12,7 @@
 ////     (broker, symbol, interval).
 
 import bar_stream_chart
-import gleam/dict.{type Dict}
+import fixture
 import gleam/list
 import gleam/option.{None}
 import gleam/time/timestamp
@@ -20,12 +20,9 @@ import glibe/api/interval.{IntervalOneMinute}
 import glibe/api/symbol
 import glibe/app/dashboard
 import glibe/app/wire
-import glibe/broker
 import glibe/databar
-import glibe/desk.{type Desk, Desk}
+import glibe/desk.{type Desk}
 import glibe/id
-import glibe/instrument
-import glibe/timeframe
 import glibe/trading/signal
 import plushie/event
 import plushie/widget
@@ -179,31 +176,10 @@ pub fn the_dashboard_is_one_window_with_one_chart_per_identity_test() {
   Nil
 }
 
-/// A Desk with one broker -> one instrument -> one timeframe.
+/// A Desk with one broker -> one instrument -> one timeframe. The records are
+/// built in `fixture` — ONE place (2026-11-23).
 fn a_desk_with_one_timeframe() -> Desk {
-  let tf =
-    timeframe.Timeframe(
-      growing_target_sourcebar: None,
-      working_databar: None,
-      databar_list: [],
-      growing_yin_leaf: None,
-      growing_yang_leaf: None,
-      growing_yin_branch: None,
-      growing_yang_branch: None,
-      yin_branch_list: [],
-      yang_branch_list: [],
-      yin_leaf_settled: None,
-      yang_leaf_settled: None,
-    )
-  let inst = instrument.Instrument(dict_from_list([#(IntervalOneMinute, tf)]))
-  let br =
-    broker.Broker(
-      instruments: dict_from_list([
-        #(symbol.string_to_symbol("BTCUSD"), inst),
-      ]),
-      accounts: dict_new(),
-    )
-  Desk(dict_from_list([#(id.string_to_broker_id("broker-1"), br)]))
+  fixture.desk_with_one_timeframe()
 }
 
 fn length_of(items: List(a)) -> Int {
@@ -216,12 +192,4 @@ fn length_of_nodes(items: List(a)) -> Int {
 
 fn widget_event_action_update_state() -> widget.EventAction {
   widget.UpdateState
-}
-
-fn dict_from_list(entries: List(#(k, v))) -> Dict(k, v) {
-  dict.from_list(entries)
-}
-
-fn dict_new() -> Dict(k, v) {
-  dict.new()
 }

@@ -6727,3 +6727,58 @@ owner 说的"研究只能局限于长 leaf 列表"指 glib 的 `signif_yin_leaf_
 - `src/glibe/timeframe.gleam`：`yin_leaf_settled` / `yang_leaf_settled` 补字段级 `///`。
 - `docs/RULINGS.md`：本条 R63；R59 §2 加**结清注**（历史如实保留，不篡改）。
 - `docs/STATE.md`：当前节同步。
+
+---
+
+## R64 — 诞生就是构造函数本身：不给 type 造「new」；测试里的记录只写一遍（2026-11-23 owner 逐字）
+
+**owner 逐字（两条，同一轮）**：
+1. *"在新生 timeframe 的时候，不应该有一个什么 new，因为 type 定义本身，已经包含了 constructor，就应该直接用来生成。"*
+2. *"list.last 在测试中用到，这个测试放在什么模块呢？测试自己的模块吗？怎么获得timeframe的？"*
+
+### 1. 裁定
+
+- **任何 type 都不配一个「new / created / made」式的诞生函数。** 构造函数**本身就是**诞生：
+  需要值的地方**直接写构造调用**。
+  - 这与 R49 同向、且比 R49 更尽：R49 禁的是 `new` 这个**名字**与「只为收一个臆造参数而
+    存在的包装」；本条把话说尽 —— **连无参的诞生包装也不要**。
+  - 冻结 glib 有 `timeframe.new(settings)`（`glib/timeframe.gleam:156`）与
+    `ingest.new_timeframe(instrument, interval)`（`glib/trading/ingest.gleam:37-45`）；
+    **glibe 不抄**：glibe 的 `Timeframe` **没有 settings 字段**（R46：settings 是管道
+    参数，不是记录字段）⇒ 那个包装连参数都不必要。
+- **测试里的记录只写一遍**：新增 `test/fixture.gleam`（**测试专用**：`src/` 永不能
+  import 它），持有 `timeframe_with(working, settled)` 与 `desk_with_one_timeframe()`。
+  **没有无参的 `empty_timeframe()`** —— 无参、只干"造一个"的函数**就是**被禁的那个
+  `new`；要空的就写 `timeframe_with(None, [])`。
+
+### 2. 实测：合并前后的对比
+
+- **合并前**：`Timeframe` 的 **11 个字段在 6 处**被逐字列出 —— `glibe_test.gleam:203`、
+  `domain_steps_test.gleam:79` 与 `:95`、`timeframe_steps_test.gleam:98`、
+  `runtime_publish_test.gleam:59`、`dashboard_test.gleam:185`。
+  Gleam 的记录构造子**必须给全字段** ⇒ `Timeframe` 记录一加字段（R32：字段随真实消费方
+  逐个落），**6 处同时编译失败** —— 一个事实，6 次编辑。
+- **合并后**：字段列表只在 `test/fixture.gleam` 一处；各测试文件保留自己可读的名字
+  （一行委派），**调用点一行未改**（32 处调用点全部原样）。
+
+### 3. 顺带查明：生产代码里**没有** Timeframe 的诞生点
+
+- `src/` 里 `Timeframe(...)` 只出现在**记录更新**（`Timeframe(..timeframe, ...)`，6 处）
+  与类型定义本身；**没有任何地方从零造一个**。
+- `runtime.init` 的 Desk 是空的（`desk.Desk(dict.new())`），而 `runtime.route` 要求
+  `get_timeframe` **已经成功** ⇒ **一棵空的 Desk 永远长不大**：任何新身份的 bar 都会被
+  丢掉（`route` 走 `Error` 分支，不发布）。
+- 冻结 glib 的做法：`ingest.new_timeframe(instrument, interval)`（interval 决定 settings）
+  —— owner 在组合根持有 `(Symbol, Instrument)` 与 `(Interval, Timeframe)` 对。
+- **owner 已给出方向**（见下一条）：Timeframe 由 `sourcebar_gate` 在第一根 source bar
+  完整时创造；可行性的分析记在 **R65**。
+
+### 4. Landing
+
+- `test/fixture.gleam`（新，测试专用）：`timeframe_with` / `desk_with_one_timeframe`；
+  **无参诞生包装不存在**。
+- `test/glibe_test.gleam`、`test/domain_steps_test.gleam`、`test/timeframe_steps_test.gleam`、
+  `test/runtime_publish_test.gleam`、`test/dashboard_test.gleam`：本地副本改成一行委派；
+  `dashboard_test` 里两个只为那份副本存在的 `dict_from_list` / `dict_new` 随之删除。
+- 门禁：format/check/docs/export 全 0；test **126 passed / 0 failures**（数量不变）；
+  WAE 退出码 0（**0 Todo + 0 Unused**）。

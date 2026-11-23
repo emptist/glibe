@@ -26,6 +26,7 @@
 //// (`leaf_depth_share_test`, `branch_move_between_test`,
 //// `branch_enter_exit_move_test`, R3 selected-MA shares). The rest pin types.
 
+import fixture
 import gleam/dict
 import gleam/option.{type Option, None, Some}
 import gleam/result
@@ -201,20 +202,10 @@ fn ended_yang_branch() -> branch.DataBranch {
 
 // A Timeframe with no bar and no growing value: the empty holder used to pin
 // the instrument-level read/write of its one Dict and the compose dispatch.
+// The record is written ONCE, in `fixture` (2026-11-23) — no `new`, no
+// argument-less birth helper.
 fn empty_timeframe() -> Timeframe {
-  Timeframe(
-    growing_target_sourcebar: None,
-    working_databar: None,
-    databar_list: [],
-    growing_yin_leaf: None,
-    growing_yang_leaf: None,
-    growing_yin_branch: None,
-    growing_yang_branch: None,
-    yin_branch_list: [],
-    yang_branch_list: [],
-    yin_leaf_settled: None,
-    yang_leaf_settled: None,
-  )
+  fixture.timeframe_with(None, [])
 }
 
 /// R13 / R21: `interval(of:)` reads the grade FROM the variant — never a

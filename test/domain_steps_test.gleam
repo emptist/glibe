@@ -21,6 +21,7 @@
 //// Written BEFORE the bodies (R19): each test names a concrete input shape and
 //// the field/value it expects, not merely "does not crash".
 
+import fixture
 import gleam/option.{type Option, None, Some}
 import gleam/time/timestamp
 import gleeunit
@@ -76,28 +77,8 @@ fn bar_at(idx: Int, sma: Float) -> DataBar {
   )
 }
 
-fn empty_tf() -> timeframe.Timeframe {
-  timeframe.Timeframe(
-    growing_target_sourcebar: None,
-    working_databar: None,
-    databar_list: [],
-    growing_yin_leaf: None,
-    growing_yang_leaf: None,
-    growing_yin_branch: None,
-    growing_yang_branch: None,
-    yin_branch_list: [],
-    yang_branch_list: [],
-    yin_leaf_settled: None,
-    yang_leaf_settled: None,
-  )
-}
-
 fn tf_working(working: DataBar, settled: List(DataBar)) -> timeframe.Timeframe {
-  timeframe.Timeframe(
-    ..empty_tf(),
-    working_databar: Some(working),
-    databar_list: settled,
-  )
+  fixture.timeframe_with(Some(working), settled)
 }
 
 fn settings(exit_size: Int) -> config.IntervalSettings {

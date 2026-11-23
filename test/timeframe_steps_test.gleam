@@ -10,6 +10,7 @@
 //// contract (identity and `databar_list` unchanged; only the working bar's own
 //// fields move). Numbers are hand-computable with the small windows in `settings`.
 
+import fixture
 import gleam/option
 import gleam/time/timestamp
 import gleeunit
@@ -99,19 +100,7 @@ fn with_working(
   working: DataBar,
   settled: List(DataBar),
 ) -> timeframe.Timeframe {
-  timeframe.Timeframe(
-    growing_target_sourcebar: option.None,
-    working_databar: option.Some(working),
-    databar_list: settled,
-    growing_yin_leaf: option.None,
-    growing_yang_leaf: option.None,
-    growing_yin_branch: option.None,
-    growing_yang_branch: option.None,
-    yin_branch_list: [],
-    yang_branch_list: [],
-    yin_leaf_settled: option.None,
-    yang_leaf_settled: option.None,
-  )
+  fixture.timeframe_with(option.Some(working), settled)
 }
 
 fn computed(tf: timeframe.Timeframe) -> DataBar {
