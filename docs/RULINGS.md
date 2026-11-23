@@ -7279,3 +7279,47 @@ R72 的基础复查已完成，R72 给"延后推敲"设的前提（基础可能�
   `src/glibe/instrument.gleam`（`timeframe_at`）、`src/glibe/app/runtime.gleam`（route 接线）、
   `test/runtime_publish_test.gleam`（RED→GREEN）、`test/fixture.gleam`（更正过时注释）、
   `docs/STATE.md`、本条。
+
+---
+
+## R75 — 三项目并发方案对比：采纳 `command.stream` 输入边界，不采纳三 App，不碰 R58 输出回路（2026-11-24 owner 指令；研究完成，探针已跑）
+
+**owner 指令**：*"对比 glib try_plushie 思考自己的方案，或者采纳较好的线程方案"*。
+产出 `docs/threading-model-comparison.md`（三方案逐项带 file:line）。
+
+### 决定性事实（不是判断）
+1. **glib 是 `target = "javascript"`**（`glib/gleam.toml:3`），27 个 `@external` 全是
+   javascript，`src/glib/` 零 BEAM 并发原语。它的"并发"= JS 事件循环 + `.mjs` FFI
+   + `sleep_forever()`（`glib.gleam:73,437`）。**与 glibe 的 BEAM target 不同层**，
+   只能作设计源，不能作并发方案（R16–R18/R42）。
+2. **try_plushie 是 BEAM**：3× `plushie.start` + `command.stream` 输入边界
+   （`try_plushie.gleam:191,200,774-793`）+ collie WS actor（`live_feed.gleam:116`）+
+   具名 switch 邮箱。输出**无**独立回路 —— chart 是 App model 字段。
+3. **glibe 是 BEAM，输出回路必要**：chart state 按 R20/R60 在 widget 里、不在
+   model，所以必须有 update → widget 的注入路径（R58 具名 subject + publisher）。
+   try_plushie 没这条回路正因为它的 chart 在 model —— 那是 glibe 被禁止的形状。
+   ⇒ 输出侧差异是 R20 的后果，不是优劣。
+
+### 缺口（比线程方案更前置）
+- glibe **无 `main`**（`gleam run` 实测报错；`03-03-PLAN.md:8` 自认）。
+- glibe **无输入边界**：生产零 `command.stream`、零 feed/poll/provider 模块，
+  `wire.sourcebar_event` 只在 test 构造。⇒ R74 让空 Desk 能长，但 bar 来源仍空。
+
+### 编译探针（先跑后写）
+`test/probe_stream_test.gleam`（已删）：manufacture
+`event.Stream(StreamEvent(tag:"sourcebar", value: Dynamic))`，在扩展 `from_event`
+里解成现有 `MsgSourceBarArrived`。**实测编译通过、133 passed**：闭集 Msg 不变、
+无新 variant、R58 输出回路零改动。BEAM 上 Dynamic 就是 term，沿用
+`wire.gleam:192-199` 单态 identity，零 codec。
+
+### 裁定
+- **不采纳** try_plushie 三 App（R60 否决；GPU 成本未量化）、不采纳 glib JS 并发
+  （target 不同）、不推翻 R58 输出回路。
+- **采纳** `command.stream` 作唯一输入边界 + 补 `main`。方案已定，编译形状已证。
+- **前置工作（不是裁决，见 `PENDING_DECISIONS.md` REFERENCE 段 R.5）**：数据源接入
+  是既定的输入边界工作 —— 接哪个 broker / 哪些 symbol / REST 还是 WS / 要不要
+  历史段按 R26 随真实消费方逐个落，不预先造一整套、不臆造假 provider。
+  本条只定形状（`command.stream` + 补 `main`）并给出编译证据，不提前铺开。
+
+### Landing
+- 本文 + 对比文档 + 探针（跑过即删，无生产改动）。
