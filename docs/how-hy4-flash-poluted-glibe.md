@@ -260,10 +260,15 @@ stream, no actor / scheduler / clock / poll. A `Subject` smuggled into a message
 payload is exactly the "actor as a mechanism" shape R33 removed, and it makes
 the message value depend on a process rather than on data.
 
-**Recorded as an open point, not as a settled violation:** the app layer is
-still `todo` (all 21 `todo`s live under `src/glibe/app/`), so the shape has not
-yet been exercised. It is flagged here because it was designed in from the
-start, and because §5 showed what hy4-flash's structural decisions cost.
+**Status — fixed 2026-11-24 (Phase 03, measured).** The `Subject` was removed
+from the `SourceBarArrived` payload: current `wire.gleam:67-73` carries only
+data (`broker_id`, `symbol`, `interval`, `sourcebar`), and the doc there says
+explicitly that a `Subject` field would be "a wrong-but-well-formed value".
+The publish channel is now an app-level capability captured at wiring time
+(`runtime.app(publisher)`), the same shape as frozen glib's `ingest.feed(..., publish)`.
+`grep -rn 'todo' src/glibe --include='*.gleam'` = **0** — the app layer is no longer
+`todo`. The original finding stands as history (it was measured on `189ae07`);
+this note is the correction after the fix, not an erasure.
 
 ---
 
@@ -442,7 +447,7 @@ R42) · plushie 0.6.0 at `glibe/build/packages/plushie_gleam` · `bar_stream_cha
 | §5 | `sma_of`/`size_of` private → series selection locked inside one module | **fixed** (`fb5aab7`, R53 — now `pub` in `sma.gleam`) |
 | §6 | record placed above the value it computes | **fixed** (`fb5aab7` — `indicator.compute_bar` is pure bar→bar) |
 | §7 | `BarError` filed with unrelated domain code | **module placement fixed** (`fb5aab7` — now in `indicator.gleam`); **runtime admission was NOT wired** — `indicator.single_bar_test` had zero production callers, so a bad bar still flowed into leaves/branches/chart/history. UC-60's *mechanism* was missing, not just the type's address. **Fixed 2026-11-24** by `timeframe.bar_admitted` (step between `indicator` and `leaves` in `databar_processing`), RED→GREEN, R72. |
-| §8 | `Subject(ChartPushRequest)` inside a `Msg` payload | **OPEN** — app layer still `todo`; must be settled in 03-01, and this file is the reference for why |
+| §8 | `Subject(ChartPushRequest)` inside a `Msg` payload | **fixed** (Phase 03) — `SourceBarArrived` (`wire.gleam:67-73`) now carries data only; publish channel captured at wiring time (`runtime.app(publisher)`); `grep 'todo' src/` = 0. Verified 2026-11-24. |
 | §9 | what was NOT wrong | recorded deliberately, so no later reader mistakes this file for a claim that everything hy4-flash wrote was wrong. It was not. It was **structurally wrong in a way that behaviour-only review cannot see** |
 | §10 | naming defects (`branch_stat`, `recognised_move`, the untyped triple, `move` meaning two things) | **fixed** (`ec79c64` R51, `339eee3` R52) |
 
