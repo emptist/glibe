@@ -6782,3 +6782,82 @@ owner 说的"研究只能局限于长 leaf 列表"指 glib 的 `signif_yin_leaf_
   `dashboard_test` 里两个只为那份副本存在的 `dict_from_list` / `dict_new` 随之删除。
 - 门禁：format/check/docs/export 全 0；test **126 passed / 0 failures**（数量不变）；
   WAE 退出码 0（**0 Todo + 0 Unused**）。
+
+---
+
+## R65 — 「哪根 bar 完整了」在 instrument 层；所以"gate 在第一根完整 bar 时创造 Timeframe"与 2026-11-13 的裁定冲突（2026-11-23 owner 两问 + 实测分析）
+
+**owner 逐字（两问）**：
+1. *"timeframe是第一个sourcebar完整时，由 sourcebar_gate 创建的，理论上应该这样，要看实际是否行得通。"*
+2. *"这实际牵扯另一个大问题，sourcebar_gate 究竟应该在 timeframe模块，还是应该在 instrument 模块？"*
+
+### 1. 实测：四件事
+
+**(a) 「这一根完整了吗」的判定不在 gate 里。**
+`sourcebar_gate`（`timeframe.gleam`）只做三件事：`api/sourcebar.gleam:validate`（OHLC 法）
+→ `to_databar(idx)` → 写 `working_databar`。**完整性的判定是
+`interval.sourcebar_closed(target_interval, arriving.time)`，它在
+`ib/sourcebar.gleam` 的 `accumulate` 里**（合成层），而合成层由 **`instrument.gleam`
+派发**（owner 2026-11-13 的逐字裁定与三层探测，已记在 `instrument.gleam` 模块头）。
+⇒ **"第一根 sourcebar 完整"这个时刻发生在 instrument 层，不在 gate。**
+
+**(b) gate 不需要 `Interval`。** bar 的**变体**自带周期（owner 2026-11-21 二选一：no
+separate `interval` argument —— *"那是一个死参数（WAE Unused）"*）。
+⇒ owner 2026-11-13 探测里否定 `timeframe.gleam` 的那条理由（*"Interval would have to
+be passed DOWN to a value that cannot know its own name"*）**对 gate 不成立** —— 那条是
+针对**合成**的（合成要按 interval 选 provider 函数）。
+
+**(c) 今天 gate 的位置符合 R50。** 它读 `timeframe.databar_list`（算 idx）、写
+`timeframe.working_databar` ⇒ 按 R50 §2.1「函数跟着它读写的 Dict 的持有者走」，
+它在 `timeframe.gleam` 是对的。
+
+**(d) 唯一的障碍：半根 bar 的状态住在 Timeframe 里。**
+`growing_target_sourcebar` 是 `Timeframe` 的一个字段，由合成层读写
+（`instrument.gleam:108-109`：`Timeframe(..timeframe, growing_target_sourcebar: growing)`）。
+⇒ **Timeframe 必须在第一根完整 bar 之前就存在**（合成需要它来装半根 bar）。
+实测：**这个字段只被合成层用**，pipeline 的四步（`leaves` / `branches` / `strategy` /
+`indicator` / `archived`）都不读它。
+
+### 2. 两个自洽的形状（互斥）
+
+| | **形状 A′：Timeframe 在第一根 bar 到达时诞生** | **形状 B：Timeframe 在第一根完整 bar 时诞生** |
+|---|---|---|
+| 半根 bar 状态 | 留在 `Timeframe.growing_target_sourcebar`（不动 type） | **搬出 Timeframe**，进 Instrument 的第二个 Dict |
+| 谁创造 Timeframe | **instrument 层**（合成需要它存在） | **gate**（按 owner 的字面） |
+| gate 住在哪 | `timeframe.gleam`（不动；R50 照旧） | **`instrument.gleam`**（它写 `Instrument.timeframes`） |
+| type 改动 | 无 | `Timeframe` 少一个字段；`Instrument` 多一个 Dict |
+| 与 owner 2026-11-13 的裁定 | **一致**（"growing_target_sourcebar 是 Timeframe 字段"） | **冲突**（该字段离开 Timeframe） |
+| 与 owner 今天的字面 | 不一致（诞生早于"完整"） | **一致** |
+
+**两个问题其实是同一个问题**：gate 住哪一层，取决于 Timeframe 在哪儿诞生 ——
+按 R50，**gate 写哪个 Dict，就归那个 Dict 的持有者**。
+
+**R50 不构成障碍**（这一点要写清楚）：R50 §2.1 逐字 *"Broker 按 R33 / R36 持有
+`instruments` 和 `accounts` **两个** Dict，两者都属于这一层，不因此拆模块"* ⇒ 形状 B
+里 Instrument 持有两个 Dict **是允许的**。
+
+### 3. 现状里更急的一件事：生产代码**没有任何地方创造 Timeframe**
+
+- `src/` 里 `Timeframe(...)` 只出现在**记录更新**（`Timeframe(..timeframe, ...)`，6 处）
+  与类型定义本身。
+- `runtime.init` 的 Desk 是空的（`desk.Desk(dict.new())`）；`runtime.route` 要求
+  `get_timeframe` **已经成功** ⇒ **一棵空的 Desk 永远长不大**：任何新身份的 bar 都被
+  丢掉（走 `Error` 分支，不发布）。
+- ⇒ **今天这个 app 一根 bar 也处理不了。** 无论选 A′ 还是 B，**都必须先有诞生点**。
+
+### 4. 待 owner 裁定（一个 type 层面的二选一）
+
+- **选 A′**：`growing_target_sourcebar` 不动；Timeframe 由 **instrument 层**在第一根
+  bar 到达时用**构造函数直接写**（R64：无 `new`）；**gate 留在 `timeframe.gleam`** 不动。
+  代价：「Timeframe 存在」的含义是"这个 feed 开始了"，不是"第一根完整了"。
+- **选 B**：`growing_target_sourcebar` **离开 `Timeframe`**，进 Instrument；**gate 搬到
+  `instrument.gleam`**，在第一根完整 bar 时用构造函数直接写出一个 Timeframe。
+  代价：**一个 type 改动** + Instrument 多一个 Dict + gate 搬家。
+
+**Space-Bunny 的判断：选 A′。** 理由：(i) **它与 owner 2026-11-13 已经裁定的合成层归属
+一致**，而今天的字面若照字面执行会推翻那一裁（半根 bar 状态搬家）；(ii) type 不动
+（owner 对 type 最看重）；(iii) 「feed 开始了」与「第一根完整了」在**这个系统里是同一根
+bar 的两件事**：Binance 的 bar 到达即完整（没有半根状态），IB 的 bar 到达时是半根 ——
+**"完整"是 provider 的属性，不是 Timeframe 的出生条件**；(iv) gate 留在 `timeframe.gleam`
+时，它读写的仍是 Timeframe 自己的内部（R50），不动归属。
+**但这是 owner 的裁定，不是我的** —— 且 A′ 与今天的字面确实不同，所以本条**不擅自执行**。

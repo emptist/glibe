@@ -4,8 +4,27 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-23 (最新 — Phase 03 完成：发布路径 + Dashboard + 接线；**全仓库零警告**；leaf 形状已定（R63）；决策区 0 项)
+## 2026-11-23 (最新 — Phase 03 完成：发布路径 + Dashboard + 接线；**全仓库零警告**；leaf 形状已定（R63）；Timeframe 的诞生点待裁定（R65）；决策区 0 项）
 
+- **R65（待 owner 裁定）：Timeframe 在哪儿诞生、gate 住哪一层。**
+  - 实测：**「这一根完整了吗」的判定不在 gate 里** —— 它在 `ib/sourcebar.gleam` 的
+    `accumulate`（合成层），由 **`instrument.gleam` 派发**（owner 2026-11-13 已裁定）。
+    ⇒ "第一根 sourcebar 完整"这个时刻发生在 **instrument 层**。
+  - 实测：gate **不需要** `Interval`（bar 的变体自带周期），所以 2026-11-13 否定
+    `timeframe.gleam` 的那条理由对 gate 不成立。
+  - 实测：今天的 gate 位置**符合 R50**（它读 `databar_list`、写 `working_databar`）。
+  - **唯一障碍**：半根 bar 的状态 `growing_target_sourcebar` **住在 Timeframe 里**，
+    合成层读写它 ⇒ Timeframe 必须在第一根完整 bar 之前存在。
+  - ⇒ 两个互斥形状：**A′**（Timeframe 在第一根 bar 到达时诞生，半根状态不动 ⇒ type 不动、
+    gate 不动，与 2026-11-13 一致）/ **B**（Timeframe 在第一根完整 bar 时诞生 ⇒ 半根状态
+    搬出 Timeframe、进 Instrument 的第二个 Dict、**gate 搬到 `instrument.gleam`**）。
+  - **更急的一件事**：生产代码**没有任何地方创造 Timeframe**，`runtime.route` 要求
+    `get_timeframe` 已成功 ⇒ **空 Desk 永远长不大，今天这个 app 一根 bar 也处理不了。**
+- **R64：诞生就是构造函数本身** —— 不给 type 造 `new` 式的诞生函数（owner 逐字）；
+  **测试里的记录只写一遍**：新增 `test/fixture.gleam`（测试专用），5 个测试文件的
+  `Timeframe` 副本改成一行委派（合并前**6 处**逐字列 11 个字段 ⇒ 记录一加字段就 6 处
+  同时编译失败）；**刻意没有无参的 `empty_timeframe()`**（无参、只干"造一个"的函数
+  **就是**被禁的 `new`）。门禁：WAE 0、test 126 passed。
 - **leaf 的形状已定（R63，owner 当面裁定）**：**暂时用 field，不用 list**，可回退
   （逐字 *"暂时可以这样做，今后需要再改回 list 也可以"*）。R59 §2 的开放点**结清**。
   - **一条重要更正**：现有 `yin_leaf_settled` / `yang_leaf_settled` 是「**本 bar 结算的
