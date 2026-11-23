@@ -4,8 +4,25 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-23 (最新 — Phase 02 domain 全部完成；决策区 0 项；工作树待提交本轮改动)
+## 2026-11-23 (最新 — Phase 02 domain 完成 + 指标层四模块拆分；决策区 0 项)
 
+- **模块结构更正（R53，本轮，owner 当面指出）**：*"他的补充完全是敷衍，所以全部塞进
+  不应该塞进去的模块，而不去新建应该用的模块"* —— 审计发现 `timeframe.gleam` 里塞了
+  **19 个**属于 glib 其它三个模块的函数（`sma.gleam` / `bollinger.gleam` / `kdj.gleam` /
+  `indicator.gleam`），838 行装 26 个函数（glib 同样行数只装 12 个，因为它拆成了四个
+  文件）。
+  - **后果（结构性）**：`sma_of` / `size_of` 私有 → 序列选择被锁死在 `timeframe.gleam`
+    内部，**任何其它模块读不到 `sma_small`/`large`/`huge`**，唯一现成可读的是能硬编码的
+    `sma_tiny` —— 这就是 owner 担心的"该用其他 sma 的地方全部用 sma_tiny"的结构性成因。
+  - **已核实**：逐点比对八项，**目前尚无实际的 sma_tiny 顶替**（五路 SMA 递推、中心线
+    选中、σ 窗口、SMA/σ 原料、leaf 判据、move 幅度、chart 映射全部与 glib 一致）。
+  - **已做**：新建 `sma.gleam`（三个访问器 **pub**）/ `bollinger.gleam` / `kdj.gleam` /
+    `indicator.gleam`（含 type `BarError`）；`timeframe.gleam` **838 → 440 行**，只剩
+    8 个 pub fn + `Timeframe` type。`indicator` 保留管道形状（R40/R41 owner 裁定优先于
+    glib 形状），实现体在 `indicator.gleam`，纯函数 bar→bar 不命名 record。
+  - 新增 `test/sma_test.gleam` 4 个测试（RED→GREEN）。门禁：format/check/docs/export = 0；
+    test **102 passed / 1 failure**（唯一失败是 Phase 03 既有 todo）；WAE 1（21 Todo + 57
+    unused，**与拆分前一致，零新增警告**）。
 - **顺序纠正（owner 当面）**：*"你 model 都没做完，你去做什么 View？"* —— 已先把
   model 补完，再做 View。Phase 03 的计划和 03-01 骨架仍保留，但排在 Phase 02 之后。
 - **Phase 02 完成（GDLTDD，本轮）**：`test/domain_steps_test.gleam` 8 个 RED 测试先崩

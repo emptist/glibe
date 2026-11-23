@@ -6032,3 +6032,113 @@ type 才能说明"返回什么"。
 - 门禁：format --check 0 / check 0 / test **98 passed / 1 failure**（唯一失败是 Phase 03
   既有 `app_shape_test.from_event` todo）/ docs 0 / export 0 / WAE 1（**21 Todo + 57
   unused**，与 R51 改名前完全一致，本轮**未引入任何新警告**）。
+
+---
+
+## R53 — 模块该拆就拆：指标层四模块被塞进 `timeframe.gleam`（2026-11-23 owner 指出 + Space-Bunny 审计）
+
+**owner 逐字**：*"他的补充完全是敷衍，所以全部塞进不应该塞进去的模块，而不去新建应该用的模块，这种问题可能还有更严重的，你要认真对比"*
+
+背景：owner 已明确标记 —— 本仓库 2026-11-23 之前的 domain 层工作由 **hy4-flash** 完成；
+该模型"一向仅仅实现了少量的sma，据他说只有sma_tiny，并且长期讨价还价不增补，昨天才在
+强制要求下补充"。**补充本身不完整**：补的时候没有新建应当存在的模块，而是把内容塞进
+已有的 `timeframe.gleam`。本条是一次机械化审计的结果。
+
+### 1. 审计方法（可复现）
+
+逐个函数比对两仓库的模块清单（`grep -n '^pub fn \|^fn '`），找出
+**glibe/timeframe.gleam 有、glib/timeframe.gleam 没有**的函数名 —— 每一个都是
+"从别处塞进来的"。
+
+- glib `timeframe.gleam`：**12** 个函数（851 行）
+- glibe `timeframe.gleam`：**26** 个函数（**838 行**）—— 行数相近而函数数两倍，
+  正因为 glib 把指标层拆成了四个文件。
+
+### 2. 19 个函数的归属（glib 的正确位置 → glibe 的实际位置）
+
+| glibe 现状（全部在 `timeframe.gleam`） | glib 的正确归属 | 个数 |
+|---|---|---|
+| `sma_of` `set_sma_of` `size_of` `sma_stream` `sma_series_stream` | **`sma.gleam`** | 5 |
+| `sigma_stream` `sigma_add` `sigma_remove` `band` `write_band` | **`bollinger.gleam`** | 5 |
+| `kdj_stream` `rsv_extrema` `rescan_window` | **`kdj.gleam`** | 3 |
+| `indicator` `single_bar_test` `bar_error_text` `ordered` `float_max` + type `BarError` | **`indicator.gleam`** | 6 |
+| `start_idx_of_leaf` | glib `timeframe.gleam` 内联（`significant_leaf` 被 R.42 简化掉） | 1 |
+
+（`sma.gleam` 已于本轮先建，骨架就位；其余三模块待建。）
+
+### 3. 三个真实后果（不是"不好看"）
+
+1. **序列选择被锁死** —— 这是 owner 担心的"该用其他 sma 的地方全部用 sma_tiny"的
+   **结构性成因**。`sma_of` / `size_of` 是私有 `fn`，只有 `timeframe.gleam` 内部能
+   把 `SmaSeries` 名字翻译成字段；**任何其它模块读不到 `sma_small` / `sma_large` /
+   `sma_huge`**，唯一现成可读的序列是能硬编码的 `sma_tiny`。冻结 glib 把这两个函数
+   设为 `pub` 并放在独立模块，`glib/sma.gleam:6-7` 逐字：*"sma_of / set_sma_of /
+   size_of are the only three places a name becomes a field"*。
+2. **依赖方向反了** —— glib `indicator.gleam` 模块头逐字：*"It takes the settled
+   bars and the settings, **not the `Timeframe`** … importing `timeframe.gleam` just
+   to reach two fields it already owns would put the state record above the value
+   computed on it. It is also what makes the step movable: a function that names the
+   record cannot leave the record, and this one did (2026-10-03)."* glibe 把
+   `indicator` 塞进 `timeframe.gleam`，正好犯了 glib 明确避免的错 —— **状态记录在被
+   计算的值之上**。
+3. **`BarError` 位置错** —— 它是"指标算错了"的错误类型（UC-60：算错的 bar 不得进入
+   leaf / branch / signal / chart），却住在 `timeframe.gleam`，与 leaf/branch 的领域
+   错误混在一起。
+
+### 4. 已核实：目前**没有**实际的 sma_tiny 顶替（但随时可能发生）
+
+逐点比对结果（owner 要的"认真对比"）：
+
+| 位置 | glib | glibe | 判定 |
+|---|---|---|---|
+| 五条 SMA 递推 | `indicator.gleam:40-44` | `timeframe.gleam:234-243` 五次齐全 | ✅ |
+| Bollinger 中心线 | `indicator.gleam:45` `sma_of(working, settings.sma_for_bbm)` | `timeframe.gleam:248` 一字不差 | ✅ |
+| σ 窗口 | `bollinger.gleam:165` `size_of(settings, settings.sma_for_bbm)` | `timeframe.gleam:250` 一字不差 | ✅ |
+| SMA 原料 | `sma.gleam:104` `fn(b){b.close}` | `timeframe.gleam:310` 同 | ✅ |
+| σ 原料 | `bollinger.gleam:170` `working.close` | `timeframe.gleam:363` 同 | ✅ |
+| leaf 判据 / CMA | `leaf.gleam:212` / `:157`，骑 `sma_tiny`（UC-59） | `leaf.gleam:210` / `:191` 同 | ✅ |
+| branch/move 幅度 | `branch.gleam:233`，骑 `sma_tiny`（owner 2026-10-03 7th *"never price"*） | `move.gleam:79-80` 同 | ✅ |
+| chart 映射 | glib 无 chart 层（用 JS 镜像） | `dashboard.gleam:135` `sma_medium` | ✅ 与 `bar_stream_chart` 库要求一致 |
+| glib 的 `SmaSeries` 消费方 | 仅 Bollinger 中心线与 σ 窗口 | 同 | ✅ |
+
+**结论**：结构缺陷真实存在，但**尚未**表现为实际顶替。**结构性成因**已定位（§3.1）。
+
+### 5. 另记：glib `trading/strategy.gleam` 整层在 glibe 缺失
+
+glib 那层用 `sma_tiny_rising`（`strategy.gleam:197-198`）参与 buy/sell 判定；glibe 的
+`trading/signal.gleam` 只有三个构造子 + codec，**零判定逻辑**。这在 glibe 是**有意的**
+（R11 / UC-62：只做 Yang 的手动策略，不搬 idib 规则），但将来 AI 策略模块落地时，
+这类派生量总得有人写 —— 那时若序列选择仍被锁死，就会重复同一个错误。
+
+### 6. 裁定（本次拆分）
+
+新建四个模块，还原 glib 的结构：
+
+| 新模块 | 装什么 | 依据 |
+|---|---|---|
+| `src/glibe/sma.gleam` | `sma_of` `set_sma_of` `size_of` `sma_stream` `sma_series_stream`；三个访问器 **`pub`** | glib `sma.gleam` |
+| `src/glibe/bollinger.gleam` | `sigma_stream` `sigma_add` `sigma_remove` `band` `write_band` | glib `bollinger.gleam` |
+| `src/glibe/kdj.gleam` | `kdj_stream` `rsv_extrema` `rescan_window` | glib `kdj.gleam` |
+| `src/glibe/indicator.gleam` | `indicator` `single_bar_test` `bar_error_text` `ordered` `float_max` + type `BarError` | glib `indicator.gleam` |
+
+`timeframe.gleam` 只留：`sourcebar_gate` `databar_processing` `leaves` `branches`
+`strategy` `working_databar_archived` `bars_listed` + type `Timeframe`。
+
+**R40 / R41 与 glib 形状冲突的处理**：owner 逐字裁定管道每一步必须是
+`fn(Timeframe, ...extra) -> Timeframe`（*"整个流程的在databar processing 内部的主体
+就是一个简单的gleam经典：timeframe |> function1 |> function2 …"*），**owner 裁定优先
+于 glib 的 legacy 形状**。因此 `indicator` **保留管道形状**
+`fn(Timeframe, IntervalSettings) -> Timeframe`，但**实现体在 `indicator.gleam` 里**；
+`databar_processing` 里那一步是一行薄适配（取 `working_databar` 与
+`databar_list`、调 `indicator.indicator`、写回）。这与 glib 的做法同构：glib 的
+`indicator.compute_bar` 是 bar→bar 的纯函数，其 `timeframe.gleam` 里同样是一行薄
+适配（`glib/timeframe.gleam:369-379`）。
+
+**访问器必须 `pub`**：`sma_of` / `size_of` 是"名字 → 字段"的唯一翻译处，锁起来等于
+让其它模块只能用 `sma_tiny`（§3.1）。
+
+### 7. Landing
+
+`src/glibe/sma.gleam`（本轮先建，骨架）、`src/glibe/bollinger.gleam`、
+`src/glibe/kdj.gleam`、`src/glibe/indicator.gleam`；`src/glibe/timeframe.gleam` 瘦身；
+`src/glibe/app/dashboard.gleam` 与 `src/glibe/databar.gleam` 的引用同步。
