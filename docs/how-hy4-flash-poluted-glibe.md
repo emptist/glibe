@@ -437,3 +437,110 @@ R42) · plushie 0.6.0 at `glibe/build/packages/plushie_gleam` · `bar_stream_cha
 **Boundary marker:** `git tag space-bunny-start` → `ec79c64`.
 `git diff space-bunny-start~1..HEAD` is exactly what I changed; everything
 before it is hy4-flash's, audited in this file.
+
+---
+
+## 14. Was the *copying* itself faithful? (the question the owner's remark opened)
+
+Owner, 2026-11-23 (verbatim): *"算法多数是照抄glib的，能不把对的抄错，错的仍然照抄不误，就谢天谢地了。"*
+
+This is the right instinct, and it opens a dimension the audit in §3–§10 did
+not cover: **§3–§10 asked whether the code is right; this asks whether the
+copying carried the RIGHT version of glib.**
+
+It matters because **R38 rules that glib is not authoritative** — *"glib做的不
+一定对"* (owner 2026-11-10 10:04) — and that copying glib requires
+**comparing glib's documentation against glib's implementation** (R38
+discipline ②: *"参考 glib 必须文档与实现对照，只取符合 owner 当前裁定的实现"*).
+R38 also records owner on the copying itself (2026-11-12): *"对的部分可能没有
+抄"*.
+
+**So "copied from glib" is not a guarantee — it is a thing that must be checked.**
+
+### 14.1 Measured: where glib itself was corrected by the owner, which version did glibe take?
+
+| Algorithm | glib's current (corrected) rule | glibe took | Verdict |
+|---|---|---|---|
+| `next_yin_leaf` — a yin leaf dies on a new HIGH `sma_tiny` **above its own start** (owner 2026-09-29: *"the highest of a living yin leaf is always the `sma_tiny` of its `start_bar`"*) | `glib/leaf.gleam:212` | `glibe/leaf.gleam` `next_yin_leaf` — same comparison, same threshold source | **the corrected version** |
+| `next_yang_leaf` — the polarity mirror | `glib/leaf.gleam:236` | same | **the corrected version** |
+| `leaf_cma` — averages the **selected MA**, never price (owner 2026-09-15: *"CMA 当然同样是选定均线的均值呀"*) | `glib/leaf.gleam:157` | `glibe/leaf.gleam` — raw is `b.sma_tiny` | **the corrected version** |
+| `next_yang_branch` / `next_yin_branch` — closes on a **length** test against the riding leaf, never a price test (owner 2026-10-03) | `glib/branch.gleam:346-424` | same | **the corrected version** |
+| `move_between` — a **share** of the open, never a difference, on `sma_tiny` (owner 2026-10-03 7th) | `glib/branch.gleam:233` | same | **the corrected version** |
+| KDJ — D is smoothed with **K's alpha**, not a separate ½ (*"idib wins over ibOptions"*, glib `kdj.gleam:39-41`); RSV window is the **amortised-rescan** form (UC-64), not a per-bar full-window scan | `glib/kdj.gleam:15-72` | `glibe/timeframe.gleam` `kdj_stream` — same alpha, same cached-extreme rescan | **the corrected version** |
+
+**Six comparison fingerprints checked mechanically** (`sma_tiny` operators and
+comparison targets, extracted from both trees and compared): **all six match.**
+
+### 14.2 Measured: library-level panics — the one place copying glib would have been wrong
+
+Frozen glib contains **20+ `let assert`s** in `src/glib/` — including exactly
+the two functions hy4-flash copied:
+
+```
+glib/src/glib/branch.gleam:97:  let assert Some(exit_bar) = branch.exit_bar      // branch_size
+glib/src/glib/branch.gleam:203: let assert Some(end) = end_bar(branch)            // branch_stat
+glib/src/glib/leaf.gleam:129:   let assert Ok(previous) = list.first(databar_list)
+glib/src/glib/timeframe.gleam:361,369,385,455,468,484,517,602,637,666: …
+```
+
+Core §7 bans `let assert` in libraries (*"libraries likely never"*). **glibe has
+ZERO `let assert` in its entire `src/` tree** (measured: the single grep hit is
+a *comment* saying so).
+
+**Here the copying was deliberately NOT faithful — and correctly so.** glibe
+replaced every library-level assertion with `Option` or an explicit match. This
+is the one place where "copying glib verbatim" would have imported a defect, and
+it did not happen.
+
+### 14.3 Measured: did glibe import things the owner had struck from glib?
+
+R38 lists what owner ruled **not** to carry over. Checked against the audited
+tree:
+
+| Struck / not-to-carry | glib still has it? | glibe copied it? |
+|---|---|---|
+| `manual_enter` / `manual_exit` fields (owner 2026-10-31: *"based on this to invent fields is not expected behaviour … keep things clean"*) | **no** (deleted) | **no** — the only two mentions in glibe are a comment saying *"No provisional manual_enter / manual_exit fields (owner 10-31)"* |
+| `replay` / `ReplayError` / `replay_from` (R38: *"replay连名字都不对"*) | no | **no** (0 hits) |
+| `accept` / `bars_accepted` (owner: *"the list_bar is not bearable"* → `archived` / `bars_listed`) | no | **no** (0 hits) — glibe uses `working_databar_archived` / `bars_listed` |
+| `sourcebar_buffer` / `sourcebar_export` (offline export) | **yes** (8 + 22 hits) | **no** (0 hits) |
+| `clock.now()` / `period_end` (R27: the standard `SourceBar` is unix time, no system clock) | no | **no** (0 hits) |
+| `is_product_version` assertion (R38: not carried) | **yes** (7 hits) | **no** — the single mention is a comment: *"this tree has no `is_product_version` flag"* |
+
+**Not one struck item was copied.** Where glib still carries something owner had
+ruled out (`sourcebar_buffer`, `sourcebar_export`, `is_product_version`), glibe
+left them all behind.
+
+### 14.4 Verdict on the copying
+
+> **The copying was faithful in the places where fidelity was required, and
+> deliberately unfaithful in the two places where glib itself was known to be
+> wrong — library panics and struck fields.**
+
+This is a genuinely favourable finding and it is recorded as such. It sharpens
+§11's lesson rather than softening it:
+
+- **Behaviour (including *which version* of a rule was copied): sound.** §9.1
+  and §14.1–§14.3 together.
+- **Structure and naming: broken.** §4–§7, §10.
+
+The owner's bar — *"能不把对的抄错，错的仍然照抄不误"* — was in fact **met on the
+algorithms**, with one exception worth naming: on the `let assert` question
+hy4-flash did **not** copy glib's error, and that exception is the best thing
+in the inherited tree.
+
+**What this means for the next audit:** the pattern is now clear and it is
+*not* random.
+
+| Layer | What hy4-flash did | Quality |
+|---|---|---|
+| copying a rule from glib | copied the **corrected** version | good |
+| copying library mechanics | dropped glib's panics | good |
+| inventing the module layout | invented it | **bad** — §4–§7 |
+| inventing names | invented them | **bad** — §10 |
+
+**The failures are exactly where he had no source to copy.** Everything that had
+a reference, he got right (or better). Everything he had to *design*, he got
+wrong. That is a sharper statement of the problem than "he was careless", and it
+is the reason the audit method in §11 must check structure and names
+separately from behaviour: **the inherited tree's behaviour can be trusted
+much further than its layout can.**

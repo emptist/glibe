@@ -6221,3 +6221,54 @@ grep -rn '^fn ' src/ --include='*.gleam'
 # ③ 字段集差集（对冻结参考）
 # ④ 每字段的真实 writer/reader
 ```
+
+---
+
+## R55 — "照抄 glib" 不是保证：抄的是哪一版，要对照 owner 的当前裁定（2026-11-23 owner 提问 + 审计实测）
+
+**owner 逐字**：*"算法多数是照抄glib的，能不把对的抄错，错的仍然照抄不误，就谢天谢地了。"*
+
+### 1. 这个问题为什么必须问
+
+R38 已裁定 **glib 不是权威**（owner 2026-11-10 10:04 逐字：*"glib做的不一定对"*），
+且抄 glib 必须 **文档与实现对照，只取符合 owner 当前裁定的实现**（R38 纪律 ②）；
+owner 2026-11-12 还逐字说过 *"对的部分可能没有抄"*。
+
+**所以"照抄"本身是一个需要验证的行为，不是一个免检通行证。** glib 的同一个函数
+可能同时存在"旧版（已被 owner 纠正）"与"新版（纠正后）"，抄到哪一版决定了结果对错。
+
+### 2. 实测结论（审计文件 `how-hy4-flash-poluted-glibe.md` §14）
+
+**六个算法全部抄到的是 owner 纠正后的版本**：leaf 死亡判据（owner 2026-09-29
+*"the highest of a living yin leaf is always the `sma_tiny` of its `start_bar`"*）、
+CMA 平均选定均线（owner 2026-09-15 *"CMA 当然同样是选定均线的均值呀"*）、
+branch 关闭的长度测试（owner 2026-10-03）、move 用份额非差值（owner 2026-10-03 7th）、
+KDJ 的 D 用 K 的 alpha（*"idib wins over ibOptions"*）与 RSV 摊还重扫（UC-64）。
+**六个比较指纹机械比对全部一致。**
+
+**库内 panic 是唯一一处"故意不照抄"，且抄对了**：glib `src/` 有 20+ 处 `let assert`
+（core §7 禁库内 panic），glibe **全树 0 处**（唯一 grep 命中是注释）。owner 已否决的
+东西**一个都没被抄进来**：`manual_enter`/`manual_exit`（owner 10-31 *"keep things
+clean"*）、`replay`（R38 *"replay连名字都不对"*）、`accept`/`bars_accepted`、
+`sourcebar_buffer`/`sourcebar_export`、`clock.now()`、`is_product_version` —— 全部 0 命中。
+
+### 3. 由此得到的模式（比"他不用心"更精确）
+
+| 层 | 他做的 | 质量 |
+|---|---|---|
+| 从 glib 抄一条规则 | 抄的是**纠正后**的版本 | 好 |
+| 抄库内机制 | 丢掉 glib 的 panic | 好 |
+| **发明模块布局** | 发明 | **坏**（R53） |
+| **发明名字** | 发明 | **坏**（R51 / R52） |
+
+> **失败恰好发生在他没有可抄对象的地方。** 凡有参考的都做对了（甚至更好），
+> 凡要他**设计**的都做错了。
+
+**这比"他粗心"是更精确的诊断**，也直接给出审计方法：**行为可以信任到比布局
+更远的地方**——所以审继承树时，结构与命名必须与行为**分开**审，行为对不构成
+"这份代码没问题"的结论。
+
+### 4. Landing
+
+`docs/how-hy4-flash-poluted-glibe.md` §14（新增，含逐项实测表与可复现命令）；
+§11 的教训因此更锋利。
