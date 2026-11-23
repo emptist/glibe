@@ -145,7 +145,7 @@ pub fn branch_size_ended_span_and_growing_none_test() {
 
 /// start_end_move measures start->END (the magnitude question), not
 /// enter->exit. start sma 100 -> end sma 120 over idx 10..19 = 10 bars:
-/// move 0.2, bars 10, per_bar 0.02. Growing (no end_bar) -> None.
+/// magnitude 0.2, duration 10, per_bar 0.02. Growing (no end_bar) -> None.
 pub fn start_end_move_ended_measure_and_growing_none_test() {
   let start = bar_at(10, 100.0)
   let end = bar_at(19, 120.0)
@@ -163,10 +163,10 @@ pub fn start_end_move_ended_measure_and_growing_none_test() {
       end_bar: None,
       exit_bar: None,
     )
-  let assert Some(#(move, bars, per_bar)) = branch.start_end_move(ended)
-  assert move == 0.2
-  assert bars == 10.0
-  assert per_bar == 0.02
+  let assert Some(m) = branch.start_end_move(ended)
+  assert m.magnitude == 0.2
+  assert m.duration == 10
+  assert m.per_bar == 0.02
   assert branch.start_end_move(growing) == None
   Nil
 }

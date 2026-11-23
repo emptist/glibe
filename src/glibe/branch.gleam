@@ -63,11 +63,25 @@
 //// status?) and asymmetric with its sibling — both return the same triple.
 //// `move_between` keeps its name: it is the general two-bar measurement and
 //// knows whose bars it measures not at all.
+////
+//// MOVED 2026-11-23 (owner: *"注意 move 这个function，从move这个名字完全看不出
+//// 他 return的东西……但是这正好说明，命名太差了"* + *"当这 move 和 move_between
+//// 同时存在于一个 module 的时候，move 这个名字误导就更强烈"*): the measurement
+//// itself now lives in ITS OWN module, `glibe/move.gleam`, as a named type
+//// `Move(magnitude, duration, per_bar)`. Two defects closed:
+////   1. the return value had NO NAME — it was a bare `#(Float, Float, Float)`,
+////      so three positions with no labels; now the value says what it is;
+////   2. `move` meant BOTH the concept (a span between two bars) AND the
+////      first returned number (a share) — one word, two things, in one
+////      module. Now this module holds only the two branch-shaped WINDOWS that
+////      produce a measurement, and `move.gleam` holds the measurement.
+//// `move_between` moved with the type; the two functions below call
+//// `move.move_between`. See `docs/RULINGS.md` R52.
 
-import gleam/int
 import gleam/option.{type Option, None, Some}
 import glibe/databar.{type DataBar, DataBar}
 import glibe/leaf.{type DataLeaf}
+import glibe/move.{type Move, move_between}
 
 /// The four bars a branch is: where the move opened, where it was
 /// recognised, where it actually died, and where it was found dead (R5).
@@ -158,37 +172,20 @@ pub fn lower_case_type_name(the_branch: DataBranch) -> String {
   }
 }
 
-/// The move between ANY two bars — the one measurement every profit and
-/// loss reads. `start_end_move` calls it with `start_bar` / `end_bar`,
-/// `enter_exit_move` with `enter_bar` / `exit_bar` (R11); it reads `idx`
-/// and the measurement series off the two bars (R6).
-pub fn move_between(
-  from_bar: DataBar,
-  to_bar: DataBar,
-) -> #(Float, Float, Float) {
-  // R3/R6: the share is on the selected MA, not price; the length is an idx
-  // difference with both ends included, never a walk of any list. The third
-  // value is the per-bar rate, not a verdict.
-  let DataBar(sma_tiny: from_ma, idx: from_idx, ..) = from_bar
-  let DataBar(sma_tiny: to_ma, idx: to_idx, ..) = to_bar
-  let move = { to_ma -. from_ma } /. from_ma
-  let bars = int.to_float(to_idx - from_idx + 1)
-  #(move, bars, move /. bars)
-}
-
 /// Three measurements of an ENDED branch, taken over `start_bar` -> `end_bar`
 /// — the move the STRUCTURE made, from its corner to where it actually died.
 /// `start_end_move` reads `start_bar` and `end_bar` and hands them to
-/// `move_between`. A view projection reads the result off `yin_branch_list` /
-/// `yang_branch_list` (R20 / R30); a growing branch has no `end_bar` to
-/// measure, so the result is `None` (R1 / core §2), never a bare triple.
+/// `move.move_between`. A view projection reads the result off
+/// `yin_branch_list` / `yang_branch_list` (R20 / R30); a growing branch has no
+/// `end_bar` to measure, so the result is `None` (R1 / core §2), never a bare
+/// `Move`.
 ///
 /// The name says the PAIR it measures, because the sibling `enter_exit_move`
-/// measures a different pair and both return the same shape — the old names
+/// measures a different pair and both return the same `Move` — the old names
 /// (`branch_stat` / `recognised_move`) did not, and one of them took a word
 /// NAMING.md 1.23 had already pinned to `enter_bar` alone. See the module
 /// header for the rename record.
-pub fn start_end_move(branch: DataBranch) -> Option(#(Float, Float, Float)) {
+pub fn start_end_move(branch: DataBranch) -> Option(Move) {
   case end_bar(branch) {
     None -> None
     Some(end) -> Some(move_between(start_bar(branch), end))
@@ -199,13 +196,13 @@ pub fn start_end_move(branch: DataBranch) -> Option(#(Float, Float, Float)) {
 /// move anyone could have acted on, from the bar it was recognised to the bar
 /// it was recognised as dead. A view projection reads it from the ended branch
 /// (R20 / R30); `None` while no `exit_bar` exists, because one end of a move
-/// is not a move (R1 / R5). It calls `move_between`.
+/// is not a move (R1 / R5). It calls `move.move_between`.
 ///
 /// `enter_exit_move` says the PAIR it measures. The old name `recognised_move`
 /// said something else: NAMING.md 1.23 gives `recognised` to `enter_bar` alone
 /// (*"the bar it was identified, found, discovered"*), so that name both stole
 /// a word from one bar and hid the second end of the window it measured.
-pub fn enter_exit_move(branch: DataBranch) -> Option(#(Float, Float, Float)) {
+pub fn enter_exit_move(branch: DataBranch) -> Option(Move) {
   // R11/R1: one end of a move is not a move, so no exit_bar means no answer.
   // When it exists, the actionable window is enter -> exit; end_bar is a
   // different (magnitude) question that start_end_move asks.

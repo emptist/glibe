@@ -81,7 +81,7 @@ pub type DataBar {
     /// `databar.gleam:41-45`. `sma_tiny` is the series the YinLeaf / YangLeaf
     /// rides (R3, owner verbatim *"CMA 当然同样是选定均线的均值呀"*):
     /// `leaf.leaf_depth` and
-    /// `branch.move_between` read it off the two bars a structure names. All
+    /// `move.move_between` read it off the two bars a structure names. All
     /// five are WRITTEN by `timeframe.indicator` (O(1) add-arriving /
     /// subtract-leaving, glib `sma.gleam:60-108`); each is READ back on the next
     /// bar off the head of `databar_list` as the carried mean of its own window.

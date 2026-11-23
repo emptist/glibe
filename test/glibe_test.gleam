@@ -45,6 +45,7 @@ import glibe/ib/sourcebar as ib_sourcebar
 import glibe/id.{type AccountId, type BrokerId, string_to_broker_id}
 import glibe/instrument.{type Instrument, Instrument}
 import glibe/leaf
+import glibe/move
 import glibe/timeframe.{type Timeframe, Timeframe}
 import glibe/trading/signal
 
@@ -988,15 +989,15 @@ pub fn leaf_depth_share_test() {
   Nil
 }
 
-/// branch.move_between is the one P&L measurement: a share of the selected
+/// move.move_between is the one P&L measurement: a share of the selected
 /// MA (R3) plus an idx-based bar count, both ends included (R6). No series is
-/// walked; the two bars already carry both values.
+/// walked; the two bars already carry both values. The three numbers NAME
+/// themselves, so the value reads apart by field, not by position.
 pub fn branch_move_between_test() {
-  let #(move, bars, per_bar) =
-    branch.move_between(ma_bar(0, 100.0), ma_bar(4, 125.0))
-  assert move == 0.25 as "share: (125-100)/100"
-  assert bars == 5.0 as "both ends included: idx 0..4"
-  assert per_bar == 0.05 as "per_bar: 0.25/5"
+  let m = move.move_between(ma_bar(0, 100.0), ma_bar(4, 125.0))
+  assert m.magnitude == 0.25 as "share: (125-100)/100"
+  assert m.duration == 5 as "both ends included: idx 0..4"
+  assert m.per_bar == 0.05 as "per_bar: 0.25/5"
   Nil
 }
 
@@ -1013,9 +1014,8 @@ pub fn branch_enter_exit_move_test() {
       None,
       Some(ma_bar(4, 125.0)),
     )
-  let #(move, bars, _) = branch.move_between(ma_bar(1, 100.0), ma_bar(4, 125.0))
-  assert branch.enter_exit_move(ended)
-    == option.Some(#(move, bars, move /. bars))
+  let expected = move.move_between(ma_bar(1, 100.0), ma_bar(4, 125.0))
+  assert branch.enter_exit_move(ended) == option.Some(expected)
     as "enter->exit window, no end_bar needed"
   Nil
 }
