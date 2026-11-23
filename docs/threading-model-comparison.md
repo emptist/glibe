@@ -6,6 +6,11 @@
 > subject（R58/R60），但可以、且只该补上 glib/try_plushie 都有的那个东西——
 > **一个真正的输入边界（feed）**。探针已证：官方 `command.stream` 能直接喂
 > glibe 的闭集 Msg，不需要新 variant、不动 R58 的输出回路。
+>
+> **本文不是从零分析 try_plushie。** 它早已被逐条审过（`beam-plushie-concurrency-measured.md`
+> §2.3/§4.1/§5.5/§5.6、`.planning/phases/03-app-view/03-00-ARCH-FINDINGS.md` §G、
+> R60）。本文的增量只有三样：**glib 的 JS target 事实**、**R74 后 glibe 的缺口更新**、
+> **编译探针**。其余是引用，不是新发现——重复论证本身就是错误，见 R76。
 
 ## 0. 先正名：三个"线程方案"不是同一个问题
 
@@ -140,7 +145,9 @@ REFERENCE 段 R.5 已写明）：接哪个 broker、哪些 symbol、REST 还是 
 
 ## 6. 落地顺序（方案已定，前置条件一到即可执行）
 
-1. `config.gleam` 长出 provider / watchlist 值（owner 决策后，R26/R46）。
+1. `config.gleam` 长出 provider / watchlist 值（R26/R46 的既定输入边界工作，
+   不是待裁决项 —— `PENDING_DECISIONS.md` REFERENCE 段 R.5；按真实消费方逐个落，
+   不预先造一整套）。
 2. 新增 BEAM-native feed 模块（`command.stream` work）：REST poll 为主、WS 为
    延迟优化，照 `live_feed.gleam` 已被验证的两路独立形状；不抄整窗重放
    （try_plushie 自己记录过的 bug）。

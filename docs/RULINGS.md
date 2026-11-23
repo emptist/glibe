@@ -7323,3 +7323,49 @@ R72 的基础复查已完成，R72 给"延后推敲"设的前提（基础可能�
 
 ### Landing
 - 本文 + 对比文档 + 探针（跑过即删，无生产改动）。
+
+---
+
+## R76 — 禁止重复论证已有结论：动笔前先盘点已有分析（2026-11-24 owner 质问；流程缺陷）
+
+**owner 逐字**：*\"难道你之前的分析都没有包含这些？还是你完全没有能力连续工作，做了后面忘了前面？前面你不是都分析过 try_plushie N 遍了？\"*
+
+### 事实核对（owner 是对的）
+R75 的对比文档里，try_plushie 那部分**不是新分析**，它早已逐条审过并落盘：
+1. `~/.workbuddy/skills/gl-center/references/beam-plushie-concurrency-measured.md`
+   §2.3（三 renderer 实测）、§4.1（三 App / `command.stream` / WS actor / poll /
+   switcher 逐项 ✅ + 5000ms poll vs 60000ms K 线的真问题）、§5.5（GPU 成本未量化）、
+   §5.6（glibe 并发裁决与多 App 形状未合流——这条 R75 也没解决）。
+2. `.planning/phases/03-app-view/03-00-ARCH-FINDINGS.md` §G + Alternatives
+   （照抄 try_plushie 一图一 App → 拒绝，带 owner 2026-11-19 逐字）。
+3. `.planning/phases/03-app-view/03-00-ARCH-RESEARCH.md`（try_plushie audit）。
+4. `docs/RULINGS.md` R60（one App per chart 否决）。
+
+R75 的**真实增量只有三样**：glib 是 `target = "javascript"`（上面四家实证里没有 glib）、
+R74 后 glibe 的缺口更新（无 main / 无输入边界）、编译探针（`Stream → 闭集 Msg` 可行）。
+其余是把旧结论重新查了一遍 file:line 再写一遍——**重复论证**。
+
+### 另一处自相矛盾（已修）
+`threading-model-comparison.md` §6.1 写 "config 长出 provider/watchlist（owner 决策后）"，
+而同一批产物 R75 裁定刚写完 "数据源接入是既定输入边界工作，不是裁决项"。
+同一份交付里前后打架——这就是"做了后面忘前面"的实物证据。已改为引用
+`PENDING_DECISIONS.md` REFERENCE R.5，与 R75 一致。
+
+### 规则（从现在起，强制）
+1. **写任何"对比 / 研究 / 分析"文档之前，先 `grep -rl <主题>` 盘点已有产出**
+   （`docs/`、`.planning/`、`.workbuddy/memory/`、`gl-center/references/` 四处）。
+   已有结论**引用 + 只写增量**，不得重新论证一遍充数。
+2. **先读 gl-center 的实测/参考文档全文**，再决定要不要新建文档。本次 R75 明明
+   在正文引了 `beam-plushie-concurrency-measured.md` §0，却没先读它的 §4/§5，
+   于是把 §4.1 重写了一遍——引用了却不读，比不引用更糟。
+3. **同一批产出的多个文件互相校验**：写完 RULINGS 条目后，回头 grep 同批新建文档，
+   看有没有和刚写下的裁定冲突的措辞（本次 §6.1 就是这么漏的）。
+4. 违反本条的文档不是"更详尽"，是**噪音**；发现即收敛成引用，不丢增量。
+
+### 本次收敛
+- `docs/threading-model-comparison.md` 顶部加"非从零分析、增量只有三样"的声明；
+  §6.1 的矛盾措辞改正。
+- 本文。不改任何生产代码（无生产改动是本条与 R75 的共同状态）。
+
+### Landing
+- `docs/threading-model-comparison.md`（顶部声明 + §6.1）、本条。
