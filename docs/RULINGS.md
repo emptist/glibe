@@ -7172,3 +7172,20 @@ CLI，都等 owner 裁定。
 
 ### Landing
 - 本条只记 owner 当面裁定 + 历史更正 + 代码事实核对（含 glib/glibe 分层）；**未改任何代码**。
+
+---
+
+## R72 — Timeframe 层基础复查：glibe vs glib 逐项审计（2026-11-24 02:38 owner 任务；审计完成，未改码）
+
+**owner 逐字**：*"你的实现跟glib 在这个局部，就是timeframe层面，差距有多大，你的是改进了，还是退步了，这个只能你自己比较"*；*"类似的问题，有没有，需要你自己查"*；*"sourcebar_gate 这件事，看来要延后在推敲…必须回到基础，进行复查。"*
+
+**产出**：`docs/timeframe-layer-audit.md`（逐字段/逐函数带 file:line）。`sourcebar_gate` 全部冻结，本条不碰。
+
+### 结论
+1. **不是单向退步，也不是单向改进**：结构层（pipe 形状、指标外移、无 new、settled field、4 leaf 列表、无 settings 字段）是 owner 已裁定的改进（R40/R41/R46/R49/R63/R64/R68），比 glib 更符合要求。
+2. **真实缺口（已知未补）**：UC-60 单 bar 检验 `indicator.single_bar_test` —— glib 在 `databar_processing` 里调用（`glib/timeframe.gleam:394`，坏 bar 不进下游），glibe 定义了却**生产零调用**（仅测试自测 `test/timeframe_steps_test.gleam:328,330`），`bar_error_text` 全仓 0 调用。RULINGS:1665 早已记为"命名差异…且无 UC-60 检验"，属已知未补，非新发现。**是否补、如何与纯 pipe 共存，待 owner**。
+3. **"指标塞错模块"类问题无第二处**：上午已拆 sma/bollinger/kdj/indicator；本轮逐模块核对 branch/leaf/indicator/app/instrument，**未发现第二处大块计算塞错模块**。唯一边界模糊是 `timeframe.indicator` 薄适配层，但 glib 亦如此且不含算法，不算错。
+4. **不构成缺陷的差异**：publish（R33 裁定 view 纯投影）、`bars_listed` 可见性（R47 有读者）、`sourcebar_buffer`（R38 明确不搬）、glib `new`（R49 改进）。
+
+### Landing
+- 审计文档 + 本条为记录；**未改任何代码**。待 owner 就 UC-60 缺口裁定后再按 GDLTDD 动。
