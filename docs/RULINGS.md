@@ -6975,6 +6975,12 @@ CLI，都等 owner 裁定。
   本轮已清理 `src/` `test/` 里全部此类独立简称（owner 原话引用处除外）。
 
 ### 裁定三：`SourceBar` 无权读 `databar_list`（门外的 foreigner 不进内屋）
+
+> **【更正 2026-11-24 02:23 — 见 R71】** 本条把「读 `databar_list` = 越界/违规」是**误判，作废**。
+> owner 当面澄清：转换函数定义在 timeframe、**读自家 `databar_list` 算 idx 完全合法，idx 不是问题**；
+> "foreign" 只是 `SourceBar` 这个数据对象的性质，不是"哪个函数不许读哪个字段"的归属禁令。
+> 本条其余两条（禁重跑、禁无含义简称）仍有效。以下历史文字保留不篡改，以 R71 为准。
+
 - **owner 的边界**：`SourceBar` 是门外的 foreigner，`Timeframe` 是门内居民，`databar_list`
   是居民的家产。外来 bar 的校验/转换**不许伸手读**内部已归档列表。
 - owner 01:44 澄清逐字：*"foreign bar 我是解释 sourcebar 的性质，请问 sourcebar 有个鬼idx？"*
@@ -7066,6 +7072,11 @@ CLI，都等 owner 裁定。
 
 ## R70 — "留在 timeframe、sourcebar_gate 仅输出 SourceBar"的利弊（2026-11-24 02:18 owner 问；待裁定，未改码）
 
+> **【更正 2026-11-24 02:23 — 见 R71】** §7.3.1「sourcebar_gate 变薄→归属尴尬」与
+> §7.4「把 validate 并进 processing、删掉 sourcebar_gate」的备选**作废**。owner 当面否决：
+> `sourcebar_gate` 消费 `growing_target_sourcebar`（配对关系的下游），不能删；idx 读
+> `databar_list` 合法，不是问题。§7.1 的编译探测事实仍有效。以下历史文字保留不篡改，以 R71 为准。
+
 **owner 逐字**：*"如果仍然存放在 timeframe内部，但是像我上面说的那样修改，仅输出sourcebar，
 这时候，会不会有潜在的问题，不方便，或不合理的地方？"*；并说明不搬 instrument 的原因：
 *"他依赖 growing_target_sourcebar…如果放在instrument，一个field就不够用了，要生成字典，感觉很丑"*。
@@ -7087,3 +7098,77 @@ CLI，都等 owner 裁定。
    - **不解决 R65 §3 创建缺口**（与签名改动正交，仍是独立待办）。
 4. **待 owner 裁定**：是否采用此改法；薄转发是接受还是把 validate 并入 processing 并删 sourcebar_gate
    （更大改动，仅作备选摆出）。
+
+---
+
+## R71 — 转换函数定义在 timeframe、可读 databar_list（idx 不是问题）；sourcebar_gate 不能删（消费 growing_target_sourcebar 配对）（2026-11-24 02:23 owner 逐字；待确认落地，未改码）
+
+**owner 逐字（两句）**：
+1. *"转换函数放在 timeframe定义呀，在交给 databar_processing 之前，转换好，转化函数完全可以读 databar_list, 所以idx不是问题。"*
+2. *"sourcebar_gate 要读 timeframe中定义的field growing_target_sourcebar 不是吗？怎么把它拿走？"*
+
+### 裁定一：读 `databar_list` 合法；idx 不是问题；R67 越界定性作废
+- **更正 R67 裁定三**：owner 的 foreign 说的一直是 `SourceBar` **数据对象的性质**（外来输入），
+  **不是**"哪个函数不许读哪个字段"的归属禁令。我 R67 把它读成归属禁令 → 判 `sourcebar_gate`
+  读 `databar_list` = 违规，是**根本误判，作废**。
+- **正解**：转换函数定义在 `timeframe.gleam`，在交给 `databar_processing` 之前把 qualified
+  `SourceBar` 转成 `DataBar`；这个函数是 timeframe 自己的函数，**读自家 `databar_list` 算
+  idx 天经地义**（`bars_listed` = head.idx+1, O(1)）。idx 的归属与时机都不再是问题。
+- R67 的另两条（禁重跑、禁无含义简称）**不受影响，仍有效**。
+
+### 裁定二：`sourcebar_gate` 不能拿走（我 R70 §7.4 的建议作废）
+- **更正 R70 §7.4**：我摆的"把 validate 并进 `databar_processing`、删掉 `sourcebar_gate`"备选
+  **作废**。owner 反问 *"怎么把它拿走？"* —— `sourcebar_gate` 消费 `growing_target_sourcebar`
+  的合成结果（配对关系的下游），是它存在的核心职责，不能删。
+- **不能搬 instrument**（owner 02:18 已否）：搬到 instrument 就要让每个 timeframe 各配一个
+  growing field → dict，丑；配对关系 `timeframe↔sourcebar` 因此被打散。⇒ R70 更正注记 +
+  R69 的"倾向搬 instrument"彻底作废。
+
+### 实测：职责应然 vs 当前代码事实（如实区分，不再脑补）
+- **当前代码**：读 `growing_target_sourcebar` 的是 `instrument.dispatch_compose`
+  （`instrument.gleam:104-110`，合成层），**`sourcebar_gate` 本身只读 `databar_list`**
+  （`timeframe.gleam:194`）。
+- owner 说的"`sourcebar_gate` 要读 `growing_target_sourcebar`"是**职责/应然层面**——它是配对
+  closed sourcebar 的下游消费者，与这个 field 绑定；**不是**说当前代码已经这样读。
+  我如实区分这两层，不脑补成"代码已如此"。
+
+### 落地形态（owner 已给方向，细节待其确认；本条未改码）
+- `sourcebar_gate` **留在 timeframe**（不搬、不删）。
+- 转换函数（SourceBar→DataBar，含 idx）定义在 timeframe，在交给 `databar_processing` 之前转换好，
+  读 `databar_list` 合法。
+- 与 R68 四 leaf 列表、R40/R41 pipe 形状如何衔接（`databar_processing` 是否仍接单 bar、
+  转换函数具体签名）属 type/signature 层，等 owner 明示再按 GDLTDD 动。
+
+### 补段（02:26 owner 第六次纠正）：我在混淆 glib 与 glibe —— `growing_target_sourcebar` 是 glibe 独有
+
+**owner 逐字**：*"你在混淆两个implement你自己的glibe错误定义和使用了growing_target_sourcebar，不是glib，说得好像是glib中用到，那么glib是如何做的？"*
+
+**实测 glib 冻结源（`/Users/jk/gits/hub/tools_ib/glib`，0 处 `growing_target_sourcebar`）**：
+- glib 的 `Timeframe`（`glib/timeframe.gleam:76-147`）**没有** `growing_target_sourcebar` 字段，
+  没有任何"小周期合成大周期 / 半根 bar"字段。字段是 settings / working_databar / databar_list /
+  growing leaf×2 / signif×2 / growing branch×2 / branch×2 / **sourcebar_buffer**（只为 export）。
+- glib 的 `sourcebar_gate`（`glib/timeframe.gleam:192-301`）：validate → `sourcebar_buffer` 存原始 bar
+  （capture，非合成）→ **period_over = `clock.now()` vs `sourcebar.period_end(sourcebar))`**（用时钟 + bar 自带
+  period_end 判 closed，不靠合成状态）→ 去重 → settled 时
+  `#(Some(to_databar(sourcebar, bars_listed(databar_list))), timeframe)`。
+  即**转换在 `sourcebar_gate` 内做、读自己的 `databar_list` 算 idx、把 `DataBar` 返回出去**；
+  `databar_processing(timeframe, databar, publish)`（:338-342）接这个 bar 入参。
+- glib 的 provider 各自给**已经 closed** 的 standard SourceBar：Binance kline 一对一；IB（`glib/ib.gleam`）
+  只负责 parse/时区，**没有 5s→大周期合成**。
+
+**我的错误**：R69/R70/R71 把 `growing_target_sourcebar` 说成"owner 核心关切""更贴 glib 冻结源"，
+写得像两代共有 —— 错。它是 **glibe 自己的设计**（owner 2026-11-13 *"this field is in timeframe"*），
+**glib 根本没有**。R70 §7.2.3 说"改法更贴 glib 冻结源"这句单独看对（glib 确实在 `sourcebar_gate` 内转换 + 返回 bar），
+但被我拿 growing 配对来论证，把两个实现缝在一起。
+
+**修正后的分层（别再混）**：
+1. **glib 怎么做**：无 growing 字段；provider 给 closed bar；period_end+clock 判 closed；
+   `sourcebar_gate` 内转换、读 `databar_list` 算 idx、返回 `DataBar` 给 `databar_processing(tf, databar, …)`。
+2. **glibe 自己的 `growing_target_sourcebar`**：合成层字段，owner 11-13 定；是 glibe 独有，不是 glib 的，
+   不能说成"glib 也用"。
+3. **owner 02:23 的裁定其实正是回到 glib 形状**：转换在 timeframe / 读 `databar_list` 合法 /
+   返回 bar 给 processing。反倒是 glibe 当前"`sourcebar_gate` 写 `working_databar` + 引入 growing 字段"
+   是偏离 glib 的地方。
+
+### Landing
+- 本条只记 owner 当面裁定 + 历史更正 + 代码事实核对（含 glib/glibe 分层）；**未改任何代码**。
