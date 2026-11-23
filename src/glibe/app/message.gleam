@@ -28,6 +28,7 @@
 //// new RED test proves the CustomWidget sourcebar gate. All pre-03-01 bodies
 //// were re-opened deliberately — no body may outrun its doc (R19/R44).
 
+import gleam/option.{None, Some}
 import glibe/app/wire
 import plushie/event.{type Event}
 
@@ -66,9 +67,9 @@ pub type VoiceEvent {
 /// A standard bar arriving on the one stream (R27/R28/R29). The full typed
 /// payload is owned by `app/wire.gleam`, the one module that writes and reads
 /// the CustomWidget kind; this alias keeps the Msg variants readable without
-/// creating a second type. The `publisher` Subject is a capability, not model
-/// state: main writes it, `runtime.update` reads it once to emit the publish
-/// command (R47).
+/// creating a second type. **The payload is DATA ONLY** — the publish channel
+/// is captured by the App's update closure at wiring time, never carried per
+/// bar (R58).
 pub type SourceBarArrived =
   wire.SourceBarArrived
 
@@ -86,5 +87,11 @@ pub type SourceBarArrived =
 /// R47 (readers/writers): `wire.sourcebar_event` writes the kind and payload;
 /// this function reads it; `runtime.update` consumes the resulting Msg.
 pub fn from_event(event: Event) -> Msg {
-  todo as "03-01: wire.sourcebar_from_event -> MsgSourceBarArrived, else MsgEye"
+  // OUR kind first; every other event — including another library's
+  // CustomWidget — stays an eye event. Nothing is dropped and no kind is
+  // guessed (R13: the closed set is ours, so the gate is exhaustive).
+  case wire.sourcebar_from_event(event) {
+    Some(payload) -> MsgSourceBarArrived(payload)
+    None -> MsgEye(event)
+  }
 }

@@ -32,36 +32,62 @@
 //// timer lives here. The returned `Command` is only a typed message send to
 //// main's publisher (03-01); domain recompute itself is not an effect.
 ////
-//// R47 (readers/writers): main writes `SourceBarArrived.publisher`; `step`
-//// reads it, runs the chain, writes a new `Desk` and one `ChartPushRequest`;
-//// `publish.request` writes that request to main's publisher process.
+//// R47 (readers/writers): `step` reads the inbound payload, runs the chain,
+//// writes a new `Desk` and one `ChartPushRequest`; `publish.request` writes that
+//// request to the publisher's Subject; the publisher reads it and hands it to
+//// main's dispatch closure.
 ////
-//// R19 status (2026-11-23): 03-01 skeleton. `app` and `init` keep their
-//// already-green bodies; `publish_request`, `step` and `update` are `todo`
-//// until their RED tests are written and filled, in that order.
+//// WHERE THE PUBLISH CHANNEL COMES FROM (R58): the `Subject` is created ONCE
+//// in main and **captured by this module's update closure** — it is NOT carried
+//// inside `SourceBarArrived`. The reason is measured, not preferred:
+//// `plushie.start(app, opts)` creates the `Instance` AFTER the App is built
+//// (`plushie/plushie.gleam:191-279`), so the `Instance` cannot be captured at
+//// wiring time; a `Subject` created before the App CAN. So the Subject is the
+//// late-binding cell, and the `Instance` stays in the publisher process. This is
+//// the same shape as frozen glib's `ingest.feed(timeframe, bar, publish)`
+//// (`glib/src/glib/trading/ingest.gleam:57-71`), where the owner bakes the
+//// publish closure at the composition root instead of threading it per bar.
+////
+//// R19 status (2026-11-23): bodies filled — `app` captures the publisher,
+//// `step` routes Desk -> Broker -> Instrument -> Timeframe and returns the one
+//// publish request, `publish_request` exposes that point, `update` turns the
+//// request into the publish command. RED -> GREEN via `test/publish_test.gleam`
+//// and `test/runtime_publish_test.gleam`.
 
 import gleam/dict
+import gleam/erlang/process.{type Subject}
 import gleam/list
-import gleam/option.{type Option, None}
+import gleam/option.{type Option, None, Some}
 import gleam/result
-import glibe/api/sourcebar
 import glibe/app/dashboard
-import glibe/app/message.{type Msg, MsgEye, MsgSourceBarArrived, MsgVoice}
+import glibe/app/message.{type Msg, MsgSourceBarArrived}
 import glibe/app/publish
-import glibe/app/wire.{type ChartPushRequest, ChartIdentity}
-import glibe/broker.{type Broker, get_instrument, put_instrument}
+import glibe/app/wire
+import glibe/broker.{get_instrument, put_instrument}
 import glibe/config
-import glibe/desk.{type Desk, Desk, get_broker, put_broker}
-import glibe/instrument.{type Instrument, get_timeframe, put_timeframe}
+import glibe/desk.{type Desk, Desk}
+import glibe/instrument
 import glibe/timeframe
 import plushie/app.{type App}
 import plushie/command.{type Command}
 
-/// Build the app from its four MVU parts. `on_event` is the gate from the OPEN
-/// framework Event to our CLOSED Msg (06-02 B1/B2); `message.from_event` is that
-/// gate. One App only — never one App per chart (03-00 FINDINGS G).
-pub fn app() -> App(Desk, Msg) {
-  app.application(init, update, dashboard.view, message.from_event)
+/// Build the app from its four MVU parts, with the publish channel captured at
+/// WIRING time. `on_event` is the gate from the OPEN framework Event to our
+/// CLOSED Msg (06-02 B1/B2); `message.from_event` is that gate. One App only —
+/// never one App per chart (03-00 FINDINGS G).
+///
+/// The publisher is a **parameter**, not a field of the inbound payload (R58):
+/// `plushie.start` creates the `Instance` after this App is built, so the
+/// Instance cannot be captured here — but a `Subject` created before this call
+/// can, and that is what carries the effect out to the process that holds the
+/// Instance.
+pub fn app(publisher: Subject(wire.ChartPushRequest)) -> App(Desk, Msg) {
+  app.application(
+    init,
+    fn(desk_value: Desk, msg: Msg) { update(desk_value, msg, publisher) },
+    dashboard.view,
+    message.from_event,
+  )
 }
 
 /// The empty one Desk — the system's single Value at boot (R33 / R50).
@@ -71,21 +97,106 @@ pub fn init() -> #(Desk, Command(Msg)) {
 
 /// Pure projection of one Msg to the publish it would cause. No effect, no
 /// widget knowledge. Exposed so the publish point can be asserted directly.
-pub fn publish_request(desk_value: Desk, msg: Msg) -> Option(ChartPushRequest) {
-  todo as "03-01: step(desk_value, msg).1"
+///
+/// **This is the trigger point** (owner 2026-11-23: *"view的update 跟且仅跟
+/// `working_databar_archived()` 有关"*): a request exists exactly when the
+/// pipeline ran to the archive. A bar the gate REJECTS never archives, so it
+/// never publishes — no head comparison, no dedup (SYSTEM_MODEL.md:1364).
+pub fn publish_request(
+  desk_value: Desk,
+  msg: Msg,
+) -> Option(wire.ChartPushRequest) {
+  step(desk_value, msg).1
 }
 
 /// The pure core: locate by identity keys, run gate → processing → archive,
 /// write the new Desk back through each owner's own pair, and return the one
 /// archived bar from `databar_list` head. No effect, no chart state.
-fn step(desk_value: Desk, msg: Msg) -> #(Desk, Option(ChartPushRequest)) {
-  todo as "03-01: route Desk -> Broker -> Instrument -> Timeframe; archive; head"
+///
+/// Each level calls ITS OWN read/write pair (R50), and each pair replaces only
+/// its own key — so the levels "update to their own paces" (owner 2026-11-23):
+/// one arriving bar replaces the Timeframe it belongs to, the Instrument that
+/// holds it, the Broker that holds that, and the Desk that holds that — and
+/// nothing else moves.
+fn step(desk_value: Desk, msg: Msg) -> #(Desk, Option(wire.ChartPushRequest)) {
+  case msg {
+    MsgSourceBarArrived(payload) ->
+      case route(desk_value, payload) {
+        Ok(#(new_desk, request)) -> #(new_desk, Some(request))
+        Error(_) -> #(desk_value, None)
+      }
+    _ -> #(desk_value, None)
+  }
+}
+
+/// Read down to the Timeframe this bar belongs to, run the pipeline, and write
+/// back up. A missing key or a rejected bar is `Error(Nil)` — no panic, no
+/// invented error noun.
+fn route(
+  desk_value: Desk,
+  payload: wire.SourceBarArrived,
+) -> Result(#(Desk, wire.ChartPushRequest), Nil) {
+  use broker <- result.try(desk.get_broker(desk_value, payload.broker_id))
+  use instrument <- result.try(broker.get_instrument(broker, payload.symbol))
+  use timeframe <- result.try(instrument.get_timeframe(
+    instrument,
+    payload.interval,
+  ))
+  use settings <- result.try(
+    result.map_error(config.for_interval_default(payload.interval), fn(_) {
+      Nil
+    }),
+  )
+  // The gate is where "this bar is not ours" is decided. A rejected bar never
+  // becomes a working databar, so it never archives — and so it never
+  // publishes.
+  use gated <- result.try(
+    result.map_error(
+      timeframe.sourcebar_gate(timeframe, payload.sourcebar),
+      fn(_) { Nil },
+    ),
+  )
+  let processed = timeframe.databar_processing(gated, settings)
+  case list.first(processed.databar_list) {
+    // The archive is the LAST step of the pipeline, so the head IS the bar that
+    // was just archived (C2: read the history head after the archive).
+    Error(_) -> Error(Nil)
+    Ok(bar) -> {
+      let new_instrument =
+        instrument.put_timeframe(instrument, payload.interval, processed)
+      let new_broker =
+        broker.put_instrument(broker, payload.symbol, new_instrument)
+      let new_desk = desk.put_broker(desk_value, payload.broker_id, new_broker)
+      let request =
+        wire.ChartPushRequest(
+          identity: wire.ChartIdentity(
+            broker_id: payload.broker_id,
+            symbol: payload.symbol,
+            interval: payload.interval,
+          ),
+          bar: bar,
+        )
+      Ok(#(new_desk, request))
+    }
+  }
 }
 
 /// The presentation event loop. For a data-arrival Msg: call `step`; if it
-/// published, return the typed request command using the Subject carried in
-/// the inbound payload. Eye / voice Msgs follow their own boundaries and do
-/// NOT push a bar. The returned Desk and the request come from the SAME `step`.
-pub fn update(desk_value: Desk, msg: Msg) -> #(Desk, Command(Msg)) {
-  todo as "03-01: let #(new_desk, published) = step(..); publish.request or none"
+/// published, return the typed request command. Eye / voice Msgs follow their
+/// own boundaries and do NOT push a bar. The returned Desk and the request come
+/// from the SAME `step`.
+///
+/// The publisher arrives as this function's PARAMETER, not inside the inbound
+/// payload (R58): the channel is an app-level capability captured at wiring
+/// time, exactly like `settings` is a pipe-call argument (R40-A).
+pub fn update(
+  desk_value: Desk,
+  msg: Msg,
+  publisher: Subject(wire.ChartPushRequest),
+) -> #(Desk, Command(Msg)) {
+  let #(new_desk, published) = step(desk_value, msg)
+  case published {
+    Some(request) -> #(new_desk, publish.request(publisher, request))
+    None -> #(new_desk, command.none())
+  }
 }

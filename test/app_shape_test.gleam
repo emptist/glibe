@@ -11,11 +11,13 @@
 
 import bar_stream_chart.{type Bar}
 import gleam/dict
+import gleam/erlang/process.{type Subject}
 import gleam/option
 import gleam/time/timestamp
 import glibe/app/dashboard
 import glibe/app/message.{MsgEye, MsgSourceBarArrived, MsgVoice}
 import glibe/app/runtime
+import glibe/app/wire
 import glibe/databar as glibe_databar
 import glibe/desk.{type Desk, Desk}
 import glibe/trading/signal
@@ -79,11 +81,19 @@ pub fn dashboard_view_shape_test() {
 /// 06-05 C1/C2: the MVU loop holds exactly ONE Desk (no shadow chart/bar state)
 /// and its trigger is the archive step, not a Msg payload carrying a bar. The
 /// signatures are pinned so a drift (e.g. Model = #(Desk, Charts)) fails here.
+///
+/// R58 (2026-11-23): the publish channel is captured by the App's update
+/// closure at WIRING time, so `app` takes the publisher and `update` takes it
+/// too. The pin's INTENT — the model is the one `Desk`, never a
+/// `#(Desk, Charts)` — is unchanged; the ARITY moved because
+/// `plushie.start` creates the `Instance` after the App is built, so the
+/// Instance cannot be captured here, while a `Subject` can.
 pub fn runtime_mvu_shape_test() {
-  let _app: fn() -> App(Desk, message.Msg) = runtime.app
+  let _app: fn(Subject(wire.ChartPushRequest)) -> App(Desk, message.Msg) =
+    runtime.app
   let _init: fn() -> #(Desk, Command(message.Msg)) = runtime.init
-  let _update: fn(Desk, message.Msg) -> #(Desk, Command(message.Msg)) =
-    runtime.update
+  let _update: fn(Desk, message.Msg, Subject(wire.ChartPushRequest)) ->
+    #(Desk, Command(message.Msg)) = runtime.update
   Nil
 }
 

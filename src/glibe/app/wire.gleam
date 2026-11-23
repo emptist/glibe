@@ -9,22 +9,35 @@
 //// writes or reads those two kinds; both ends are glibe code, so the `Dynamic`
 //// field is a protocol boundary, not a domain type (core §0/§11, R47).
 ////
-//// READS: `SourceBar`, `DataBar`, identity keys, `Subject(ChartPushRequest)`.
+//// READS: `SourceBar`, `DataBar`, identity keys.
 //// WRITES: two closed wire kinds and their typed payloads. The producer of
-//// `SourceBarArrived` writes `publisher` once in main; `app/runtime.gleam`
-//// reads it to emit a publish request; `app/publish.gleam` reads that request.
+//// `SourceBarArrived` writes the payload in main; `app/runtime.gleam` reads it
+//// and produces the publish request; `app/publish.gleam` carries that request;
 //// `app/dashboard.gleam` reads the chart-push payload. No model type holds a
-//// `Chart`, a `Dynamic`, or a widget id.
+//// `Chart`, a `Dynamic`, or a widget id — and no ARRIVAL holds a capability
+//// (R58: the publish channel is captured by the App's update closure at
+//// wiring time, never carried per bar).
 ////
 //// R13/R21: `WireKind` is our closed set; `kind_string` is its ONLY String
 //// codec. R50: this file owns the wire protocol; no other module hard-codes a
 //// kind string. Stable IDs are derived from the three identity keys already
 //// owned by `id.gleam` / `api/symbol.gleam` / `api/interval.gleam`; there is
 //// no composite key type, no parser and no second source of identity.
+////
+//// THE `Dynamic` BOUNDARY IS BEAM-NATIVE (R58, measured by probe): gleam_stdlib
+//// 1.0.5 has NEITHER `dynamic.from` NOR `dynamic.unsafe_coerce` (the whole
+//// module is `classify`/`bool`/`string`/`float`/`int`/`bit_array`/`list`/`array`/
+//// `properties`/`nil`). On the BEAM a `Dynamic` IS the term — the stdlib's own
+//// private `cast` is `@external(erlang, "gleam_stdlib", "identity")`
+//// (`gleam/dynamic.gleam:97-99`) — so this module casts with the same shape.
+//// The probe round-tripped a record holding an opaque `BrokerId`, an opaque
+//// `Symbol` and a closed-set `Interval`, every field equal. **Zero hand-written
+//// codec, zero string parsing** (core §0/§2: a Gleam value needs no parser).
+//// R47 is carried by "this module writes and reads the same kind" — not by a
+//// decoder that could disagree.
 
 import gleam/dynamic.{type Dynamic}
-import gleam/erlang/process.{type Subject}
-import gleam/option.{type Option}
+import gleam/option.{type Option, None, Some}
 import glibe/api/interval
 import glibe/api/sourcebar.{type SourceBar}
 import glibe/api/symbol
@@ -42,15 +55,21 @@ pub type WireKind {
 }
 
 /// The inbound data-stream message. Identity is carried in the typed payload
-/// because the value itself owns no keys (R23/R37); `publisher` is a one-shot
-/// capability created in main and passed to `runtime.update`, not model state.
+/// because the value itself owns no keys (R23/R37).
+///
+/// **It carries DATA ONLY.** The publish channel is an app-level capability
+/// captured by the App's update closure at wiring time (R58) — it is the same
+/// shape as frozen glib's `ingest.feed(timeframe, bar, publish)`
+/// (`glib/src/glib/trading/ingest.gleam:57-71`), where the owner bakes the
+/// publish closure at the composition root instead of threading it per bar.
+/// A `Subject` field here would be a wrong-but-well-formed value: it could name
+/// a dead channel, and the type would not object (core §2.2).
 pub type SourceBarArrived {
   SourceBarArrived(
     broker_id: BrokerId,
     symbol: symbol.Symbol,
     interval: interval.Interval,
     sourcebar: SourceBar,
-    publisher: Subject(ChartPushRequest),
   )
 }
 
@@ -71,44 +90,113 @@ pub type ChartPushRequest {
 }
 
 /// The only codec from our closed kind set to the SDK's String kind field.
+/// A kind string is boundary data, never a model name (R21).
 pub fn kind_string(kind: WireKind) -> String {
-  todo as "03-01: name the two WireKind variants as stable wire strings"
+  case kind {
+    WireSourceBarArrived -> "source_bar_arrived"
+    WireChartPush -> "chart_push"
+  }
 }
 
 /// The one Dashboard window. Multi-chart is stable-ID widgets in this window;
 /// a future multi-window form would pass each window's id through EventTarget.
 pub fn dashboard_window_id() -> String {
-  todo as "03-01: the single top-level window id"
+  "dashboard"
 }
 
 /// The stable widget ID derived from R23/R37 keys. Existing codecs are used;
 /// no spelling is parsed and no new identity type is invented.
 pub fn chart_widget_id(identity: ChartIdentity) -> String {
-  todo as "03-01: broker <> separator <> symbol <> separator <> interval"
+  // The three R23/R37 keys, each through its OWN existing codec — no new
+  // identity type, no parser, no second source of identity (R50). The
+  // separator is the unit separator plushie itself uses for widget keys
+  // (`plushie/widget.gleam:861`), so it cannot occur in a spelling.
+  id.broker_id_to_string(identity.broker_id)
+  <> "\u{001F}"
+  <> symbol.to_string(identity.symbol)
+  <> "\u{001F}"
+  <> interval.to_string(identity.interval)
 }
 
 /// Build the SourceBar injection event. Its target deliberately matches no
 /// widget, so the runtime passes it through the widget chain to `update`.
 pub fn sourcebar_event(payload: SourceBarArrived) -> Event {
-  todo as "03-01: CustomWidget(WireSourceBarArrived) with empty-widget EventTarget"
+  Widget(CustomWidget(
+    kind: kind_string(WireSourceBarArrived),
+    target: injection_target(),
+    value: nil_value(),
+    data: to_dynamic(payload),
+  ))
 }
 
 /// Decode only OUR sourcebar kind. Other kinds return None; no panic, no
 /// catch-all over our Msg (core §4).
 pub fn sourcebar_from_event(event: Event) -> Option(SourceBarArrived) {
-  todo as "03-01: match CustomWidget kind then unsafe_coerce the same-module payload"
+  // `Event` is the OPEN framework type, so the catch-all arm is what the
+  // official docs prescribe for it (our own `Msg` is the closed set and has
+  // no catch-all — `app/message.gleam`).
+  case event {
+    Widget(CustomWidget(kind: kind, data: data, ..)) ->
+      case kind == kind_string(WireSourceBarArrived) {
+        True -> Some(from_sourcebar_dynamic(data))
+        False -> None
+      }
+    _ -> None
+  }
 }
 
 /// Build the targeted chart-push event. The EventTarget MUST equal the stable
 /// node ID produced by the view; a mismatch is a silent no-op (FINDINGS D).
 pub fn chart_push_event(request: ChartPushRequest) -> Event {
-  todo as "03-01: CustomWidget(WireChartPush) targeted at chart_widget_id"
+  let widget_id = chart_widget_id(request.identity)
+  Widget(CustomWidget(
+    kind: kind_string(WireChartPush),
+    target: EventTarget(
+      window_id: dashboard_window_id(),
+      id: widget_id,
+      // The chart widget is a DIRECT child of the one window, so its scoped
+      // id IS its own id — `plushie/widget.gleam:462-486` falls back to the
+      // target's own id when the scope is empty, and the registry keys it as
+      // `widget_key(window_id, node.id)` (`:375-407`).
+      scope: [],
+      // The canonical wire spelling. `event.make_target` is NOT used: it
+      // appends the window to the scope, which would then route the event
+      // to the window instead of the chart (03-00 FINDINGS D).
+      full: dashboard_window_id() <> "#" <> widget_id,
+    ),
+    value: nil_value(),
+    data: to_dynamic(request),
+  ))
 }
 
 /// Decode a chart push into `#(stable_id, archived_bar)` for the widget handler.
 pub fn chart_push_from_event(event: Event) -> Option(#(String, DataBar)) {
-  todo as "03-01: match CustomWidget kind then unsafe_coerce ChartPushRequest"
+  case event {
+    Widget(CustomWidget(kind: kind, data: data, ..)) ->
+      case kind == kind_string(WireChartPush) {
+        True -> {
+          let request = from_chart_push_dynamic(data)
+          Some(#(chart_widget_id(request.identity), request.bar))
+        }
+        False -> None
+      }
+    _ -> None
+  }
 }
+
+// The Dynamic boundary. On the BEAM a Dynamic IS the term, so the stdlib's own
+// private `cast` (`gleam/dynamic.gleam:97-99`) is exactly this shape. The
+// reader is MONOMORPHIC — one per payload type — because an unbound return
+// type variable cannot be used for record access (the compiler says "I don't
+// know what type this is"). No decoder, no parser, no string.
+@external(erlang, "gleam_stdlib", "identity")
+fn to_dynamic(value: anything) -> Dynamic
+
+@external(erlang, "gleam_stdlib", "identity")
+fn from_sourcebar_dynamic(data: Dynamic) -> SourceBarArrived
+
+@external(erlang, "gleam_stdlib", "identity")
+fn from_chart_push_dynamic(data: Dynamic) -> ChartPushRequest
 
 // Private helper used by both builders: the SDK's catch-all payload field.
 fn nil_value() -> Dynamic {
@@ -118,5 +206,8 @@ fn nil_value() -> Dynamic {
 // Private helper used by both builders: no widget ancestor is registered for
 // an injection event, so scope is empty.
 fn injection_target() -> EventTarget {
-  todo as "03-01: EventTarget(window_id: dashboard_window_id(), id: '', scope: [], full: '')"
+  // No widget ancestor is registered for an injection event, so the scope is
+  // empty and the id is empty: the event matches no widget and falls through
+  // the widget chain to `update` (03-00 FINDINGS D).
+  EventTarget(window_id: dashboard_window_id(), id: "", scope: [], full: "")
 }
