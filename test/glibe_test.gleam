@@ -24,7 +24,7 @@
 //// Timeframe written and read back by identity keys — the lab's whole-desk
 //// proof reduced to glibe's one Value), and three structure-measurement tests
 //// (`leaf_depth_share_test`, `branch_move_between_test`,
-//// `branch_recognised_move_test`, R3 selected-MA shares). The rest pin types.
+//// `branch_enter_exit_move_test`, R3 selected-MA shares). The rest pin types.
 
 import gleam/dict
 import gleam/option.{type Option, None, Some}
@@ -996,16 +996,16 @@ pub fn branch_move_between_test() {
     branch.move_between(ma_bar(0, 100.0), ma_bar(4, 125.0))
   assert move == 0.25 as "share: (125-100)/100"
   assert bars == 5.0 as "both ends included: idx 0..4"
-  assert per_bar == 0.05 as "slope: 0.25/5"
+  assert per_bar == 0.05 as "per_bar: 0.25/5"
   Nil
 }
 
-/// recognised_move is the actionable window enter_bar -> exit_bar (R11);
+/// enter_exit_move is the actionable window enter_bar -> exit_bar (R11);
 /// None while no exit_bar exists, because one end of a move is not a move (R1).
-pub fn branch_recognised_move_test() {
+pub fn branch_enter_exit_move_test() {
   let growing =
     branch.YangBranch(ma_bar(0, 100.0), ma_bar(1, 100.0), None, None)
-  assert branch.recognised_move(growing) == option.None as "no exit, no move"
+  assert branch.enter_exit_move(growing) == option.None as "no exit, no move"
   let ended =
     branch.YangBranch(
       ma_bar(0, 100.0),
@@ -1014,7 +1014,7 @@ pub fn branch_recognised_move_test() {
       Some(ma_bar(4, 125.0)),
     )
   let #(move, bars, _) = branch.move_between(ma_bar(1, 100.0), ma_bar(4, 125.0))
-  assert branch.recognised_move(ended)
+  assert branch.enter_exit_move(ended)
     == option.Some(#(move, bars, move /. bars))
     as "enter->exit window, no end_bar needed"
   Nil

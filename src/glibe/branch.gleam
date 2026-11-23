@@ -36,9 +36,9 @@
 ////
 //// R19 status (2026-11-23): 12 bodies filled — four bar readers,
 //// `lower_case_type_name`, `recognised_this_bar`, `recognised_start_idx`,
-//// `exited_branch`, `move_between` / `recognised_move` (R3 share on the
+//// `exited_branch`, `move_between` / `enter_exit_move` (R3 share on the
 //// selected MA), `next_yang/yin_branch` (closing rules from frozen glib
-//// `branch.gleam:346-424`), and `branch_size` / `branch_stat` (2026-11-23:
+//// `branch.gleam:346-424`), and `branch_size` / `start_end_move` (2026-11-23:
 //// signature corrected to `Option` — a growing branch has no exit_bar/end_bar,
 //// so a bare value was a type that let a wrong question be asked; R1 / core §2).
 //// No `todo` remains here. The old no-arg `branch_exit_leaf_size()` was DELETED:
@@ -48,6 +48,21 @@
 //// to `next_yang/yin_branch`. A no-arg function had zero callers and could not
 //// express the interval it needs (R49 / core §5); the settings parameter chain
 //// IS its real consumer.
+////
+//// RENAMED 2026-11-23 (owner: *"branch_stat and recognised_move 存在命名不当的
+//// 问题"*): `branch_stat` -> `start_end_move`, `recognised_move` ->
+//// `enter_exit_move`. Both names now say WHICH PAIR of bars they measure, the
+//// way glib's own page already spelled them: glib `web/branch_view.gleam:91`
+//// has a private `fn start_end_move`, and its JSON keys are `start_end` /
+//// `enter_exit` (`:123,126`; glib `DESIGN.md:2440` — *"start_end for what the
+//// structure made, enter_exit for what a trader could have acted on"*). The old
+//// `recognised_move` also STOLE a word: NAMING.md 1.23 pins `recognised` to
+//// `enter_bar` ALONE (*"the bar it was identified, found, discovered"*), so
+//// naming a whole WINDOW `recognised_move` broke "one word, one moment" and
+//// "one concept, one name". The old `branch_stat` was also vague (statistics?
+//// status?) and asymmetric with its sibling — both return the same triple.
+//// `move_between` keeps its name: it is the general two-bar measurement and
+//// knows whose bars it measures not at all.
 
 import gleam/int
 import gleam/option.{type Option, None, Some}
@@ -144,8 +159,8 @@ pub fn lower_case_type_name(the_branch: DataBranch) -> String {
 }
 
 /// The move between ANY two bars — the one measurement every profit and
-/// loss reads. `branch_stat` calls it with `start_bar` / `end_bar`,
-/// `recognised_move` with `enter_bar` / `exit_bar` (R11); it reads `idx`
+/// loss reads. `start_end_move` calls it with `start_bar` / `end_bar`,
+/// `enter_exit_move` with `enter_bar` / `exit_bar` (R11); it reads `idx`
 /// and the measurement series off the two bars (R6).
 pub fn move_between(
   from_bar: DataBar,
@@ -153,7 +168,7 @@ pub fn move_between(
 ) -> #(Float, Float, Float) {
   // R3/R6: the share is on the selected MA, not price; the length is an idx
   // difference with both ends included, never a walk of any list. The third
-  // value is the per-bar slope, not a verdict.
+  // value is the per-bar rate, not a verdict.
   let DataBar(sma_tiny: from_ma, idx: from_idx, ..) = from_bar
   let DataBar(sma_tiny: to_ma, idx: to_idx, ..) = to_bar
   let move = { to_ma -. from_ma } /. from_ma
@@ -161,26 +176,39 @@ pub fn move_between(
   #(move, bars, move /. bars)
 }
 
-/// Three measurements of an ENDED branch: `branch_stat` reads `start_bar`
-/// and `end_bar` and hands them to `move_between`. A view projection reads
-/// the result off `yin_branch_list` / `yang_branch_list` (R20 / R30); a
-/// growing branch has no `end_bar` to measure, so the result is `None`
-/// (R1 / core §2), never a bare triple.
-pub fn branch_stat(branch: DataBranch) -> Option(#(Float, Float, Float)) {
+/// Three measurements of an ENDED branch, taken over `start_bar` -> `end_bar`
+/// — the move the STRUCTURE made, from its corner to where it actually died.
+/// `start_end_move` reads `start_bar` and `end_bar` and hands them to
+/// `move_between`. A view projection reads the result off `yin_branch_list` /
+/// `yang_branch_list` (R20 / R30); a growing branch has no `end_bar` to
+/// measure, so the result is `None` (R1 / core §2), never a bare triple.
+///
+/// The name says the PAIR it measures, because the sibling `enter_exit_move`
+/// measures a different pair and both return the same shape — the old names
+/// (`branch_stat` / `recognised_move`) did not, and one of them took a word
+/// NAMING.md 1.23 had already pinned to `enter_bar` alone. See the module
+/// header for the rename record.
+pub fn start_end_move(branch: DataBranch) -> Option(#(Float, Float, Float)) {
   case end_bar(branch) {
     None -> None
     Some(end) -> Some(move_between(start_bar(branch), end))
   }
 }
 
-/// The actionable window of a branch, `enter_bar` to `exit_bar` (R11).
-/// A view projection reads it from the ended branch (R20 / R30); `None`
-/// while no `exit_bar` exists, because one end of a move is not a move
-/// (R1 / R5). It calls `move_between`.
-pub fn recognised_move(branch: DataBranch) -> Option(#(Float, Float, Float)) {
+/// The actionable window of a branch, `enter_bar` to `exit_bar` (R11) — the
+/// move anyone could have acted on, from the bar it was recognised to the bar
+/// it was recognised as dead. A view projection reads it from the ended branch
+/// (R20 / R30); `None` while no `exit_bar` exists, because one end of a move
+/// is not a move (R1 / R5). It calls `move_between`.
+///
+/// `enter_exit_move` says the PAIR it measures. The old name `recognised_move`
+/// said something else: NAMING.md 1.23 gives `recognised` to `enter_bar` alone
+/// (*"the bar it was identified, found, discovered"*), so that name both stole
+/// a word from one bar and hid the second end of the window it measured.
+pub fn enter_exit_move(branch: DataBranch) -> Option(#(Float, Float, Float)) {
   // R11/R1: one end of a move is not a move, so no exit_bar means no answer.
   // When it exists, the actionable window is enter -> exit; end_bar is a
-  // different (magnitude) question that branch_stat asks.
+  // different (magnitude) question that start_end_move asks.
   case exit_bar(branch) {
     None -> None
     Some(exit) -> Some(move_between(enter_bar(branch), exit))

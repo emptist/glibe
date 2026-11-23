@@ -3,11 +3,13 @@
 //// `02-02-PLAN.md` Task 1/3.
 ////
 //// These pin the OBSERVABLE promises of the five bodies that were `todo`:
-//// `branch.branch_size` / `branch_stat` (Option contract, R1) and
+//// `branch.branch_size` / `start_end_move` (Option contract, R1) and
 //// `timeframe.leaves` / `branches` / `strategy` (the last three pipe steps).
 //// Every rule is ported from frozen glib:
-////   - branch size/stat: glib `branch.gleam:96-98, 201-204` (a growing branch
+////   - branch size/move: glib `branch.gleam:96-98, 201-204` (a growing branch
 ////     has no late bar -> None; an ended branch measures start->exit / start->end).
+////     glib's `branch_stat` / `recognised_move` are named `start_end_move` /
+////     `enter_exit_move` here (owner, 2026-11-23: naming was wrong).
 ////   - leaves: glib `timeframe.gleam:511-582` (born on first bar; next_yin/yang
 ////     settle+reborn; CMA written onto the working bar; settled leaves kept as
 ////     FIELDS here per glibe R40/R42, not returned as a tuple).
@@ -115,7 +117,7 @@ fn settings(exit_size: Int) -> config.IntervalSettings {
   )
 }
 
-// --- branch_size / branch_stat (Option contract) -----------------------------
+// --- branch_size / start_end_move (Option contract) ---------------------------
 
 /// An ended YangBranch from idx 10 to exit idx 20 spans 11 bars (both ends
 /// inclusive, R6). A growing one (no exit_bar) has NO size -> None (R1).
@@ -141,10 +143,10 @@ pub fn branch_size_ended_span_and_growing_none_test() {
   Nil
 }
 
-/// branch_stat measures start->END (the magnitude question), not enter->exit.
-/// start sma 100 -> end sma 120 over idx 10..19 = 10 bars: move 0.2, bars 10,
-/// per_bar 0.02. Growing (no end_bar) -> None.
-pub fn branch_stat_ended_measure_and_growing_none_test() {
+/// start_end_move measures start->END (the magnitude question), not
+/// enter->exit. start sma 100 -> end sma 120 over idx 10..19 = 10 bars:
+/// move 0.2, bars 10, per_bar 0.02. Growing (no end_bar) -> None.
+pub fn start_end_move_ended_measure_and_growing_none_test() {
   let start = bar_at(10, 100.0)
   let end = bar_at(19, 120.0)
   let ended =
@@ -161,11 +163,11 @@ pub fn branch_stat_ended_measure_and_growing_none_test() {
       end_bar: None,
       exit_bar: None,
     )
-  let assert Some(#(move, bars, per_bar)) = branch.branch_stat(ended)
+  let assert Some(#(move, bars, per_bar)) = branch.start_end_move(ended)
   assert move == 0.2
   assert bars == 10.0
   assert per_bar == 0.02
-  assert branch.branch_stat(growing) == None
+  assert branch.start_end_move(growing) == None
   Nil
 }
 
