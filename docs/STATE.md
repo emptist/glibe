@@ -4,7 +4,27 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-24 (最新 — R67/R68：禁"重跑"、4 个 leaf 列表已加回、sourcebar_gate 不简化；全门禁绿；Timeframe 诞生点仍待裁定（R65））
+## 2026-11-24（最新 — R74：三层诞生点落地，空 Desk 能处理第一根 bar；R65 §3 缺口关闭；sourcebar_gate 未动）
+
+- **owner 指令**：*"这是你的工作，不需要等我一句话，我不在怎么办，你就睡觉？"* ——
+  R72 基础复查已完成（R72 给"延后推敲"设的前提消失），owner 明令不再等他；
+  R73 骂的是"明知要做却问、却只写文档"。方向早已给齐（R65 §4 形状 A′ / R69 §3
+  创建点落 instrument / R64 构造函数即诞生 / R70–R71 sourcebar_gate 留在 timeframe 不动），
+  **本轮按 GDLTDD 落 GREEN 代码，不新建文档、不弹选项卡**。
+- **R74（已落地 GREEN）**：补三个持有者层的诞生 reader：
+  `desk.broker_at` / `broker.instrument_at` / `instrument.timeframe_at` —— 读到就返回，
+  读不到就在点需要用 `Broker(...)` / `Instrument(...)` / `Timeframe(...)` 构造函数直接造空记录
+  （R64：无 `new`）；写回仍由本层已有的 `put_*` 在同一 `route` 完成（R50）。
+  `runtime.route` 的三层 `get_*` 改成这三个 `_at`；**不动任何 type**（`growing_target_sourcebar`
+  留在 Timeframe）、**`sourcebar_gate` 一个字未改**、不加 catalogue/settings/actor。
+  GDLTDD：WAE 骨架门 RED（3 todo）→ 2 个新测试 RED（空 Desk 与未知身份都发布 None）→
+  GREEN **132 passed**；format/check/docs/export/WAE 全 0。
+  测试改动：`test/runtime_publish_test.gleam` 的
+  `a_missing_key_publishes_nothing_test` 改为 `an_unknown_identity_is_born_and_publishes_test`
+  （Phase 03 的"丢掉未知身份"是诞生点缺失时的旧行为，R65 §3 后作废），
+  新增 `an_empty_desk_grows_from_one_bar_test`。
+
+## 2026-11-24 (R67/R68 — 禁"重跑"、4 个 leaf 列表已加回、sourcebar_gate 不简化；全门禁绿；Timeframe 诞生点当时仍待裁定（R65），现已见上节 R74)
 
 - **R68（已落地）：4 个 leaf 列表。** owner 逐字 *"必须要有 signig_yin|yangleaf_list…
   甚至你也需要 yin|yangleaf_list"*。`Timeframe` 加 `yin_leaf_list` / `yang_leaf_list`

@@ -7,10 +7,14 @@
 ////   - a bar that is archived produces EXACTLY ONE request, whose bar is the
 ////     archived head of `databar_list` and whose identity is the inbound keys;
 ////   - an eye or voice Msg produces NO request;
-////   - a missing key produces NO request — no panic, no invented error noun;
+////   - a bar for an identity NOT yet in the Desk is BORN there (R65 §3 / R69
+////     §3): an empty Desk grows from its first bar and DOES publish — the
+////     three birth points are `desk.broker_at`, `broker.instrument_at` and
+////     `instrument.timeframe_at`;
 ////   - `update` returns the new Desk AND the publish command from the SAME step.
 
 import fixture
+import gleam/dict
 import gleam/erlang/process
 import gleam/list
 import gleam/option.{None, Some}
@@ -22,7 +26,7 @@ import glibe/app/message.{type Msg, MsgEye, MsgVoice}
 import glibe/app/runtime
 import glibe/app/wire
 import glibe/broker
-import glibe/desk.{type Desk}
+import glibe/desk.{type Desk, Desk}
 import glibe/id
 import glibe/instrument
 import plushie/event
@@ -75,9 +79,11 @@ pub fn a_voice_msg_publishes_nothing_test() {
   Nil
 }
 
-/// A bar for an identity that is NOT in the Desk publishes nothing — no
-/// panic, no invented error noun.
-pub fn a_missing_key_publishes_nothing_test() {
+/// A bar for an identity that is NOT yet in the Desk is the first bar of that
+/// feed: the three birth points write the empty records directly (R64), so
+/// the chain completes, archives and publishes. This is the R65 §3 gap closed —
+/// "今天这个 app 一根 bar 也处理不了" is no longer true.
+pub fn an_unknown_identity_is_born_and_publishes_test() {
   let unknown =
     wire.SourceBarArrived(
       broker_id: id.string_to_broker_id("broker-nobody"),
@@ -85,11 +91,34 @@ pub fn a_missing_key_publishes_nothing_test() {
       interval: IntervalOneMinute,
       sourcebar: a_sourcebar(),
     )
-  assert runtime.publish_request(
+  let assert Some(request) =
+    runtime.publish_request(
       a_desk_with_one_timeframe(),
       message.MsgSourceBarArrived(unknown),
     )
-    == None
+  assert id.broker_id_to_string(request.identity.broker_id) == "broker-nobody"
+  Nil
+}
+
+/// The whole point of the birth points: `runtime.init`'s empty Desk is not a
+/// dead end. One bar creates the broker, the instrument and the timeframe
+/// under their inbound keys, archives the bar into the new timeframe and
+/// publishes exactly one request. No settings field, no catalogue, no actor.
+pub fn an_empty_desk_grows_from_one_bar_test() {
+  let empty_desk = Desk(dict.new())
+  let msg = message.MsgSourceBarArrived(an_arrival())
+  let assert Some(_request) = runtime.publish_request(empty_desk, msg)
+  let subject = process.new_subject()
+  let #(new_desk, _cmd) = runtime.update(empty_desk, msg, subject)
+  let assert Ok(broker_value) =
+    desk.get_broker(new_desk, id.string_to_broker_id("broker-1"))
+  let assert Ok(instrument_value) =
+    broker.get_instrument(broker_value, symbol.string_to_symbol("BTCUSD"))
+  let assert Ok(tf) =
+    instrument.get_timeframe(instrument_value, IntervalOneMinute)
+  assert tf.working_databar == None
+  let assert Ok(bar) = list.first(tf.databar_list)
+  assert bar.idx == 0
   Nil
 }
 

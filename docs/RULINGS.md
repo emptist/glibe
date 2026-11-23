@@ -6792,6 +6792,10 @@ owner 说的"研究只能局限于长 leaf 列表"指 glib 的 `signif_yin_leaf_
 
 ## R65 — 「哪根 bar 完整了」在 instrument 层；所以"sourcebar_gate 在第一根完整 bar 时创造 Timeframe"与 2026-11-13 的裁定冲突（2026-11-23 owner 两问 + 实测分析）
 
+> **【§3 缺口已关闭 2026-11-24 — 见 R74】** 下面 §3/§4 的"生产代码零创建点、空 Desk
+> 永远长不大、今天这个 app 一根 bar 也处理不了"是当时的实测；A′ 形状已按 R74 落地 GREEN。
+> sourcebar_gate 归属冻结部分仍有效（R70/R71）。
+
 **owner 逐字（两问）**：
 1. *"timeframe是第一个sourcebar完整时，由 sourcebar_gate 创建的，理论上应该这样，要看实际是否行得通。"*
 2. *"这实际牵扯另一个大问题，sourcebar_gate 究竟应该在 timeframe模块，还是应该在 instrument 模块？"*
@@ -7047,6 +7051,10 @@ CLI，都等 owner 裁定。
 
 ## R69 — `sourcebar_gate` 归属 vs Timeframe 诞生点：owner 三问 + 对比研究（2026-11-24 02:03，待 owner 裁定）
 
+> **【§3 已落地 2026-11-24 — 见 R74】** "创建点落 instrument、构造函数直接写、不引入
+> new"已按 GDLTDD 实现（另含 broker / instrument 两层，理由见 R74）。§6 的
+> sourcebar_gate 归属仍冻结在 timeframe（R70/R71），未搬、未删。
+
 **owner 逐字（三问 + 两方案 + 特别关心）**：见 `docs/sourcebar_gate_placement_study.md` §0。
 核心：*"谁，在哪里，生成 timeframe？"*；sourcebar_gate 放 timeframe 还是 instrument 更方便；
 *"包含多个小周期合成大周期sourcebar问题"*。owner 要的是**对比研究，非立即改码**。
@@ -7213,3 +7221,61 @@ glib 的 Error 分支 `io.println("UC-60 rejected bar: " <> bar_error_text(bad))
 ### Landing
 - 代码：`src/glibe/timeframe.gleam`（bar_admitted + pipe）、`test/domain_steps_test.gleam`、`test/glibe_test.gleam`（shape）。
 - 文档：本条 + R72 状态更正 + 评审文档 §7/§11/§13 更正（type moved ≠ wired）。
+
+---
+
+## R74 — 三层诞生点落地：空 Desk 能处理第一根 bar（R65 §3 缺口关闭；2026-11-24 owner 明令；已 GREEN）
+
+**owner 逐字**：*"这是你的工作，不需要等我一句话，我不在怎么办，你就睡觉？"*
+接续 R73 的 *"明知要做的事情…还要问我？"* —— 不再把方向已给齐的事写成"待 owner 裁定"。
+R72 的基础复查已完成，R72 给"延后推敲"设的前提（基础可能有问题）消失，R73 的唯一缺口已补。
+
+### 已给齐、不是我猜的方向
+1. R65 §4 形状 **A′**：Timeframe 在第一根 bar 到达时诞生，半根状态不动、type 不动、
+   `sourcebar_gate` 留在 `timeframe.gleam`。
+2. R69 §3：**创建点落 instrument**（owner 方案 C），符合 R50（instrument 持 `timeframes`
+   Dict 与 `Interval` key），**用构造函数直接写记录、不引入 new**（R49/R64）。
+3. R70–R71：`sourcebar_gate` 不搬、不删；`growing_target_sourcebar` 不动。
+4. owner 未给 broker / instrument 两层的诞生方向，但 R65 §3 指出空 Desk 连
+   `get_broker` 都先失败 —— 只造 Timeframe 是死代码。按 broker.gleam 已写明的
+   R50 同理推广（*"这个规则他陈述的，再往上一层应用，不是一个新名字"*），
+   同一形状落在这两层：每层只读写自己持有的 Dict。
+
+### 实现（严格 GDLTDD，终点是 GREEN 代码）
+1. **骨架**：三个 `////` 模块头写清归属与 R64/R50；三个 `///` + 签名 + `todo`：
+   `desk.broker_at(desk, id) -> Broker`、
+   `broker.instrument_at(broker, symbol) -> Instrument`、
+   `instrument.timeframe_at(instrument, interval) -> Timeframe`。
+   WAE 实测 11 warnings（3 Todo + 未用参数）= RED 骨架门。
+2. **RED**：`test/runtime_publish_test.gleam` 两个新测试钉住目标 —— 空 Desk 的第一根 bar
+   要发布、要在新 Desk 三层链下归档；未知身份的 bar 要诞生并发布。实测
+   *130 passed, 2 failures*（两个 `let assert Some(_)` 拿到 `None`）。
+3. **GREEN**：三个 body 都是「`case dict.get(...)`：`Ok` 返回，`Error(Nil)` 在需要用处
+   直接写构造子」—— `Broker(instruments: dict.new(), accounts: dict.new())`、
+   `Instrument(dict.new())`、`Timeframe(...)` 十五字段空记录（与 `test/fixture.gleam`
+   同一形状，无 settings 字段，R46）。`runtime.route` 把三层 `use result.try(get_*)`
+   换成三个 `_at`；末尾原有 `put_timeframe → put_instrument → put_broker` 不变，
+   是新记录的唯一写回点（R50）。
+4. **门禁**：format / check / docs / export / WAE（0 warning）/ test **132 passed**。
+
+### 明确没有发生的事
+- **没有改任何 type**：`Timeframe` 十五字段、`Instrument` / `Broker` / `Desk` 原样。
+- **没有碰 `sourcebar_gate`**：仍住 `timeframe.gleam`，签名/body 一字未改。
+- **没有 catalogue / settings / actor / 时钟 / 重跑**：第一根 bar 到达时按 inbound key
+  就地诞生，纯 `Desk → Desk`（R33）。
+- **没有 `new` / `create` / `make` 包装**：`_at` 是 reader，构造调用就在它自己的 body 里
+  （R64 的「需要值的地方直接写构造调用」）。
+
+### 更正的历史断言
+- R64 §3 / R65 §3 / R69 §1 / STATE 旧节的「生产代码零创建点、空 Desk 永远长不大、
+  今天这个 app 一根 bar 也处理不了」是 **2026-11-23/24 当时的实测**，现已被本条关闭；
+  原文保留作历史，不篡改。
+- Phase 03 的 `a_missing_key_publishes_nothing_test` 断言"未知身份丢弃"，那是诞生点
+  缺失下的旧行为，本条改为 `an_unknown_identity_is_born_and_publishes_test`；
+  被拒的 bar 仍然不发布（`a_rejected_bar_publishes_nothing_test` 未动）。
+
+### Landing
+- `src/glibe/desk.gleam`（`broker_at`）、`src/glibe/broker.gleam`（`instrument_at`）、
+  `src/glibe/instrument.gleam`（`timeframe_at`）、`src/glibe/app/runtime.gleam`（route 接线）、
+  `test/runtime_publish_test.gleam`（RED→GREEN）、`test/fixture.gleam`（更正过时注释）、
+  `docs/STATE.md`、本条。

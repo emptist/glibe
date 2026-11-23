@@ -60,10 +60,20 @@
 //// `databar_processing` then receives a `DataBar` whose period will never
 //// change again. No actor, scheduler, clock or poll (R33).
 ////
-//// R19 status (2026-11-17): all three bodies filled — `get_timeframe` /
-//// `put_timeframe` are the Dict read / write pair, and `compose_ib_realtime_bar`
-//// dispatches by the `Interval` key to one `ib_sourcebar.five_second_to_*`.
-//// Pinned by `instrument_timeframes_round_trip_test` and
+//// R65 §3 / R69 §3 (owner *"谁，在哪里，生成 timeframe？"*): THIS is the
+//// birth point of a `Timeframe`. `timeframe_at` reads `Instrument.timeframes`
+//// under the `Interval` key and, on a miss, writes the `Timeframe`
+//// constructor directly at the point of need (R64 — the constructor IS the
+//// birth, no `new`); `put_timeframe` writes the recomputed one back under the
+//// same key in the same step (R50). No type changes: `growing_target_sourcebar`
+//// stays a `Timeframe` field, `sourcebar_gate` stays in `timeframe.gleam`
+//// (R70/R71). The same rule is applied one level up (`desk.broker_at`,
+//// `broker.instrument_at`).
+////
+//// R19 status: 4 bodies filled — `timeframe_at` (RED→GREEN via
+//// `test/runtime_publish_test.gleam`), `get_timeframe` / `put_timeframe`
+//// (the Dict read / write pair) and `compose_ib_realtime_bar` (dispatch by
+//// the `Interval` key). Pinned by `instrument_timeframes_round_trip_test` and
 //// `instrument_compose_first_bar_test` in `test/glibe_test.gleam`.
 //// No `todo` remains here.
 
@@ -121,6 +131,36 @@ pub fn get_timeframe(
   dict.get(timeframes, interval)
 }
 
+/// READ down, with the birth of an empty holder on a miss: the timeframe
+/// under this interval key, or a fresh `Timeframe` written directly here
+/// (R64 — no `new`). It is only a READ of `Instrument.timeframes`;
+/// `put_timeframe` in the same step writes the recomputed one back (R50).
+/// The record is the same empty holder the tests build in `test/fixture.gleam`
+/// — no field is invented here, and no settings field exists (R46).
+pub fn timeframe_at(instrument: Instrument, interval: Interval) -> Timeframe {
+  case get_timeframe(instrument, interval) {
+    Ok(timeframe) -> timeframe
+    Error(Nil) ->
+      Timeframe(
+        growing_target_sourcebar: None,
+        working_databar: None,
+        databar_list: [],
+        growing_yin_leaf: None,
+        growing_yang_leaf: None,
+        yin_leaf_list: [],
+        yang_leaf_list: [],
+        signif_yin_leaf_list: [],
+        signif_yang_leaf_list: [],
+        growing_yin_branch: None,
+        growing_yang_branch: None,
+        yin_branch_list: [],
+        yang_branch_list: [],
+        yin_leaf_settled: None,
+        yang_leaf_settled: None,
+      )
+  }
+}
+
 /// WRITE: the recomputed timeframe back under this interval key.
 pub fn put_timeframe(
   instrument: Instrument,
@@ -151,8 +191,9 @@ pub fn put_timeframe(
 ///
 /// If no timeframe exists under `interval`, there is nothing to compose
 /// into: the instrument is returned unchanged and `closed` is `None`. The
-/// return type carries no error channel and no timeframe is invented here
-/// (R49); under R33 the timeframes are set up when this live Value is built.
+/// return type carries no error channel and this function does not birth one
+/// (R49) — the birth point is `timeframe_at` above (R74); this composition
+/// step only reads and updates a timeframe that is already present.
 pub fn compose_ib_realtime_bar(
   instrument: Instrument,
   interval: Interval,

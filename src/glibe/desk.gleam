@@ -34,12 +34,22 @@
 //// LIVE; data moves → this Value is recomputed → the view is its
 //// projection. No actor, scheduler, clock, poll or monitor belongs here.
 ////
-//// R19 status: 2 bodies filled — `get_broker` / `put_broker`, this layer's
-//// read/write pair (R50). The Desk holds ONE `brokers` Dict; there is no
-//// `DeskId` and no second Desk. No `todo` remains here.
+//// R65 §3 / R69 §3 (owner): production had NO birth point for the nested
+//// chain, so a Desk starting empty (`runtime.init`) could never process one
+//// bar. `broker_at` below is the birth point at THIS level: it reads the
+//// `brokers` Dict and, on a miss, writes the `Broker` constructor directly at
+//// the point of need (R64 — the constructor IS the birth, no `new`). The
+//// recomputed broker is written back by `put_broker` in the same route (R50).
+//// The same rule is applied at the two levels below: `broker.instrument_at`
+//// and `instrument.timeframe_at`. No type changes (shape A′, R65 §4).
+////
+//// R19 status: 3 bodies filled — `broker_at` (RED→GREEN via
+//// `test/runtime_publish_test.gleam`), `get_broker` / `put_broker` (this
+//// layer's read/write pair, R50). The Desk holds ONE `brokers` Dict; there is
+//// no `DeskId` and no second Desk. No `todo` remains here.
 
 import gleam/dict.{type Dict}
-import glibe/broker.{type Broker}
+import glibe/broker.{type Broker, Broker}
 import glibe/id.{type BrokerId}
 
 /// The root of the chain. The whole system is nested inside this one Value.
@@ -53,6 +63,18 @@ pub type Desk {
 pub fn get_broker(desk: Desk, id: BrokerId) -> Result(Broker, Nil) {
   let Desk(brokers) = desk
   dict.get(brokers, id)
+}
+
+/// READ down, with the birth of an empty holder on a miss: the broker under
+/// this key, or a fresh `Broker` written directly here (R64 — no `new`).
+/// It is only a READ of `Desk.brokers`: the caller writes the recomputed
+/// broker back with `put_broker` in the same step (R50).
+pub fn broker_at(desk: Desk, id: BrokerId) -> Broker {
+  let Desk(brokers) = desk
+  case dict.get(brokers, id) {
+    Ok(broker) -> broker
+    Error(Nil) -> Broker(instruments: dict.new(), accounts: dict.new())
+  }
 }
 
 /// WRITE: the recomputed broker back under this key.

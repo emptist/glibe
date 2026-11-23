@@ -133,18 +133,20 @@ fn step(
 }
 
 /// Read down to the Timeframe this bar belongs to, run the pipeline, and write
-/// back up. A missing key or a rejected bar is `Error(Nil)` — no panic, no
-/// invented error noun.
+/// back up. Each level's `_at` reader births the empty record on a miss (R64),
+/// so an identity's FIRST bar creates its whole chain; only a bar the
+/// sourcebar_gate refuses is `Error(Nil)` — no panic, no invented error noun.
 fn route(
   desk_value: desk.Desk,
   payload: wire.SourceBarArrived,
 ) -> Result(#(desk.Desk, wire.ChartPushRequest), Nil) {
-  use broker <- result.try(desk.get_broker(desk_value, payload.broker_id))
-  use instrument <- result.try(broker.get_instrument(broker, payload.symbol))
-  use timeframe <- result.try(instrument.get_timeframe(
-    instrument,
-    payload.interval,
-  ))
+  // The three birth points (R65 §3 / R69 §3): read the value under the inbound
+  // key, or write that level's constructor directly at the point of need
+  // (R64). The `put_*` chain at the end of this function is what persists them
+  // (R50). An empty Desk therefore grows from its first bar.
+  let broker = desk.broker_at(desk_value, payload.broker_id)
+  let instrument = broker.instrument_at(broker, payload.symbol)
+  let timeframe = instrument.timeframe_at(instrument, payload.interval)
   use settings <- result.try(
     result.map_error(config.for_interval_default(payload.interval), fn(_) {
       Nil

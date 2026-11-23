@@ -23,8 +23,10 @@
 //// It is TEST-ONLY and cannot ship: it lives under `test/`, so `src/` can
 //// never import it. It holds no production logic — every value here is a
 //// plain record with nothing in it, which is why the production code has no
-//// way to build one either (the birth of a `Timeframe` is a decision the
-//// owner still has to rule on).
+//// way to build one either: the PRODUCTION birth point is
+//// `instrument.timeframe_at` (R74), and `src/` cannot import this test-only
+//// module. This fixture stays because it is the ONE place the record's field
+//// list is spelled out for tests, not because production lacks a birth point.
 
 import gleam/dict
 import gleam/option.{type Option, None}
