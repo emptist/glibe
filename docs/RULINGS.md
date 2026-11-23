@@ -4863,6 +4863,11 @@ keep push project forward until everything is done correctly?"*
 `branch.recognised_move`（enter→exit，无 exit_bar 则 None）。
 WAE 从 47（15 Todo + 32 unused arg）降到 **40（12 Todo + 28 unused arg）**。
 
+> **2026-11-23 更名注**：`branch.recognised_move` 现名 **`enter_exit_move`**，
+> `branch.branch_stat` 现名 **`start_end_move`**（owner 当面指出「命名不当」）。
+> 上面这段是 2026-11-17 的历史记录，函数名按当时的写法如实保留；现行名以
+> `src/glibe/branch.gleam` 模块头的 RENAMED 段为准。
+
 **剩下 12 个是真的规格缺口，不是我编的挡箭牌**（不臆造、不擅自改签名）：
 `leaf_cma` 要 twin 的均值 reader 字段（本设计未声明）；`next_*_leaf` 要叶子
 死亡/转向判据（在 glib 文档里，R38 说 glib 不是权威，glibe R1/R3/R6 没给）；
@@ -5872,3 +5877,77 @@ owner 逐字（2026-11-21，本轮）：
 - **Landing**：`README.md` 新增「Name and lineage」节（逐字引用 + 目标/现状区分）；本节 +
   STATE 当前节 + 今日日志。README 内四处过时陈述同步修正（15→19 `.gleam`、失效知识库路径、
   已删的 `webclient/`、失效的 05-01 plan 路径），依据是实测与 `docs/RULINGS.md` 旧节。
+
+---
+
+## R51 — 测量函数的命名必须说出它量的是哪一对 bar（2026-11-23 owner 当面裁定）
+
+**owner 逐字**：*"这三个函数不损害 type定义，在做策略的时候，可以用到。所以可以保留。
+但是 branch_stat and recognised_move 存在命名不当的问题；move的定义是一个简单的算术
+减法？move_between 又是什么？"*
+
+### 1. 裁定
+
+- `branch.branch_stat` → **`branch.start_end_move`**
+- `branch.recognised_move` → **`branch.enter_exit_move`**
+- `branch.move_between` **保留原名**（它是通用两-bar 测量件，不知道那两根 bar 是谁的两端）
+- `branch.branch_size` **保留原名**（owner 判据：函数可以随它去；它量的是 start→exit，
+  与上面两个不是同一口径，名字已说明是"跨了多少根"）
+
+**三个函数的最终口径**（都是 `Option`，growing branch 一律 `None`，R1 / core §2）：
+
+| 函数 | 量的区间 | 返回 |
+|---|---|---|
+| `branch_size` | `start_bar` → `exit_bar`（含"死亡→判定"的发现延迟） | `Option(Int)` |
+| `start_end_move` | `start_bar` → `end_bar`（结构本身走了多远） | `Option(#(Float,Float,Float))` |
+| `enter_exit_move` | `enter_bar` → `exit_bar`（从被识别到被判定已死，人能 acted on 的那段） | `Option(#(Float,Float,Float))` |
+| `move_between(from, to)` | 任意两根 bar | `#(Float,Float,Float)`（不包 Option） |
+
+### 2. 为什么旧名不行（不是"叫法不顺"，是违反已立规则）
+
+- **旧 `recognised_move` 抢了 `recognised` 这个词**。glib `NAMING.md` 规则 1.23
+  *"one word, one moment"* 把 `recognised` **单独钉在 `enter_bar`** 上（owner 逐字：
+  *"the bar it was identified, found, discovered"*），而 `recognised_move` 量的却是
+  enter→exit **一整段窗口**。名字把一个区间挂在"识别那一下"上，同时违反 1.23 与
+  1.9 *"one concept, one name"*。
+- **旧 `branch_stat` 含义模糊且与兄弟不对称**：statistics? status? 说不清；
+  而且它与 `recognised_move` 返回**完全相同形状**的三元组，一个叫 stat 一个叫 move。
+- **新名不是造的**：glib 自己的页面早就这么拼——`web/branch_view.gleam:91` 有私有
+  `fn start_end_move`，其 JSON key 就是 `start_end` / `enter_exit`（`:123,126`）；
+  glib `DESIGN.md:2440` 逐字：*"start_end for what the structure made, enter_exit for
+  what a trader could have acted on"*。owner 的用词，非 AI 造词。
+
+### 3. "move 是算术减法吗"——不是，是份额
+
+`move_between` 的三个位置（`src/glibe/branch.gleam`）：
+
+| 位置 | 算法 | 是什么 |
+|---|---|---|
+| 1 | `{ to.sma_tiny -. from.sma_tiny } /. from.sma_tiny` | **相对份额**，不是差值 |
+| 2 | `to.idx - from.idx + 1` | bar 根数（两端含）——**这才是减法** |
+| 3 | `move /. bars` | 每根 bar 的速率（`per_bar`） |
+
+份额而非差值是 owner 自己的裁定（glib `branch.gleam:184-189`）：*"the price the move
+covered, **as a share of the bar it opened on** … so a 700-dollar leg and a 60,000-dollar
+one are comparable"*；全部骑 `sma_tiny`，永不骑价格（owner 逐字 *"All three ride
+`sma_tiny`, never price"*）。
+
+**顺带更正一处词汇漂移**：第三项在 glib `12-OVERVIEW.md:37` 已从 `slope` 改名
+`per_bar`（*"it was always `magnitude / duration` under the name `slope`; it now states
+that"*），glibe 注释与测试断言仍写 slope，本轮一并改为 `per_bar`（R45 不用废弃词汇）。
+
+### 4. 保留的理由（owner 判据：函数不损害 type 定义，做策略时用得上）
+
+三者都是**函数**，不是任何 type 的 field（`DataBranch` 只有 `start_bar` / `enter_bar` /
+`end_bar` / `exit_bar` 四个 field，`branch.gleam:62-79`）；全库无 `branch_size:` /
+`branch_stat:` 这样的记录器字段。它们不改变 `Desk ▸ Broker ▸ Instrument ▸ Timeframe`
+的任何 type 关系（R20/R32/R50），策略阶段（owner 的产品目标之一）要拿幅度、时长、
+每 bar 速率做特征——正是这三个测量的用途。
+
+**已知且如实记录**：三者目前在 glibe 的 `src/` 内**零非测试调用方**（`move_between`
+被两个特化各调一次）。将来若 Dashboard 或策略模块要投影 branch，它们才有真实消费方。
+
+**Landing**：`src/glibe/branch.gleam`（模块头 RENAMED 段 + 两个 `///` + 函数名 +
+`slope`→`per_bar`）、`test/domain_steps_test.gleam`、`test/glibe_test.gleam`（测试名与
+断言文案）；`docs/RULINGS.md` 与 `docs/PENDING_DECISIONS.md` 的历史段加**更名注**
+（历史如实保留，不篡改）。

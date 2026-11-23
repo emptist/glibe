@@ -43,6 +43,10 @@ RED→GREEN，然后才回到 03-01。决策区保持 0。历史 R.5 文字（�
 但其中"属架构决策、保留 todo 不擅自改签名"的措辞已被本条与两份 PLAN Task 3 更正为
 "按序实现工作，签名按 Option 修"。
 
+> **2026-11-23 更名注**：上段清单里的 `branch_stat` 是当时的写法，现名
+> **`start_end_move`**；同轮 `recognised_move` → **`enter_exit_move`**（owner 当面裁定
+> 「命名不当」，R51）。三个函数都保留，理由见 R51。
+
 **同日第一次撤销**（carrier / widget-set）见下方；两次都是同一类错误：把自己该做的
 实现工作当成 owner 决策。
 
@@ -287,6 +291,10 @@ sourcebar 同构」。
     `leaf.leaf_depth`（yin 顶=start、yang 顶=corner，取 share 不是差）、
     `branch.move_between`（`(to-from)/from` + idx 两端 inclusive 的 bar 数）、
     `branch.recognised_move`（enter→exit 窗口，无 exit_bar 则 `None`）。
+    > **2026-11-23 更名注**：`recognised_move` 现名 **`enter_exit_move`**，
+    > `branch_stat` 现名 **`start_end_move`**（owner 当面指出「命名不当」）。
+    > 上面是 2026-11-20 的历史记录，旧名如实保留；现行名以
+    > `src/glibe/branch.gleam` 模块头的 RENAMED 段为准。
   - **真实规格缺口（不是待裁决项、不臆造），12 个 todo = leaf 3 + branch 5 +
     timeframe 4**：
     - ~~`leaf.leaf_cma` 需要「twin 的均值 reader」——`yin_leaf_cma` /

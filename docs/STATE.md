@@ -14,8 +14,12 @@ sections are kept as history, not as the current answer.
   - `timeframe.leaves`/`branches`/`strategy` 按冻结 glib 填实：settled leaf 写字段
     （R40/R42，非 glib 的 tuple）、exit 计数读 settings（R40-A）、Yang-only 手动策略
     （UC-62）。无库内 panic，无 O(n²)。
-  - `branch.branch_size`/`branch_stat` 签名改 `Option`（growing branch 无 late bar →
+  - `branch.branch_size`/`start_end_move` 签名改 `Option`（growing branch 无 late bar →
     None，R1）；零调用方，无需改调用点。
+    > **2026-11-23 更名**（owner 当面裁定「命名不当」，R51）：`branch_stat` →
+    > `start_end_move`、`recognised_move` → `enter_exit_move`；`move_between` 与
+    > `branch_size` 保留。名字现在说出量的是哪一对 bar。旧名按历史如实保留在
+    > `docs/RULINGS.md` / `docs/PENDING_DECISIONS.md`，并加更名注。
   - `branch.branch_exit_leaf_size()` 无参零调用方 → 删除；值由 config 的 per-interval
     表 → settings → branches 承载（R49/core §5/一 owner R50）。
   - **domain 层 todo 清零**；WAE 21 Todo 全部在 app 层。
