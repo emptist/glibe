@@ -4,7 +4,7 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-24 (最新 — R67/R68：禁"重跑"、4 个 leaf 列表已加回、gate 不简称；全门禁绿；Timeframe 诞生点仍待裁定（R65））
+## 2026-11-24 (最新 — R67/R68：禁"重跑"、4 个 leaf 列表已加回、sourcebar_gate 不简化；全门禁绿；Timeframe 诞生点仍待裁定（R65））
 
 - **R68（已落地）：4 个 leaf 列表。** owner 逐字 *"必须要有 signig_yin|yangleaf_list…
   甚至你也需要 yin|yangleaf_list"*。`Timeframe` 加 `yin_leaf_list` / `yang_leaf_list`
@@ -14,7 +14,7 @@ sections are kept as history, not as the current answer.
   `leaves` 按 R40-A 接 `settings` 作 pipe-call 参数；两条判据 helper `cons_if_listed` /
   `cons_if_significant` 照 glib `listed_leaf` / `significant_leaf`。R63 的 field **并存不动**。
   GDLTDD：先 RED（2 测试因列表空而失败）→ GREEN；门禁 check/WAE/test 128/format/docs/export 全绿。
-- **R67：禁"重跑"、gate 不简称、sourcebar 无权读 `databar_list`。** "重跑"是我把
+- **R67：禁"重跑"、sourcebar_gate 不简化、sourcebar 无权读 `databar_list`。** "重跑"是我把
   R66 §3 换名端回被 R38 否掉的概念，**撤回**；owner：*"写日记…你说不，我可以重活几回，回到当时"*
   ——要的是**存历史（leaf 列表）**，不是回到当时。`src/` `test/` 全部 `sourcebar_gate` /
   `message.from_event` 写全名。R66 §3/§4 作废（见 R68 落地点）。
@@ -22,22 +22,22 @@ sections are kept as history, not as the current answer.
   ② "foreign bar" 是 sourcebar 的**性质**（外来对象不碰门内 `databar_list`），不是 idx；
   `SourceBar` 无 idx 字段，我臆造的"idx 由谁分配"待裁定项已删（R67 §3 / R68 裁定二）。
   **`sourcebar_gate` 读 `databar_list` 算 idx 的实现本轮未改**（牵涉归属，等 owner）。
-- **R65（仍待 owner）：Timeframe 在哪儿诞生、gate 住哪一层** —— 见下节，未动。
+- **R65（仍待 owner）：Timeframe 在哪儿诞生、sourcebar_gate 住哪一层** —— 见下节，未动。
 
 ## 2026-11-23 (历史 — Phase 03 完成：发布路径 + Dashboard + 接线；**全仓库零警告**；leaf 形状已定（R63）；Timeframe 的诞生点待裁定（R65）；决策区 0 项)
 
-- **R65（待 owner 裁定）：Timeframe 在哪儿诞生、gate 住哪一层。**
-  - 实测：**「这一根完整了吗」的判定不在 gate 里** —— 它在 `ib/sourcebar.gleam` 的
+- **R65（待 owner 裁定）：Timeframe 在哪儿诞生、sourcebar_gate 住哪一层。**
+  - 实测：**「这一根完整了吗」的判定不在 sourcebar_gate 里** —— 它在 `ib/sourcebar.gleam` 的
     `accumulate`（合成层），由 **`instrument.gleam` 派发**（owner 2026-11-13 已裁定）。
     ⇒ "第一根 sourcebar 完整"这个时刻发生在 **instrument 层**。
-  - 实测：gate **不需要** `Interval`（bar 的变体自带周期），所以 2026-11-13 否定
-    `timeframe.gleam` 的那条理由对 gate 不成立。
-  - 实测：今天的 gate 位置**符合 R50**（它读 `databar_list`、写 `working_databar`）。
+  - 实测：sourcebar_gate **不需要** `Interval`（bar 的变体自带周期），所以 2026-11-13 否定
+    `timeframe.gleam` 的那条理由对 sourcebar_gate 不成立。
+  - 实测：今天的 sourcebar_gate 位置**符合 R50**（它读 `databar_list`、写 `working_databar`）。
   - **唯一障碍**：半根 bar 的状态 `growing_target_sourcebar` **住在 Timeframe 里**，
     合成层读写它 ⇒ Timeframe 必须在第一根完整 bar 之前存在。
   - ⇒ 两个互斥形状：**A′**（Timeframe 在第一根 bar 到达时诞生，半根状态不动 ⇒ type 不动、
-    gate 不动，与 2026-11-13 一致）/ **B**（Timeframe 在第一根完整 bar 时诞生 ⇒ 半根状态
-    搬出 Timeframe、进 Instrument 的第二个 Dict、**gate 搬到 `instrument.gleam`**）。
+    sourcebar_gate 不动，与 2026-11-13 一致）/ **B**（Timeframe 在第一根完整 bar 时诞生 ⇒ 半根状态
+    搬出 Timeframe、进 Instrument 的第二个 Dict、**sourcebar_gate 搬到 `instrument.gleam`**）。
   - **更急的一件事**：生产代码**没有任何地方创造 Timeframe**，`runtime.route` 要求
     `get_timeframe` 已成功 ⇒ **空 Desk 永远长不大，今天这个 app 一根 bar 也处理不了。**
 - **R64：诞生就是构造函数本身** —— 不给 type 造 `new` 式的诞生函数（owner 逐字）；
@@ -185,7 +185,7 @@ sections are kept as history, not as the current answer.
   YinLeaf/YangLeaf）。铁律写入项目 MEMORY.md。
 - **未做（R.5 开放点，不臆造）**：`leaves`/`branches`/`strategy` step 及其 helper 仍 todo
   （死亡判据、branch Option 签名、策略规则未裁决；这些属工作项非待决，不进 PENDING）。
-  gate 仍未读 interval 选 config（无 in-scope 消费方，插入会造 WAE unused）。
+  sourcebar_gate 仍未读 interval 选 config（无 in-scope 消费方，插入会造 WAE unused）。
 - **决策区当前 0 项**（2026-11-23 owner 当面纠正后恢复）：我一度误登的「carrier / widget-set」
   决策 1 已整条撤销——那是我没读已有设计就凭自造的 widget-state 架构造出的假缺口。owner 逐字：
   *"你提了一大段貌似专业实则愚蠢的问题……你无视 plushie 的基本技术架构 view-model-update，
@@ -201,16 +201,16 @@ sections are kept as history, not as the current answer.
 - **二选一裁定（owner 逐字 + 实测）**：周期（interval）的唯一 type 载体 = 到手的 closed `SourceBar`
   变体；`sourcebar_gate` 删去 `interval: Interval` 参数（实测 WAE 报 `timeframe.gleam:145`
   `Unused function argument`——死参数）；不给 `Timeframe` 加常驻 interval 字段（违反 R37/R46、
-  与 `growing_target_sourcebar` 重复）。生效链路：gate 读 `sourcebar.interval(of: bar)` →
+  与 `growing_target_sourcebar` 重复）。生效链路：sourcebar_gate 读 `sourcebar.interval(of: bar)` →
   `config.for_interval_default(interval)` → 作为 R40-A pipe 参数进 `databar_processing`。
   **收回我上一轮两处错**：① interval key 来自 Instrument Dict key（错，consumer 侧）；
-  ② gate 的 interval 参数不冗余（错，是死参数；模块 `////` 那句「两个事实被比较」是未实现意图）。
+  ② sourcebar_gate 的 interval 参数不冗余（错，是死参数；模块 `////` 那句「两个事实被比较」是未实现意图）。
   详见 `docs/RULINGS.md` 2026-11-21 节 + plan 02-01 三段。决策区 0 项。
 - **planning 重建落地（2 个已推送 commit）**：`2a4ade5` 归档旧 glibe `.planning/`（45 文件
   `git mv` 到 `.planning-archived-2026-11-20/`，glib 的 `.planning` 只读未动），新 BRIEF +
   ROADMAP + 6 个 skill 格式 PLAN；`4e8a0fc` 执行 01-01 重定向 24+3 条悬空 `////` 引用
   （src+test），只改注释行，门禁全绿（format/check 0、test 64、docs 0、interface 5 新路径）。
-- **待执行**：plan 02-01（四个 `timeframe` step 填体）——前置是 gate 签名变更（本轮），
+- **待执行**：plan 02-01（四个 `timeframe` step 填体）——前置是 sourcebar_gate 签名变更（本轮），
   之后 indicator 的 O(1) carried 字段 + settings 参数链路。R.5 leaves/branches 开放点仍在。
 - **config.gleam 定位（owner 逐字）**：*"config这个模块是随着项目开发，逐步增减调整的，类似
   gleam.toml 是随着项目开展变动的. when you have something to be set by user, you add them
@@ -317,7 +317,7 @@ sections are kept as history, not as the current answer.
   `06-04-CHART-ISSUE.md`。本地 chart repo 与 hex 缓存逐字节同源；本轮未改外部包。
 - **触发理由的深一层（owner 追加追问）**：*"working_databar 还在工作就不能更新 view，因为
   model 不完整……他们各自的 field 什么时候完成，你不懂就去看文档。"* 回读 glib `SYSTEM_MODEL.md:236-254`
-  得到逐字段完成时序表（bar→gate、SMA/KDJ→indicator、CMA→leaves、branch→branches、signal→strategy、
+  得到逐字段完成时序表（bar→sourcebar_gate、SMA/KDJ→indicator、CMA→leaves、branch→branches、signal→strategy、
   history+None→archive），写进 `06-05` §C1 + runtime `////`/`///` + RULINGS。`Some`=半成品=禁 view；
   `None`=完整=可画（`:487-489` 逐字保证）。我之前 runtime 注释只说"bar 换位置"，漏了"各层 field
   完成度"这一层，已补正。
@@ -465,7 +465,7 @@ owner 三连确认："bar_stream_chart 不是基于 plushie/iced/Elm 写的？�
 
 - **chart 包零 GUI 框架依赖**：`bar_stream_chart` src 全部 import 只有 stdlib（float/int/list/option），README 逐字 "no GUI-framework dependency"。源码注释提 plushie/Elm 只是语境，真正 import plushie 的是上层翻译壳 `fusion_view.gleam`。
 - **"plushie 无 chart"缺口已补**：图表规范层全在自有包，`fusion_view` 退成 `SpecShape → PropValue` 翻译壳；11-17 "自算 K 线几何"边界彻底不成立。
-- **plushie 视觉层胜任已被实测**：try_plushie `gleam build --warnings-as-errors` exit 0、`gleam test` **48 passed**（本轮实跑）；覆盖多图隔离/单 bar 增量/zoom-pan/crosshair/实时 feed 到图/live bar 经 glib gate。昨天真窗口无 panic。
+- **plushie 视觉层胜任已被实测**：try_plushie `gleam build --warnings-as-errors` exit 0、`gleam test` **48 passed**（本轮实跑）；覆盖多图隔离/单 bar 增量/zoom-pan/crosshair/实时 feed 到图/live bar 经 glib sourcebar_gate。昨天真窗口无 panic。
 - **数字刷新**：`bar_stream_chart` **1.0.0 → 1.2.0**；try_plushie 测试 **35 → 48**（新增 live_feed/live_binance/live_websocket/live_export/multi_chart 五文件）。"更好状态"在兑现。
 - 边界（客观）：胜任的是"眼"这半，声控半不在此链且 plushie_gleam 0.6.0 pre-1.0、lab 仍在开发。不翻案任何旧结论，最终落地属 owner。见 `docs/RULINGS.md`「2026-11-19 00:07」。
 
@@ -640,7 +640,7 @@ the design, so I don't believe 'Code untouched' is some good news"*。真去读�
   之后导出用的数据，不是 stream 的一部分、不参与 computation。
 - **owner 10:19 追问「where when and how they use sourcebar_buffer in glib
   or glibe? why?」—— 逐文件实测回答**：glib 真的有并在用 —— 字段
-  `glib/src/glib/timeframe.gleam:149`、出生 `:169`、每根 gate 累加
+  `glib/src/glib/timeframe.gleam:149`、出生 `:169`、每根 sourcebar_gate 累加
   `:235-239`、getter `:309-311`、`sourcebar_export.gleam:41-46` 的
   `[bar, ..buffer]`、退出一次 reverse 写 `trading/export.gleam:21-25`、
   测试钉在 `timeframe_test.gleam:900/903/908/1040`。glib 旧文档当时记的
@@ -1555,7 +1555,7 @@ the design, so I don't believe 'Code untouched' is some good news"*。真去读�
   with many intervals, at the same time?": the STATIC chain was already
   complete (`desk.gleam:74-94`, `config.gleam:75-101`: 3 brokers × 3
   instruments × 2 intervals = six independent `Timeframe` states), but a bar's
-  ARRIVAL had no address and gate-path errors were `String`.
+  ARRIVAL had no address and sourcebar_gate-path errors were `String`.
 - New `src/glibe/monitor.gleam`: `TimeframeAddress(BrokerId, Symbol,
   Interval)`, `IncomingBar(address, bar)`, `MonitorError` (address + typed
   lower-level reason), and the pure
