@@ -4,7 +4,37 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-23 (最新 — 继承树审计落盘 + 指标层四模块拆分；决策区 0 项)
+## 2026-11-23 (最新 — Phase 03 完成：发布路径 + Dashboard + 接线；**全仓库零警告**；决策区 0 项)
+
+- **Phase 03 完成（GDLTDD，本轮）**：`gleam build --warnings-as-errors` **退出码 0**
+  —— **0 Todo + 0 unused**（Phase 03 开始时是 21 Todo + 57 unused）。
+  `gleam test` **126 passed / 0 failures**；format/check/docs/export 全 0。
+  - **03-01 发布路径**：`app/wire.gleam`（两个 wire kind + 纯数据 payload + 稳定 ID +
+    BEAM 原生 `Dynamic` cast）、`app/message.gleam`（闭集 Msg 闸门）、
+    `app/publish.gleam`（效果载体 + 收信循环）、`app/runtime.gleam`
+    （`app(publisher)` / `step` / `route` / `publish_request` / `update`）。
+  - **03-02 Dashboard**：`ChartWidgetState` 改为持有**已翻译的四个层**（push 时翻译，
+    view 只 O(1) 组装）；`chart_widget_def` / `push_one` / `chart_node` /
+    `widget_view` / `widget_handle_event` / `widget_subscriptions` / `view` 全部填实。
+  - **03-03 接线**：**新增 `src/glibe.gleam`** —— 一个 `plushie.start`、一个命名
+    publish channel、一个 publisher 进程（唯一持有 `Instance`）。
+  - **实测不变量**：`plushie.start(` 全树只有 **1 处真实调用**；`new_name(` 只有 1 处；
+    model 的四个类型里**没有 chart 字段**（唯一命中是注释）。
+- **本轮的关键裁定**（`docs/RULINGS.md`）：
+  - **R58**：发布通道在**接线处闭包捕获**（不是每根 bar 的字段）；`Dynamic` 边界用
+    BEAM 原生 identity（stdlib 1.0.5 **没有** `dynamic.from` / `unsafe_coerce`）。
+  - **R59**：owner 给的模型形状（Desk ▸ Broker ▸ Instrument ▸ Timeframe，各层按自己
+    的节奏更新）；实测**唯一差异**是 leaf 的"list vs 字段对"，按 owner 2026-10-28 的
+    逐字裁定执行，差异登记待确认。
+  - **R60**：**view 就是 view** —— 不带 model 的 list、不在 view 里反复遍历；try_plushie
+    的对（push 时翻译、O(1) 组装、具名邮箱）与错（一图一 App）逐条列出。
+  - **R61**：文本改写用 `ed` / `awk`，**不用行号盲删**；不用 Python。
+  - **R62**：列表"最新在前" ⇒ 取更老用 `list.drop(xs, 1)`（O(1)），**不用 `list.last`**
+    （那是递归遍历）。
+- **继承树的审计证据落盘**：`docs/how-hy4-flash-poluted-glibe.md`（13 节 + §14，每条带
+  `file:line` 与 commit）。边界 tag **`space-bunny-start`** → `ec79c64`。
+
+## 2026-11-23 (继承树审计落盘 + 指标层四模块拆分；决策区 0 项)
 
 - **继承树的审计证据已落盘（R54，本轮）**：owner 指名 *"他的补充完全是敷衍，所以全部
   塞进不应该塞进去的模块，而不去新建应该用的模块"* —— 审计文件

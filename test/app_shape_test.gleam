@@ -127,10 +127,14 @@ fn chart_bar(idx: Int) -> Bar {
 
 fn empty_chart_state() -> dashboard.ChartWidgetState {
   dashboard.ChartWidgetState(
-    chart: bar_stream_chart.empty(
+    spec: bar_stream_chart.empty(
       bar_stream_chart.Geometry(width: 800.0, height: 600.0),
       bar_stream_chart.PriceScaleLinear,
     ),
+    candle_pv: [],
+    overlay_pv: [],
+    volume_pv: [],
+    kdj_pv: [],
     viewport: bar_stream_chart.default_viewport(0),
     mouse: option.None,
   )
@@ -142,11 +146,11 @@ fn empty_chart_state() -> dashboard.ChartWidgetState {
 /// changed — no bar list is stored in the model (06-02 G3).
 pub fn push_one_increments_chart_test() {
   let s0 = empty_chart_state()
-  assert bar_stream_chart.len(s0.chart) == 0
+  assert bar_stream_chart.len(s0.spec) == 0
   let s1 = dashboard.push_one(s0, chart_bar(0))
-  assert bar_stream_chart.len(s1.chart) == 1
+  assert bar_stream_chart.len(s1.spec) == 1
   let s2 = dashboard.push_one(s1, chart_bar(1))
-  assert bar_stream_chart.len(s2.chart) == 2
+  assert bar_stream_chart.len(s2.spec) == 2
   Nil
 }
 

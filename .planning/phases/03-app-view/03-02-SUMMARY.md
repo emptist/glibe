@@ -1,68 +1,104 @@
-# 03-02 — dashboard widget/view bodies (SUMMARY — RETRACTED fake block; body is in-plan work)
+# 03-02 — the Dashboard view layer (SUMMARY)
 
-> Correction (owner 2026-11-23): the "view blocked on same gap" finding below was
-> built on my invented composite-widget/runtime-held-state design — RETRACTED. The
-> design was already recorded (06-02 §G; `dashboard.gleam ////`): chart state lives
-> in the model (MVU, proven by try_plushie `ChartModel`), one stable-ID chart per
-> (broker,symbol,interval), glibe is one App (RULINGS.md:5408). `view(desk)` is
-> in-plan work, not blocked. The measured rendering-chain facts below (SpecShape
-> IR, shape→PropValue, canvas child Nodes) still stand. Retraction full text:
-> `docs/PENDING_DECISIONS.md`, `docs/STATE.md`.
+Date: 2026-11-23. **Final record of 03-02: the mechanism, the evidence, the
+RED→GREEN test names, the files changed and the gate counts.** The earlier
+"view blocked on the same gap" narrative was built on my invented
+composite-widget / runtime-held-state design and is RETRACTED (`docs/RULINGS.md`
+R60 §1).
 
-Date: 2026-11-23. Source audit of pinned plushie 0.6.0 + bar_stream_chart 1.2.1,
-per owner's "疑点先读源码/自己的文档". No signature or body changed. Gate green
-(86 passed). This records WHY the plan's bodies are not yet filled — so the
-question is not re-raised as if new.
+## The mechanism
 
-## What the source says (measured, not inferred)
+The Dashboard is the **projection of the one `Desk`** (R20). It holds no model
+list and computes no aggregate: the bars live in the chart package's own state
+(which holds generated shapes and O(1) carried bounds, never the caller's bar
+list), and the count comes from that state's carried number.
 
-Rendering chain in plushie 0.6.0 is REAL and usable:
-- `SpecShape` has 6 variants (Rect/Path/Line/Text/Group/Interactive), `ChartShapes`
-  6 layers — `bar_stream_chart/src/bar_stream_chart.gleam:99-172`.
-- `shapes(chart, vp, mouse) -> ChartShapes` is public (`:807`).
-- `plushie/canvas/shape.gleam` translates every SpecShape piece to `PropValue`:
-  `rect/line/text/path/group/interactive_group/stroke` + `translate/scale`
-  (`shape.gleam:123-398`); `ShapeOpt` carries Fill/Stroke/Opacity/Size/Transforms.
-- `canvas.build` promotes shapes/layers into NODE CHILDREN
-  (`plushie/widget/canvas.gleam:189-230`) — so the plan's phrase "SpecShape → Node"
-  is really SpecShape → PropValue (via `shape`) → canvas layer props → child Nodes.
-  The API exists; a `chart_node`/`widget_view` body is implementable.
+```
+Desk ▸ Broker ▸ Instrument ▸ Timeframe
+  └─ one chart widget per (broker, symbol, interval), stable node id
+       └─ plushie's widget registry holds its state across renders
+            └─ the archived bar arrives as a targeted CustomWidget event
+                 └─ the widget's own handle_event pushes it into ITS chart
+```
 
-## The block: `view(desk)` cannot enumerate the widgets (same root as 03-01 carrier)
+## The one design point that decided everything: translate at PUSH time
 
-- Plushie's widget state is HELD BY THE RUNTIME. `widget.build(def, id, props)`
-  puts only the `WidgetDef` + props into the node's `meta` with `state: None`
-  (`plushie/widget.gleam:206-215`); state is created/threaded by the runtime
-  during normalize, and mutated only via `handle_event → EventAction.UpdateState`.
-- So app-level `view(desk: Desk) -> List(Node)` must emit one widget placeholder per
-  (broker, symbol, interval). To know WHICH triples exist it would have to walk
-  `Desk → brokers → instruments → timeframes`. But `Desk` exposes only
-  `get_broker` / `put_broker` (`src/glibe/desk.gleam:51-60`) — there is NO
-  enumerate-all API, by design: R50 deleted `timeframe_under` and "no function
-  here walks from Desk down to Timeframe" (`desk.gleam:25-29`). Each level calls
-  its OWN keyed read/write pair; nothing lists the keys.
-- Consequence: the set of dashboards to render has no source. glib's design never
-  built this app-level view (it used a JS lightweight-charts series), so there is
-  no frozen ruling to copy. This is the SAME architecture gap as 03-01's carrier:
-  **the model has no downward-enumeration entry and widget state is isolated.**
+Owner, 2026-11-23 (R60 §2): *"view就是单纯的view，不要把任何model中的list拿过去，
+更不要再view里面反复遍历计算，概算的东西都在model里面了。"*
 
-## Decision needed (owner)
-Registered in `docs/PENDING_DECISIONS.md` decision 1 (the 03-01 carrier item),
-with this second facet appended: how does `view(Desk)` learn the widget set
-without a R50-violating Desk-walk? Candidate directions are for owner to choose;
-none assumed here. Per owner *"遇到不能决断的危险事件需要问我"* and create-plans
-deviation rule 4, `view` stays `todo`.
+Measured, the difference is not stylistic:
 
-## Independently implementable (NOT blocked — pending owner's go-ahead)
-The following have real APIs, take `state`/`props` as parameters (no Desk-walk),
-and can be filled by strict RED→GREEN without the decision:
-- `chart_node` / `widget_view` — SpecShape→PropValue→canvas child Nodes.
-- `widget_handle_event` (zoom/pan local `UpdateState`) / `widget_subscriptions`.
-- `chart_widget_def` — wire init/view/handle_event/subscriptions/cache_key.
-- `dashboard.push_one` + `data_bar_to_chart_bar` already filled & tested.
-Owner's "按计划走" authorizes these; I held to report the `view` finding first
-rather than leave a half-filled module without telling him. Await go-ahead or
-the ruling that also unblocks `view`.
+| | what the view does | cost |
+|---|---|---|
+| `bar_stream_chart.push` (the old `push_one`) | discards the generated shapes, so the view must call `shapes/3` — which **re-wraps the whole accumulated list** (`src/bar_stream_chart.gleam:807`) | **O(n) per frame** |
+| `bar_stream_chart.push_generating` (**what is used now**) | the package returns THIS bar's shapes; we translate **only those** and prepend them to the layer | **O(1) per frame** |
 
-## Gate (real exit codes)
-- `gleam format --check` → 0; `gleam check` → 0; `gleam test` → 0, **86 passed**.
+The package says this is the intended split — `src/bar_stream_chart.gleam:181-185`:
+*"A framework adapter keeps the already-translated shapes for each data layer in
+its Model, wraps them in one affine group per layer using these values, and
+never re-translates the accumulated list on every frame. This is the package
+side of the Elm `lazy` boundary."*
+
+try_plushie does exactly this and is the blueprint (R60 §1): `fusion_view.gleam:139-157`
+(*"No accumulated list is traversed"*) and `:159-172` (*"O(1) assembly of the six
+canvas layers … No `list.map` over accumulated shapes happens here — that work
+moved to `push`"*). Its `Chart` type holds the four translated layers beside the
+package's chart; glibe's `ChartWidgetState` does the same.
+
+## What the state now holds
+
+```gleam
+pub type ChartWidgetState {
+  ChartWidgetState(
+    spec: Chart,               // the package's opaque chart (bounds + count)
+    candle_pv: List(PropValue), // ALREADY TRANSLATED, prepended at push
+    overlay_pv: List(PropValue),
+    volume_pv: List(PropValue),
+    kdj_pv: List(PropValue),
+    viewport: Viewport,
+    mouse: Option(#(Float, Float)),
+  )
+}
+```
+
+The view reads the package's `frame` — the O(1) part: constant-size axes and
+crosshair plus **one affine per data layer** — and wraps each already
+translated layer in that one group. Nothing in the view walks the accumulated
+shapes, and the package's `shapes/3` is not used on the hot path.
+
+## RED → GREEN
+
+`test/dashboard_test.gleam` (new, 5 tests):
+
+| Test | What it pins |
+|---|---|
+| `push_one_adds_one_bar_test` | one push adds exactly one candle shape; the count is the package's carried number |
+| `push_one_prepends_without_retranslating_test` | `list.drop(s2.candle_pv, 1) == s1.candle_pv` — the new state is the new shape prepended to the old layer, so the old bar was **not** re-translated |
+| `the_chart_push_event_lands_in_this_widget_test` | our `CustomWidget` push event is consumed by the widget and lands in **its own** chart state |
+| `a_pointer_event_moves_only_the_viewport_test` | a pointer event adds no bar — the model is not touched |
+| `the_dashboard_is_one_window_with_one_chart_per_identity_test` | the Dashboard is ONE window |
+
+The second test's form is deliberate: an earlier version used `list.last` to
+fetch the oldest shape, which **traverses** the list — exactly what R60 forbids.
+The newest-first convention makes `list.drop(xs, 1)` the O(1) way to say "and
+the old layer is unchanged" (R62).
+
+## Files changed
+
+- `src/glibe/app/dashboard.gleam` — the state now holds the translated layers;
+  `chart_widget_def`, `push_one` (`push_generating`), `chart_node` (O(1)
+  assembly), `widget_view`, `widget_handle_event` (the chart push lands in this
+  widget; other events are cosmetic), `widget_subscriptions` (none — no timer,
+  R33), `view` (one window, one chart widget per identity), plus the
+  `SpecShape → PropValue` translator and the affine group.
+- `test/dashboard_test.gleam` — new.
+- `test/app_shape_test.gleam` — the fixture follows the new state shape; the
+  pinned **intent** (the model is the one `Desk`, never a `#(Desk, Charts)`) is
+  unchanged.
+
+## Gates
+
+`gleam format --check` 0 · `gleam check` 0 · `gleam test` **126 passed, no
+failures** · `gleam docs build` 0 · `gleam export package-interface` 0 ·
+`gleam build --warnings-as-errors` **0** — **0 Todo, 0 unused**. The whole
+repository is now warning-free.

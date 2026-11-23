@@ -22,7 +22,6 @@ import glibe/app/message.{type Msg, MsgEye, MsgVoice}
 import glibe/app/runtime
 import glibe/app/wire
 import glibe/broker
-import glibe/config
 import glibe/desk.{type Desk, Desk}
 import glibe/id
 import glibe/instrument

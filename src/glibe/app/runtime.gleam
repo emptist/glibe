@@ -63,9 +63,9 @@ import glibe/app/dashboard
 import glibe/app/message.{type Msg, MsgSourceBarArrived}
 import glibe/app/publish
 import glibe/app/wire
-import glibe/broker.{get_instrument, put_instrument}
+import glibe/broker
 import glibe/config
-import glibe/desk.{type Desk, Desk}
+import glibe/desk
 import glibe/instrument
 import glibe/timeframe
 import plushie/app.{type App}
@@ -81,18 +81,18 @@ import plushie/command.{type Command}
 /// Instance cannot be captured here — but a `Subject` created before this call
 /// can, and that is what carries the effect out to the process that holds the
 /// Instance.
-pub fn app(publisher: Subject(wire.ChartPushRequest)) -> App(Desk, Msg) {
+pub fn app(publisher: Subject(wire.ChartPushRequest)) -> App(desk.Desk, Msg) {
   app.application(
     init,
-    fn(desk_value: Desk, msg: Msg) { update(desk_value, msg, publisher) },
+    fn(desk_value: desk.Desk, msg: Msg) { update(desk_value, msg, publisher) },
     dashboard.view,
     message.from_event,
   )
 }
 
 /// The empty one Desk — the system's single Value at boot (R33 / R50).
-pub fn init() -> #(Desk, Command(Msg)) {
-  #(Desk(dict.new()), command.none())
+pub fn init() -> #(desk.Desk, Command(Msg)) {
+  #(desk.Desk(dict.new()), command.none())
 }
 
 /// Pure projection of one Msg to the publish it would cause. No effect, no
@@ -103,7 +103,7 @@ pub fn init() -> #(Desk, Command(Msg)) {
 /// pipeline ran to the archive. A bar the gate REJECTS never archives, so it
 /// never publishes — no head comparison, no dedup (SYSTEM_MODEL.md:1364).
 pub fn publish_request(
-  desk_value: Desk,
+  desk_value: desk.Desk,
   msg: Msg,
 ) -> Option(wire.ChartPushRequest) {
   step(desk_value, msg).1
@@ -118,7 +118,10 @@ pub fn publish_request(
 /// one arriving bar replaces the Timeframe it belongs to, the Instrument that
 /// holds it, the Broker that holds that, and the Desk that holds that — and
 /// nothing else moves.
-fn step(desk_value: Desk, msg: Msg) -> #(Desk, Option(wire.ChartPushRequest)) {
+fn step(
+  desk_value: desk.Desk,
+  msg: Msg,
+) -> #(desk.Desk, Option(wire.ChartPushRequest)) {
   case msg {
     MsgSourceBarArrived(payload) ->
       case route(desk_value, payload) {
@@ -133,9 +136,9 @@ fn step(desk_value: Desk, msg: Msg) -> #(Desk, Option(wire.ChartPushRequest)) {
 /// back up. A missing key or a rejected bar is `Error(Nil)` — no panic, no
 /// invented error noun.
 fn route(
-  desk_value: Desk,
+  desk_value: desk.Desk,
   payload: wire.SourceBarArrived,
-) -> Result(#(Desk, wire.ChartPushRequest), Nil) {
+) -> Result(#(desk.Desk, wire.ChartPushRequest), Nil) {
   use broker <- result.try(desk.get_broker(desk_value, payload.broker_id))
   use instrument <- result.try(broker.get_instrument(broker, payload.symbol))
   use timeframe <- result.try(instrument.get_timeframe(
@@ -190,10 +193,10 @@ fn route(
 /// payload (R58): the channel is an app-level capability captured at wiring
 /// time, exactly like `settings` is a pipe-call argument (R40-A).
 pub fn update(
-  desk_value: Desk,
+  desk_value: desk.Desk,
   msg: Msg,
   publisher: Subject(wire.ChartPushRequest),
-) -> #(Desk, Command(Msg)) {
+) -> #(desk.Desk, Command(Msg)) {
   let #(new_desk, published) = step(desk_value, msg)
   case published {
     Some(request) -> #(new_desk, publish.request(publisher, request))

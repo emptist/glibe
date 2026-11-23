@@ -12,8 +12,8 @@ Re-baselined 2026-11-20. The old roadmap (`.planning-archived-2026-11-20/ROADMAP
 
 - [ ] **Phase 01: Plan-reference integrity** — repoint every active module's `////` plan reference from the archived tree to a plan in this tree.
 - [ ] **Phase 02: Domain stream completion** — fill `timeframe`'s four steps (`indicator`/`leaves`/`branches`/`strategy`) and the `leaf`/`branch` todos with O(1) stream bodies.
-- [ ] **Phase 03: App view publish path** — fill `runtime.update` and the `dashboard` widget/view bodies so a view update happens only on `working_databar_archived`.
-- [ ] **Phase 04: Full gate green** — bring `--warnings-as-errors` to 0 warnings with every skeleton body filled; docs/export verified.
+- [x] **Phase 03: App view publish path** — DONE 2026-11-23: the typed wire boundary, the publisher, `runtime.update`/`publish_request` (publishing only when the gate accepted, i.e. only after `working_databar_archived`), the Dashboard widget/view bodies (shapes translated at PUSH time; the view is O(1) assembly), and the composition root `src/glibe.gleam` (one `plushie.start`, one named channel, one publisher process). Gates: WAE 0 (0 Todo, 0 unused), 126 tests passed.
+- [x] **Phase 04: Full gate green** — DONE 2026-11-23 as part of Phase 03: `gleam build --warnings-as-errors` exits **0** (0 Todo + 0 unused, from 21 + 57), `gleam test` 126 passed / 0 failures, docs and export verified.
 
 ## Phase Details
 
