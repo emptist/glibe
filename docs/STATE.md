@@ -4,7 +4,27 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-23 (最新 — Phase 03 完成：发布路径 + Dashboard + 接线；**全仓库零警告**；leaf 形状已定（R63）；Timeframe 的诞生点待裁定（R65）；决策区 0 项）
+## 2026-11-24 (最新 — R67/R68：禁"重跑"、4 个 leaf 列表已加回、gate 不简称；全门禁绿；Timeframe 诞生点仍待裁定（R65））
+
+- **R68（已落地）：4 个 leaf 列表。** owner 逐字 *"必须要有 signig_yin|yangleaf_list…
+  甚至你也需要 yin|yangleaf_list"*。`Timeframe` 加 `yin_leaf_list` / `yang_leaf_list`
+  （结算且 `leaf_size >= 2`，glib 历史完整列表）与 `signif_yin_leaf_list` /
+  `signif_yang_leaf_list`（`leaf_size >= settings.branch_exit_leaf_size`），newest first。
+  **WRITER `leaves`，READER 追溯研究（今天是一个测试）；`branches` 不读**（读 `*_leaf_settled`，R66 §1）。
+  `leaves` 按 R40-A 接 `settings` 作 pipe-call 参数；两条判据 helper `cons_if_listed` /
+  `cons_if_significant` 照 glib `listed_leaf` / `significant_leaf`。R63 的 field **并存不动**。
+  GDLTDD：先 RED（2 测试因列表空而失败）→ GREEN；门禁 check/WAE/test 128/format/docs/export 全绿。
+- **R67：禁"重跑"、gate 不简称、sourcebar 无权读 `databar_list`。** "重跑"是我把
+  R66 §3 换名端回被 R38 否掉的概念，**撤回**；owner：*"写日记…你说不，我可以重活几回，回到当时"*
+  ——要的是**存历史（leaf 列表）**，不是回到当时。`src/` `test/` 全部 `sourcebar_gate` /
+  `message.from_event` 写全名。R66 §3/§4 作废（见 R68 落地点）。
+- **两处我理解反、已按 owner 原话改正**：① R66 撤回被我读成"不重跑=什么都不做"，正解是加列表；
+  ② "foreign bar" 是 sourcebar 的**性质**（外来对象不碰门内 `databar_list`），不是 idx；
+  `SourceBar` 无 idx 字段，我臆造的"idx 由谁分配"待裁定项已删（R67 §3 / R68 裁定二）。
+  **`sourcebar_gate` 读 `databar_list` 算 idx 的实现本轮未改**（牵涉归属，等 owner）。
+- **R65（仍待 owner）：Timeframe 在哪儿诞生、gate 住哪一层** —— 见下节，未动。
+
+## 2026-11-23 (历史 — Phase 03 完成：发布路径 + Dashboard + 接线；**全仓库零警告**；leaf 形状已定（R63）；Timeframe 的诞生点待裁定（R65）；决策区 0 项)
 
 - **R65（待 owner 裁定）：Timeframe 在哪儿诞生、gate 住哪一层。**
   - 实测：**「这一根完整了吗」的判定不在 gate 里** —— 它在 `ib/sourcebar.gleam` 的

@@ -6715,6 +6715,11 @@ owner 说的"研究只能局限于长 leaf 列表"指 glib 的 `signif_yin_leaf_
 改用 owner 说的「最后那个 leaf」的 field、或改回完整 list。**这正是 owner 说的"今后需要
 再改回 list 也可以"。**
 
+> **【已落地 2026-11-24 — 见 R68】** "今后"到了：owner 明令必须有 4 个 leaf 列表（两个
+> signif + 两个完整），已加回 `Timeframe`、由 `leaves` 写。本节的 field（`*_leaf_settled`）
+> **保留不动**，与列表并存、各是不同事实。§3 末尾那句"glibe 现在没有这两个列表"是
+> 2026-11-23 的历史状态，今日起不再成立。
+
 ### 4. 一处 map 不诚实（R57）的更正
 
 `Timeframe` 记录里的 `yin_leaf_settled` / `yang_leaf_settled` **原本没有任何字段级
@@ -6866,12 +6871,13 @@ bar 的两件事**：Binance 的 bar 到达即完整（没有半根状态），I
 
 ## R66 — branch 的起点由 `*_leaf_settled` 给，不靠任何 leaf 列表；历史 leaf 的研究路线 = 从 bar 序列重跑（2026-11-23 owner 三问 + 实测）
 
-> **【已撤回 2026-11-24 — 见 R67】** 本条 §3/§4 的"从 bar 序列重跑 / 重跑历史入口 /
-> 路线 1（推荐）"**全部作废**。owner 当面逐字：*"重跑？谁允许你重跑的？"*。
-> R38 早已裁定 glibe 单向流无 replay/倒带，11-17 又裁 buffer/replay 永不是 owner 的词；
-> 我把被否的概念换个名字（"重跑历史"）端回来，是错的。§1/§2（branch 起点由
-> `*_leaf_settled` 给、名字是 owner 的）不受影响，仍然有效。历史文字如实保留不篡改，
-> 以此注结清。
+> **【已撤回 2026-11-24 01:44 — 见 R68】** 本条 §3/§4 的"从 bar 序列重跑 / 重跑历史入口 /
+> 路线 1（推荐）"**全部作废**。owner 当面逐字：*"重跑？谁允许你重跑的？"*，
+> 又：*"我说必须要有 signig_yin|yangleaf_list…你说可以重跑，你妈让你写日记，
+> 你说不，我可以重活几回，回到当时。"* —— **owner 要的是把历史存下来（leaf 列表），
+> 不是"重跑回到当时"**。我上一轮把撤回理解成"不重跑=什么都不做"，又理解反了：
+> 正解在 R68 —— **必须加回 leaf 列表**。§1/§2（branch 起点由 `*_leaf_settled` 给、
+> 名字是 owner 的）不受影响，仍然有效。历史文字如实保留不篡改，以此注结清。
 
 **owner 逐字（三段）**：
 1. *"signif_yin|yangleaf_list 是存储可以导致branch停止的那个leaf，这个leaf也就是下一个branch开始的leaf，没有这个list，我不清楚glibe是怎么做到制作branch的，理论上，在下一个leaf出现，导致新branch被确认，到回头去找上一个leaf，取得实际起点，这个可能是通过 yin|yangleaf_settled 实现的"*
@@ -6940,6 +6946,10 @@ CLI，都等 owner 裁定。
 本条只记录实测与裁定依据；**未改代码**（R65 的诞生点与本条的研究路线都等 owner 的
 二选一）。
 
+> **【更新 2026-11-24 — 见 R68】** §3 的"重跑"研究路线已撤回；owner 要的是把历史
+> **存成 leaf 列表**，已于 R68 落地（4 个列表，`leaves` 写，`branches` 不读）。
+> R65 的诞生点仍待 owner。
+
 ---
 
 ## R67 — 禁止"重跑"；`sourcebar_gate` 永远不简称 gate；`SourceBar` 无权读 `databar_list`（2026-11-24 owner 当面逐字）
@@ -6967,18 +6977,62 @@ CLI，都等 owner 裁定。
 ### 裁定三：`SourceBar` 无权读 `databar_list`（门外的 foreigner 不进内屋）
 - **owner 的边界**：`SourceBar` 是门外的 foreigner，`Timeframe` 是门内居民，`databar_list`
   是居民的家产。外来 bar 的校验/转换**不许伸手读**内部已归档列表。
+- owner 01:44 澄清逐字：*"foreign bar 我是解释 sourcebar 的性质，请问 sourcebar 有个鬼idx？"*
+  —— "foreign" 只是**性质描述**（外来对象不碰门内数据），**与 idx 无关**。`SourceBar` 根本没有
+  `idx` 字段（`api/sourcebar.gleam` 的 SourceBar 只有 OHLCV + timestamp；`idx` 是 `DataBar` 的）。
+  **我上一轮据此臆造了一个"idx 由谁分配"的待裁定问题 —— 那是我不理解你的话，问题本身不存在。**
 - **实测违规点**：`src/glibe/timeframe.gleam:163-180` 的 `sourcebar_gate` 里
-  `sb.to_databar(qualified, bars_listed(timeframe.databar_list))` —— 它读 `databar_list`
-  仅为算新 bar 的 `idx`（head.idx + 1）。这正触犯本条：foreign bar 进门时读了居民的 `databar_list`。
+  `sb.to_databar(qualified, bars_listed(timeframe.databar_list))` —— foreign bar 进门时
+  读了居民的 `databar_list`。**本条只登记这个越界事实**；怎么改（`sourcebar_gate` 是否该签名去掉
+  `Timeframe`）是 type/signature 层面的决定，**等 owner**，本轮**没有改这里的代码**。
 - **撤回 R65 §1(c) 的论证前提**. R65 用"gate 读 databar_list 算 idx、按 R50 归属正确"论证
   `sourcebar_gate` 住 `timeframe.gleam` —— 该前提被本条否定（无权读），论证需重写；
   R65 的最终二选一（A′/B）**未受本条裁定，仍待 owner**。
 - **`bars_listed` 调用面**（R47 记录）：唯一生产调用点是 `timeframe.gleam:176`；测试里另有
   `test/glibe_test.gleam:505-507,1095` 等。函数本身保留（owner 2026-11-15 定：读 head idx + 1，非计数）。
 
-### 待 owner 裁定（Space-Bunny 不擅改）
-- `sourcebar_gate` 退出读 `databar_list` 后，新 bar 的 `idx` 由谁分配、在哪一步分配？
-  这是 type/signature 层面的二选一，等 owner 明示，本条**未改任何代码**。
+### 裁定四（01:44）：必须有 leaf 列表；"重跑"是我理解反了
+- owner 逐字：*"我说必须要有 signig_yin|yangleaf_list,否则无法做追溯研究，甚至你也需要
+  yin|yangleaf_list."* —— **正解见 R68**：加回 4 个 leaf 列表（两个 signif + 两个完整）。
+- R67 第一版把"撤回重跑"写成"只删不加"，**错**；以本条 + R68 为准。
 
 ### Landing
 - 本条只记录 owner 当面裁定 + 违规点实测；代码改动等 owner 对 idx 归属的裁定。
+
+---
+
+## R68 — 必须有 4 个 leaf 列表（追溯研究）；"重跑"是我理解反了；foreign 说的是 sourcebar 性质，不是 idx（2026-11-24 01:44 owner 逐字）
+
+**owner 逐字**：
+1. *"我说必须要有 signig_yin|yangleaf_list,否则无法做追溯研究，甚至你也需要 yin|yangleaf_list."*
+2. *"你说可以重跑，你妈让你写日记，你说不，我可以重活几回，回到当时。"*
+3. *"foreign bar 我是解释 sourcebar 的性质，请问 sourcebar 有个鬼idx？"*
+
+### 裁定一：Timeframe 必须有 4 个 leaf 列表 —— 这是追溯研究的素材，不是机制
+- **两个 signif 列表**（glib `signif_yin_leaf_list` / `signif_yang_leaf_list`）：结算时
+  `leaf_size >= settings.branch_exit_leaf_size` 的 leaf，newest first。判据是 branch 自己的数
+  （glib `timeframe.gleam:574-593` / UC-51）。
+- **两个完整列表**（glib 历史的 `yin_leaf_list` / `yang_leaf_list`，2026-10-03 删、本条恢复）：
+  结算时 `leaf_size >= 2` 的 leaf（单 bar leaf 不列出，glib leaf law 4 / `listed_leaf`）。
+  owner 逐字 *"甚至你也需要 yin\|yangleaf_list"* —— AI 追溯研究连短 leaf 也要能找回。
+- **身份**：这些列表是**记录，不是机制** —— `branches` **不读**它们、也**不许**读它们
+  （branch 起点仍由 `*_leaf_settled` 给，R66 §1；glib `timeframe.gleam:120-127` 实测从
+  signif 列表读 branch 会丢 branch）。WRITER = `leaves`，READER = 追溯研究（今天是一个测试）。
+- **兑现 R63 §1 的退路**：*"今后需要再改回 list 也可以"* —— 现在就是"今后"。R63 的 field
+  （`*_leaf_settled`）**保留不动**，两者是不同事实，并存。
+- **撤回我上一轮的理解**：我把 R66 的撤回写成"不重跑 = 什么都不做"，漏了你真正要的——
+  **写下来（leaf 列表），不是回到当时（重跑）**。日记的比喻正是此意。
+
+### 裁定二：foreign 是 sourcebar 的**性质**，与 idx 无关
+- owner 上一条 *"一个门外的foreigner sourcebar 凭什么去读门内的 databar_list"* 里的
+  "foreign / 门外"，是在讲 `SourceBar` 这个**外来对象的性质**（它不该碰门内 `databar_list`）。
+  **不是**在讨论 idx。我上一轮据此臆造"idx 由谁分配"的待裁定问题，是没读懂你的话。
+- 事实：`SourceBar`（`api/sourcebar.gleam`）只有 OHLCV + timestamp + 区间变体，**没有 idx 字段**；
+  `idx` 是 `DataBar` 的字段。R67 §3 的待裁定项已删除。
+- `sourcebar_gate` 读 `databar_list` 算 idx 的实现**本轮不改**（owner 未要求改它；且改它牵涉
+  type/signature 归属），只作为 open question 留在这里。
+
+### Landing
+- 4 个 leaf 列表由 `leaves` 写：signif 判定要 `branch_exit_leaf_size`，按 R40-A 作 pipe-call
+  参数传进 `leaves(settings)`（现有 `indicator` / `branches` 已如此）；不进 Timeframe 字段（R46）。
+- 严格 GDLTDD：先 RED 测试 → 再 GREEN body；实测 WAE / test / format 后提交。
