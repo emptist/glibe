@@ -38,7 +38,9 @@
 //// computation assigned to it is done. Owner's verbatim words are in
 //// `docs/RULINGS.md` (2026-11-15 执行注记).
 ////
-//// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
+//// R19 status: 4 bodies filled — `all` / `to_string` / `from_string` (the
+//// `Interval` codec pair) and `sourcebar_closed` (the unix grid test,
+//// R27 / R29). No `todo` remains here.
 
 import gleam/time/timestamp.{type Timestamp}
 

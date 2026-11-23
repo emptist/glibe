@@ -31,8 +31,12 @@
 //// measurement and reads nothing but two `DataBar`s, so it depends only on
 //// `databar.gleam` and `branch.gleam` depends on it — no cycle.
 ////
-//// R19 status: skeleton only at this point — `Move` and `move_between` are
-//// declared, the body is `todo as "..."` until the RED test exists.
+//// R19 status (2026-11-23): 2 items filled — the `Move` type and
+//// `move_between`. RED -> GREEN via `test/move_test.gleam` (5 tests: the three
+//// named numbers, a downward move, a single-bar move, the fields being
+//// distinguishable, and the value comparing by field); the RED run was
+//// observed (93 passed / 6 failures, every new test crashing on this module's
+//// `todo`).
 
 import gleam/int
 import glibe/databar.{type DataBar, DataBar}

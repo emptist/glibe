@@ -6334,3 +6334,76 @@ body** → 才写 `test/sma_test.gleam` → **从未跑过 RED**。
 `src/glibe/sma.gleam` 模块头的 R19 status 段已更正（原写 "skeleton only at this
 point … until the RED test exists"，body 已填，属过时陈述），并记入四次变异的
 实测结果；本文为该次补证的完整记录。
+
+---
+
+## R57 — 文档谎报是"结果正确是侥幸"的制度形态：R19 status 必须与代码同真（2026-11-23 owner 教训 + 机械审计）
+
+**owner 逐字**：*"违反 gdltdd，结果正确是侥幸，迟早会出现重大且广泛的错误，然后被迫丢弃重来。这个是经过无数ai实践得出的教训。"*
+
+### 1. 教训在 glibe 里的实证：已经"被迫丢弃重来"过一次
+
+`.planning-archived-2026-11-20/` 就是那一次 —— **6 个阶段的 Elixir/Finch + JS-web
+架构被整体 `git mv` 归档**，重新开始（BRIEF 逐字：*"Re-baselined 2026-11-20. The
+previous tree is at `.planning-archived-2026-11-20/` (45 files, moved with `git
+mv` — history intact). This tree describes the current design only."*）。所以这不是
+理论风险，是这个仓库付过的代价。
+
+### 2. "侥幸"在代码里长什么样：R19 status 与代码不同真
+
+R19 要求 `////` 的 R19 status 段如实记录本模块的完成状态。它是**下一个人的地图**
+——照它走的人会知道哪些函数能改、哪些是骨架。
+
+**机械审计（2026-11-23，当前树）发现 8 个模块的 R19 status 在说谎**：
+
+| 模块 | 文档声称 | 实际 |
+|---|---|---|
+| `api/interval.gleam` | *"skeleton. Bodies are `todo as "..."`; no working line here."* | 4 个 body 全填，0 个 todo |
+| `api/sourcebar.gleam` | 同上 | 3 个 body 全填 |
+| `broker.gleam` | 同上 | 4 个 body 全填 |
+| `databar.gleam` | 同上 | 3 个 body 全填 |
+| `desk.gleam` | 同上 | 2 个 body 全填 |
+| `id.gleam` | 同上 | 4 个 body 全填 |
+| `trading/signal.gleam` | 同上 | 2 个 body 全填 |
+| `move.gleam` | *"skeleton only at this point"* | body 已填（**Space-Bunny 自己的**，R52 时忘了改） |
+| `branch.gleam` | *"12 bodies filled"* | 实为 13（`move_between` 已搬到 `move.gleam`，计数没跟上） |
+
+**为什么这是"侥幸"**：代码此刻是对的，但**地图是错的**。下一次有人读 R19 status
+决定"这模块还没写，要从骨架开始"，就会把已填的 body 当成 todo 重写一遍——**或者
+更糟：相信"这里没有 working line"，在它上面加一层依赖。** 这正是 owner 说的
+"迟早会出现重大且广泛的错误，然后被迫丢弃重来"的入口。
+
+**已全部更正**（2026-11-23）：7 个继承模块的 R19 status 改为逐项列明已填的
+函数；`move.gleam` 改为 *"2 items filled … RED -> GREEN via `test/move_test.gleam`
+(5 tests) … the RED run was observed (93 passed / 6 failures)"*；`branch.gleam`
+改为 13 并注明 `move_between` 已搬走。
+
+### 3. 由此确立的检查（可复现，机械）
+
+```sh
+# 每个模块的 R19 status 声称 vs 实际 todo / pub_fn
+python3 - <<'PY'
+import re, glob
+for p in sorted(glob.glob('src/glibe/**/*.gleam', recursive=True)):
+    s=open(p).read()
+    m=re.search(r'R19 status[^:]*:', s)
+    todos=len([l for l in s.split('\n') if 'todo as' in l and not l.strip().startswith('//')])
+    if m and ('skeleton' in m.group(0).lower() or 'no working line' in s):
+        print(f'{p}: 声称 skeleton，但 todo={todos}')
+PY
+```
+现在输出为空。
+
+### 4. 一次审计工具自身的错误（如实记）
+
+第一版检查"每个 fn 是否缺 `///`"报了 6 个"违规"。**工具错了**：core §5 明写三层注释
+各司其职 —— *"`//` comment, `///` doc (before item), `////` module doc (top)"*，
+**私有函数用 `//` 即可**，只有公有项需要 `///`。改成只查 `pub` 项后：**0 个违规**。
+
+**审计工具得出错结论时，先改工具，不是改代码。**
+
+### 5. 与 R56 的关系
+
+R56 立的是"RED 必须被实测看到"；本条立的是"**状态声明必须与代码同真**"。
+两条合起来是同一件事的两面：**GDLTDD 的产物不只是代码，还包括一份可信的地图。**
+地图错了，代码再对也是侥幸 —— 而侥幸的代价，就是 owner 说的那一次归档重来。

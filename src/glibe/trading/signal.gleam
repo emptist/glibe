@@ -16,7 +16,9 @@
 //// three constructors below are the type-level form of the three words
 //// above; the wire spellings belong only to a codec / view boundary.
 ////
-//// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
+//// R19 status: 2 bodies filled — `to_string` / `from_string`, the two
+//// halves of the wire codec. The wire spelling lives nowhere else
+//// (R21). No `todo` remains here.
 
 /// The outcome of the strategy step on one bar.
 pub type Signal {

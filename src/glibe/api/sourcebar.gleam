@@ -93,7 +93,10 @@
 //// R33: history and live data are ONE stream. Both arrive here; there is no
 //// second path or separate batch treatment (R38).
 ////
-//// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
+//// R19 status: 3 bodies filled — `interval` (the ONE type source for the
+//// interval, R21 / R23), `validate` (the closed rejection set, R13) and
+//// `to_databar` (the birth of a `DataBar`, seeding every indicator field
+//// neutral). No `todo` remains here.
 
 import gleam/time/timestamp.{type Timestamp}
 import glibe/api/interval.{type Interval}

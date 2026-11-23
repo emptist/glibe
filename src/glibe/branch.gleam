@@ -34,13 +34,17 @@
 //// what its body has to write (R19); `gleam build --warnings-as-errors`
 //// reports each one until it is written.
 ////
-//// R19 status (2026-11-23): 12 bodies filled — four bar readers,
-//// `lower_case_type_name`, `recognised_this_bar`, `recognised_start_idx`,
-//// `exited_branch`, `move_between` / `enter_exit_move` (R3 share on the
-//// selected MA), `next_yang/yin_branch` (closing rules from frozen glib
-//// `branch.gleam:346-424`), and `branch_size` / `start_end_move` (2026-11-23:
-//// signature corrected to `Option` — a growing branch has no exit_bar/end_bar,
-//// so a bare value was a type that let a wrong question be asked; R1 / core §2).
+//// R19 status (2026-11-23): 13 bodies filled — four bar readers
+//// (`start_bar` / `enter_bar` / `end_bar` / `exit_bar`), `lower_case_type_name`,
+//// `recognised_this_bar`, `recognised_start_idx`, `exited_branch`,
+//// `start_end_move` / `enter_exit_move` (both call `move.move_between`, whose
+//// three numbers are named by the `Move` type), `next_yang/yin_branch` (closing
+//// rules from frozen glib `branch.gleam:346-424`), and `branch_size`
+//// (2026-11-23: signature corrected to `Option` — a growing branch has no
+//// exit_bar/end_bar, so a bare value was a type that let a wrong question be
+//// asked; R1 / core §2).
+//// `move_between` itself MOVED to `move.gleam` on 2026-11-23 — it belongs with
+//// the `Move` type it produces, not with the branch windows that call it.
 //// No `todo` remains here. The old no-arg `branch_exit_leaf_size()` was DELETED:
 //// the closing count is per-interval and already lives in `config`'s
 //// `branch_exit_leaf_size` table, read by `config.for_interval` into

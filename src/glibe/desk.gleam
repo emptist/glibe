@@ -34,7 +34,9 @@
 //// LIVE; data moves → this Value is recomputed → the view is its
 //// projection. No actor, scheduler, clock, poll or monitor belongs here.
 ////
-//// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
+//// R19 status: 2 bodies filled — `get_broker` / `put_broker`, this layer's
+//// read/write pair (R50). The Desk holds ONE `brokers` Dict; there is no
+//// `DeskId` and no second Desk. No `todo` remains here.
 
 import gleam/dict.{type Dict}
 import glibe/broker.{type Broker}

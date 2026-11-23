@@ -56,7 +56,10 @@
 //// never a date string. R28: OHLCV are what the standard layer consumes
 //// with unified meaning.
 ////
-//// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
+//// R19 status: 3 bodies filled — `idx` / `timestamp` / `signal`, the three
+//// readers of the record. The indicator fields are WRITTEN by
+//// `timeframe.indicator` and READ by the chart; this module only names
+//// them. No `todo` remains here.
 
 import gleam/time/timestamp.{type Timestamp}
 import glibe/trading/signal.{type Signal}

@@ -32,7 +32,9 @@
 //// system"* — so there is NO `DeskId`. The one Desk is not looked up by a
 //// key, and nothing sits above it to construct it (R42 / R49 / R50).
 ////
-//// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
+//// R19 status: 4 bodies filled — the two id spellings and their two
+//// readers. This module imports NOTHING (R50: the id types sit lowest so
+//// no layer has to import another to reach them). No `todo` remains here.
 
 /// The key of `Desk.brokers`. Opaque so a `String` is not a `BrokerId` (R13).
 pub opaque type BrokerId {

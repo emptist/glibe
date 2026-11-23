@@ -22,7 +22,10 @@
 //// R34: a broker IS an api provider seen from another angle; no separate
 //// provider / data-source framework is layered on top.
 ////
-//// R19 status: skeleton. Bodies are `todo as "..."`; no working line here.
+//// R19 status: 4 bodies filled — `get_instrument` / `put_instrument` and
+//// `get_account` / `put_account`, the read/write pairs of this layer
+//// (R50: a function goes with the Dict it reads and writes). No `todo`
+//// remains here.
 
 import gleam/dict.{type Dict}
 import glibe/account.{type Account}
