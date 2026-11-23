@@ -126,7 +126,20 @@ pub type Timeframe {
     growing_yang_branch: Option(DataBranch),
     yin_branch_list: List(DataBranch),
     yang_branch_list: List(DataBranch),
+    /// The leaf that settled **ON THIS BAR** — `Some` only on the bar the
+    /// leaf dies, `None` on every other bar (glib `timeframe.gleam:133-141`:
+    /// *"the leaf that just settled is a fact about this bar"*).
+    ///
+    /// It is **NOT "the last leaf"**: nothing here remembers the most recent
+    /// settled leaf, and this field must not become it. WRITER: `leaves`
+    /// (every bar). READER: `branches` — the RETIRED leaf whose corner opens
+    /// the new branch (glib `timeframe.gleam:398-412`). A sticky value would
+    /// hand `branches` a stale leaf on a bar where only the opposite polarity
+    /// settled, so the retired corner would be the wrong one (R63 §2).
     yin_leaf_settled: Option(DataLeaf),
+    /// The leaf that settled **ON THIS BAR**, opposite polarity — same
+    /// contract as `yin_leaf_settled`: `Some` only on the bar the leaf dies,
+    /// `None` otherwise; WRITER `leaves`, READER `branches` (R63 §2).
     yang_leaf_settled: Option(DataLeaf),
   )
 }
