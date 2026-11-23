@@ -83,3 +83,34 @@ removed as dead code, with the reason recorded in the module `////` and in
 
 Result: **branch.gleam has zero `todo`**; domain layer fully green. WAE Todo
 count is now entirely app-layer (see 02-01 SUMMARY continuation).
+
+## Continuation 2026-11-23 — module split (R53) and the RED proof that was missing (R56)
+
+**The split.** `timeframe.gleam` carried 19 functions belonging to glib's four
+indicator modules; they now live in `sma.gleam` / `bollinger.gleam` /
+`kdj.gleam` / `indicator.gleam` (owner: *"他的补充完全是敷衍，所以全部塞进不应该
+塞进去的模块，而不去新建应该用的模块"*). `timeframe.gleam` 838 → 440 lines.
+
+**`sma_of` / `size_of` are now `pub`** — they are the only places a `SmaSeries`
+name becomes a field, and while they were private inside `timeframe.gleam` no
+other module could read `sma_small` / `sma_large` / `sma_huge` at all. That lock
+was the structural mechanism behind "只有 sma_tiny".
+
+**GDLTDD slip, and how it was repaired (R56).** `test/sma_test.gleam` was written
+AFTER the three accessor bodies were filled, and its RED was never observed —
+a violation of the discipline owner reaffirmed the same day. Repaired by
+**mutation testing**: four deliberate defects injected one at a time, each caught
+(5 / 5 / 3 / 5 failures), with the unmutated baseline at 102 passed / 1 failure.
+The fourth mutation — `sma_of` degraded to "always reads `sma_tiny`" — is the
+exact shape of the defect the split removed, so the guard is aimed at the right
+thing.
+
+**One operational error, recorded because it nearly hid a real defect**: after
+restoring a mutated source file, the incremental build served a stale binary and
+the "restored" run still showed the mutation's failures. Every mutation run now
+clears `build/dev` first. Full detail: `docs/RULINGS.md` R56.
+
+**`indicator` keeps the pipeline shape** `fn(Timeframe, IntervalSettings) ->
+Timeframe` (R40/R40-A/R41, owner 逐字 2026-11-12) while its arithmetic lives in
+`indicator.gleam` as a pure `bar → bar` function that never names the record —
+the same split glib has (`glib/indicator.gleam:9-13`, `glib/timeframe.gleam:369-379`).

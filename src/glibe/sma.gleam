@@ -26,8 +26,24 @@
 //// the five SMA fields. It depends on `databar.gleam` and `config.gleam` only
 //// — both of which import no engine module — so there is no cycle.
 ////
-//// R19 status: skeleton only at this point — the three accessors are declared
-//// and their bodies are `todo as "..."` until the RED test exists.
+//// R19 status (2026-11-23): the three accessors are filled — `sma_of`
+//// `set_sma_of` `size_of` — one case over the five windows each, ported from
+//// frozen glib `sma.gleam:18-48`. `sma_stream` / `sma_series` came with the
+//// module (the O(1) recurrence the five series and KDJ's M share).
+////
+//// THE TESTS ARE PROVEN TO BITE (owner 2026-11-23: *"GDLTDD 是非常有效的，
+//// 能限制 AI 的缺陷"*). `test/sma_test.gleam` was written AFTER the bodies —
+//// a GDLTDD slip — so it was proven by MUTATION instead: four deliberate
+//// defects were injected one at a time and each was caught.
+////   1. `sma_of` reading `SmaSmall` as `sma_medium`   → 5 failures
+////   2. `set_sma_of` writing `SmaLarge` onto `sma_tiny` → 5 failures
+////   3. `size_of` reading `SmaMedium`'s window as Small → 3 failures
+////   4. `sma_of` degraded to "always reads sma_tiny"    → 5 failures
+////      (the exact shape of the defect this module's split removed)
+//// Baseline with no defect: 102 passed / 1 failure (the pre-existing Phase 03
+//// `app_shape_test.from_event` todo). Every mutation run cleared `build/dev`
+//// first — an incremental build served a stale binary once and nearly made a
+//// mutation look like a false pass.
 
 import gleam/int
 import gleam/list

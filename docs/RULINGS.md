@@ -6272,3 +6272,65 @@ clean"*）、`replay`（R38 *"replay连名字都不对"*）、`accept`/`bars_acc
 
 `docs/how-hy4-flash-poluted-glibe.md` §14（新增，含逐项实测表与可复现命令）；
 §11 的教训因此更锋利。
+
+---
+
+## R56 — GDLTDD 对 AI 同样有约束力；没跑过 RED 的测试不算测试（2026-11-23 owner 指示 + Space-Bunny 自查）
+
+**owner 逐字**：*"GDLTDD是非常有效的，能限制AI的缺陷，让他扬长避短，对你来说也是一样需要的，必须严格遵守，这样才能保证你精益求精更上层楼。"*
+
+### 1. 这条对 Space-Bunny 同样成立 —— 并且立刻查出我自己的违规
+
+owner 说"对你来说也是一样需要的"之后，第一件事是**审我自己今天的提交**，结果
+查出一处真实违规：
+
+**R53 拆分 `sma.gleam` 时**：先建骨架（三个 accessor 带 `todo`）→ **直接填了
+body** → 才写 `test/sma_test.gleam` → **从未跑过 RED**。
+
+这正是 GDLTDD 要防的那一种：**没跑过 RED 的测试，不能证明它在测东西。**
+（对照：R52 的 `move.gleam` 是合规的 —— 骨架 + `todo` → 5 个测试 → **实测 RED**
+（`93 passed / 6 failures`，全部崩在 `move.gleam:80` 的 todo）→ 填 body → GREEN。）
+
+### 2. 补救：用变异测试补上缺失的 RED 证明（2026-11-23）
+
+既然 RED 没跑过，就用**注入真缺陷**的方式证明测试会失败。四次变异，每次只注入一个
+真缺陷，每次**先 `rm -rf build/dev`**（见 §4）：
+
+| 变异 | 注入的缺陷 | 结果 |
+|---|---|---|
+| 1 | `sma_of` 把 `SmaSmall` 读成 `sma_medium` | **5 failures** ✅ 抓住 |
+| 2 | `set_sma_of` 把 `SmaLarge` 写到 `sma_tiny` | **5 failures** ✅ 抓住 |
+| 3 | `size_of` 把 `SmaMedium` 的窗口读成 Small | **3 failures** ✅ 抓住 |
+| 4 | `sma_of` 退化成 **"总是读 `sma_tiny`"** | **5 failures** ✅ 抓住 |
+
+第 4 个变异特别重要：它就是 R53 要消灭的那个缺陷的形态（把其它序列统统换成
+`sma_tiny`）。**这条测试能抓住它**，说明 R53 的修复是有测试护栏的，不是"看起来
+对了"。
+
+**无缺陷基线**：`102 passed / 1 failure`（唯一失败是 Phase 03 既有的
+`app_shape_test.from_event` todo）。四次变异全部还原，`git diff` 为空。
+
+### 3. 由此确立的规则
+
+1. **RED 必须被实测看到**，不能只是"逻辑上应该会红"。若因故未能先跑 RED（例如
+   事后补测试），**用变异测试补证**：注入一个真缺陷，证明测试会红。
+2. **变异测试要在「缺陷形态已知」时做**——注入的必须是这个模块真正防过的那类错
+   （本次注入 4 覆盖了 R53 的核心缺陷），而不是随便一个错。
+3. **测试文件与实现文件不在同一 commit，且测试先于实现**（GDLTDD 的原意）；
+   已在同一 commit 里的，**在 SUMMARY 里写明是补证**，不假装合规。
+
+### 4. 一次真实的操作失误（如实记）
+
+第一次做变异 4 时，**还原源码后没有清编译缓存**，Gleam 的增量编译继续供应旧
+二进制，于是"还原后"仍显示 5 failures —— 差点把一次变异误判成"还原失败"，
+又差点把一个真实缺陷误判成"通过"。
+
+**清 `build/dev` 后基线是 102 passed / 1 failure**，与预期一致。**此后每一次变异
+运行都先 `rm -rf build/dev`。** 教训：**任何"测试结果与预期不符"的场合，第一件
+事是排除缓存，而不是怀疑被测代码或测试本身。**
+
+### 5. Landing
+
+`src/glibe/sma.gleam` 模块头的 R19 status 段已更正（原写 "skeleton only at this
+point … until the RED test exists"，body 已填，属过时陈述），并记入四次变异的
+实测结果；本文为该次补证的完整记录。
