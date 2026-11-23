@@ -6861,3 +6861,74 @@ bar 的两件事**：Binance 的 bar 到达即完整（没有半根状态），I
 **"完整"是 provider 的属性，不是 Timeframe 的出生条件**；(iv) gate 留在 `timeframe.gleam`
 时，它读写的仍是 Timeframe 自己的内部（R50），不动归属。
 **但这是 owner 的裁定，不是我的** —— 且 A′ 与今天的字面确实不同，所以本条**不擅自执行**。
+
+---
+
+## R66 — branch 的起点由 `*_leaf_settled` 给，不靠任何 leaf 列表；历史 leaf 的研究路线 = 从 bar 序列重跑（2026-11-23 owner 三问 + 实测）
+
+**owner 逐字（三段）**：
+1. *"signif_yin|yangleaf_list 是存储可以导致branch停止的那个leaf，这个leaf也就是下一个branch开始的leaf，没有这个list，我不清楚glibe是怎么做到制作branch的，理论上，在下一个leaf出现，导致新branch被确认，到回头去找上一个leaf，取得实际起点，这个可能是通过 yin|yangleaf_settled 实现的"*
+2. *"注意这个field命名不是我命名的"*
+3. *"虽然完成branch制作，但是今后如果策略研究需要找到历史上的leaf，尤其是长leaf怎么办？完全没有办法"*
+
+### 1. owner 的机制判断**完全正确**，而 glibe 就是这么做的
+
+- `branches`（`timeframe.gleam`）读 `timeframe.yin_leaf_settled` / `yang_leaf_settled`
+  —— **本 bar 结算的那个 leaf**。
+- `branch.next_yang_branch(growing, databar, previous, riding, recognised, exit_size)`：
+  `previous` 就是那个刚结算的 leaf；当新 leaf 出生、被**识别**（`recognised`）时，
+  **新 branch 的 `start_bar = leaf.corner_bar(prev)`** —— 逐字就是 owner 说的
+  *"回头去找上一个 leaf，取得实际起点"*（`branch.gleam` 的 `next_yang_branch` /
+  `next_yin_branch`；`next_yin_branch` 同构，方向相反）。
+- ⇒ **branch 的实际起点 = 上一个 leaf 的 corner**。**不需要任何列表。**
+- 冻结 glib 逐字印证（`glib/timeframe.gleam:120-127`）：signif 两个列表 *"**They are a
+  record, not a mechanism**: `branches` does **not** read them, and must not"* ——
+  并**实测**过"从 significant 列表读 branch"会**丢 branch**（2024-01 丢 1/25、2021-05
+  丢 2/32）：在 leaf 还没活够 `branch_exit_leaf_size` 根 bar 之前被识别的 branch 会丢。
+- ⇒ **glibe 没有 signif 列表，branch 一点不受影响。**（R63 §3 登记的是同一件事：那两个
+  列表是**研究素材**，不是机制。）
+
+### 2. 名字的来历（owner 第 2 段）
+
+- **2026-10-03 owner 裁定**：四个 leaf list 删掉；*"the leaf that just settled is a fact
+  about this bar"* ⇒ 改用**一个 var** 携带（glib `timeframe.gleam:133-141`）。
+- **2026-10-04 owner 亲自改名**：`yin_settled` → **`yin_leaf_settled`**（commit
+  `215242a`，理由逐字：*"the bad form `yin_**_leaf` … is avoided: `yin_leaf` stays whole,
+  the qualifier follows"* —— 类型名不被限定词劈开）。
+- ⇒ **名字是 owner 自己的**（2026-10-04 的改名）；**glibe 改的是"形状"**：glib 是 **var**
+  （只能递给下一句，不能回头读），glibe 是 **field**（`Timeframe` 的一个字段，于是
+  `branches` 从记录上读回它 —— 本 bar 的事实仍是本 bar 的事实，见 R63 §2）。
+
+### 3. 历史 leaf：**不是"完全没有办法"** —— 叶子是 bar 序列的纯函数
+
+**关键事实：model 里已经躺着全部原料。**
+- pipeline 的每一步都是纯 `Timeframe → Timeframe`（R40/R41）；`leaves` 的判据是
+  `databar.sma_tiny >. start_bar(leaf).sma_tiny`（`leaf.gleam`），`leaf_cma` 读列表头
+  —— 全部只依赖**已归档的 bar 序列**。
+- **归档的 bar 自带算好的 `sma_tiny`**：管道顺序是
+  `indicator → leaves → branches → strategy → working_databar_archived`，而
+  `working_databar_archived` 把**算过指标的 working bar** 头插进 `databar_list`（R39）。
+- ⇒ 把 `databar_list` **由旧到新**重跑一遍 pipeline，就得到**每一个 leaf** ——
+  **长的、短的，全都有**。这与 owner 自己的原则同源：*"history 与 live 是同一条数据流"*
+  （2026-11-09 逐字，`docs/RULINGS.md:1117-1118`；UC-56）。
+- **缺的只是一个"把已归档的 bar 重跑一遍"的入口**。glib 曾有 `replay`，owner 按**名字**
+  否掉（*"replay连名字都不对"*，R38）⇒ **概念还活着，名字要 owner 定**。
+
+**三条路**：
+
+| | **路线 1（推荐）：从 bar 序列重跑** | 路线 2：恢复 glib 的 signif 列表 | 路线 3：完整的 leaf 列表 |
+|---|---|---|---|
+| 能找到的 leaf | **全部**（长、短） | 只有长的（`leaf_size >= branch_exit_leaf_size`） | 全部 |
+| model 改动 | **无**（不加字段、不加 type） | `Timeframe` 多一个 List 字段 | `Timeframe` 多一个 List 字段 |
+| 短命 leaf | **找得到** | 找不回（glib 2026-10-03 起就丢） | 找得到 |
+| 代价 | 一个"重跑历史"的入口 + 它的名字 | 写入点 + 一条永远长的列表 | 同左 |
+
+**Space-Bunny 的判断：路线 1。** 它不花一个字段，覆盖长短全部，且与"history 与 live 是
+同一条数据流"同源；路线 2 只在"不想重跑、只想看长 leaf"时更省 —— 那正是 owner R63
+那句话里假定的"长 leaf 列表"，也是 glib 选的。**不擅自执行**：名字、在哪儿跑、要不要
+CLI，都等 owner 裁定。
+
+### 4. Landing
+
+本条只记录实测与裁定依据；**未改代码**（R65 的诞生点与本条的研究路线都等 owner 的
+二选一）。
