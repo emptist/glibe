@@ -1,4 +1,4 @@
-//// RED tests for the closed Msg gate and the publisher effect. Implements
+//// RED tests for the closed Msg decoder and the publisher effect. Implements
 //// `.planning/phases/03-app-view/03-01-PLAN.md` Task 2.
 ////
 //// These pin the OBSERVABLE promises of `app/message.gleam` and
@@ -112,7 +112,7 @@ pub fn our_sourcebar_kind_becomes_the_sourcebar_msg_test() {
   Nil
 }
 
-/// An ordinary eye event stays an eye event: the gate does not swallow it.
+/// An ordinary eye event stays an eye event: the decoder does not swallow it.
 pub fn an_eye_event_stays_an_eye_msg_test() {
   let event = event.Timer(event.TimerEvent("tick", 42))
   let msg = message.from_event(event)

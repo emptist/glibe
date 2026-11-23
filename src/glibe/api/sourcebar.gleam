@@ -181,7 +181,7 @@ pub type SourceBar {
   )
 }
 
-/// Why a bar was refused at the gate. One constructor per real check; a
+/// Why a bar was refused at sourcebar_gate. One constructor per real check; a
 /// check that has no consumer yet has no constructor (R26), and adding one
 /// makes every incomplete `case` a compile error (R13).
 pub type SourceBarRejection {

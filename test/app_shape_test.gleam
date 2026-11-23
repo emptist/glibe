@@ -27,14 +27,14 @@ import plushie/event.{type Event, Timer, TimerEvent}
 import plushie/node.{type Node}
 import plushie/widget.{type WidgetDef}
 
-/// 06-02 B1/B2: the gate maps the OPEN framework Event into OUR closed Msg.
+/// 06-02 B1/B2: `message.from_event` maps the OPEN framework Event into OUR closed Msg.
 /// on_event is total `Event -> Msg`; Msg is exhaustive (no catch-all).
 pub fn on_event_shape_test() {
   let _gate: fn(Event) -> message.Msg = message.from_event
   Nil
 }
 
-/// First real assertion of the app layer (R19 step 5→6): the gate maps an
+/// First real assertion of the app layer (R19 step 5→6): `message.from_event` maps an
 /// Event to `MsgEye` carrying that SAME event. No Eq on Event/Msg, so pattern
 /// match the payload. Against the `todo` body this panics = RED; filling the
 /// one-line body makes it GREEN. One representative Event is enough: the body
@@ -43,8 +43,9 @@ pub fn from_event_wraps_event_test() {
   let wire = Timer(TimerEvent("tick", 42))
   case message.from_event(wire) {
     MsgEye(Timer(TimerEvent(tag, timestamp))) -> {
-      assert tag == "tick" as "tag preserved through the gate"
-      assert timestamp == 42 as "timestamp preserved through the gate"
+      assert tag == "tick" as "tag preserved through `message.from_event`"
+      assert timestamp == 42
+        as "timestamp preserved through `message.from_event`"
     }
     MsgEye(_) -> panic as "the same Event variant must be carried"
     MsgVoice(_) -> panic as "renderer wire events never produce MsgVoice"

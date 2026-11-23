@@ -172,7 +172,7 @@ pub fn the_two_kinds_have_two_different_strings_test() {
 }
 
 /// A CustomWidget of a kind that is NOT ours is not decoded as ours. This is
-/// the closed-set gate in `message.from_event`: an unknown kind stays an eye
+/// the closed-set decoder `message.from_event`: an unknown kind stays an eye
 /// event, and no input is dropped.
 pub fn an_unknown_kind_is_not_decoded_as_ours_test() {
   let event =

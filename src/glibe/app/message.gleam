@@ -12,7 +12,7 @@
 //// whose `on_event: fn(Event) -> Msg` maps the open framework Event into OUR
 //// closed `Msg`. `Event` is open and official docs put a catch-all `_ ->` on
 //// it; `Msg` is ours and is therefore exhaustive with NO catch-all (core §4,
-//// R13). This module is that gate.
+//// R13). This module is that closed-set decoder.
 ////
 //// READS: `plushie/event.Event` (the open framework event).
 //// WRITES: `Msg`, consumed by `app/runtime.gleam`'s update.
@@ -21,11 +21,11 @@
 //// 0.6.0 has no `Custom` variant (`plushie/event.gleam:33-58`), but
 //// `WidgetEvent.CustomWidget(kind, target, value, data)` DOES exist
 //// (`plushie/event.gleam:230`). The earlier "no Custom" conclusion used the
-//// wrong layer. `app/wire.gleam` owns both kinds; this gate only decodes them.
+//// wrong layer. `app/wire.gleam` owns both kinds; this closed-set decoder only decodes them.
 ////
 //// R19 status (2026-11-23): skeleton for 03-01. `Msg`, `VoiceEvent` and the
 //// typed `SourceBarArrived` alias are fixed; `from_event` is a `todo` until its
-//// new RED test proves the CustomWidget sourcebar gate. All pre-03-01 bodies
+//// new RED test proves the CustomWidget sourcebar closed-set decoder. All pre-03-01 bodies
 //// were re-opened deliberately — no body may outrun its doc (R19/R44).
 
 import gleam/option.{None, Some}
@@ -73,7 +73,7 @@ pub type VoiceEvent {
 pub type SourceBarArrived =
   wire.SourceBarArrived
 
-/// The gate from the OPEN framework Event to our CLOSED Msg (challenge B1/B2).
+/// The closed-set decoder from the OPEN framework Event to our CLOSED Msg (challenge B1/B2).
 /// Official `app.application` calls this `on_event` for every inbound WIRE event.
 ///
 /// THREE ENTRIES, NOT ONE: the renderer wire carries eye events, which map 1:1
@@ -89,7 +89,7 @@ pub type SourceBarArrived =
 pub fn from_event(event: Event) -> Msg {
   // OUR kind first; every other event — including another library's
   // CustomWidget — stays an eye event. Nothing is dropped and no kind is
-  // guessed (R13: the closed set is ours, so the gate is exhaustive).
+  // guessed (R13: the closed set is ours, so the closed-set decoder is exhaustive).
   case wire.sourcebar_from_event(event) {
     Some(payload) -> MsgSourceBarArrived(payload)
     None -> MsgEye(event)

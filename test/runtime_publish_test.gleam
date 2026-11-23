@@ -2,7 +2,7 @@
 //// `.planning/phases/03-app-view/03-01-PLAN.md` Task 2.
 ////
 //// These pin the OBSERVABLE promises of `app/runtime.gleam`:
-////   - a bar the gate REJECTS produces NO publish request — the view's update
+////   - a bar `sourcebar_gate` REJECTS produces NO publish request — the view's update
 ////     relates to AND ONLY to `working_databar_archived()` (owner 2026-11-23);
 ////   - a bar that is archived produces EXACTLY ONE request, whose bar is the
 ////     archived head of `databar_list` and whose identity is the inbound keys;
@@ -93,7 +93,7 @@ pub fn a_missing_key_publishes_nothing_test() {
   Nil
 }
 
-/// A bar the GATE REFUSES publishes nothing: it never becomes a working
+/// A bar `sourcebar_gate` REFUSES publishes nothing: it never becomes a working
 /// databar, so it never archives, so the view must not move. This is the
 /// owner's trigger ruling — *"view的update 跟且仅跟 working_databar_archived()
 /// 有关"* — enforced by construction rather than by a later comparison.

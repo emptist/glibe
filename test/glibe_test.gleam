@@ -79,7 +79,7 @@ pub fn databar_processing_shape_test() {
   Nil
 }
 
-/// R39 / 2026-11-21 二选一: the gate receives ONE closed SourceBar — the single
+/// R39 / 2026-11-21 二选一: `sourcebar_gate` receives ONE closed SourceBar — the single
 /// type carrier of the grade (sourcebar variant). No separate `interval` param:
 /// that was a dead argument (WAE Unused) and a second encoding of the same fact.
 /// It never asks the Timeframe for its own identity (R37).

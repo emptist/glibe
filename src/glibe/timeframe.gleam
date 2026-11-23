@@ -144,7 +144,7 @@ pub type Timeframe {
   )
 }
 
-/// The price checker's gate: ONE arriving standard `SourceBar`, already
+/// The price checker's sourcebar_gate: ONE arriving standard `SourceBar`, already
 /// normalised from a data source's external bar and already qualified
 /// (R28 / R8). It is born whole as `working_databar`; an unqualified one
 /// is refused with a typed reason; a `SourceBar` that has not closed is
@@ -156,7 +156,7 @@ pub type Timeframe {
 /// sourcebar type OR the interval type, never both; the interval argument was
 /// a dead param and a second encoding of the same fact). A `Timeframe` does
 /// not know its own name, and no bar carries a period field. Composition
-/// ended upstream, so this gate receives ONE closed `SourceBar` and never
+/// ended upstream, so this sourcebar_gate receives ONE closed `SourceBar` and never
 /// accumulates one: owner 2026-11-13 *"等到了 databar_processing 你按到手的
 /// 都是弄好的 databar"*. `bars_listed` supplies the index of the next bar
 /// from `databar_list` (R39).

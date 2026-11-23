@@ -72,8 +72,8 @@ import plushie/app.{type App}
 import plushie/command.{type Command}
 
 /// Build the app from its four MVU parts, with the publish channel captured at
-/// WIRING time. `on_event` is the gate from the OPEN framework Event to our
-/// CLOSED Msg (06-02 B1/B2); `message.from_event` is that gate. One App only —
+/// WIRING time. `on_event` is the closed-set decoder from the OPEN framework Event to our
+/// CLOSED Msg (06-02 B1/B2); `message.from_event` is that decoder. One App only —
 /// never one App per chart (03-00 FINDINGS G).
 ///
 /// The publisher is a **parameter**, not a field of the inbound payload (R58):
@@ -100,7 +100,7 @@ pub fn init() -> #(desk.Desk, Command(Msg)) {
 ///
 /// **This is the trigger point** (owner 2026-11-23: *"view的update 跟且仅跟
 /// `working_databar_archived()` 有关"*): a request exists exactly when the
-/// pipeline ran to the archive. A bar the gate REJECTS never archives, so it
+/// pipeline ran to the archive. A bar the sourcebar_gate REJECTS never archives, so it
 /// never publishes — no head comparison, no dedup (SYSTEM_MODEL.md:1364).
 pub fn publish_request(
   desk_value: desk.Desk,
@@ -109,7 +109,7 @@ pub fn publish_request(
   step(desk_value, msg).1
 }
 
-/// The pure core: locate by identity keys, run gate → processing → archive,
+/// The pure core: locate by identity keys, run sourcebar_gate → processing → archive,
 /// write the new Desk back through each owner's own pair, and return the one
 /// archived bar from `databar_list` head. No effect, no chart state.
 ///
@@ -150,16 +150,16 @@ fn route(
       Nil
     }),
   )
-  // The gate is where "this bar is not ours" is decided. A rejected bar never
+  // The sourcebar_gate is where "this bar is not ours" is decided. A rejected bar never
   // becomes a working databar, so it never archives — and so it never
   // publishes.
-  use gated <- result.try(
+  use sourcebar_gated <- result.try(
     result.map_error(
       timeframe.sourcebar_gate(timeframe, payload.sourcebar),
       fn(_) { Nil },
     ),
   )
-  let processed = timeframe.databar_processing(gated, settings)
+  let processed = timeframe.databar_processing(sourcebar_gated, settings)
   case list.first(processed.databar_list) {
     // The archive is the LAST step of the pipeline, so the head IS the bar that
     // was just archived (C2: read the history head after the archive).
