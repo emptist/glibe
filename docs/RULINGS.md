@@ -6866,6 +6866,13 @@ bar 的两件事**：Binance 的 bar 到达即完整（没有半根状态），I
 
 ## R66 — branch 的起点由 `*_leaf_settled` 给，不靠任何 leaf 列表；历史 leaf 的研究路线 = 从 bar 序列重跑（2026-11-23 owner 三问 + 实测）
 
+> **【已撤回 2026-11-24 — 见 R67】** 本条 §3/§4 的"从 bar 序列重跑 / 重跑历史入口 /
+> 路线 1（推荐）"**全部作废**。owner 当面逐字：*"重跑？谁允许你重跑的？"*。
+> R38 早已裁定 glibe 单向流无 replay/倒带，11-17 又裁 buffer/replay 永不是 owner 的词；
+> 我把被否的概念换个名字（"重跑历史"）端回来，是错的。§1/§2（branch 起点由
+> `*_leaf_settled` 给、名字是 owner 的）不受影响，仍然有效。历史文字如实保留不篡改，
+> 以此注结清。
+
 **owner 逐字（三段）**：
 1. *"signif_yin|yangleaf_list 是存储可以导致branch停止的那个leaf，这个leaf也就是下一个branch开始的leaf，没有这个list，我不清楚glibe是怎么做到制作branch的，理论上，在下一个leaf出现，导致新branch被确认，到回头去找上一个leaf，取得实际起点，这个可能是通过 yin|yangleaf_settled 实现的"*
 2. *"注意这个field命名不是我命名的"*
@@ -6932,3 +6939,46 @@ CLI，都等 owner 裁定。
 
 本条只记录实测与裁定依据；**未改代码**（R65 的诞生点与本条的研究路线都等 owner 的
 二选一）。
+
+---
+
+## R67 — 禁止"重跑"；`sourcebar_gate` 永远不简称 gate；`SourceBar` 无权读 `databar_list`（2026-11-24 owner 当面逐字）
+
+**owner 逐字（三段）**：
+1. *"你他妹的放屁，重跑？谁允许你重跑的？"*
+2. *"sourcebar_gate永远禁止简称gate，你简称gate就是作死，就是自己误导自己和其他AI，一个门外的foreigner sourcebar凭什么去读门内的居民 timeframe 里面的databar_list资料?入室抢劫呀？"*
+3. （上一轮）*"首先要禁止使用gate这样没头没尾的简化术语……sourcebar is foreign to timeframe, why should it ever touch databar_list? it should know nothing about this list. 还说要把甚么重跑一遍……就是因为你决定不写日记？"*
+
+### 裁定一：glibe 没有"重跑"，这个词和概念都非法
+- **撤回 R66 §3/§4** 的"从 bar 序列重跑 / 重跑历史入口 / 路线 1（推荐）"。owner 未授权，
+  且概念本身被 R38（单向流无 replay/倒带/重来一遍）、11-17 10:25/10:31/10:37
+  （buffer/replay 永不是 owner 的词）反复否决。我此前写"owner 只否了名字、概念还活着"
+  是错误的读法 —— owner 否的是**概念**，换名端回来同错。
+- **纪律**：`src/` `test/` `docs/` 当前时态里不写"重跑 / replay / 重放 / 重新跑一遍"；
+  只在引用 owner 否决原话时合法（如本条、R38）。历史 kline 是同一条流的上游数据，不是可被重放的对象。
+- **根因**（owner 指出）：上一轮没写日记 → 丢掉已裁定事实 → 重新发明被否概念 ⇒ 当日先落日记再动代码。
+
+### 裁定二：`sourcebar_gate` 永远不简称 "gate"
+- 指代 `timeframe.sourcebar_gate` 必须写全名；"gate" 这个没头没尾的简称一律清除
+  （owner：*"简称gate就是作死，就是自己误导自己和其他AI"*）。
+- APP 层同理：`message.from_event` 不简称 "gate"，写全名或 "closed-set decoder"。
+  本轮已清理 `src/` `test/` 里全部独立 "gate" 简称（保留 owner 原话引用处）。
+
+### 裁定三：`SourceBar` 无权读 `databar_list`（门外的 foreigner 不进内屋）
+- **owner 的边界**：`SourceBar` 是门外的 foreigner，`Timeframe` 是门内居民，`databar_list`
+  是居民的家产。外来 bar 的校验/转换**不许伸手读**内部已归档列表。
+- **实测违规点**：`src/glibe/timeframe.gleam:163-180` 的 `sourcebar_gate` 里
+  `sb.to_databar(qualified, bars_listed(timeframe.databar_list))` —— 它读 `databar_list`
+  仅为算新 bar 的 `idx`（head.idx + 1）。这正触犯本条：foreign bar 进门时读了居民的 `databar_list`。
+- **撤回 R65 §1(c) 的论证前提**. R65 用"gate 读 databar_list 算 idx、按 R50 归属正确"论证
+  `sourcebar_gate` 住 `timeframe.gleam` —— 该前提被本条否定（无权读），论证需重写；
+  R65 的最终二选一（A′/B）**未受本条裁定，仍待 owner**。
+- **`bars_listed` 调用面**（R47 记录）：唯一生产调用点是 `timeframe.gleam:176`；测试里另有
+  `test/glibe_test.gleam:505-507,1095` 等。函数本身保留（owner 2026-11-15 定：读 head idx + 1，非计数）。
+
+### 待 owner 裁定（Space-Bunny 不擅改）
+- `sourcebar_gate` 退出读 `databar_list` 后，新 bar 的 `idx` 由谁分配、在哪一步分配？
+  这是 type/signature 层面的二选一，等 owner 明示，本条**未改任何代码**。
+
+### Landing
+- 本条只记录 owner 当面裁定 + 违规点实测；代码改动等 owner 对 idx 归属的裁定。
