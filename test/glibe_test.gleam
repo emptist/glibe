@@ -61,10 +61,10 @@ pub fn main() {
 pub fn pipeline_steps_shape_test() {
   let _with_settings: List(fn(Timeframe, IntervalSettings) -> Timeframe) = [
     timeframe.indicator,
+    timeframe.leaves,
     timeframe.branches,
   ]
   let _plain: List(fn(Timeframe) -> Timeframe) = [
-    timeframe.leaves,
     timeframe.strategy,
     timeframe.working_databar_archived,
   ]

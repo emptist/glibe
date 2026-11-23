@@ -22,6 +22,7 @@
 //// the field/value it expects, not merely "does not crash".
 
 import fixture
+import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/time/timestamp
 import gleeunit
@@ -160,7 +161,7 @@ pub fn start_end_move_ended_measure_and_growing_none_test() {
 /// (a leaf born this bar has CMA = its own sma_tiny, R3).
 pub fn leaves_birth_both_twins_on_first_bar_test() {
   let working = bar_at(0, 50.0)
-  let out = timeframe.leaves(tf_working(working, []))
+  let out = timeframe.leaves(tf_working(working, []), settings(3))
   let assert Some(yin) = out.growing_yin_leaf
   let assert Some(yang) = out.growing_yang_leaf
   assert leaf.start_bar(yin).idx == 0
@@ -189,7 +190,7 @@ pub fn leaves_settle_and_reborn_on_death_test() {
       ..tf_working(working, [last]),
       growing_yin_leaf: Some(growing_yin),
     )
-  let out = timeframe.leaves(tf)
+  let out = timeframe.leaves(tf, settings(3))
   let assert Some(settled) = out.yin_leaf_settled
   assert leaf.start_bar(settled).idx == 1
   let assert Some(end) = leaf.end_bar(settled)
@@ -197,6 +198,49 @@ pub fn leaves_settle_and_reborn_on_death_test() {
   assert end.idx == 2
   let assert Some(reborn) = out.growing_yin_leaf
   assert leaf.start_bar(reborn).idx == 4
+  Nil
+}
+
+/// R68: a settled leaf of size >= 2 is recorded in the complete list AND, when
+/// it also reached `branch_exit_leaf_size`, in the significant list. The death
+/// test above settles a leaf spanning idx 1..2 (size 2) with exit_size 3: it
+/// must land in `yin_leaf_list` but NOT in `signif_yin_leaf_list`.
+pub fn leaves_records_settled_leaf_in_lists_test() {
+  let start = bar_at(1, 100.0)
+  let last = bar_at(2, 99.0)
+  let growing_yin = leaf.YinLeaf(start, None, bar_at(3, 98.0))
+  let working = bar_at(4, 101.0)
+  let tf =
+    timeframe.Timeframe(
+      ..tf_working(working, [last]),
+      growing_yin_leaf: Some(growing_yin),
+    )
+  let out = timeframe.leaves(tf, settings(3))
+  assert list.length(out.yin_leaf_list) == 1
+  assert out.signif_yin_leaf_list == []
+  let assert [recorded] = out.yin_leaf_list
+  assert leaf.start_bar(recorded).idx == 1
+  assert out.yang_leaf_list == []
+  assert out.signif_yang_leaf_list == []
+  Nil
+}
+
+/// R68: with exit_size 2 the SAME size-2 leaf is significant too, so both the
+/// complete and the significant list gain one entry. `branches` still reads the
+/// settled FIELD, never these lists.
+pub fn leaves_records_significant_leaf_in_both_lists_test() {
+  let start = bar_at(1, 100.0)
+  let last = bar_at(2, 99.0)
+  let growing_yin = leaf.YinLeaf(start, None, bar_at(3, 98.0))
+  let working = bar_at(4, 101.0)
+  let tf =
+    timeframe.Timeframe(
+      ..tf_working(working, [last]),
+      growing_yin_leaf: Some(growing_yin),
+    )
+  let out = timeframe.leaves(tf, settings(2))
+  assert list.length(out.yin_leaf_list) == 1
+  assert list.length(out.signif_yin_leaf_list) == 1
   Nil
 }
 

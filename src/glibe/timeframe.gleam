@@ -122,6 +122,24 @@ pub type Timeframe {
     databar_list: List(DataBar),
     growing_yin_leaf: Option(DataLeaf),
     growing_yang_leaf: Option(DataLeaf),
+    /// Every settled YinLeaf of `leaf_size >= 2`, newest first (R68; frozen
+    /// glib's historical `yin_leaf_list`, restored for traceability research).
+    /// A RECORD, not a mechanism: `branches` does NOT read it and must not
+    /// (glib `timeframe.gleam:120-127` measured that reading a branch off a
+    /// leaf list drops branches). WRITER: `leaves`. READER: research (a test
+    /// today). Single-bar leaves are never listed (glib leaf law 4).
+    yin_leaf_list: List(DataLeaf),
+    /// The settled YangLeaf mirror of `yin_leaf_list` (R68). WRITER `leaves`,
+    /// READER research; `branches` must not read it.
+    yang_leaf_list: List(DataLeaf),
+    /// Settled YinLeaves whose `leaf_size >= settings.branch_exit_leaf_size`,
+    /// newest first (R68; glib `signif_yin_leaf_list`). A record for research,
+    /// not the source of a branch's start (that is `yin_leaf_settled`, R66 §1).
+    /// WRITER: `leaves`. READER: research (a test today).
+    signif_yin_leaf_list: List(DataLeaf),
+    /// The settled YangLeaf mirror of `signif_yin_leaf_list` (R68). WRITER
+    /// `leaves`, READER research.
+    signif_yang_leaf_list: List(DataLeaf),
     growing_yin_branch: Option(DataBranch),
     growing_yang_branch: Option(DataBranch),
     yin_branch_list: List(DataBranch),
@@ -196,7 +214,7 @@ pub fn databar_processing(
   // filled independently; this is only the straight line they sit on (R39).
   timeframe
   |> indicator(settings)
-  |> leaves
+  |> leaves(settings)
   |> branches(settings)
   |> strategy
   |> working_databar_archived
@@ -242,8 +260,13 @@ pub fn indicator(
 }
 
 /// Step: `YinLeaf` / `YangLeaf` recognition; a settled leaf is written into
-/// a FIELD so the next step needs no extra argument (R40 / R41).
-pub fn leaves(timeframe: Timeframe) -> Timeframe {
+/// a FIELD so the next step needs no extra argument (R40 / R41). It also
+/// records settled leaves into four lists (R68): two complete (`leaf_size >= 2`)
+/// and two significant (`leaf_size >= settings.branch_exit_leaf_size`). Those
+/// lists are research records, NOT a mechanism: `branches` reads the settled
+/// FIELD, never a list. `settings` is a pipe-call argument (R40-A / R46): the
+/// significance threshold is the branch's own number, never a Timeframe field.
+pub fn leaves(timeframe: Timeframe, settings: IntervalSettings) -> Timeframe {
   case timeframe.working_databar {
     None -> timeframe
     Some(working) -> {
@@ -283,6 +306,32 @@ pub fn leaves(timeframe: Timeframe) -> Timeframe {
             yang_grow,
           ),
         )
+      // R68: record the settled leaves. The complete list takes a leaf of
+      // size >= 2 (a one-bar leaf is never listed, glib leaf law 4); the
+      // significant list takes one that also reached the branch's own number.
+      // Both cons onto the head (newest first, O(1)). These are research
+      // RECORDS — `branches` reads the settled FIELD above, never these lists
+      // (glib timeframe.gleam:120-127 measured that reading a branch off a
+      // list drops branches).
+      let exit_size = settings.branch_exit_leaf_size
+      let yin_leaf_list =
+        cons_if_listed(yin_settled, bar, timeframe.yin_leaf_list)
+      let yang_leaf_list =
+        cons_if_listed(yang_settled, bar, timeframe.yang_leaf_list)
+      let signif_yin_leaf_list =
+        cons_if_significant(
+          yin_settled,
+          bar,
+          exit_size,
+          timeframe.signif_yin_leaf_list,
+        )
+      let signif_yang_leaf_list =
+        cons_if_significant(
+          yang_settled,
+          bar,
+          exit_size,
+          timeframe.signif_yang_leaf_list,
+        )
       // R40/R42: settled leaves are FIELDS, not a tuple handed to branches;
       // every step takes and returns only Timeframe.
       Timeframe(
@@ -292,8 +341,54 @@ pub fn leaves(timeframe: Timeframe) -> Timeframe {
         growing_yang_leaf: Some(yang_grow),
         yin_leaf_settled: yin_settled,
         yang_leaf_settled: yang_settled,
+        yin_leaf_list: yin_leaf_list,
+        yang_leaf_list: yang_leaf_list,
+        signif_yin_leaf_list: signif_yin_leaf_list,
+        signif_yang_leaf_list: signif_yang_leaf_list,
       )
     }
+  }
+}
+
+/// R68: prepend a settled leaf to the complete list iff it spans >= 2 bars
+/// (frozen glib `listed_leaf`, timeframe.gleam:457-469). "Settled" is what
+/// happened to the leaf; "listed" is only whether it goes in the record. A
+/// one-bar leaf settles and is not listed. No price is read — this is the
+/// same idx arithmetic as `leaf.leaf_size` (R6).
+fn cons_if_listed(
+  settled: Option(DataLeaf),
+  databar: DataBar,
+  listed: List(DataLeaf),
+) -> List(DataLeaf) {
+  case settled {
+    Some(gone) ->
+      case leaf.leaf_size(gone, databar) >= 2 {
+        True -> [gone, ..listed]
+        False -> listed
+      }
+    None -> listed
+  }
+}
+
+/// R68: prepend a settled leaf to the significant list iff it reached the
+/// branch's own closing number (frozen glib `significant_leaf`,
+/// timeframe.gleam:574-593). That number belongs to the branch (UC-51), so it
+/// arrives from `settings`, not from the leaf. Separate from `cons_if_listed`:
+/// one is the list's own rule, the other a branch number (glib's own reason for
+/// keeping two functions).
+fn cons_if_significant(
+  settled: Option(DataLeaf),
+  databar: DataBar,
+  exit_size: Int,
+  listed: List(DataLeaf),
+) -> List(DataLeaf) {
+  case settled {
+    Some(gone) ->
+      case leaf.leaf_size(gone, databar) >= exit_size {
+        True -> [gone, ..listed]
+        False -> listed
+      }
+    None -> listed
   }
 }
 
