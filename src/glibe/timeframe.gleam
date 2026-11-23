@@ -214,10 +214,35 @@ pub fn databar_processing(
   // filled independently; this is only the straight line they sit on (R39).
   timeframe
   |> indicator(settings)
+  |> bar_admitted
   |> leaves(settings)
   |> branches(settings)
   |> strategy
   |> working_databar_archived
+}
+
+/// Step: UC-60 admission test on the bar `indicator` just computed (frozen glib
+/// `timeframe.gleam:380-386, 394, 470-485`). Immediately after the computation
+/// and before any consumer, `indicator.single_bar_test` checks the seven bands
+/// are strictly ordered. A bar it refuses is **not admitted**: its
+/// `working_databar` goes back to `None` — the state between two bars — so every
+/// downstream step (`leaves` / `branches` / `strategy` / `working_databar_archived`)
+/// is a no-op and the bar never reaches a leaf, a branch, a signal, an order, a
+/// chart point or the history list. An accepted bar passes through unchanged.
+/// `indicator.single_bar_test` supplies the `BarError` that names the broken
+/// bands; this pure domain step carries no IO (R33) and does not itself print.
+pub fn bar_admitted(timeframe: Timeframe) -> Timeframe {
+  case timeframe.working_databar {
+    None -> timeframe
+    Some(working) ->
+      case indicator.single_bar_test(working) {
+        Ok(_) -> timeframe
+        // A refused bar leaves nothing in flight — the state between two bars,
+        // exactly glib's Error(bad) arm (timeframe.gleam:473-485). No leaf,
+        // branch, signal, chart point or history entry can come from it.
+        Error(_) -> Timeframe(..timeframe, working_databar: None)
+      }
+  }
 }
 
 /// Step: indicators, computed IN the working databar. `settings` supplies the

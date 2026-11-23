@@ -29,6 +29,7 @@ import gleeunit
 import glibe/branch
 import glibe/config
 import glibe/databar.{type DataBar, DataBar}
+import glibe/indicator
 import glibe/leaf
 import glibe/timeframe
 import glibe/trading/signal
@@ -241,6 +242,61 @@ pub fn leaves_records_significant_leaf_in_both_lists_test() {
   let out = timeframe.leaves(tf, settings(2))
   assert list.length(out.yin_leaf_list) == 1
   assert list.length(out.signif_yin_leaf_list) == 1
+  Nil
+}
+
+// --- bar_admitted (UC-60) -----------------------------------------------------
+
+/// UC-60 (review doc §7, frozen glib `timeframe.gleam:394,470-485`): a bar whose
+/// seven bands are out of order is NOT admitted. `bar_admitted` clears its
+/// `working_databar` to None so every downstream step is a no-op and the bar
+/// never reaches a leaf, branch, signal, chart point or the history list.
+pub fn bar_admitted_refuses_out_of_order_bands_test() {
+  let broken =
+    databar.DataBar(
+      ..bar_at(7, 100.0),
+      bb_l3: 1.0,
+      bb_l2: 2.0,
+      bb_l1: 3.0,
+      bb_m: 4.0,
+      bb_u1: 5.0,
+      bb_u2: 6.0,
+      bb_u3: 7.0,
+    )
+  // Make it genuinely broken: upper band below the centre fails the test.
+  let broken = databar.DataBar(..broken, bb_m: 9.0)
+  assert indicator.single_bar_test(broken) != Ok(Nil)
+  let out = timeframe.bar_admitted(fixture.timeframe_with(Some(broken), []))
+  assert out.working_databar == None
+  assert out.databar_list == []
+  Nil
+}
+
+/// The mirror: an in-order bar is admitted unchanged — its idx and identity
+/// survive, so the downstream steps see the very bar `indicator` computed.
+pub fn bar_admitted_passes_ordered_bands_test() {
+  let good =
+    databar.DataBar(
+      ..bar_at(7, 100.0),
+      bb_l3: 1.0,
+      bb_l2: 2.0,
+      bb_l1: 3.0,
+      bb_m: 4.0,
+      bb_u1: 5.0,
+      bb_u2: 6.0,
+      bb_u3: 7.0,
+    )
+  assert indicator.single_bar_test(good) == Ok(Nil)
+  let out = timeframe.bar_admitted(fixture.timeframe_with(Some(good), []))
+  assert out.working_databar == Some(good)
+  Nil
+}
+
+/// No working bar (the state between two bars) is a no-op: bar_admitted must
+/// not invent one. This is the invariant the refused branch restores.
+pub fn bar_admitted_no_working_bar_is_noop_test() {
+  let out = timeframe.bar_admitted(fixture.timeframe_with(None, []))
+  assert out.working_databar == None
   Nil
 }
 

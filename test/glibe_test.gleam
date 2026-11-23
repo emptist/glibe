@@ -65,6 +65,7 @@ pub fn pipeline_steps_shape_test() {
     timeframe.branches,
   ]
   let _plain: List(fn(Timeframe) -> Timeframe) = [
+    timeframe.bar_admitted,
     timeframe.strategy,
     timeframe.working_databar_archived,
   ]
