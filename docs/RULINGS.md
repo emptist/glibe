@@ -5951,3 +5951,84 @@ that"*），glibe 注释与测试断言仍写 slope，本轮一并改为 `per_ba
 `slope`→`per_bar`）、`test/domain_steps_test.gleam`、`test/glibe_test.gleam`（测试名与
 断言文案）；`docs/RULINGS.md` 与 `docs/PENDING_DECISIONS.md` 的历史段加**更名注**
 （历史如实保留，不篡改）。
+
+---
+
+## R52 — 测量值必须有 type：返回值的名字就是它自己的说明书（2026-11-23 owner 当面裁定）
+
+**owner 逐字（三条，同一轮）**：
+1. *"注意 move 这个function，从move这个名字完全看不出他 return的东西，也就是说完全看
+   得出他的功能，workbuddy中我是没办法看gleam代码的，所以我只能问你；但是这正好说明，
+   命名太差了。"*
+2. *"当这 move 和 move_between 同时存在于一个 module 的时候，move 这个名字误导就更强烈。"*
+3. *"这三个函数不损害 type定义，在做策略的时候，可以用到。所以可以保留。"*
+
+### 1. 裁定
+
+- **新增 `src/glibe/move.gleam`**，持有 type **`Move`** 与 `move.move_between`：
+  ```gleam
+  pub type Move {
+    Move(magnitude: Float, duration: Int, per_bar: Float)
+  }
+  pub fn move_between(from_bar: DataBar, to_bar: DataBar) -> Move
+  ```
+- `branch.start_end_move` / `branch.enter_exit_move` 返回 `Option(Move)`（原来
+  `Option(#(Float, Float, Float))`）。
+- **`branch.move_between` 删除**（随 type 搬到 `move.gleam`）；`branch.gleam` 只留两个
+  branch 形状的窗口函数。
+- 三个测量函数**全部保留**（owner 第 3 条）：都是函数、不是任何 type 的 field，不改
+  `Desk ▸ Broker ▸ Instrument ▸ Timeframe` 的任何关系（R20/R32/R50），策略阶段要用。
+
+### 2. 为什么上一轮的改名只做了一半（R51 的不足，如实记）
+
+R51 把 `branch_stat` → `start_end_move`、`recognised_move` → `enter_exit_move`，解决的
+只是**「量哪一对 bar」**。owner 第 1、2 条指出的是**更靠下的一层**：
+- **返回值没有名字**：原来是裸 `#(Float, Float, Float)`——三个位置无标签。一个只看
+  **类型签名**的调用方（owner 在 WorkBuddy 里就是只能看签名）无法分辨哪一位是幅度、
+  哪一位是时长、哪一位是速率。这与 R47 owner 自己问过的 *"这个 type 说是 the numbers
+  a timeframe run on 这是什么玩意你自己看得懂不？"* 是同一个病。
+- **一个词在一个模块里指两样东西**：`move` 既是**概念**（两根 bar 之间的一段移动），
+  又是**返回的第一个数**（份额）。`move_between` 的名字读起来像"返回那个 move"，而它
+  返回的是三个数、其中第一个又叫 move —— 名字与返回互相污染（owner 第 2 条）。
+
+**结论**：缺的不是更好的函数名，是**一个给测量值自己的 type**。名字只能说明"量什么"，
+type 才能说明"返回什么"。
+
+### 3. 三个字段名的出处（owner 用词，非 AI 造词，R45）
+
+| 字段 | 出处 |
+|---|---|
+| `magnitude` | owner 2026-10-03（6th）逐字：*"is there a pattern in the magnitude each time? is there a pattern when combining time length and magnitude?"*（glib `branch.gleam:177-180` 引用同一句） |
+| `duration` | glib `12-OVERVIEW.md:37` 逐字：*"it was always `magnitude / duration` under the name `slope`; it now states that"* —— owner 原句里的"time length"就是它 |
+| `per_bar` | 同上，第三项的现名（原名 `slope`，R45 不用废弃词汇） |
+
+`duration` 取 **`Int`**（bar 根数是计数，`10.0` 根 bar 是假精度，R1）；`per_bar` 内部
+`int.to_float(duration)` 后相除。glib 用 `Float` 是因为它整体是一个裸三元组、三个位置
+同型；有了 type 之后不必再迁就。
+
+### 4. 模块归属（NAMING.md 1.19/1.20 + R50）
+
+`Move` 是它自己的 class → 自己的模块（1.19 *"one class, one module"*）；该模块只读两根
+`DataBar`，只依赖 `databar.gleam`；`branch.gleam` 依赖它 → **无环**（实测 `gleam check`
+通过）。这同时回答 owner 第 2 条：`move`（概念/type）与 `move_between`（通用测量函数）
+不再**同居一个模块**——类型在 `move.gleam`，两个 branch 窗口在 `branch.gleam`。
+
+### 5. 公开 API 已无匿名元组
+
+核实（grep `^pub fn .*-> #(`）：**除 `runtime.init` / `runtime.update` 外，公开签名里
+已无匿名元组**；那两个是 plushie MVU 强制的形状（框架规定，非本设计）。其余 `#(...)`
+全在模块**私有**管道里（`timeframe` 的 sigma/KDJ 递推、`leaf`/`branch` 的 `next_*`），
+调用方同文件、每个位置有解构绑定（`let #(an, amean, am2) = ...`），名字在解构处可见。
+
+### 6. Landing
+
+- `src/glibe/move.gleam`（新）：`////` + `Move` + `move_between`，RED→GREEN
+  （`test/move_test.gleam` 5 个测试）。
+- `src/glibe/branch.gleam`：删本模块的 `move_between`、删 `gleam/int` import、两个窗口
+  函数改返回 `Option(Move)`、模块头加 MOVED 段。
+- `src/glibe/databar.gleam:84`：`branch.move_between` → `move.move_between`。
+- `test/move_test.gleam`（新，5 测试）、`test/glibe_test.gleam`、
+  `test/domain_steps_test.gleam`：改用 `Move` 的具名字段。
+- 门禁：format --check 0 / check 0 / test **98 passed / 1 failure**（唯一失败是 Phase 03
+  既有 `app_shape_test.from_event` todo）/ docs 0 / export 0 / WAE 1（**21 Todo + 57
+  unused**，与 R51 改名前完全一致，本轮**未引入任何新警告**）。

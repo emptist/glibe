@@ -20,6 +20,14 @@ sections are kept as history, not as the current answer.
     > `start_end_move`、`recognised_move` → `enter_exit_move`；`move_between` 与
     > `branch_size` 保留。名字现在说出量的是哪一对 bar。旧名按历史如实保留在
     > `docs/RULINGS.md` / `docs/PENDING_DECISIONS.md`，并加更名注。
+    >
+    > **2026-11-23 再修正（R52，同日 owner 两轮）**：owner 指出 *"从move这个名字完全
+    > 看不出他 return的东西"* + *"当这 move 和 move_between 同时存在于一个 module
+    > 的时候，move 这个名字误导就更强烈"* —— R51 只改了"量哪一对 bar"，没管"返回什么"。
+    > 新增 `src/glibe/move.gleam`：type **`Move(magnitude, duration, per_bar)`** +
+    > `move.move_between`；`branch.start_end_move`/`enter_exit_move` 返回 `Option(Move)`；
+    > `branch.move_between` 随 type 搬走。**公开 API 已无匿名元组**（除 plushie MVU 强制的
+    > `runtime.init`/`update` 形状）。
   - `branch.branch_exit_leaf_size()` 无参零调用方 → 删除；值由 config 的 per-interval
     表 → settings → branches 承载（R49/core §5/一 owner R50）。
   - **domain 层 todo 清零**；WAE 21 Todo 全部在 app 层。
