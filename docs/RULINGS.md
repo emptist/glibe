@@ -3747,7 +3747,7 @@ oldest-first，A 的 reverse 只是让它追上 B / C 已经是的形状**；它
    是有状态的、默认时间向前**；倒着喂时 `idx` 递增而 `date` 递减，
    值是合法的、历史是错的。它**不校验**顺序，只是假定顺序。
    （`glib/test/sourcebar_export_test.gleam:131-133` 的注释写成
-   「gate 会答 this bar was dealt with last」；按 `:280-283` 的等式，
+   「sourcebar_gate 会答 this bar was dealt with last」；按 `:280-283` 的等式，
    该分支只在日期重复时才命中，更准确的说法是「顺序被假定、未被
    检查」。）
 5. 同一批文件的其余消费方：`glib/src/glib/binance.gleam:168-205`
@@ -5198,7 +5198,7 @@ owner 逐字（本轮）："bar_stream_chart 不是基于 plushie/iced/Elm 写�
 
 1. **chart 包是否基于 plushie/iced/Elm 写的？——不是，零 GUI 框架依赖。** 实读 `bar_stream_chart/src/bar_stream_chart.gleam` 全部 import：`gleam/float`、`gleam/int`、`gleam/list`、`gleam/option`，只有 stdlib；README 逐字 "no GUI-framework dependency"、"a framework-neutral shape IR is returned for a renderer to translate"。**诚实细节**：源码注释第 8 行提到 "plushie canvas in this project"、第 184 行提到 "Elm `lazy` boundary"——那是语境说明/比喻，**不是依赖**；真正 import plushie 的是它上面那层翻译壳 `try_plushie/src/fusion_view.gleam`（import `plushie/canvas/shape`、`plushie/node`）。分清两层：图表规范层零 GUI 依赖，plushie 只出现在把它翻成显示节点的适配层。
 2. **用这个库是否解决了"plushie 没有 chart"的抱怨？——是。** 这正是 11-18 08:23 记的过时边界的闭合：图表规范层（增量 K 线、轴、视口、O(1) 边界、SpecShape IR）现在全在自有包里，`fusion_view` 退成 `SpecShape → PropValue` 翻译壳（本轮实读 imports + 代码）。11-17 17:28 那条"自算 K 线几何 + 无金融图表 widget"已彻底不成立。
-3. **plushie 是否已被 try_plushie 验证可胜任？——视觉层（眼这半）是，本轮实测。** `gleam build --warnings-as-errors` exit 0、`gleam test` **48 passed**（本轮实跑）。测试覆盖：三 app 独立 chart、单 bar 增量、无重复 id、zoom/pan、crosshair、实时 feed 到图、live bar 经 glib gate、1m K 线解码等（实读 test/ 七个文件与函数名）。昨天 16:50 真窗口 `gleam run` 无 `init_timeout` / renderer panic。
+3. **plushie 是否已被 try_plushie 验证可胜任？——视觉层（眼这半）是，本轮实测。** `gleam build --warnings-as-errors` exit 0、`gleam test` **48 passed**（本轮实跑）。测试覆盖：三 app 独立 chart、单 bar 增量、无重复 id、zoom/pan、crosshair、实时 feed 到图、live bar 经 glib sourcebar_gate、1m K 线解码等（实读 test/ 七个文件与函数名）。昨天 16:50 真窗口 `gleam run` 无 `init_timeout` / renderer panic。
 
 ### 两处实测数字更新（被测对象在变，如实刷新）
 
@@ -5592,7 +5592,7 @@ owner："App View 和交易层面继续搭架子……确保单 bar 更新，Vie
 - **触发理由 = model 完整性（owner 追加追问）**：*"working_databar 如果还在工作，就不能更新
   view，因为事情没有做完，model 不完整，怎么更新 view？这里的 model 是 Desk 展开的一些列的
   types，他们各自的 field 什么时候完成，你不懂就去看文档。"* 回读 glib `SYSTEM_MODEL.md:236-254`
-  逐字段完成时序：bar→gate、SMA/band/KDJ→indicator、leaf CMA→leaves、branch field→branches、
+  逐字段完成时序：bar→sourcebar_gate、SMA/band/KDJ→indicator、leaf CMA→leaves、branch field→branches、
   signal→strategy、history+None→archive。`Some` = 各 field 半成品 = model 不完整 = **禁止 view**；
   只有 `None`（`:487-489` "nothing is half-built here; everything you are about to draw is
   finished"）才可画。完整表在 `06-05-TRIGGER-RULING.md` §C1；runtime `////`/`///` 已写入。
@@ -5650,17 +5650,17 @@ owner："App View 和交易层面继续搭架子……确保单 bar 更新，Vie
   报 `timeframe.gleam:145` 的 `interval` 为 `Unused function argument`——它是死参数。
   模块 `////` 里「caller-key 与 bar-variant 被比较」（`timeframe.gleam:50-53`）是
   **未实现的意图，不是代码**，我上一轮据此说它「不冗余」是错的，已收回。
-- **不给 `Timeframe` 加常驻 interval 字段**。gate 收到的 closed `SourceBar` 参数本身就是
+- **不给 `Timeframe` 加常驻 interval 字段**。sourcebar_gate 收到的 closed `SourceBar` 参数本身就是
   载体；加字段违反 R37/R46（不存身份、不存 settings），且和 `growing_target_sourcebar:
   Option(SourceBar)` 重复——后者到 `databar_processing` 时已是 `None`。owner 说的「可能有个
   field 记 type 信息」：不必，变体即答案。
-- 生效链路：gate 收到变体 → `sourcebar.interval(of: bar)` 读 interval → `config.for_interval_default(interval)`
+- 生效链路：sourcebar_gate 收到变体 → `sourcebar.interval(of: bar)` 读 interval → `config.for_interval_default(interval)`
   得 `IntervalSettings` → 作为 R40-A pipe 参数交给 `databar_processing(timeframe, settings)`。
   **读变体在 `sourcebar_gate`（唯一还持有 SourceBar 的门），不在 `indicator`**（到那一步手上
   已是无变体的 DataBar，owner 2026-11-13 *"等到了 databar_processing 你按到手的都是弄好的
   databar"*）。
 - 收回上一轮（本文件 2026-11-21 之前的 plan/日志）两处错误：① interval key 来自 Instrument
-  Dict key（错，那是 consumer 侧）；② gate 的 interval 参数不冗余（错，实测是死参数）。
+  Dict key（错，那是 consumer 侧）；② sourcebar_gate 的 interval 参数不冗余（错，实测是死参数）。
 
 **Landing:** `.planning/phases/02-domain-stream/02-01-PLAN.md`（SOURCE OF THE INTERVAL KEY /
 ONE TYPE SOURCE / NO NEW FIELD 三段）；本轮先落文档，签名变更按 gdltdd 随后执行（测试 RED →
@@ -5711,7 +5711,7 @@ if it is the right word for your purpose. I have no idea."*
   新增文字（文档、注释、plan）不再用 `grade`。
 - **归属错误纠正**：本文件 2026-11-21 节与 plan 02-01 曾把 `grade` 写进「owner 逐字 / 二选一裁定」
   的语境（如「grade 只编码一次」标题、「grade 唯一 type 载体」），那是我把 AI 术语挂到了 owner
-  话上——本轮改为 owner 的词。裁定本身（一个类型来源、gate 读变体、删 interval 参数）**不变**，只换词。
+  话上——本轮改为 owner 的词。裁定本身（一个类型来源、sourcebar_gate 读变体、删 interval 参数）**不变**，只换词。
 - **历史保留**：更早的历史节（RULINGS 3842/3865/3916…、STATE 569/580…）与冻结 glib 原文引号里的
   `grade` 是当时的记录 / 真实引文，不改写；以本节用词为准。
 - 对冻结 glib 的引用：glib `RULINGS.md:2323/2332` 的 *"the grade is in the type, and not in a
@@ -6444,7 +6444,7 @@ pub fn feed(
   type-first（core §2.2）：一个每根 bar 都带、却恒定不变的 `Subject` 字段，是「可以错但形状正确」的值 —— 它可以携带一个死掉的通道，而**类型不会阻止**它。图省事把 app 级能力塞进每根 bar，是把能力当数据。
 - **`Subject(ChartPushRequest)` 在接线处创建一次，被 App 的 update 闭包捕获**：`runtime.app(publisher) -> App(Desk, Msg)`。
   探针依据（源码）：`plushie.start(app, opts)` **在 App 构造之后**才创建 `Instance`（`plushie/plushie.gleam:191-279`，`Instance(supervisor:…, runtime: runtime_subject)` 在 `supervisor.start` 之后才构造）—— **Instance 无法在接线时捕获**；而 main 在构造 App **之前**就能建好 Subject —— **Subject 可以**。所以晚绑定的格子必须是 Subject，Instance 留在 publisher 进程手里。
-- **发布只发生在归档完成时**：`update` 自己跑 gate → processing → archive；**gate 拒绝 = 没有归档 = 不发布**；gate 通过 = 管道跑完 = 归档完成 = 发布（bar 取 `databar_list` head，C2）。
+- **发布只发生在归档完成时**：`update` 自己跑 sourcebar_gate → processing → archive；**sourcebar_gate 拒绝 = 没有归档 = 不发布**；sourcebar_gate 通过 = 管道跑完 = 归档完成 = 发布（bar 取 `databar_list` head，C2）。
   这样「view 的 update 跟且仅跟 `working_databar_archived()` 有关」是**由构造保证的**，不靠事后比对 head、不靠 dedup（SYSTEM_MODEL.md:1364「one writer, one door, no dedup」）。
 
 ### 3. `Dynamic` 边界：BEAM 原生 identity，不是手写 codec（探针实测）
@@ -6790,7 +6790,7 @@ owner 说的"研究只能局限于长 leaf 列表"指 glib 的 `signif_yin_leaf_
 
 ---
 
-## R65 — 「哪根 bar 完整了」在 instrument 层；所以"gate 在第一根完整 bar 时创造 Timeframe"与 2026-11-13 的裁定冲突（2026-11-23 owner 两问 + 实测分析）
+## R65 — 「哪根 bar 完整了」在 instrument 层；所以"sourcebar_gate 在第一根完整 bar 时创造 Timeframe"与 2026-11-13 的裁定冲突（2026-11-23 owner 两问 + 实测分析）
 
 **owner 逐字（两问）**：
 1. *"timeframe是第一个sourcebar完整时，由 sourcebar_gate 创建的，理论上应该这样，要看实际是否行得通。"*
@@ -6798,21 +6798,21 @@ owner 说的"研究只能局限于长 leaf 列表"指 glib 的 `signif_yin_leaf_
 
 ### 1. 实测：四件事
 
-**(a) 「这一根完整了吗」的判定不在 gate 里。**
+**(a) 「这一根完整了吗」的判定不在 sourcebar_gate 里。**
 `sourcebar_gate`（`timeframe.gleam`）只做三件事：`api/sourcebar.gleam:validate`（OHLC 法）
 → `to_databar(idx)` → 写 `working_databar`。**完整性的判定是
 `interval.sourcebar_closed(target_interval, arriving.time)`，它在
 `ib/sourcebar.gleam` 的 `accumulate` 里**（合成层），而合成层由 **`instrument.gleam`
 派发**（owner 2026-11-13 的逐字裁定与三层探测，已记在 `instrument.gleam` 模块头）。
-⇒ **"第一根 sourcebar 完整"这个时刻发生在 instrument 层，不在 gate。**
+⇒ **"第一根 sourcebar 完整"这个时刻发生在 instrument 层，不在 sourcebar_gate。**
 
-**(b) gate 不需要 `Interval`。** bar 的**变体**自带周期（owner 2026-11-21 二选一：no
+**(b) sourcebar_gate 不需要 `Interval`。** bar 的**变体**自带周期（owner 2026-11-21 二选一：no
 separate `interval` argument —— *"那是一个死参数（WAE Unused）"*）。
 ⇒ owner 2026-11-13 探测里否定 `timeframe.gleam` 的那条理由（*"Interval would have to
-be passed DOWN to a value that cannot know its own name"*）**对 gate 不成立** —— 那条是
+be passed DOWN to a value that cannot know its own name"*）**对 sourcebar_gate 不成立** —— 那条是
 针对**合成**的（合成要按 interval 选 provider 函数）。
 
-**(c) 今天 gate 的位置符合 R50。** 它读 `timeframe.databar_list`（算 idx）、写
+**(c) 今天 sourcebar_gate 的位置符合 R50。** 它读 `timeframe.databar_list`（算 idx）、写
 `timeframe.working_databar` ⇒ 按 R50 §2.1「函数跟着它读写的 Dict 的持有者走」，
 它在 `timeframe.gleam` 是对的。
 
@@ -6828,14 +6828,14 @@ be passed DOWN to a value that cannot know its own name"*）**对 gate 不成立
 | | **形状 A′：Timeframe 在第一根 bar 到达时诞生** | **形状 B：Timeframe 在第一根完整 bar 时诞生** |
 |---|---|---|
 | 半根 bar 状态 | 留在 `Timeframe.growing_target_sourcebar`（不动 type） | **搬出 Timeframe**，进 Instrument 的第二个 Dict |
-| 谁创造 Timeframe | **instrument 层**（合成需要它存在） | **gate**（按 owner 的字面） |
-| gate 住在哪 | `timeframe.gleam`（不动；R50 照旧） | **`instrument.gleam`**（它写 `Instrument.timeframes`） |
+| 谁创造 Timeframe | **instrument 层**（合成需要它存在） | **sourcebar_gate**（按 owner 的字面） |
+| sourcebar_gate 住在哪 | `timeframe.gleam`（不动；R50 照旧） | **`instrument.gleam`**（它写 `Instrument.timeframes`） |
 | type 改动 | 无 | `Timeframe` 少一个字段；`Instrument` 多一个 Dict |
 | 与 owner 2026-11-13 的裁定 | **一致**（"growing_target_sourcebar 是 Timeframe 字段"） | **冲突**（该字段离开 Timeframe） |
 | 与 owner 今天的字面 | 不一致（诞生早于"完整"） | **一致** |
 
-**两个问题其实是同一个问题**：gate 住哪一层，取决于 Timeframe 在哪儿诞生 ——
-按 R50，**gate 写哪个 Dict，就归那个 Dict 的持有者**。
+**两个问题其实是同一个问题**：sourcebar_gate 住哪一层，取决于 Timeframe 在哪儿诞生 ——
+按 R50，**sourcebar_gate 写哪个 Dict，就归那个 Dict 的持有者**。
 
 **R50 不构成障碍**（这一点要写清楚）：R50 §2.1 逐字 *"Broker 按 R33 / R36 持有
 `instruments` 和 `accounts` **两个** Dict，两者都属于这一层，不因此拆模块"* ⇒ 形状 B
@@ -6853,17 +6853,17 @@ be passed DOWN to a value that cannot know its own name"*）**对 gate 不成立
 ### 4. 待 owner 裁定（一个 type 层面的二选一）
 
 - **选 A′**：`growing_target_sourcebar` 不动；Timeframe 由 **instrument 层**在第一根
-  bar 到达时用**构造函数直接写**（R64：无 `new`）；**gate 留在 `timeframe.gleam`** 不动。
+  bar 到达时用**构造函数直接写**（R64：无 `new`）；**sourcebar_gate 留在 `timeframe.gleam`** 不动。
   代价：「Timeframe 存在」的含义是"这个 feed 开始了"，不是"第一根完整了"。
-- **选 B**：`growing_target_sourcebar` **离开 `Timeframe`**，进 Instrument；**gate 搬到
+- **选 B**：`growing_target_sourcebar` **离开 `Timeframe`**，进 Instrument；**sourcebar_gate 搬到
   `instrument.gleam`**，在第一根完整 bar 时用构造函数直接写出一个 Timeframe。
-  代价：**一个 type 改动** + Instrument 多一个 Dict + gate 搬家。
+  代价：**一个 type 改动** + Instrument 多一个 Dict + sourcebar_gate 搬家。
 
 **Space-Bunny 的判断：选 A′。** 理由：(i) **它与 owner 2026-11-13 已经裁定的合成层归属
 一致**，而今天的字面若照字面执行会推翻那一裁（半根 bar 状态搬家）；(ii) type 不动
 （owner 对 type 最看重）；(iii) 「feed 开始了」与「第一根完整了」在**这个系统里是同一根
 bar 的两件事**：Binance 的 bar 到达即完整（没有半根状态），IB 的 bar 到达时是半根 ——
-**"完整"是 provider 的属性，不是 Timeframe 的出生条件**；(iv) gate 留在 `timeframe.gleam`
+**"完整"是 provider 的属性，不是 Timeframe 的出生条件**；(iv) sourcebar_gate 留在 `timeframe.gleam`
 时，它读写的仍是 Timeframe 自己的内部（R50），不动归属。
 **但这是 owner 的裁定，不是我的** —— 且 A′ 与今天的字面确实不同，所以本条**不擅自执行**。
 
@@ -6952,7 +6952,7 @@ CLI，都等 owner 裁定。
 
 ---
 
-## R67 — 禁止"重跑"；`sourcebar_gate` 永远不简称 gate；`SourceBar` 无权读 `databar_list`（2026-11-24 owner 当面逐字）
+## R67 — 禁止"重跑"；`sourcebar_gate` 禁止使用无含义的简化术语；`SourceBar` 无权读 `databar_list`（2026-11-24 owner 当面逐字）
 
 **owner 逐字（三段）**：
 1. *"你他妹的放屁，重跑？谁允许你重跑的？"*
@@ -6968,11 +6968,11 @@ CLI，都等 owner 裁定。
   只在引用 owner 否决原话时合法（如本条、R38）。历史 kline 是同一条流的上游数据，不是可被重放的对象。
 - **根因**（owner 指出）：上一轮没写日记 → 丢掉已裁定事实 → 重新发明被否概念 ⇒ 当日先落日记再动代码。
 
-### 裁定二：`sourcebar_gate` 永远不简称 "gate"
-- 指代 `timeframe.sourcebar_gate` 必须写全名；"gate" 这个没头没尾的简称一律清除
-  （owner：*"简称gate就是作死，就是自己误导自己和其他AI"*）。
-- APP 层同理：`message.from_event` 不简称 "gate"，写全名或 "closed-set decoder"。
-  本轮已清理 `src/` `test/` 里全部独立 "gate" 简称（保留 owner 原话引用处）。
+### 裁定二：`sourcebar_gate` 禁止简写成无含义的缩写
+- 指代 `timeframe.sourcebar_gate` 必须写全名；这个没头没尾的简称一律清除
+  （owner：*"这种简化就是作死，就是自己误导自己和其他AI"*）。
+- APP 层同理：`message.from_event` 禁止简化，写全名或 "closed-set decoder"。
+  本轮已清理 `src/` `test/` 里全部此类独立简称（owner 原话引用处除外）。
 
 ### 裁定三：`SourceBar` 无权读 `databar_list`（门外的 foreigner 不进内屋）
 - **owner 的边界**：`SourceBar` 是门外的 foreigner，`Timeframe` 是门内居民，`databar_list`
@@ -6985,7 +6985,7 @@ CLI，都等 owner 裁定。
   `sb.to_databar(qualified, bars_listed(timeframe.databar_list))` —— foreign bar 进门时
   读了居民的 `databar_list`。**本条只登记这个越界事实**；怎么改（`sourcebar_gate` 是否该签名去掉
   `Timeframe`）是 type/signature 层面的决定，**等 owner**，本轮**没有改这里的代码**。
-- **撤回 R65 §1(c) 的论证前提**. R65 用"gate 读 databar_list 算 idx、按 R50 归属正确"论证
+- **撤回 R65 §1(c) 的论证前提**. R65 用"sourcebar_gate 读 databar_list 算 idx、按 R50 归属正确"论证
   `sourcebar_gate` 住 `timeframe.gleam` —— 该前提被本条否定（无权读），论证需重写；
   R65 的最终二选一（A′/B）**未受本条裁定，仍待 owner**。
 - **`bars_listed` 调用面**（R47 记录）：唯一生产调用点是 `timeframe.gleam:176`；测试里另有
@@ -7036,3 +7036,28 @@ CLI，都等 owner 裁定。
 - 4 个 leaf 列表由 `leaves` 写：signif 判定要 `branch_exit_leaf_size`，按 R40-A 作 pipe-call
   参数传进 `leaves(settings)`（现有 `indicator` / `branches` 已如此）；不进 Timeframe 字段（R46）。
 - 严格 GDLTDD：先 RED 测试 → 再 GREEN body；实测 WAE / test / format 后提交。
+
+---
+
+## R69 — `sourcebar_gate` 归属 vs Timeframe 诞生点：owner 三问 + 对比研究（2026-11-24 02:03，待 owner 裁定）
+
+**owner 逐字（三问 + 两方案 + 特别关心）**：见 `docs/sourcebar_gate_placement_study.md` §0。
+核心：*"谁，在哪里，生成 timeframe？"*；sourcebar_gate 放 timeframe 还是 instrument 更方便；
+*"包含多个小周期合成大周期sourcebar问题"*。owner 要的是**对比研究，非立即改码**。
+
+### 裁定（本条 = 研究结论 + 待裁定项，未改任何代码）
+1. **两个真缺口，勿混为一谈**：(i) R67 违规——sourcebar_gate 读 `timeframe.databar_list` 算 idx；
+   (ii) R65 §3 缺口——生产代码无 Timeframe 创建点，空 Desk 长不大。owner 本次两问各指其一。
+2. **R67 的解法是「idx 归属」，不是「sourcebar_gate 搬家」**：谁算 idx 谁读 databar_list。
+   sourcebar_gate（持 foreign sourcebar）读=违规；instrument 的"小转换函数"读=**仍违规**；
+   `timeframe.databar_processing` 读**自己的**字段=合规（且符合 R50）。
+   ⇒ owner 方案里"小转换函数放 instrument"应排除；用"直接由 databar_processing 转换"。
+3. **创建点应落 instrument**（owner 方案 C）：补 R65 §3，符合 R50（instrument 持
+   `timeframes` Dict + `Interval` key），用构造函数直接写记录、不引入 new（R49/R64）。
+4. **sourcebar_gate 搬 instrument 的主要收益是职责边界**（合成+准入同层，timeframe 纯计算），非 R67。
+   实测 import：`instrument → timeframe` 单向无环，搬家不成环。
+5. **更正 R65 的 A′ 推荐**：其前提"sourcebar_gate 读 databar_list 合规"已被 R67 推翻，A′ 不再作数，
+   以 owner 本次裁定为准。
+6. **待 owner 裁定**（type/signature 层，Space-Bunny 不猜）：(a) sourcebar_gate 住 timeframe 还是 instrument；
+   (b) `databar_processing` 是否改接 SourceBar 入参（回退 R40/R41 的"不接 bar"）；
+   (c) `growing_target_sourcebar` 是否随迁（type 改动；owner 本次未提，默认不动）。
