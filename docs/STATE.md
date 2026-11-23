@@ -4,7 +4,33 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-24（最新 — R74：三层诞生点落地，空 Desk 能处理第一根 bar；R65 §3 缺口关闭；sourcebar_gate 未动）
+## 2026-11-24（最新 — Phase 04 / 04-01：五门禁实测全 0，0 Todo；R75/R76 分析盘点纪律）
+
+- **04-01 Task 1（已执行，真实退出码，2026-11-24 06:xx）**。先 `rm -rf build/dev` 清缓存，
+  再按 PLAN 顺序逐个跑、退出码不经 pipe 掩盖：
+  | 命令 | 真实 exit | 关键输出 |
+  |---|---|---|
+  | `gleam format --check` | **0** | 无输出（格式合规） |
+  | `gleam check` | **0** | 一条第三方 deprecated，非本项目 |
+  | `gleam test` | **0** | **132 passed, no failures** |
+  | `gleam docs build` | **0** | rendered to `build/dev/docs/glibe/index.html` |
+  | `gleam export package-interface` | **0** | JSON 输出正常 |
+  | `gleam build --warnings-as-errors` | **0** | 完整输出仅 `Compiled in 0.69s` ⇒ **0 Todo + 0 unused + 0 warning** |
+  - **没有放松门禁**：没有把 `todo` 换成 `_`、没有删警告。WAE 的 0 是清缓存后重编的真值。
+  - `grep -rn "todo" src --include='*.gleam'` 的命中全部在 `////` 注释文字里，
+    **零个真正的 `todo as` body**。04-01 verification「no `todo` remains in active `src/`」成立。
+- **04-01 Task 2（已核对通过）**：
+  - src 里全部 `////` 模块头都指向本树 plan——`grep -rn '\.planning' src` 的 27 处引用，
+    去重后 7 条路径（`BRIEF.md` + 02-01/02-02 + 03-00-ARCH-FINDINGS + 03-01/02/03-PLAN）
+    **逐个 `-f` 存在检查全 OK**；没有 active 模块缺 `////` 或缺 plan ref。
+  - `build/dev/docs/glibe/package-interface.json`（436 KB）里 `.planning` 出现 28 次，
+    去重路径同样 7 条、全 OK；`////` 标记被 Gleam 生成时剥离，只留模块文档内容——
+    这是编译器的正常行为，不是漂移（plan 链接本身在 documentation 文本里）。
+  - 归档路径：`grep 'planning-archived' src + interface` → **零命中**。
+  - 一条设计概念一个家：04-01 核对未发现只活在 plan prose、该进 docs 的概念；
+    并发/诞生点等裁定均已在 `docs/RULINGS.md`（R74/R75/R76）。R19 doc-first 契约机器可验。
+
+## 2026-11-24（R74：三层诞生点落地，空 Desk 能处理第一根 bar；R65 §3 缺口关闭；sourcebar_gate 未动）
 
 - **owner 指令**：*"这是你的工作，不需要等我一句话，我不在怎么办，你就睡觉？"* ——
   R72 基础复查已完成（R72 给"延后推敲"设的前提消失），owner 明令不再等他；
