@@ -7061,3 +7061,29 @@ CLI，都等 owner 裁定。
 6. **待 owner 裁定**（type/signature 层，Space-Bunny 不猜）：(a) sourcebar_gate 住 timeframe 还是 instrument；
    (b) `databar_processing` 是否改接 SourceBar 入参（回退 R40/R41 的"不接 bar"）；
    (c) `growing_target_sourcebar` 是否随迁（type 改动；owner 本次未提，默认不动）。
+
+---
+
+## R70 — "留在 timeframe、sourcebar_gate 仅输出 SourceBar"的利弊（2026-11-24 02:18 owner 问；待裁定，未改码）
+
+**owner 逐字**：*"如果仍然存放在 timeframe内部，但是像我上面说的那样修改，仅输出sourcebar，
+这时候，会不会有潜在的问题，不方便，或不合理的地方？"*；并说明不搬 instrument 的原因：
+*"他依赖 growing_target_sourcebar…如果放在instrument，一个field就不够用了，要生成字典，感觉很丑"*。
+
+**更正 R69 §6.3**：owner 明确把"配对/字典之丑"算进来后，我"倾向搬 instrument"的判断作废，
+以本条为准。owner 的取舍权重：**不破坏 timeframe↔sourcebar 配对 > 职责边界整齐**。
+
+### 结论（详见 `docs/sourcebar_gate_placement_study.md` §7）
+1. **可行、代价小**：编译探测（`/tmp/place_probe`，exit 0）证明
+   `sourcebar_gate(sb) -> Result(SourceBar, Rejection)` + `databar_processing(tf, sb, settings)`
+   都编译；databar_processing 仍是 subject-first pipe 容器，**R40/R41 pipe 形状不受损**。
+2. **净收益**：消除 R67 违规（idx 由 processing 读自己字段算）；保住 growing_target_sourcebar
+   配对（不生成字典，owner 核心关切）；签名更贴 glib 冻结源。
+3. **真实代价（如实列）**：
+   - sourcebar_gate 变薄成 validate 的薄转发，只读 sourcebar 却仍住 timeframe.gleam，
+     按 R50 归属尴尬（最该重视的"不合理"点）。
+   - idx 必须在写 working_databar 的同一处算（时机语义一致，但要写清楚约束）。
+   - 测试断言迁移：sourcebar_gate 测试从 working.idx 迁到 processing；生产调用面仅 runtime 两处。
+   - **不解决 R65 §3 创建缺口**（与签名改动正交，仍是独立待办）。
+4. **待 owner 裁定**：是否采用此改法；薄转发是接受还是把 validate 并入 processing 并删 sourcebar_gate
+   （更大改动，仅作备选摆出）。

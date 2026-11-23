@@ -134,3 +134,64 @@ databar_processing 负责转换成 databar"那条）。这是三个方案里必�
      还是保持不接、由交接处写 working_databar？
    - (c) `growing_target_sourcebar` 是否随 sourcebar_gate 搬进 instrument（type 改动，R65 形状 B）？
      本次 owner 未提，默认不动。
+
+---
+
+## 7. 追加（2026-11-24 02:18）：owner 倾向"留在 timeframe + 仅输出 SourceBar"，逐条利弊
+
+**更正 §6.3**：owner 明说 sourcebar_gate 搬 instrument 的障碍是 `growing_target_sourcebar`
+的配对——*\"一个field就不够用了，要生成字典，感觉很丑\"*。所以 §6.3 我"倾向搬 instrument"
+的判断**作废**（那是我上次没把配对代价算进去）。owner 现在要评估的是**方案 B/C2：
+留在 timeframe，仅改签名为输出 SourceBar**。下面是这个改法的真实利弊。
+
+### 7.1 编译探测（`/tmp/place_probe`，Gleam 1.19.2，exit 0）
+两种签名都编译通过：
+- 现状：`sourcebar_gate(tf, sb) -> Result(Timeframe, Rejection)`（内部 validate+to_databar+写 working）；
+  `processing(tf) -> Timeframe`（不接 bar）。
+- 提议：`gate_only_output(sb) -> Result(SourceBar, Rejection)`（只 validate）；
+  `processing_takes_sourcebar(tf, sb, extra) -> Timeframe`（第一行写 working，后面照常 pipe）。
+⇒ **type 层没有障碍**：`databar_processing(tf, sb, settings)` 仍是 subject-first 的 pipe 容器，
+新增参数是 pipe-call 参数（R40-A 允许"任意多个 extra 参数"）。**R40/R41 pipe 形状不受损**——
+pipe 的 steps（indicator/leaves/...）仍全是 `Timeframe → Timeframe`，bar 只在第一行写进
+working_databar 字段。这一点与此前担心相反：**改签名不破坏 pipe**。
+
+### 7.2 这个改法解决的问题（确实是净收益）
+1. **R67 违规消除**：sourcebar_gate 只读 sourcebar、不再读 `databar_list`；idx 由
+   `databar_processing` 读自己的字段算（门内居民读自家账），合规。
+2. **配对关系不动**（owner 的核心关切）：`growing_target_sourcebar` 留在 Timeframe，
+   instrument 照旧读写它；不生成字典、不破坏 timeframe↔sourcebar 配对（R65 形状 A′ 的好处保住）。
+3. **签名更贴 glib 冻结源**：glib 的 `databar_processing(tf, databar, publish)` 本来就接一个
+   bar 入参（`:338-342`）；owner 这个改法等于把 bar 的诞生从 sourcebar_gate 挪回 processing 的开头，
+   更接近 glib 原设计。
+
+### 7.3 潜在问题 / 不方便 / 不合理（如实列，不推销）
+1. **sourcebar_gate 变薄**（最大的"不合理"观感）：改后它只剩 `validate` 一层皮
+   （`Result(SourceBar, Rejection)` = validate 的直接结果），完全不碰 Timeframe。
+   它会变成一个**与 Timeframe 无关的函数**，却仍住在 `timeframe.gleam`——按 R50，
+   一个只读 sourcebar 的函数应归 `api/sourcebar.gleam`（那里已有 validate）。
+   ⇒ 要么接受"sourcebar_gate 是 validate 的薄转发、留在 timeframe 只为叙事"；要么把它改名/搬走。
+   这是 owner 问"不合理之处"时最该摆出来的一条。
+2. **idx 的读取时机后移，但要小心同源**：idx 必须在**归档前**算（读当前 `databar_list` head）。
+   放在 `databar_processing` 第一行算，与放在 sourcebar_gate 里算，中间隔着 runtime 的一次函数调用
+   （`:158`→`:162`），期间 `databar_list` 不变（纯函数、immutable），所以 **idx 值相同**——
+   探测已确认无 type 问题，语义上也一致。但约束要说清：idx 计算的唯一正确位置是
+   "写 working_databar 的同一处"，不能散落到后续 step。
+3. **validate 的拒绝语义位置不变**：不合格 bar 仍在 sourcebar_gate 被拒（runtime `:156-161` 的
+   `result.try` 不变），只是 Error 里装的是 Rejection 而非 Timeframe——调用面的 `map_error` 不用改。
+4. **测试面改动（机械但必须）**：`test/glibe_test.gleam:1074-1082` 的 sourcebar_gate 测试断言的是
+   `updated.working_databar.idx`；改后 sourcebar_gate 不写 working 了，这个断言要迁到
+   `databar_processing` 的测试。生产调用点只有 `runtime.gleam:158/162` 两处（已实测），改动面小。
+5. **"完整性判定"不在 sourcebar_gate 这一事实被强化**：glibe 的 closed 判定早在 provider 合成层
+   （`ib/sourcebar` / kline），sourcebar_gate 本就只做 OHLC validate；改后 sourcebar_gate 连 bar 都不产，更纯。
+   这不是问题，是 clarity 收益。
+6. **与 R65 §3 创建缺口无关**：这个方案不解决"谁生成 Timeframe"（空 Desk 长不大）。
+   它只改签名，不碰创建点。**创建缺口仍是独立待办**——owner 若只要解决 R67，这个方案够；
+   若要 app 真能收 bar，还得另定创建点。
+
+### 7.4 结论（待 owner 裁定，未改码）
+- 若 owner 最看重"配对不动 + 不生成字典" ⇒ 这个"留在 timeframe、仅输出 SourceBar"的改法
+  **可行、代价小、且不破坏 pipe**，主要代价是 sourcebar_gate 变薄后归属略尴尬（§7.3.1）。
+- 一个折中建议（供选择，不强加）：让 `databar_processing` 接 SourceBar，**但把 validate 也挪进
+  processing 的第一行**，sourcebar_gate 则彻底删除——这样没有"薄转发"的尴尬，职责按
+  "processing 拥有 bar 的整个诞生+加工"一条直线走。这与 glib 的两函数结构不同，属更大改动，
+  仅作备选摆出。
