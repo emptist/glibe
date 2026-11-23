@@ -357,6 +357,18 @@ doc-first / test-first / fully-green Bollinger band and still file it in
 
 > **A green gate is not a proof of structure.**
 
+**Second instance, found 2026-11-24 (Space-Bunny).** §13 marked §7 "fixed" because
+`fb5aab7` moved the `BarError` *type* into `indicator.gleam`. That was a `file:line`
+fact — and still a false sense of completion. The type's **consumer** was never
+wired: `indicator.single_bar_test` had **zero production callers** (only a
+self-test in `test/`), so a bar with out-of-order bands flowed into leaves,
+branches, signals and the chart exactly as if UC-60 did not exist. All gates were
+green. The lesson generalises one step past §11: *moving a type to the right
+module is not the same as connecting the behaviour it guards.* A structural
+audit must therefore ask two questions about every "fixed" item — **where does
+the type live?** and **who calls the function at runtime?** — and treat a green
+gate as evidence of neither.
+
 So there are two independent things to check, and only one of them has a gate:
 
 | | Gate | Checked by |
@@ -429,7 +441,7 @@ R42) · plushie 0.6.0 at `glibe/build/packages/plushie_gleam` · `bar_stream_cha
 | §4 | 19 functions filed in the wrong module | **fixed** (`fb5aab7`, R53) |
 | §5 | `sma_of`/`size_of` private → series selection locked inside one module | **fixed** (`fb5aab7`, R53 — now `pub` in `sma.gleam`) |
 | §6 | record placed above the value it computes | **fixed** (`fb5aab7` — `indicator.compute_bar` is pure bar→bar) |
-| §7 | `BarError` filed with unrelated domain code | **fixed** (`fb5aab7` — now in `indicator.gleam`) |
+| §7 | `BarError` filed with unrelated domain code | **module placement fixed** (`fb5aab7` — now in `indicator.gleam`); **runtime admission was NOT wired** — `indicator.single_bar_test` had zero production callers, so a bad bar still flowed into leaves/branches/chart/history. UC-60's *mechanism* was missing, not just the type's address. **Fixed 2026-11-24** by `timeframe.bar_admitted` (step between `indicator` and `leaves` in `databar_processing`), RED→GREEN, R72. |
 | §8 | `Subject(ChartPushRequest)` inside a `Msg` payload | **OPEN** — app layer still `todo`; must be settled in 03-01, and this file is the reference for why |
 | §9 | what was NOT wrong | recorded deliberately, so no later reader mistakes this file for a claim that everything hy4-flash wrote was wrong. It was not. It was **structurally wrong in a way that behaviour-only review cannot see** |
 | §10 | naming defects (`branch_stat`, `recognised_move`, the untyped triple, `move` meaning two things) | **fixed** (`ec79c64` R51, `339eee3` R52) |
