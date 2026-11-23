@@ -6490,6 +6490,8 @@ pub fn feed(
 
 **这一条留给 owner 再确认**：当 View 的结构表真要列 leaf 时，leaf 该以什么形状被列出——字段对（只带本 bar 结算的那一对）还是 list（历史）。**今天不影响实现**：Phase 03 的 chart 发布路径只读 `databar_list` 与 identity，不读 leaf。
 
+**【已结清 — R63，2026-11-23】** owner 当面裁定：**暂时用 field**，可回退（逐字 *"暂时可以这样做，今后需要再改回 list 也可以"*）。见 **R63**（并附一条重要更正：现有 `_settled` 字段是「本 bar 结算的 leaf」，不是「最后那个 leaf」，两者不能共用一个 field）。
+
 ### 3. "各层按自己的节奏更新"对写回链的含义
 
 owner 说各层 *"are updated to their own paces"*。落点：**一根 bar 只让一条链上的四个节点被替换**，其余原样不动——
@@ -6643,3 +6645,85 @@ assert list.drop(s2.candle_pv, 1) == s1.candle_pv   // drop 一个头：O(1)
 R60 §2 说 view 不反复遍历；这条说的是**同一件事在测试与工具层也成立**：连"取列表里
 最老的东西"都不该用一次遍历去换。**"最新在前"不是一种排序口味，它是一个让"取更老的"
 变成 O(1) 的数据结构选择。**
+
+---
+
+## R63 — leaf 的形状定了：暂时用 field；「最后那个 leaf」与「本 bar 结算的 leaf」是两个事实；「长 leaf 列表」glibe 还没有（2026-11-23 owner 逐字）
+
+**owner 逐字**：*"我看了一下，如果用一个 field 记录最后那个 leaf 确实可以替代
+yin|yangleaf_list.first, 但是后续的研究只能局限于长 leaf 列表，短的就没有办法找回来了。
+暂时可以这样做，今后需要再改回 list 也可以。"*
+
+### 1. 裁定
+
+- **形状定了：field，不是 list（暂时）。** R59 §2 那个开放点**结清** —— 当 View 的结构表
+  真要列 leaf 时，用字段对，不用 list。
+- **退路是明写的**：owner 逐字 *"今后需要再改回 list 也可以"*。这不是让步，是**记录在案
+  的可回退路径**；将来任何一次"研究需要历史"都可以据此改回 list，不必重新论证。
+
+### 2. 但必须记清：现在的 field **不是**「最后那个 leaf」
+
+owner 的句子预设了一个"记录最后那个 leaf"的 field。**glibe 现在这两个 field 不是那个东西**：
+
+| | owner 句子里的 field | glibe 现有的 `yin_leaf_settled` / `yang_leaf_settled` |
+|---|---|---|
+| 装的什么 | **最近一次结算的 leaf**（任何一根 bar 上都有值） | **本 bar 结算的那个 leaf** |
+| 不结算的那根 bar | 仍是 `Some`（上一个） | **`None`** |
+| 能否替代 `leaf_list.first` | 能 | **不能** |
+
+实测依据：`leaves` 每根 bar 都把这两个字段覆写成 `yin_settled` / `yang_settled`，而
+`leaf.next_yin_leaf` 只在 leaf 死的那根 bar 返回 `Some`（`leaf.gleam:197-200` 逐字
+*"settled is `Some` only on the bar the leaf dies"*）。
+
+**两者不能共用一个 field。** `branches` 直接读 `timeframe.yin_leaf_settled` /
+`yang_leaf_settled`（`timeframe.gleam` 的 `branches`），拿它当**退役 leaf 的 corner**
+（辞旧迎新；glib `timeframe.gleam:398-412`）。若改成 sticky（记住最后一个），那么
+"只有 yang leaf 结算、yin leaf 没结算"的那根 bar 上，`branches` 会读到一个**过期的
+yin leaf**，用它的 corner 去开 branch —— 错的。glib 正是为此**不把它存成字段**，而是当
+var 直接递给 `branches`（逐字 *"nothing between here and there reads, stores or
+re-fetches them"*），并**实测**过从列表读 branch 会丢 branch（2024-01 丢 1/25、
+2021-05 丢 2/32）。
+
+**因此，今天的处置**：
+
+- 现有字段对 =「本 bar 结算的 leaf」，继续由 `branches` 独占读，**不动它**。
+- 「最近一次结算的 leaf」（能替代 `list.first` 的那个）是**另一个事实**。今天没有读者
+  （R26/R32：字段随真实消费方逐个落；C4 的结构表属后续阶段），**不加**。将来它要么有
+  自己的字段（**必须另起名字，不能借用 `_settled`**），要么回到 list（§1 的退路）。
+
+### 3. 一块还没有的东西：「长 leaf 列表」
+
+owner 说的"研究只能局限于长 leaf 列表"指 glib 的 `signif_yin_leaf_list` /
+`signif_yang_leaf_list`：
+
+- **谁算 significant**：结算时 `leaf_size >= branch_exit_leaf_size` 的 leaf
+  （glib `timeframe.gleam:574-593`，UC-51）。
+- **它的身份**：glib 逐字 *"**They are a record, not a mechanism**: `branches` does
+  **not** read them, and must not … **Until the AI work arrives, their only reader is a
+  test.**"*（`glib/timeframe.gleam:120-127`）—— **它就是给"AI 的活儿"准备的记录**，
+  正是 owner 说的研究素材。
+- **短命的 leaf 找不回来**：glib 2026-10-03 逐字 *"With no reader, the four lists
+  went"*（`glib/docs/NAMING.md:451`），只留 significant 那些。
+
+**glibe 现在没有这两个列表**：`Timeframe` 无 `signif_*_leaf_list`；R42 把
+`significant_leaf` 这个判定简化掉了。**`docs/RULINGS.md` 从未裁过这一条** —— R53 的
+审计表只写了"glib `timeframe.gleam` 内联（`significant_leaf` 被 R.42 简化掉）"
+（`:6065`）。**这是继承树里一处没有裁定的静默差异，如实登记。**
+
+**今天不动它**（R26/R32：无读者不加；C4「结构不画、只列表」的下半张表属后续阶段）。
+**但记着**：研究阶段来时，研究素材就是它 —— 届时三选一：恢复 glib 的 significant 列表、
+改用 owner 说的「最后那个 leaf」的 field、或改回完整 list。**这正是 owner 说的"今后需要
+再改回 list 也可以"。**
+
+### 4. 一处 map 不诚实（R57）的更正
+
+`Timeframe` 记录里的 `yin_leaf_settled` / `yang_leaf_settled` **原本没有任何字段级
+文档** —— 读记录的人看不出它是"本 bar 的事实"而不是"最后那个 leaf"。本轮补上字段级
+`///`：语义（`Some` 只在 leaf 死的那根 bar）、WRITER（`leaves`）、READER（`branches`）、
+以及**为什么它不能变成 sticky**（R47：文档要说清谁写谁读、值是什么）。
+
+### 5. Landing
+
+- `src/glibe/timeframe.gleam`：`yin_leaf_settled` / `yang_leaf_settled` 补字段级 `///`。
+- `docs/RULINGS.md`：本条 R63；R59 §2 加**结清注**（历史如实保留，不篡改）。
+- `docs/STATE.md`：当前节同步。

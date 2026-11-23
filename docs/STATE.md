@@ -4,8 +4,21 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-23 (最新 — Phase 03 完成：发布路径 + Dashboard + 接线；**全仓库零警告**；决策区 0 项)
+## 2026-11-23 (最新 — Phase 03 完成：发布路径 + Dashboard + 接线；**全仓库零警告**；leaf 形状已定（R63）；决策区 0 项)
 
+- **leaf 的形状已定（R63，owner 当面裁定）**：**暂时用 field，不用 list**，可回退
+  （逐字 *"暂时可以这样做，今后需要再改回 list 也可以"*）。R59 §2 的开放点**结清**。
+  - **一条重要更正**：现有 `yin_leaf_settled` / `yang_leaf_settled` 是「**本 bar 结算的
+    leaf**」（`Some` 只在 leaf 死的那根 bar），**不是**「最后那个 leaf」——所以它
+    **不能**替代 `leaf_list.first`。两者不能共用一个 field：`branches` 拿它当退役
+    leaf 的 corner，sticky 会让它读到过期 leaf（glib 为此把它当 var 直接递给 `branches`，实测从列表
+    读 branch 会丢 branch：2024-01 1/25、2021-05 2/32）。两个字段本轮补了字段级
+    `///`（R47/R57）。
+  - **一块还没有的**：「长 leaf 列表」= glib 的 `signif_*_leaf_list`（结算时
+    `leaf_size >= branch_exit_leaf_size` 的 leaf；glib 逐字 *"Until the AI work
+    arrives, their only reader is a test"*）——**glibe 没有**，R42 把
+    `significant_leaf` 简化掉了，且 RULINGS 从未裁过这一条（继承树里一处**没有裁定的
+    静默差异**）。今天不动（无读者），研究阶段来时三选一。
 - **Phase 03 完成（GDLTDD，本轮）**：`gleam build --warnings-as-errors` **退出码 0**
   —— **0 Todo + 0 unused**（Phase 03 开始时是 21 Todo + 57 unused）。
   `gleam test` **126 passed / 0 failures**；format/check/docs/export 全 0。
