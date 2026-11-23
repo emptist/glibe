@@ -6407,3 +6407,195 @@ PY
 R56 立的是"RED 必须被实测看到"；本条立的是"**状态声明必须与代码同真**"。
 两条合起来是同一件事的两面：**GDLTDD 的产物不只是代码，还包括一份可信的地图。**
 地图错了，代码再对也是侥幸 —— 而侥幸的代价，就是 owner 说的那一次归档重来。
+
+---
+
+## R58 — 发布的通道在接线处闭包捕获，不在每根 bar 的字段里；`Dynamic` 边界用 BEAM 原生 identity（2026-11-23 owner 触发点裁定 + 源码实测）
+
+**owner 逐字（本轮）**：*"view的update 跟且仅跟 working_databar_archived() 有关"*
+
+这条把 03-00 留下的 open_question #1（**"从 `update` 返回的命令如何携带 `Instance` 与归档 bar：专用发布进程 + 具名 `Subject`，还是在接线处闭包捕获？两案都需编译探针，不靠 prose 选择"**）定了下来。以下是探针与源码的结果。
+
+### 1. 权威依据：冻结 glib 的 `ingest.feed` 就是"接线处闭包捕获"
+
+`glib/src/glib/trading/ingest.gleam:57-71`：
+
+```gleam
+pub fn feed(
+  timeframe: Timeframe,
+  bar: SourceBar,
+  publish: fn(Timeframe) -> Nil,
+) -> Timeframe {
+  let #(closed, timeframe) = sourcebar_gate(timeframe, bar)
+  case closed {
+    None -> timeframe
+    Some(databar) -> databar_processing(timeframe, databar, publish)
+  }
+}
+```
+
+- **publish 是 owner 在组合根 baked 的闭包**，不是每根 bar 的字段（`glib/trading/live.gleam:79-83` 每次 feed 都新建一个闭包，baked 的是 symbol/interval）。
+- **它是管道步骤的参数**（`databar_processing(timeframe, databar, publish)`）—— 正是 R40-A「管道步骤的参数个数不限」。
+- owner 逐字（2026-10-25，`ingest.gleam:45-51` 引述）：*"不是采用MVC或者MVVM架构吗？无论在model还是view model都不应该需要View呀"* —— **模型不命名 View**。
+
+### 2. 裁定
+
+- **`SourceBarArrived` 不带 `publisher`。** 它是**纯数据**：`broker_id` / `symbol` / `interval` / `sourcebar`。
+  type-first（core §2.2）：一个每根 bar 都带、却恒定不变的 `Subject` 字段，是「可以错但形状正确」的值 —— 它可以携带一个死掉的通道，而**类型不会阻止**它。图省事把 app 级能力塞进每根 bar，是把能力当数据。
+- **`Subject(ChartPushRequest)` 在接线处创建一次，被 App 的 update 闭包捕获**：`runtime.app(publisher) -> App(Desk, Msg)`。
+  探针依据（源码）：`plushie.start(app, opts)` **在 App 构造之后**才创建 `Instance`（`plushie/plushie.gleam:191-279`，`Instance(supervisor:…, runtime: runtime_subject)` 在 `supervisor.start` 之后才构造）—— **Instance 无法在接线时捕获**；而 main 在构造 App **之前**就能建好 Subject —— **Subject 可以**。所以晚绑定的格子必须是 Subject，Instance 留在 publisher 进程手里。
+- **发布只发生在归档完成时**：`update` 自己跑 gate → processing → archive；**gate 拒绝 = 没有归档 = 不发布**；gate 通过 = 管道跑完 = 归档完成 = 发布（bar 取 `databar_list` head，C2）。
+  这样「view 的 update 跟且仅跟 `working_databar_archived()` 有关」是**由构造保证的**，不靠事后比对 head、不靠 dedup（SYSTEM_MODEL.md:1364「one writer, one door, no dedup」）。
+
+### 3. `Dynamic` 边界：BEAM 原生 identity，不是手写 codec（探针实测）
+
+03-01-PLAN 写的 `dynamic.from(payload)` / `dynamic.unsafe_coerce(data)` **在 gleam_stdlib 1.0.5 里不存在**（实测：全库无 `from`、无 `unsafe_coerce`；`gleam/dynamic.gleam` 只有 `classify`/`bool`/`string`/`float`/`int`/`bit_array`/`list`/`array`/`properties`/`nil`）。
+
+**探针（已跑、已删）**：`@external(erlang, "gleam_stdlib", "identity")` 双向 identity cast，把一个含 **opaque `BrokerId`、opaque `Symbol`、closed set `Interval`** 的 record 放进 `Dynamic` 再取回 —— **完整 round-trip，字段全等**。
+
+- 写：`to_dynamic(value: anything) -> Dynamic`（与 stdlib 自己的私有 `cast` 同形，`gleam/dynamic.gleam:97-99`）。
+- 读：**单态** `from_dynamic(data: Dynamic) -> Payload`（未绑定的返回类型变量不能用于 record 访问 —— 编译器原话 *"I don't know what type this is"*；所以每个 payload 一个 reader）。
+- **零手写 codec、零 string parser**（core §0/§2：已有 Gleam 值不需要 parser）；R47 由「同一个 kind、同一个模块写读」保证。
+
+### 4. 这一条同时关闭了审计 §8 的开放项
+
+`docs/how-hy4-flash-poluted-glibe.md` §8 记的开放项 —— **actor capability 混在 `Msg` payload 里** —— 由本条关闭：payload 变成纯数据，能力回到接线处。
+
+### 5. Landing
+
+`.planning/phases/03-app-view/03-01-PLAN.md` 已按本条改写（Task 1 / Task 3）；实现按 GDLTDD 走 doc-first → RED → GREEN。
+
+---
+
+## R59 — 模型的形状：Desk ▸ Broker ▸ Instrument ▸ Timeframe，各层按自己的节奏更新（2026-11-23 owner 逐字）
+
+**owner 逐字**：*"this system model (only one)Desk -> (at least two values of) Broker -> (at least one) Account + (at least 2 values of ) Instrument -> (any compond of different interval of ) Timeframe -> working_databar_archived() so you see a live Desk of Broker dict, each Broker of Instrument dict, each Instrument of Timeframe dict and each Timeframe of databar_list, yin|yangleaf_list, yin|yangbranch_list, growing_yin|yangleaf, growing_yin|yangbranch, and working_databar_archived(), the are updated to there own paces. The View layer will update with the model."*
+
+### 1. 实测对照：glibe 的类型与这句描述
+
+| owner 说的 | glibe 实测 | |
+|---|---|---|
+| Desk（只有一个），装 Broker dict | `Desk(brokers: Dict(BrokerId, Broker))`（`desk.gleam`） | ✅ |
+| Broker 装 Instrument dict + Account | `Broker(instruments: Dict(Symbol, Instrument), accounts: Dict(AccountId, Account))`（`broker.gleam:40-41`） | ✅ |
+| Instrument 装 Timeframe dict（按 interval 复合） | `Instrument(timeframes: Dict(Interval, Timeframe))`（`instrument.gleam`） | ✅ |
+| Timeframe 装 databar_list / yin\|yang branch_list / growing_yin\|yang leaf / growing_yin\|yang branch / working_databar | `databar_list`、`yin_branch_list`/`yang_branch_list`、`growing_yin_leaf`/`growing_yang_leaf`、`growing_yin_branch`/`growing_yang_branch`、`working_databar`（`timeframe.gleam:120-131`） | ✅ |
+| Timeframe 装 **yin\|yang leaf_list** | **`yin_leaf_settled` / `yang_leaf_settled`（各一个 `Option(DataLeaf)`，不是 list）** | ⚠️ 见 §2 |
+
+### 2. 一处两段 owner 表述的出入（登记，不独断）
+
+- owner **2026-10-28** 逐字裁定了**字段对，不是 list**：glib `docs/NAMING.md:451` 逐字 *"~~`yin_leaf_list` / `yang_leaf_list`~~ — **removed 2026-10-03** … With no reader, the four lists went"*；`docs/reference/timeframe-settled-leaf-2026-10-28.md:115` 逐字 *"**A field pair, not two lists** (leaf law 4: settling and being listed are two different facts … never put into a list to be fetched back)"*。glibe 现在的 `_settled` 字段对**就是这条裁定的落地**。
+- owner **今天**（2026-11-23）在整体形状的概括里写的是 `yin|yangleaf_list`。
+
+**处置**：按 **10-28 的逐字裁定**执行（字段对），因为那一条是**针对这个具体问题**的裁定，而今天这句是**整体形状的概括**。**不擅自加 field**：R26/R32 说字段随真实消费方逐个落，而今天没有任何读者读 leaf 集合（C4「结构不画、只列表」的下半张表属于后续阶段）。
+
+**这一条留给 owner 再确认**：当 View 的结构表真要列 leaf 时，leaf 该以什么形状被列出——字段对（只带本 bar 结算的那一对）还是 list（历史）。**今天不影响实现**：Phase 03 的 chart 发布路径只读 `databar_list` 与 identity，不读 leaf。
+
+### 3. "各层按自己的节奏更新"对写回链的含义
+
+owner 说各层 *"are updated to their own paces"*。落点：**一根 bar 只让一条链上的四个节点被替换**，其余原样不动——
+
+```
+Desk.brokers[id]        ← 只换这一个 key
+  Broker.instruments[sym] ← 只换这一个 key
+    Instrument.timeframes[iv] ← 只换这一个 key
+      Timeframe  ← 整条被算过一遍
+```
+
+这正是 glibe 现有的四对读写函数各自做的事（R50：「函数跟着它读写的 Dict 的持有者走」）：
+`desk.get_broker`/`put_broker`、`broker.get_instrument`/`put_instrument`、
+`instrument.get_timeframe`/`put_timeframe` —— 每对**只替换自己那一层的那一个 key**，
+**不是**整份 Desk 重建。`app/runtime.gleam` 的 `step` 因此必须逐层调用**各自的**那一对，
+不得拿一份新 Desk 覆盖回去。
+
+### 4. "The View layer will update with the model"
+
+View 跟着 model 走 ⇒ **View 的更新由 model 的变化驱动**，不是由"一根 bar 到达"驱动。这与 C1 一致（view 的 update 跟且仅跟 `working_databar_archived()` 有关），也是 R58 那条裁定在本层的落点：发布请求在**归档完成**处产生，而不是在"bar 到达"处产生。
+
+---
+
+## R60 — view 就是 view：模型的东西不进 view、不在 view 里重算；`Dynamic` 不滥用；不用 Python（2026-11-23 owner 逐字）
+
+**owner 逐字（四条）**：
+1. *"gleam-thinking-core tells you be careful with dynamic, it should never be abused, always detect if there should be a type to be defined"*
+2. *"and check how try_plushie did, it might be wrong in some area (use separate apps for windows) but it has many correct approaches too."*
+3. *"极为重要的是，view就是单纯的view，不要把任何model中的list拿过去，更不要再view里面反复遍历计算，概算的东西都在model里面了。"*
+4. *"禁止在任何情况下使用Python！只会干扰，没有任何可取之处。"*
+
+### 1. try_plushie 的对与错（逐条核对，不整体照抄）
+
+| try_plushie 的做法 | 判定 | 依据 |
+|---|---|---|
+| **每图一个 App**（三次 `plushie.start`） | ❌ **错** | 三套独立 renderer（每个 App 一个 supervisor/runtime/renderer）；官方多窗口是**一次 start + `view -> List(window)`**（`plushie/app.gleam:70-76`）。glibe 用**一个 App**，多图是同一 App 里的稳定 ID widget |
+| **`push` 时只翻译这一根 bar 的 shapes，不遍历累积 list** | ✅ **对，本条采用** | `try_plushie/src/fusion_view.gleam:139-157` 逐字 *"THE ONLY input: one archived bar in. The package generates exactly this bar's SpecShapes; we translate only those now and prepend the results. **No accumulated list is traversed.**"* |
+| **`view` 只做 O(1) 组装**（四个数据层各自包一个 affine group） | ✅ **对，本条采用** | `fusion_view.gleam:159-172` 逐字 *"**O(1) assembly of the six canvas layers.** … No `list.map` over accumulated shapes happens here — that work moved to `push`."* |
+| **计数用 carried count，不用 `list.length`** | ✅ **对，本条采用** | `fusion_view.gleam` 的 `chart_len(chart)` 读 chart 自带的计数 |
+| **具名邮箱在 main 建一次，传给 App 与 serve** | ✅ **对，本条采用** | `try_plushie/src/window_switch.gleam:44-48` 逐字 *"建 switcher 的具名邮箱。必须在 main 里建一次、传给三个 App 和 serve——名字是全局唯一的 Erlang atom，不能在各进程里重复 new_name（会耗尽 atom 表）。"*；同文件逐字 *"跨进程协调用 BEAM 原生具名进程（OTP），不是 plushie 协议能力缺口。"* |
+| **view 里拿 model 的 list** | ❌ **错** | 与 owner 第 3 条直接冲突，本条不采用 |
+
+### 2. 裁定：view 是纯投影
+
+- **view 不携带 model 的任何 list。** bar 的历史在 widget state 里（chart 库自己持有生成的 shapes，不持调用方的 bar list —— `bar_stream_chart/README.md` 的设计规则）；branch/leaf 的列表属于结构的下半张表（C4），不在这条路径上。
+- **view 不重复遍历计算。** 形状在 **push 时**就生成并翻译好（`bar_stream_chart.push_generating`，`src/bar_stream_chart.gleam:362`，其 doc 逐字 *"An adapter translates ONLY `generated` at push time and stores the result, so `view` never re-translates the accumulated list."*）；view 只取 `frame` 的仿射并把**已翻译好的层**各包一个 affine group（O(1)）。
+  ⇒ **`dashboard.push_one` 必须用 `push_generating` 而不是 `push`**：`push` 丢弃了 `generated`（`src/bar_stream_chart.gleam:398-403`），于是 view 只能调 `shapes/3` 重新包裹整个累积 list —— **每帧 O(n)**，正是 owner 禁止的那种反复遍历。
+- **概算在 model 里。** 计数、幅度、时长等都在 model/图表状态里算好；view 只组装。
+
+### 3. `Dynamic` 不滥用：本项目的边界与理由
+
+`Dynamic` 在 glibe 只出现在**一处**：plushie 的 `WidgetEvent.CustomWidget(kind, target, value, data)` 的 `data` 字段（`plushie/event.gleam:230`）——**那是 SDK 既成的 catch-all 槽位，不是我们选的形状**。
+
+- **该有的 type 都有**：`SourceBarArrived`、`ChartPushRequest`、`ChartIdentity`、`WireKind` 都是具名 type（core §2.1）。
+- **读之前先认 kind**：同一个模块写、同一个模块读（R47），所以没有第二个答案可以对不上。
+- **没有手写 codec**：`bar_stream_chart`/`SourceBar` 这样的既有 Gleam 值不需要 parser（core §0/§2）；另一种写法（`dynamic.properties` + `decode.field` 的字段 codec）会造出 `SourceBar` 的**第二套编码**，更坏。
+- **不用 `Dynamic` 装领域类型**：glibe 的领域类型没有一个是 `Dynamic`。
+
+### 4. 不用 Python
+
+**裁定**：脚本与文本改写不用 Python。用 shell（`grep`/`sed`/`awk`）与编辑工具。
+
+**理由是实测的**：用 Python 按区间批量删函数时，块边界算错，**咬掉了 `leaves` 与 `bars_listed` 的函数头**——靠 `git checkout` 找回。同类事故还有一次：增量编译缓存供应旧二进制，让"还原后"仍显示变异的失败，差点把一个真缺陷误判成通过。**Python 在这个仓库里只带来过事故。**
+
+---
+
+## R61 — 文本改写用 `ed` / `awk`，不用行号盲删；不用 Python（2026-11-23 owner 提问 + 实测）
+
+**owner 逐字**：*"awk是不是可以用于编辑？我忘记了，更古老的也是安全的unix命令是ed，不知道你会不会，也不知道mac有没有"*
+
+### 1. 本机实测（`command -v` + 版本）
+
+| 工具 | 路径 | 备注 |
+|---|---|---|
+| `awk` | `/usr/bin/awk` | `awk version 20200816`（one-true-awk） |
+| `ed` | `/bin/ed` | BSD 版：`ed [-] [-sx] [-p string] [file]` |
+| `ex` | `/usr/bin/ex` | 同族 |
+| `sed` | WorkBuddy 沙箱的 **toybox 0.8.13** | **既不是 BSD sed 也不是 GNU sed** —— 这解释了 `-i ''` 的行为差异（toybox 的 `-i` 与 GNU 一样吃紧贴的后缀，不吃单独的 `''`） |
+| `python3` | `~/.workbuddy/binaries/…` | **不用**（owner 2026-11-23 逐字禁止；R60 §4） |
+
+**ed 存在且可用**，实测通过（按内容操作，不依赖行号）：
+
+```sh
+ed -s file <<'EOF'
+g/KEEP_ME/d
+w
+q
+EOF
+```
+
+### 2. 裁定：改写一律**按内容**，不按行号
+
+**事故的真正原因不是"用了 Python"，是"按行号盲删"**。用 Python 按区间批量删函数时，块边界算错，咬掉了 `leaves` 与 `bars_listed` 的函数头 —— 那次若换成行号盲删的 sed，一样会咬。**行号是快照，会因为任何一次 `gleam format` 重排而失效。**
+
+三种安全做法（都实测过）：
+
+| 做法 | 命令 | 为什么安全 |
+|---|---|---|
+| **按内容删**（首选） | `ed -s f` 配 `g/REGEX/d` | 不依赖行号；正则命中什么就删什么 |
+| **按内容重写 + 原子替换** | `awk '!/REGEX/' f > f.new && mv f.new f` | 同上，且替换是原子的（不会半个文件） |
+| **两步法**（改前必做） | 第一步 `awk '/REGEX/{print "将删除: " $0}' f` 只**打印**候选 → 人工确认 → 第二步才写 | 把"看"和"写"分开 |
+
+**禁**：按行号区间批量删改（`sed -i '82,97d'` 这类），除非当场打印过该区间并确认。
+
+### 3. 已发生的两次事故（都记在这里，作为纪律的由来）
+
+1. **行号盲删**：Python 按区间删函数，边界算错，删掉 `leaves` / `bars_listed` 的函数头 —— 靠 `git checkout` 找回。
+2. **缓存冒充真相**：增量编译供应旧二进制，"还原后"仍显示变异的失败，差点把一个**真缺陷**误判成通过。清 `build/dev` 后才对。
+   ⇒ **任何"结果与预期不符"的场合，顺序是：先排除缓存 → 再怀疑工具 → 最后才怀疑被测代码。**
