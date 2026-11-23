@@ -7369,3 +7369,47 @@ R74 后 glibe 的缺口更新（无 main / 无输入边界）、编译探针（`
 
 ### Landing
 - `docs/threading-model-comparison.md`（顶部声明 + §6.1）、本条。
+
+---
+
+## R77 — main + DEMO 数据源落地：app 真正能启动、bar 能进 chart（2026-11-24；owner「没做好就继续做，做好就运行看图」）
+
+**owner 指令**：*"没做好就继续做，做好就运行看图"*。核对发现：04-01 门禁全绿，但
+**从"能运行看图"看没做好**——`src/glibe.gleam` 只有 `start()`，无 `main`，
+`gleam run` 报 "Module does not have a main function"；且零输入边界，chart 无 bar。
+
+### 边界（不臆造 provider）
+R26 真实 provider 是开放集，不造。新增 `src/glibe/demo_feed.gleam` —— **明确标注
+DEMO**：纯函数生成 60 根确定性 `SourceBarOneMinute`（三角波 OHLC，全部过
+`sourcebar.validate` / `single_bar_test`），只为把 App 跑起来看到 chart，
+不是数据接入、不是假 provider。R28：它写标准 SourceBar，不碰 provider wire。
+
+### 落地（GDLTDD，终点 GREEN 代码）
+1. `demo_feed`：`////` 命名 03-03-PLAN + 类型 + `///` + 3 个 `todo` → WAE 骨架门
+   RED（Todo + unused）→ `test/demo_feed_test.gleam` 3 个 RED（合法 OHLC / 数量 /
+   确定性，132 passed + 3 failures）→ GREEN **135 passed**。`fmax/fmin`（Gleam
+   float 无 max）、`list.range` 不存在 → 改尾递归 `bars_from_to`。
+2. `src/glibe.gleam`：`feed_sourcebar(instance, broker, symbol, interval, bar)`
+   + `main()`。`main` 用 `case start()`（不 panic）→ Ok 时 spawn 一个 feed 进程逐根
+   `dispatch_event(wire.sourcebar_event(...))`（间隔 120ms 让 renderer 逐帧画）→
+   `process.sleep_forever()` 保活（renderer 是独立 OS 进程，主线程退出会带走它）。
+   **R58 更正**：feed helper 不带 publisher 参数——channel 由 App update 闭包捕获、
+   payload DATA ONLY（03-03-PLAN 早期签名带 Subject 已作废）。`plushie.start(`
+   生产代码仍恰好 1 处（ONE App, R60）。
+
+### 实测（诚实）
+- 全门禁：format / check / docs / export 0，**WAE 0**，**135 passed**。
+- `gleam run`（借 try_plushie 的 renderer + `PLUSHIE_BINARY_PATH`）：App 启动成功
+  （`Running glibe.main`）、进程常驻、60 根 bar 注入期间 **stdout/stderr 零错误**。
+- **沙箱无法截 GUI 图**（`screencapture` → "could not create image from display"，
+  `ps`/`qlmanage` 被 sandbox 拒）。故另走真实管线出图：临时测试把 60 根 demo bar
+  经 **真 `sourcebar_gate` → `databar_processing`（真 O(1) 指标）→ `data_bar_to_chart_bar`
+  → `bar_stream_chart.shapes()`** 的 IR 翻成 SVG → `artifacts/glibe_demo_chart.svg`
+  （63 KB；182 rect / 354 path / 8 transform group；61 红涨 + 61 绿跌蜡烛，中国
+  conventions 红涨绿跌）。临时 SVG 生成测试跑完即删，未留生产代码。
+
+### Landing
+- `src/glibe/demo_feed.gleam`（新）、`test/demo_feed_test.gleam`（新）、
+  `src/glibe.gleam`（`main` + `feed_sourcebar`）、`artifacts/glibe_demo_chart.svg`（真实渲染图）、
+  `docs/STATE.md`、本条。
+- 软链 `build/plushie/bin/plushie-renderer` → try_plushie 的二进制（生成物，不提交）。

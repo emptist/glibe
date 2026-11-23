@@ -4,7 +4,21 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-24（最新 — Phase 04 / 04-01：五门禁实测全 0，0 Todo；R75/R76 分析盘点纪律）
+## 2026-11-24（最新 — R77：main + DEMO 数据源落地，app 能启动、bar 能进 chart；真实管线出图）
+
+- **owner 指令**：*"没做好就继续做，做好就运行看图"*。04-01 全绿但从"能运行看图"看
+  没做好——无 `main`、零输入边界。按 GDLTDD 补齐（见 R77）：
+  - `src/glibe/demo_feed.gleam`（新，DEMO 非真 provider）：纯函数生成 60 根确定性合法
+    `SourceBarOneMinute`；`test/demo_feed_test.gleam` 3 测试 RED→GREEN。
+  - `src/glibe.gleam`：`feed_sourcebar` + `main()`（case start 不 panic、逐根 dispatch、
+    sleep_forever 保活）。`plushie.start(` 生产仍恰好 1 处。
+- **门禁**：format/check/docs/export 0，**WAE 0**，**135 passed**（132 + 3 demo_feed）。
+- **运行实测**：`gleam run` 启动成功、常驻、60 根 bar 注入零错误。沙箱无法截 GUI 图，
+  故用真管线（gate→processing→chart.shapes）出 `artifacts/glibe_demo_chart.svg`
+  （63 KB，61 红涨+61 绿跌蜡烛），即本轮"图"。
+- **边界**：R26 provider 开放集不臆造；demo 明确标注只为跑起来看图。
+
+## 2026-11-24（Phase 04 / 04-01：五门禁实测全 0，0 Todo；R75/R76 分析盘点纪律）
 
 - **04-01 Task 1（已执行，真实退出码，2026-11-24 06:xx）**。先 `rm -rf build/dev` 清缓存，
   再按 PLAN 顺序逐个跑、退出码不经 pipe 掩盖：

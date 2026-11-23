@@ -36,11 +36,18 @@
 //// means (R33), and the model is the one Desk.
 
 import gleam/erlang/process.{type Name, type Subject, named_subject, new_name}
+import gleam/io
+import gleam/list
 import gleam/result
+import glibe/api/interval.{IntervalOneMinute}
+import glibe/api/sourcebar.{type SourceBar}
+import glibe/api/symbol
 import glibe/app/publish
 import glibe/app/runtime
 import glibe/app/wire
+import glibe/demo_feed
 import glibe/desk
+import glibe/id
 import plushie
 
 /// The publish channel's name. A NAME, not a subject: the publisher runs in its
@@ -82,4 +89,61 @@ pub fn start() -> Result(plushie.Instance(desk.Desk), plushie.StartError) {
     })
   let _ = process.register(publisher, name)
   Ok(instance)
+}
+
+/// Inject ONE standard SourceBar into the ONE App. R47 readers/writers: main
+/// writes the identity triple + bar into a `SourceBarArrived`; `app/wire.gleam`
+/// is the only writer of that wire kind and `app/message.gleam` reads it into
+/// the closed Msg; `runtime.update` consumes it. The publish channel is NOT
+/// carried here — it is captured by the App's update closure at wiring time
+/// (R58), exactly as frozen glib bakes its `publish` closure at composition.
+pub fn feed_sourcebar(
+  instance: plushie.Instance(desk.Desk),
+  broker_id: id.BrokerId,
+  symbol_name: symbol.Symbol,
+  bar_interval: interval.Interval,
+  sourcebar: SourceBar,
+) -> Nil {
+  plushie.dispatch_event(
+    instance,
+    wire.sourcebar_event(wire.SourceBarArrived(
+      broker_id: broker_id,
+      symbol: symbol_name,
+      interval: bar_interval,
+      sourcebar: sourcebar,
+    )),
+  )
+}
+
+/// The executable entry point: start the ONE App, feed it a DEMO bar stream
+/// so the Dashboard chart can actually be seen, and keep the BEAM node alive
+/// (the renderer is a separate OS process; without a blocked main the node
+/// would exit and take it down — same reason try_plushie calls
+/// `process.sleep_forever`). DEMO data only: R26 leaves the real provider set
+/// open, and `demo_feed` is plainly not a real source.
+pub fn main() -> Nil {
+  case start() {
+    Error(err) -> io.println_error(plushie.start_error_to_string(err))
+    Ok(instance) -> {
+      let demo_broker = id.string_to_broker_id("demo-broker")
+      let demo_symbol = symbol.string_to_symbol("BTCUSD")
+      // One feed process: inject bars oldest-first with a short pause so the
+      // renderer shows each new bar. It holds the Instance; dispatch_event is
+      // a plain process.send and is safe from any process.
+      let _feed =
+        process.spawn(fn() {
+          list.each(demo_feed.demo_sourcebars(60), fn(bar) {
+            feed_sourcebar(
+              instance,
+              demo_broker,
+              demo_symbol,
+              IntervalOneMinute,
+              bar,
+            )
+            process.sleep(120)
+          })
+        })
+      process.sleep_forever()
+    }
+  }
 }
