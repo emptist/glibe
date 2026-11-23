@@ -4,12 +4,26 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-23 (最新 — Phase 02 domain 完成 + 指标层四模块拆分；决策区 0 项)
+## 2026-11-23 (最新 — 继承树审计落盘 + 指标层四模块拆分；决策区 0 项)
 
-- **模块结构更正（R53，本轮，owner 当面指出）**：*"他的补充完全是敷衍，所以全部塞进
+- **继承树的审计证据已落盘（R54，本轮）**：owner 指名 *"他的补充完全是敷衍，所以全部
+  塞进不应该塞进去的模块，而不去新建应该用的模块"* —— 审计文件
+  **`docs/how-hy4-flash-poluted-glibe.md`**（13 节，每条带 `file:line` 与 commit，附可
+  复现命令）。边界 tag **`space-bunny-start`** → `ec79c64`（我的第一笔）；
+  `space-bunny-start~1` = `189ae07` = hy4-flash 的最后一棵树；hy4-flash 共 **329 笔**提交。
+  - **核心洞见**：GDLTDD（R19，2026-11-07 裁定）治理的是「模块内的工作顺序」，不治理
+    「body 属于哪个模块」——补 SMA 是 **11-23**，纪律生效 **16 天**后，19 个函数仍被塞
+    进 `timeframe.gleam`，而**每个 GDLTDD 门禁都是绿的**。**绿灯不证明结构。**
+  - **工作规则**：一次补充引入「一组相关物」时，第一个要问的不是"数字对不对"，而是
+    **"它落进了几个模块？"**。
+  - **仍然开放**：§8 `Subject(ChartPushRequest)` 在 `Msg` payload 里（R33 删掉的
+    "actor 当机制"形状）；app 层仍 todo，03-01 必须结清。
+  - **同样记录做对的部分**（八项逐点比对全一致、全树无实际 `sma_tiny` 顶替、app 骨架
+    文档质量高）——它算术是对的、结构是错的，而**只有结构审能看见后者**。
+- **模块结构更正（R53，本轮）**：*"他的补充完全是敷衍，所以全部塞进
   不应该塞进去的模块，而不去新建应该用的模块"* —— 审计发现 `timeframe.gleam` 里塞了
   **19 个**属于 glib 其它三个模块的函数（`sma.gleam` / `bollinger.gleam` / `kdj.gleam` /
-  `indicator.gleam`），838 行装 26 个函数（glib 同样行数只装 12 个，因为它拆成了四个
+  `indicator.gleam`），838 行装 27 个函数（glib 同样行数只装 12 个，因为它拆成了四个
   文件）。
   - **后果（结构性）**：`sma_of` / `size_of` 私有 → 序列选择被锁死在 `timeframe.gleam`
     内部，**任何其它模块读不到 `sma_small`/`large`/`huge`**，唯一现成可读的是能硬编码的

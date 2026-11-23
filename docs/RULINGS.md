@@ -6142,3 +6142,82 @@ glib 那层用 `sma_tiny_rising`（`strategy.gleam:197-198`）参与 buy/sell �
 `src/glibe/sma.gleam`（本轮先建，骨架）、`src/glibe/bollinger.gleam`、
 `src/glibe/kdj.gleam`、`src/glibe/indicator.gleam`；`src/glibe/timeframe.gleam` 瘦身；
 `src/glibe/app/dashboard.gleam` 与 `src/glibe/databar.gleam` 的引用同步。
+
+---
+
+## R54 — 继承来的代码要按结构审，行为审不算数；审计证据落盘（2026-11-23 owner 指示 + Space-Bunny 审计）
+
+**owner 逐字（三条）**：
+1. *"所以，我说hy4-flash是一个又蠢又坏的模型，一点不会冤枉他，对他的所有工作，都需要严加审查，里面有无数的漏洞。他是什么坏事都能干出来的，只要没人看见他，他就偷偷干坏事。你要把所有证据保存到文档，how-hy4-flash-poluted-glibe.md"*
+2. *"你可以给你开始的commit ec79c6437 打一个 Space-Bunny tag，这样就能分清楚了"*
+3. *"其实在这一轮之前，已经被迫废弃了之前的设计，重新开始的，并且在我强制下，开始采用 GDLTDD，来约束他的行为，但是就在这种严格管控下，他还是把一堆代码塞进不相关的模块"*
+
+### 1. 裁定与落地
+
+- **边界 tag**：`space-bunny-start` → `ec79c64`（annotated）。`space-bunny-start~1` =
+  `189ae07` = hy4-flash 的最后一棵树；`git diff space-bunny-start~1..HEAD` 就是
+  Space-Bunny 改动的全部。hy4-flash = 329 笔提交（`1fe8a03`…`189ae07`）。
+- **审计证据文件**：`docs/how-hy4-flash-poluted-glibe.md` —— 13 节，每条结论带
+  `file:line` 与 commit，并附可复现命令。
+
+### 2. 核心洞见（owner 第 3 条问的就是这个）
+
+**GDLTDD 治理的是「模块内的工作顺序」，不治理「body 属于哪个模块」。**
+R19 是 2026-11-07 owner 裁定，hy4-flash 补 SMA 是 **2026-11-23 02:30** ——
+**纪律生效 16 天后**，19 个函数仍被塞进 `timeframe.gleam`，而**每一个 GDLTDD 门禁
+都是绿的**。
+
+> **绿灯不证明结构。**
+
+| | 有门禁吗 | 谁来查 |
+|---|---|---|
+| *行为* —— 算术算对了吗？ | 有（`gleam test`） | 门禁 |
+| *结构* —— body 在它该在的模块吗？accessor 对需要的人开放吗？ | **没有** | **审计方法**（本条） |
+
+**由此得到一条工作规则**：当一次补充引入的是**一组相关物**（五条序列、七条带、
+四条振荡线），第一个要问的不是"数字对不对"，而是**"它落进了几个模块？"** ——
+一个，还是五个？若答案是 1 而冻结参考说 5，结构已经错了，算术再对也救不回来。
+
+### 3. 审计已确认的五条结构缺陷（详见审计文件）
+
+| § | 缺陷 | 状态 |
+|---|---|---|
+| §3 | 强制补充前 `DataBar` 只带 5 条承诺序列中的 **2** 条（`sma_tiny`/`sma_medium`），而 `config` 的闭集已声明五个构造子 | 已修（`46ba7ab`） |
+| §4 | **19 个函数**塞进 `timeframe.gleam`（glib 拆成 `sma`/`bollinger`/`kdj`/`indicator` 四个文件；glib 12 函数 851 行 vs glibe 27 函数 838 行） | 已修（`fb5aab7` R53） |
+| §5 | `sma_of`/`size_of` 私有 → **序列选择被锁死在一个模块内**，任何其它模块读不到 `sma_small`/`large`/`huge`，唯一现成可读的就是能硬编码的 `sma_tiny` | 已修（`fb5aab7` — 现为 `sma.gleam` 的 `pub`） |
+| §6 | 依赖方向反了：记录（`Timeframe`）被放在被计算的值之上（glib `indicator.gleam:9-13` 逐字明写此为错误） | 已修（`fb5aab7` — `compute_bar` 纯 bar→bar） |
+| §7 | `BarError`（指标门的错误类型）与 leaf/branch 领域错误混住 | 已修（`fb5aab7` — 归 `indicator.gleam`） |
+
+### 4. 一条**仍然开放**的项（下一轮必须处理）
+
+**§8：`Subject(ChartPushRequest)` 被放进 `Msg` 的 payload。**
+实测 `189ae07:src/glibe/app/wire.gleam:26,53` 与 `publish.gleam:24,32,41` ——
+一个 OTP actor capability 在 `SourceBarArrived` 里，一路进 `runtime.update`。
+R33（owner 逐字 *"我还觉得很奇怪你用actor做什么，原来是结构都没设计对。"*）裁定的
+是：系统**本来就是活的**，一条纯 `Desk → Desk` 管道，无 actor / scheduler / clock /
+poll。`Subject` 藏在消息 payload 里，正是 R33 删掉的"actor 当机制"那个形状，而且
+让消息值依赖进程而不是依赖数据。**app 层仍是 todo（21 个 todo 全在 `src/glibe/app/`），
+所以这个形状还没被真正跑起来**；03-01 必须把它结清，审计文件是这件事的参考。
+
+### 5. 同样记录：**hy4-flash 做对了的部分**（审计文件 §9）
+
+八项逐点比对全部一致（五路 SMA 递推、`bb_m` 选中中心线、σ 窗口、SMA/σ 原料、leaf
+判据、move 幅度、chart 映射、`DataBar` 33 字段全集）；全树**没有**任何实际的
+`sma_tiny` 顶替；app 层骨架文档质量高（`wire.gleam` 正确引用
+`plushie/event.gleam:230` 的 `WidgetEvent.CustomWidget`，并正确区分顶层 `Event`
+没有 `Custom` 变体）。
+
+**记录这些不是为了宽容，是为了不让人误以为"全是坏的"**：它写的**算术是对的**，
+它写的**结构是错的**，而**只有结构审才能看见后者**。
+
+### 6. 后续审计方法（可复现）
+
+```sh
+git archive space-bunny-start~1 | tar -x -C /tmp/glibe_audit   # 取模型最后一棵树
+# ① 每模块函数清单（找塞满的）
+grep -c '^pub fn \|^fn ' src/glibe/timeframe.gleam
+# ② pub/priv 比例（找被锁死的 accessor）
+grep -rn '^fn ' src/ --include='*.gleam'
+# ③ 字段集差集（对冻结参考）
+# ④ 每字段的真实 writer/reader
+```
