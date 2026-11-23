@@ -80,15 +80,13 @@
 //// DataBar, the leaf-death criterion, the branch_exit_leaf_size, the decision
 //// rule), all recorded in `docs/PENDING_DECISIONS.md` R.5. None invented.
 
-import gleam/float
-import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
-import gleam/result
 import glibe/api/sourcebar.{type SourceBar, type SourceBarRejection} as sb
 import glibe/branch.{type DataBranch}
 import glibe/config.{type IntervalSettings}
 import glibe/databar.{type DataBar}
+import glibe/indicator
 import glibe/leaf.{type DataLeaf}
 import glibe/trading/signal
 
@@ -195,376 +193,39 @@ pub fn databar_processing(
 /// window sizes / KDJ periods / band multiplier from `config.gleam` (R46: a
 /// pipe-call argument, not a field on this record).
 ///
-/// Three O(1) recurrences, ported from the frozen glib source
-/// (`sma.gleam:60-89`, `bollinger.gleam:123-186`, `kdj.gleam:15-139`):
-/// SMA carries its mean and adds the arriving close / subtracts the one
-/// leaving (never a full-window fold); σ carries a Welford M2 state and does
-/// the same; KDJ caches the window extremes and rescans only when the leaving
-/// bar was an extreme. No `Σx²−(Σx)²/n`, no per-bar window walk.
+/// This is the pipeline's THIN ADAPTER; the arithmetic lives in
+/// `indicator.gleam` — the module that owns it (owner 2026-11-23: *"他的补充
+/// 完全是敷衍，所以全部塞进不应该塞进去的模块，而不去新建应该用的模块"*;
+/// frozen glib `indicator.gleam` is its own file and glib's `timeframe.gleam`
+/// calls it the same way, `glib/timeframe.gleam:369-379`).
+///
+/// The step keeps the pipeline shape `fn(Timeframe, ...extra) -> Timeframe`
+/// (R40 / R40-A / R41, owner 逐字 2026-11-12 — *"整个流程的在databar
+/// processing 内部的主体就是一个简单的gleam经典：timeframe |> function1 |>
+/// function2 …"*), so the shape stays compiler-enforced; the pure computation
+/// stays in a module that never names the record (glib `indicator.gleam:9-13`:
+/// *"a function that names the record cannot leave the record"*).
 ///
 /// The COMPLETE frozen-glib indicator set (owner 2026-11-23: *"所有技术指标，
 /// glib有的，你不能残缺不全"*), in the exact order of glib
-/// `indicator.gleam:35-54`:
-///   1. all five SMA series (tiny/small/medium/large/huge) — `sma_series_stream`;
-///   2. `bb_m` = `sma_of(working, settings.sma_for_bbm)` — the SELECTED centre,
-///      never a hard-coded `sma_medium` (glib `indicator.gleam:45`); week and
-///      month select small/tiny, which is now possible because the bar carries
-///      all five series;
-///   3. Welford σ over that centre's OWN span — `size_of(settings,
-///      settings.sma_for_bbm)` (glib `bollinger.gleam:165`);
-///   4. all seven Bollinger lines — `band` + `write_band`; the lower edge is
-///      floored BEFORE the 0.618/0.382 interpolation (glib
-///      `bollinger.gleam:199-246`);
-///   5. KDJ — `kdj_stream`: cached-extreme RSV, K/D/J and M (glib
-///      `kdj.gleam:15-72`).
-///
-/// Every recurrence is O(1): add-arriving/subtract-leaving (SMA, M), a Welford
-/// M2 state (σ), cached-extreme amortised rescan (KDJ). No `Σx²−(Σx)²/n`, no
-/// per-bar window walk.
+/// `indicator.gleam:35-54` — see `indicator.gleam` for the list and for the
+/// O(1) argument of each recurrence.
 pub fn indicator(
   timeframe: Timeframe,
   settings: IntervalSettings,
 ) -> Timeframe {
   case timeframe.working_databar {
     None -> timeframe
-    Some(working) -> {
-      let settled = timeframe.databar_list
-      // 1. All five SMA series — each an O(1) add-arriving / subtract-leaving
-      //    recurrence carried on its own field (glib indicator.gleam:40-44).
-      let working =
-        sma_series_stream(working, settled, settings, config.SmaTiny)
-      let working =
-        sma_series_stream(working, settled, settings, config.SmaSmall)
-      let working =
-        sma_series_stream(working, settled, settings, config.SmaMedium)
-      let working =
-        sma_series_stream(working, settled, settings, config.SmaLarge)
-      let working =
-        sma_series_stream(working, settled, settings, config.SmaHuge)
-      // 2. bb_m is the SELECTED centre, never recomputed (glib
-      //    indicator.gleam:45). σ spans that centre's own window (glib
-      //    bollinger.gleam:165): week/month select small/tiny, now possible
-      //    because the bar carries all five series.
-      let bb_m = sma_of(working, settings.sma_for_bbm)
-      let #(sigma, sigma_state) =
-        sigma_stream(working, settled, size_of(settings, settings.sma_for_bbm))
-      // 3. All seven Bollinger lines, lower edge floored then interpolated.
-      let lines = band(bb_m, sigma, settings.bb_multiplier)
-      let working = write_band(working, lines, sigma_state)
-      // 4. KDJ — cached-extreme RSV, K/D/J and the O(1) rolling mean M.
-      let bar = kdj_stream(working, settled, settings)
-      Timeframe(..timeframe, working_databar: Some(bar))
-    }
-  }
-}
-
-/// The streaming mean over ANY raw field — the one recurrence behind all five
-/// SMA series AND KDJ's M (glib `sma.gleam:60-89` / `kdj.gleam:55-63`).
-/// `raw_of` reads the value to average, `read_mean` the previous bar's carried
-/// mean, `write_mean` writes the new one. Invertible: add the arriving value,
-/// subtract the one that left — no fold over the window, no `Σx²` trick.
-/// `settled` is newest-first and does NOT include `working`; `size` includes
-/// the bar in hand.
-fn sma_stream(
-  working: DataBar,
-  settled: List(DataBar),
-  size: Int,
-  raw_of: fn(DataBar) -> Float,
-  read_mean: fn(DataBar) -> Float,
-  write_mean: fn(DataBar, Float) -> DataBar,
-) -> DataBar {
-  let arriving = raw_of(working)
-  case list.split(settled, size - 1) {
-    // Nothing settled (or a span of one): the mean is the bar's own value.
-    #([], _) -> write_mean(working, arriving)
-    // Fewer settled than the span: none has left; divide by bars held.
-    #([previous, ..] as held, []) -> {
-      let divisor = int.to_float(list.length(held))
-      let mean =
-        { divisor *. read_mean(previous) +. arriving } /. { divisor +. 1.0 }
-      write_mean(working, mean)
-    }
-    // Full window: add the arriving value, subtract the one that left.
-    #([previous, ..], [leaving, ..]) -> {
-      let divisor = int.to_float(size)
-      let mean =
-        { divisor *. read_mean(previous) +. arriving -. raw_of(leaving) }
-        /. divisor
-      write_mean(working, mean)
-    }
-  }
-}
-
-/// One SMA series: a moving average of `close` written to the named field.
-/// Thin wrapper binding `sma_stream` to that field's accessors — the five
-/// calls in `indicator` differ only in `name` (glib `sma.sma_series:94-108`).
-fn sma_series_stream(
-  working: DataBar,
-  settled: List(DataBar),
-  settings: IntervalSettings,
-  name: config.SmaSeries,
-) -> DataBar {
-  sma_stream(
-    working,
-    settled,
-    size_of(settings, name),
-    fn(b) { b.close },
-    fn(b) { sma_of(b, name) },
-    fn(b, v) { set_sma_of(b, name, v) },
-  )
-}
-
-/// Read the named SMA series off a bar (glib `sma.sma_of:18-26`).
-fn sma_of(bar: DataBar, name: config.SmaSeries) -> Float {
-  case name {
-    config.SmaTiny -> bar.sma_tiny
-    config.SmaSmall -> bar.sma_small
-    config.SmaMedium -> bar.sma_medium
-    config.SmaLarge -> bar.sma_large
-    config.SmaHuge -> bar.sma_huge
-  }
-}
-
-/// Write the named SMA series onto a bar (glib `sma.set_sma_of:29-37`).
-fn set_sma_of(bar: DataBar, name: config.SmaSeries, value: Float) -> DataBar {
-  case name {
-    config.SmaTiny -> databar.DataBar(..bar, sma_tiny: value)
-    config.SmaSmall -> databar.DataBar(..bar, sma_small: value)
-    config.SmaMedium -> databar.DataBar(..bar, sma_medium: value)
-    config.SmaLarge -> databar.DataBar(..bar, sma_large: value)
-    config.SmaHuge -> databar.DataBar(..bar, sma_huge: value)
-  }
-}
-
-/// The named series' window, in bars (glib `sma.size_of:40-48`).
-fn size_of(settings: IntervalSettings, name: config.SmaSeries) -> Int {
-  case name {
-    config.SmaTiny -> settings.sma_tiny_window_size
-    config.SmaSmall -> settings.sma_small_window_size
-    config.SmaMedium -> settings.sma_medium_window_size
-    config.SmaLarge -> settings.sma_large_window_size
-    config.SmaHuge -> settings.sma_huge_window_size
-  }
-}
-
-/// Welford moving-window σ over the closes. Returns σ and the carried state
-/// #(n, mean, m2) to store on the bar for the next one (glib
-/// `bollinger.gleam:160-186`). `sigma_add` then the inverse `sigma_remove`
-/// keeps the window sliding in O(1) without materialising it (UC-63).
-fn sigma_stream(
-  working: DataBar,
-  settled: List(DataBar),
-  size: Int,
-) -> #(Float, #(Int, Float, Float)) {
-  let #(n, mean, m2) = case list.first(settled) {
-    Ok(b) -> #(b.sigma_n, b.sigma_mean, b.sigma_m2)
-    Error(_) -> #(0, 0.0, 0.0)
-  }
-  let #(an, amean, am2) = sigma_add(n, mean, m2, working.close)
-  let state = case n >= size {
-    True -> {
-      let leaving = case list.drop(settled, size - 1) |> list.first {
-        Ok(b) -> b.close
-        Error(_) -> working.close
-      }
-      sigma_remove(an, amean, am2, leaving)
-    }
-    False -> #(an, amean, am2)
-  }
-  let sigma = case state.0 {
-    0 -> 0.0
-    _ ->
-      result.unwrap(
-        float.square_root(float.max(0.0, state.2 /. int.to_float(state.0))),
-        0.0,
+    Some(working) ->
+      Timeframe(
+        ..timeframe,
+        working_databar: Some(indicator.compute_bar(
+          working,
+          timeframe.databar_list,
+          settings,
+        )),
       )
   }
-  #(sigma, state)
-}
-
-/// The one artificial floor on the lower edge, as a FRACTION of the centre —
-/// glib `bollinger.gleam:121`. A fraction (not a fixed constant) cannot invert
-/// the band order at any price: bb_l3 becomes `1e-6·bb_m`, below bb_m whatever
-/// bb_m is, and the inner lines are convex blends of that edge and the basis.
-pub const band_floor_ratio: Float = 0.000001
-
-/// The seven Bollinger lines from the centre and σ (glib
-/// `bollinger.gleam:199-225`). The lower edge is floored BEFORE interpolation,
-/// so one floor suffices and `l3 ≤ l2 ≤ l1 ≤ m ≤ u1 ≤ u2 ≤ u3` holds by
-/// construction. The inner lines blend edge and basis at 0.382 / 0.618.
-fn band(
-  bb_m: Float,
-  sigma: Float,
-  width: Float,
-) -> #(Float, Float, Float, Float, Float, Float, Float) {
-  let bb_u3 = bb_m +. width *. sigma
-  let raw_l3 = bb_m -. width *. sigma
-  // The floor is ordinary traffic, not a guard: the raw edge is at or below
-  // zero on ~3% of glib's own bars (bollinger.gleam:205-206).
-  let bb_l3 = case raw_l3 <=. 0.0 {
-    True -> bb_m *. band_floor_ratio
-    False -> raw_l3
-  }
-  #(
-    bb_m,
-    bb_u3,
-    bb_l3,
-    0.618 *. bb_u3 +. 0.382 *. bb_m,
-    // bb_u2
-    0.382 *. bb_u3 +. 0.618 *. bb_m,
-    // bb_u1
-    0.382 *. bb_l3 +. 0.618 *. bb_m,
-    // bb_l1
-    0.618 *. bb_l3 +. 0.382 *. bb_m,
-    // bb_l2
-  )
-}
-
-/// Write all seven lines plus the σ state onto the working bar (glib
-/// `bollinger.set_bband:232-246`).
-fn write_band(
-  bar: DataBar,
-  lines: #(Float, Float, Float, Float, Float, Float, Float),
-  state: #(Int, Float, Float),
-) -> DataBar {
-  databar.DataBar(
-    ..bar,
-    bb_m: lines.0,
-    bb_u3: lines.1,
-    bb_l3: lines.2,
-    bb_u2: lines.3,
-    bb_u1: lines.4,
-    bb_l1: lines.5,
-    bb_l2: lines.6,
-    sigma_n: state.0,
-    sigma_mean: state.1,
-    sigma_m2: state.2,
-  )
-}
-
-fn sigma_add(n: Int, mean: Float, m2: Float, x: Float) -> #(Int, Float, Float) {
-  let next = n + 1
-  let delta = x -. mean
-  let next_mean = mean +. delta /. int.to_float(next)
-  let delta2 = x -. next_mean
-  #(next, next_mean, m2 +. delta *. delta2)
-}
-
-fn sigma_remove(
-  n: Int,
-  mean: Float,
-  m2: Float,
-  x: Float,
-) -> #(Int, Float, Float) {
-  let next = n - 1
-  let delta = x -. mean
-  let next_mean = mean -. delta /. int.to_float(next)
-  let delta2 = x -. next_mean
-  #(next, next_mean, m2 -. delta *. delta2)
-}
-
-/// KDJ on the working bar, ported from glib `kdj.gleam:15-72`: RSV from
-/// cached extremes (amortised O(1) rescan only when the leaving bar WAS an
-/// extreme), then K/D/J rolling with one alpha seeded at 50, then M: the O(1)
-/// rolling mean of this bar's freshly computed K over `kdj_m_period`.
-fn kdj_stream(
-  working: DataBar,
-  settled: List(DataBar),
-  settings: IntervalSettings,
-) -> DataBar {
-  let #(highest, h_idx, lowest, l_idx) =
-    rsv_extrema(working, settled, settings.kdj_window_size)
-  let rsv = case highest -. lowest <=. 0.0001 {
-    True -> 50.0
-    False -> { working.close -. lowest } /. { highest -. lowest } *. 100.0
-  }
-  let alpha = 1.0 /. int.to_float(settings.kdj_k_period)
-  let #(prev_k, prev_d) = case list.first(settled) {
-    Ok(b) -> #(b.k, b.d)
-    Error(_) -> #(50.0, 50.0)
-  }
-  let k = { 1.0 -. alpha } *. prev_k +. alpha *. rsv
-  let d = { 1.0 -. alpha } *. prev_d +. alpha *. k
-  let j = 3.0 *. k -. 2.0 *. d
-  // K/D/J are written BEFORE M, because M reads this bar's freshly computed K
-  // (glib kdj.gleam:46-63). M is the rolling mean of K over kdj_m_period, the
-  // same O(1) sma_stream recurrence — no array mean, no window walk.
-  let bar =
-    databar.DataBar(..working, k: k, d: d, j: j)
-    |> sma_stream(
-      settled,
-      settings.kdj_m_period,
-      fn(b) { b.k },
-      fn(b) { b.m },
-      fn(b, v) { databar.DataBar(..b, m: v) },
-    )
-  databar.DataBar(
-    ..bar,
-    kdj_h: highest,
-    kdj_h_idx: h_idx,
-    kdj_l: lowest,
-    kdj_l_idx: l_idx,
-  )
-}
-
-/// The cached highest-high / lowest-low of the window ending at `working` and
-/// the idx of each (glib `kdj.gleam:79-114`). If the bar leaving the window is
-/// not a cached extreme, only the new bar is folded in; otherwise one rescan.
-fn rsv_extrema(
-  working: DataBar,
-  settled: List(DataBar),
-  w: Int,
-) -> #(Float, Int, Float, Int) {
-  let #(prev_h, prev_h_idx, prev_l, prev_l_idx) = case list.first(settled) {
-    Ok(b) -> #(b.kdj_h, b.kdj_h_idx, b.kdj_l, b.kdj_l_idx)
-    Error(_) -> #(working.high, working.idx, working.low, working.idx)
-  }
-  let leaving_idx = working.idx - w
-  case leaving_idx == prev_h_idx || leaving_idx == prev_l_idx {
-    True -> rescan_window(working, settled, w)
-    False -> {
-      let h_idx = case working.high >. prev_h {
-        True -> working.idx
-        False -> prev_h_idx
-      }
-      let l_idx = case working.low <. prev_l {
-        True -> working.idx
-        False -> prev_l_idx
-      }
-      #(
-        float.max(prev_h, working.high),
-        h_idx,
-        float.min(prev_l, working.low),
-        l_idx,
-      )
-    }
-  }
-}
-
-/// The rare path: rescan the bar in hand plus the `w - 1` settled bars before
-/// it (glib `kdj.gleam:119-139`, `batch_window`). O(w) only when an extreme
-/// left the window; this is the amortised-rescan path, NOT the banned per-bar
-/// full-window recompute.
-fn rescan_window(
-  working: DataBar,
-  settled: List(DataBar),
-  w: Int,
-) -> #(Float, Int, Float, Int) {
-  list.take(settled, w - 1)
-  |> list.fold(
-    #(working.high, working.idx, working.low, working.idx),
-    fn(acc, b) {
-      let h_idx = case b.high >. acc.0 {
-        True -> b.idx
-        False -> acc.1
-      }
-      let l_idx = case b.low <. acc.2 {
-        True -> b.idx
-        False -> acc.3
-      }
-      #(float.max(acc.0, b.high), h_idx, float.min(acc.2, b.low), l_idx)
-    },
-  )
 }
 
 /// Step: `YinLeaf` / `YangLeaf` recognition; a settled leaf is written into
@@ -761,65 +422,6 @@ pub fn working_databar_archived(timeframe: Timeframe) -> Timeframe {
         bar,
         ..timeframe.databar_list
       ])
-  }
-}
-
-/// Why `indicator.single_bar_test` refused a bar — glib
-/// `indicator.gleam:80-82`. Names the two bands that broke the strict order
-/// and the bar they broke it on, so a failure points at a bar to inspect.
-pub type BarError {
-  BandOutOfOrder(lower: Float, upper: Float, idx: Int)
-}
-
-/// The runtime check on the bar `indicator` produced (glib
-/// `indicator.gleam:84-103`, UC-60): the seven bands are strictly ordered
-/// l3 ≤ l2 ≤ l1 ≤ m ≤ u1 ≤ u2 ≤ u3. A sign bug in σ or an interpolation error
-/// breaks one of the six adjacent pairs; so does a NaN (every comparison
-/// against NaN is false). Returns the first broken pair instead of crashing,
-/// so one bad bar cannot abort a whole census.
-pub fn single_bar_test(bar: DataBar) -> Result(Nil, BarError) {
-  let pairs = [
-    #(bar.bb_l3, bar.bb_l2),
-    #(bar.bb_l2, bar.bb_l1),
-    #(bar.bb_l1, bar.bb_m),
-    #(bar.bb_m, bar.bb_u1),
-    #(bar.bb_u1, bar.bb_u2),
-    #(bar.bb_u2, bar.bb_u3),
-  ]
-  case list.find(pairs, fn(pair) { !ordered(pair.0, pair.1) }) {
-    Ok(pair) -> Error(BandOutOfOrder(pair.0, pair.1, bar.idx))
-    Error(_) -> Ok(Nil)
-  }
-}
-
-/// The printed form of a refusal — glib `indicator.gleam:106-116`.
-pub fn bar_error_text(error: BarError) -> String {
-  case error {
-    BandOutOfOrder(lower, upper, idx) ->
-      "bands out of order on bar "
-      <> int.to_string(idx)
-      <> ": "
-      <> float.to_string(lower)
-      <> " should be at most "
-      <> float.to_string(upper)
-  }
-}
-
-/// Band ordering tolerant of float representation, not of a bug (glib
-/// `indicator.gleam:132-135`). Bands mathematically equal can differ by one
-/// unit in the last place and land on the wrong side of `<=.`; the slack is
-/// one part in a billion of the band's own size, so a whole-sigma inversion
-/// still fails.
-fn ordered(lower: Float, upper: Float) -> Bool {
-  let slack = float_max(float.absolute_value(upper) *. 1.0e-9, 1.0e-12)
-  lower <=. upper +. slack
-}
-
-/// `gleam/float` has no `max` — glib `indicator.gleam:138-143`.
-fn float_max(a: Float, b: Float) -> Float {
-  case a >=. b {
-    True -> a
-    False -> b
   }
 }
 

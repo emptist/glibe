@@ -15,6 +15,7 @@ import gleam/time/timestamp
 import gleeunit
 import glibe/config
 import glibe/databar.{type DataBar}
+import glibe/indicator
 import glibe/leaf
 import glibe/timeframe
 import glibe/trading/signal
@@ -335,8 +336,8 @@ pub fn single_bar_test_rejects_out_of_order_bands_test() {
       bb_u2: 6.0,
       bb_u3: 7.0,
     )
-  assert timeframe.single_bar_test(ordered) == Ok(Nil)
+  assert indicator.single_bar_test(ordered) == Ok(Nil)
   let broken = databar.DataBar(..ordered, bb_m: 9.0)
-  assert timeframe.single_bar_test(broken) != Ok(Nil)
+  assert indicator.single_bar_test(broken) != Ok(Nil)
   Nil
 }
