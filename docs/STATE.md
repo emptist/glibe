@@ -4,7 +4,16 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-24（最新 — R77：main + DEMO 数据源落地，app 能启动、bar 能进 chart；真实管线出图）
+## 2026-11-25（最新 — R78：假数据改为真实 Binance REST 实时拉取）
+
+- **owner 逐字**：*"不要在乱搞了，老老实实做数据源连接获取真实时数据"*。上一节 R77 的 `demo_feed` 三角波只跑通了管线，**不是数据源、不算实时数据驱动**；owner 判定不合格。已改为真实 REST。
+- **实测端点**：`api.binance.com` / `api-gcp.binance.com` 本机超时；`data-api.binance.vision` 直连 + 代理均 HTTP 200、时间戳为当前挂钟。Gleam `httpc` 直连拉到真实 body；`decode.field(0..7)` 可解 kline 数组（Erlang 侧限前 8 元素）。
+- **新增 GDLTDD**：`src/glibe/binance/rest.gleam`（`decode_klines` 纯 + 真实响应钉测、`fetch_klines` 唯一 IO 边界、`interval_to_binance_string` 9 变体、`RestError` 域类型）+ `test/binance_rest_test.gleam`（5 测 RED→GREEN）；`src/glibe/live_feed.gleam`（`newer_than`/`advance_boundary` 纯筛 + `pump` 递归轮询，boundary 作参数，失败重试不回退假数据）+ `test/live_feed_test.gleam`（4 测 RED→GREEN）。计划 `.planning/phases/05-live-feed/05-01-PLAN.md`。
+- **main 改接**：`src/glibe.gleam` 的 `main` 从 `demo_feed` 改为 `live_feed.run(... BTCUSDT, IntervalOneMinute)`；`demo_feed` 退出 live path（仅剩自身孤立测试）。`plushie.start(` 生产仍恰好 1 处。
+- **门禁**：format / check / docs 0、**WAE 0**、**144 passed**。端到端实测 fetch 拉到 5 根实时 bar（`Timestamp(1795543920,0)`，真实 OHLCV）——非合成。
+- **边界**：R28 REST 数组形状 ≠ `binance/kline` 12 字段记录，不合并；R27 epoch-ms 在边界折时间戳；R23/R37 interval 由调用方给定；R33 历史+实时一条流。
+
+## 2026-11-24（R77：main + DEMO 数据源落地，app 能启动、bar 能进 chart；真实管线出图）
 
 - **owner 指令**：*"没做好就继续做，做好就运行看图"*。04-01 全绿但从"能运行看图"看
   没做好——无 `main`、零输入边界。按 GDLTDD 补齐（见 R77）：

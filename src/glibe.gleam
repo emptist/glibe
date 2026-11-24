@@ -37,7 +37,6 @@
 
 import gleam/erlang/process.{type Name, type Subject, named_subject, new_name}
 import gleam/io
-import gleam/list
 import gleam/result
 import glibe/api/interval.{IntervalOneMinute}
 import glibe/api/sourcebar.{type SourceBar}
@@ -45,9 +44,9 @@ import glibe/api/symbol
 import glibe/app/publish
 import glibe/app/runtime
 import glibe/app/wire
-import glibe/demo_feed
 import glibe/desk
 import glibe/id
+import glibe/live_feed
 import plushie
 
 /// The publish channel's name. A NAME, not a subject: the publisher runs in its
@@ -115,33 +114,25 @@ pub fn feed_sourcebar(
   )
 }
 
-/// The executable entry point: start the ONE App, feed it a DEMO bar stream
-/// so the Dashboard chart can actually be seen, and keep the BEAM node alive
-/// (the renderer is a separate OS process; without a blocked main the node
-/// would exit and take it down — same reason try_plushie calls
-/// `process.sleep_forever`). DEMO data only: R26 leaves the real provider set
-/// open, and `demo_feed` is plainly not a real source.
+/// The executable entry point: start the ONE App, then drive it from the
+/// LIVE Binance REST feed — real BTCUSDT one-minute klines, fetched from
+/// `data-api.binance.vision` on startup and polled thereafter (R33: history
+/// and live are ONE stream, both through the same `feed_sourcebar` wire
+/// event). No synthetic data: a failed fetch is logged and retried, never
+/// papered over with a generated bar. The renderer is a separate OS process,
+/// so main blocks on `sleep_forever` to keep the BEAM node alive (same reason
+/// try_plushie blocks). The feed runs in its own process; it holds the
+/// `Instance` and `dispatch_event` is a plain process.send, safe from any
+/// process.
 pub fn main() -> Nil {
   case start() {
     Error(err) -> io.println_error(plushie.start_error_to_string(err))
     Ok(instance) -> {
-      let demo_broker = id.string_to_broker_id("demo-broker")
-      let demo_symbol = symbol.string_to_symbol("BTCUSD")
-      // One feed process: inject bars oldest-first with a short pause so the
-      // renderer shows each new bar. It holds the Instance; dispatch_event is
-      // a plain process.send and is safe from any process.
+      let broker = id.string_to_broker_id("binance")
+      let symbol_name = symbol.string_to_symbol("BTCUSDT")
       let _feed =
         process.spawn(fn() {
-          list.each(demo_feed.demo_sourcebars(60), fn(bar) {
-            feed_sourcebar(
-              instance,
-              demo_broker,
-              demo_symbol,
-              IntervalOneMinute,
-              bar,
-            )
-            process.sleep(120)
-          })
+          live_feed.run(instance, broker, symbol_name, IntervalOneMinute)
         })
       process.sleep_forever()
     }

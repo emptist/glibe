@@ -7413,3 +7413,20 @@ DEMO**：纯函数生成 60 根确定性 `SourceBarOneMinute`（三角波 OHLC�
   `src/glibe.gleam`（`main` + `feed_sourcebar`）、`artifacts/glibe_demo_chart.svg`（真实渲染图）、
   `docs/STATE.md`、本条。
 - 软链 `build/plushie/bin/plushie-renderer` → try_plushie 的二进制（生成物，不提交）。
+
+## R78 — 假数据不是数据源：改为真实 Binance REST 实时拉取（2026-11-25 owner 逐字；已 GREEN）
+
+**owner 逐字**：*"不要在乱搞了，老老实实做数据源连接获取真实时数据"*；*"如果你做的不但不如glib 还不是一个试验app try_plushie,连实时数据驱动都没有，还要你有屁用"*。此前 `demo_feed` 三角波只为跑通管线，owner 明确判定这不是数据源、不算实时数据驱动——我承认：合成数据是我图省事的替代，不是 R26「provider 开放集」的正当实现，不该拿它交付。
+
+**实测（2026-11-25，内存探针，跑完即删）**：
+- `api.binance.com` / `api-gcp.binance.com` 从本机超时（HTTP 000）；`data-api.binance.vision` 直连与走代理均 **HTTP 200**，body 时间戳等于当前挂钟 —— 这是可达的官方公开行情主机。
+- Gleam `httpc.send(request.to(...))` 直连拿到真实 body（status 200），`gleam_json` + `decode.field(0..7)` 解出 kline 数组的 OHLCV。Erlang 侧 `decode.field` 只索引 Gleam list 前 8 元素，故读 0–7（open_time + OHLCV + close_time），字段 8–11 不臆造。
+
+**裁定**：
+- 真实数据源 `src/glibe/binance/rest.gleam`（新）：照冻结 glib `binance.gleam` 的 provider 自模块先例，`/api/v3/klines` 的原生形状是「数组的数组」，与 `binance/kline.gleam` 的 12 字段记录是两种形状，不合并（R28）。`decode_klines(payload, interval)` 纯、用真实捕获响应钉测；`fetch_klines(symbol, interval, limit)` 是唯一 IO 边界；`interval_to_binance_string` 列名 9 变体（R21/R13）；错误是域类型 `RestError`（R13）。
+- R27：epoch-ms 在 REST 边界折成绝对 `Timestamp`（glib `sourcebar.gleam:298` 同法）。R23/R37：interval 由调用方给定、命名标准变体，不作为字段塞进 bar。
+- `src/glibe/live_feed.gleam`（新）：`newer_than` / `advance_boundary` 纯筛（"频繁读取、有限采信"，BRIEF），boundary 作递归参数携带、无 mutation；`pump` 取真实窗口 → 过滤 → 经**同一** `wire.sourcebar_event` 注入 → 推进 boundary → sleep → 递归；失败 log + 重试，**绝不回退合成 bar**（R33 历史与实时一条流）。
+- `src/glibe.gleam` 的 `main` 从 `demo_feed` 改为 `live_feed.run(instance, binance, BTCUSDT, IntervalOneMinute)`；`plushie.start(` 生产仍恰好 1 处（R60）。`demo_feed` 从 live path 完全移除，仅剩自身孤立测试，不再是任何运行路径的数据源。
+- 计划 `.planning/phases/05-live-feed/05-01-PLAN.md`（新），模块 `////` 指向它（R19/R44）。
+
+**落地与门禁**：两个 RED→GREEN（`rest` 5 测、`live_feed` 4 测）；端到端 `fetch` 实测拉到 5 根实时 bar（`Timestamp(1795543920,0)` = 当时分钟，真实 OHLCV）。全门禁：format / check / docs 0、**WAE 0**、**144 passed**。
