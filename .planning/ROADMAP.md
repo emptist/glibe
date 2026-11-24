@@ -7,6 +7,7 @@ Re-baselined 2026-11-20. The old roadmap (`.planning-archived-2026-11-20/ROADMAP
 ## Milestones
 
 - ✅ **v1.0 BEAM core** — Phases 01–04 (complete 2026-11-24). Domain core + app MVU + view publish path + full gate green.
+- ✅ **v1.1 live data + working window** — Phases 05–06 (complete 2026-11-25). Real Binance REST feed replaces the fake data (05); the empty window root cause R82 is fixed and the chart interactions — zoom/pan/crosshair — are restored (06).
 
 ## Phases
 
@@ -14,6 +15,8 @@ Re-baselined 2026-11-20. The old roadmap (`.planning-archived-2026-11-20/ROADMAP
 - [x] **Phase 02: Domain stream completion** — DONE 2026-11-23: `timeframe`'s four steps and the `leaf`/`branch` helpers filled with O(1) stream bodies; deferred refinements recorded as R.5 history, not open gates.
 - [x] **Phase 03: App view publish path** — DONE 2026-11-23: the typed wire boundary, the publisher, `runtime.update`/`publish_request` (publishing only when the gate accepted, i.e. only after `working_databar_archived`), the Dashboard widget/view bodies (shapes translated at PUSH time; the view is O(1) assembly), and the composition root `src/glibe.gleam` (one `plushie.start`, one named channel, one publisher process). Gates: WAE 0 (0 Todo, 0 unused), 126 tests passed.
 - [x] **Phase 04: Full gate green** — DONE 2026-11-24 (04-01-SUMMARY): six gates re-measured at real exit 0 after a clean rebuild — `format --check` 0 · `check` 0 · `test` **132 passed** · `docs build` 0 · `export package-interface` 0 · `build --warnings-as-errors` 0 (0 Todo + 0 unused). All 7 `////` plan paths in source and generated interface resolve to this tree; zero archived paths.
+- [x] **Phase 05: Live feed** — DONE 2026-11-25 (05-01-SUMMARY): `binance/rest.gleam` (real kline fetch/decode from `data-api.binance.vision`) + `live_feed.gleam` (dedup + poll) drive the one app; the synthetic `demo_feed` is no longer in the live path. R78.
+- [x] **Phase 06: App interaction + self-review** — DONE 2026-11-25 (06-01/02/03-SUMMARY): systematic review (`docs/AUDIT-2026-11-25.md`) found the empty-window root cause (R82, chart_push target missing `dashboard#` scope) and that all chart interactions were dead. Fixed: scoped event routing (R82), wheel zoom / drag pan / keyboard nav / crosshair (06-01), synthetic feed deleted (06-02), honest runtime-tree evidence + docs aligned (06-03).
 
 ## Phase Details
 
@@ -52,6 +55,24 @@ Plans:
 Plans:
 - [x] 04-01 (DONE 2026-11-24, 04-01-SUMMARY): run all five gates; confirm `--warnings-as-errors` 0 warnings; verify `package-interface.json` links each module to its plan; no dangling design concepts in prose docs.
 
+### Phase 05: Live feed
+**Goal**: replace the synthetic triangle-wave feed with a real market data source.
+**Depends on**: Phase 03 (view path), Phase 04 (green gates).
+**Plans**: 1 plan.
+
+Plans:
+- [x] 05-01 (DONE 2026-11-25, 05-01-SUMMARY): `binance/rest.gleam` decodes real `/api/v3/klines` arrays into standard `SourceBar`s; `live_feed.gleam` seeds a 60-bar window and polls with timestamp dedup; `main` drives the one app from it. R78.
+
+### Phase 06: App interaction + self-review
+**Goal**: a systematic self-review (not owner-driven) finds and fixes the remaining app defects so the window is a working, interactive chart backed by honest evidence.
+**Depends on**: Phase 05 (real data), R82 (empty-window routing fix).
+**Plans**: 3 plans.
+
+Plans:
+- [x] 06-01 (DONE 2026-11-25, 06-01-SUMMARY): restore wheel zoom, drag pan, keyboard nav and crosshair in the chart widget (RED→GREEN, real-run crosshair 0→3). Audit B1.
+- [x] 06-02 (DONE 2026-11-25, 06-02-SUMMARY): delete the synthetic `demo_feed`; only the real live feed remains. Audit B3.
+- [x] 06-03 (DONE 2026-11-25, 06-03-SUMMARY): repeatable runtime-tree diag, remove the hand-made SVG, align ROADMAP. Audit B2/B4/B5.
+
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -60,5 +81,7 @@ Plans:
 | 2. Domain stream completion | 2/2 | Done | 02-01 + 02-02 done 2026-11-23; four timeframe steps + leaf/branch helpers filled with O(1) stream bodies |
 | 3. App view publish path | 3/3 | Done | 03-01 + 03-02 + 03-03 done 2026-11-23 (wire/publisher/runtime view bodies + composition root) |
 | 4. Full gate green | 1/1 | Done | 04-01 done 2026-11-24: six gates exit 0 (132 tests, WAE 0), all plan links resolve |
+| 5. Live feed | 1/1 | Done | 05-01 done 2026-11-25: real Binance REST klines drive the app; 147 tests, WAE 0 |
+| 6. App interaction + self-review | 3/3 | Done | 06-01/02/03 done 2026-11-25: zoom/pan/crosshair restored, demo_feed removed, honest runtime evidence; 149 tests, WAE 0 |
 
-All four phases complete (7/7 plans have a SUMMARY). Later post-roadmap work — R74 three-level birth, R75 threading comparison, R76 no-repeat-analysis rule — is recorded in `docs/RULINGS.md` / `docs/STATE.md`, not as new phases.
+All six phases complete (12/12 plans have a SUMMARY). R74–R82 (three-level birth, threading comparison, no-repeat-analysis, live REST, empty-window root cause, structure ownership) are recorded in `docs/RULINGS.md` / `docs/STATE.md`; the 2026-11-25 systematic review is `docs/AUDIT-2026-11-25.md`.

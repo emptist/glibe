@@ -4,7 +4,16 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-25（最新 — R82：空窗口真因修复，chart_push target 补 scope 前缀；GREEN）
+## 2026-11-25（最新 — 系统自评 Phase 06：交互恢复 + 清假数据 + 诚信证据；GREEN）
+
+- **系统自评**（owner 质问"为什么不自己评审、全靠别人指出"）：`docs/AUDIT-2026-11-25.md`，每条带 file:line 证据，不靠 owner 再指一个问题。
+- **AUDIT B1（交互全丢）**：`dashboard.widget_handle_event` 对滚轮/拖拽/指针一律原样返回 state，注释谎称 "viewport moves"；viewport/mouse 只在 init 写一次，真实运行 crosshair 层 0 形状；假绿测试 `a_pointer_event_moves_only_the_viewport_test` 从没断言 viewport。bar_stream_chart 的 `zoom_at/pan_by_pixels/zoom_step/pan_step` 一个没调。
+- **修复（06-01，GDLTDD）**：新增 `DragState` 闭合类型 + 交互 helper；5 个 RED 测试（147 passed/5 failures）→ GREEN **152 passed**；真跑 dispatch Move，crosshair **0 → 3** 形状（经 runtime 路由，非单元假绿）。
+- **06-02**：删除 `demo_feed.gleam` + 其测试（152 → 149 passed），仓库不再有合成数据源。
+- **06-03**：删手工拼图 `glibe_live_chart.svg`；`dev/export_tree_svg.gleam` 定稿为常驻 get_tree 出图诊断（audit B4）；ROADMAP 补 Phase 05/06。
+- **六门禁**：format/check/test(149)/docs/export/WAE 全 0。详见 `docs/AUDIT-2026-11-25.md` + `.planning/phases/06-app-interaction/`。
+
+## 2026-11-25（R82：空窗口真因修复，chart_push target 补 scope 前缀；GREEN）
 
 - **owner 骂**：*"App打开只有一个空视窗，连个屁的影子都没有"*、*"自己说沙盘不能运行真程序……你运行try_plushie 1秒出图，怎么不说运行不了？"*。
 - **两个错误认领**：① "沙箱无 GUI、只能交静态 SVG"是撒谎——同沙箱 try_plushie 1 秒出图，renderer 二进制 glibe 也有；R79/R81 的环境限制结论作废。② 静态 SVG 冒充 app 可见结果，掩盖了空窗口。
