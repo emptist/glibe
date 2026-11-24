@@ -8,8 +8,9 @@
 ////     renderers — and the official multi-window shape is ONE `start` whose
 ////     `view` returns several windows (`plushie/app.gleam:70-76`). glibe has
 ////     ONE App; many charts are stable-ID widgets inside its one window.
-////   - ONE publish channel, a **named** Subject, created here and handed to
-////     both the App and the publisher process.
+////   - ONE publish channel, a **named** Subject. Its name and subject are
+////     created by `app/publish.gleam` (the channel's owner, R50) and handed
+////     here to both the App and the publisher process.
 ////   - ONE publisher process: the ONLY holder of the plushie `Instance`.
 ////
 //// WHY THE CHANNEL IS NAMED (measured): a `process.new_subject()` is OWNED by
@@ -35,7 +36,7 @@
 //// global atom table. The data arrives from the providers by their own native
 //// means (R33), and the model is the one Desk.
 
-import gleam/erlang/process.{type Name, type Subject, named_subject, new_name}
+import gleam/erlang/process
 import gleam/io
 import gleam/result
 import glibe/api/interval.{IntervalOneMinute}
@@ -49,22 +50,6 @@ import glibe/id
 import glibe/live_feed
 import plushie
 
-/// The publish channel's name. A NAME, not a subject: the publisher runs in its
-/// own process, so the channel has to be reachable by name (see the module
-/// doc). Created ONCE here — a second `new_name` would burn another atom.
-pub type PublishName =
-  Name(wire.ChartPushRequest)
-
-/// The one publish channel's name.
-pub fn publish_name() -> PublishName {
-  new_name(prefix: "glibe.chart_push")
-}
-
-/// The publish channel, from its name.
-pub fn publish_channel(name: PublishName) -> Subject(wire.ChartPushRequest) {
-  named_subject(name)
-}
-
 /// Start the ONE app, and the ONE publisher process that turns its publish
 /// requests into targeted chart events.
 ///
@@ -76,8 +61,8 @@ pub fn publish_channel(name: PublishName) -> Subject(wire.ChartPushRequest) {
 ///      name** — so a later `process.send` finds it (no "unregistered name");
 ///   5. only then may a bar arrive.
 pub fn start() -> Result(plushie.Instance(desk.Desk), plushie.StartError) {
-  let name = publish_name()
-  let channel = publish_channel(name)
+  let name = publish.name("glibe.chart_push")
+  let channel = publish.channel(name)
   let app = runtime.app(channel)
   use instance <- result.try(plushie.start(app, plushie.default_start_opts()))
   let publisher =

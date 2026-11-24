@@ -7461,3 +7461,21 @@ DEMO**：纯函数生成 60 根确定性 `SourceBarOneMinute`（三角波 OHLC�
 1. **现状符合要求，本次不改代码**。core §11 明确「Do not fragment modules — especially common with AI-generated code」；owner 在 R42 删过我造的机制型模块 `engine.gleam` 和 grep 守卫。为"显得在做事"而切分模块正是被禁止的混放反面。R43「推敲=核验空架子」：核验后无缺口即停。
 2. **后续新建 module / type 的硬判据**（owner 这条的目的：降低后续维护成本）：先问「这个 type 跟谁读写的值走、属于哪一条归属关系」，答不出就不许新建；一个文件只能译成一条归属关系（R50 §4）；按业务域分组，绝不按 `types`/`utilities`/`services` 这类设计模式分组（core §5）；一个 type 只放它的定义与直接操作，跨层的读取放持有者模块。
 3. **不臆造问题**：没有 `file:line` 证据的"混放"不得上报、不得据此重构（owner「You shouldn't make up non-existing issues to waste my time anymore」，见 skill do_not）。
+
+## R81 — 结构审计的盲区：同一归属的函数跨文件散落（publish channel；2026-11-25 owner 骂醒后深挖；已 GREEN）
+
+**owner 逐字**：*"让你去检查模块和类型定义，居然要求用户帮你检查，帮你找到哪里不对，你是干什么的？"*；*"又坏又蠢的饭桶"*。上一轮我把检查推回给 owner（"你点名告诉我具体位置"），是推卸——检查是我的活。本轮我自己把全部 29 个模块的 type 定义逐个读透，不再粗看职责首行。
+
+**诚实认错：R80 的审计有盲区**。R80 只查了「一个文件里有没有混放不同类的 type」，结论"现状符合"是对的但**不完整**——它没查「同一条归属的函数是否被拆散到多个文件」。owner 骂醒后，本轮用 R50 §1 的 owner 原话 *"even if it is called, it should be defined in its belonging to module"* 逐条量，才找到下面这条。R80 结论不作废（那层确实无混放），R81 补上漏掉的这层。
+
+**真问题（有 file:line 证据，非臆造）**：publish 通道是一条归属关系，却被拆成两半——
+- `PublishName` / `publish_name()` / `publish_channel()` 在 `src/glibe.gleam`（原 55-66，composition root）；
+- `request()` / `serve()` / `task_tag()` 在 `src/glibe/app/publish.gleam`。
+
+`app/publish.gleam` 自己的模块文档（原 line 9/24-27）明说 "this module owns the typed Subject hop to it"、"The publisher runs in its OWN process, so the channel ... is a named subject"——文档声称拥有整条 channel，代码里 channel 的创建却在别的文件。改 publish 机制要看两个文件，正是 owner 说的"维护成本"。
+
+**修复（R50：函数跟着它读写的那条归属走）**：把 `PublishName` / `name(prefix)` / `channel(name)` 全部搬进 `app/publish.gleam`（与 `request`/`serve` 同文件）；顶层 `glibe.gleam` 的 `start()` 改用 `publish.name("glibe.chart_push")` / `publish.channel(name)`，删掉原三个定义与不再用的 `process` 具名 import；模块头文档同步（R42 不漂移）。改名 `name`/`channel` 是因调用方带模块前缀 `publish.` 已给出归属（R21）。**模块总数不变**——这是合并散落，不是 core §11 禁止的过度切分。
+
+**GDLTDD**：先把 `test/publish_test.gleam` 的 helper 改为 `publish.name` / `publish.channel` → RED（"does not have a `name` value"）；再搬代码 → GREEN。全门禁 format / check / docs 0、**WAE 0**、**146 passed**，无旧引用残留。
+
+**关于"运行看图"的诚实边界（不再钻死路）**：本轮实测 plushie 渲染器二进制可执行（`--json --help` 返回 hello），但以 `mode: windowed` 启动原生窗口，WorkBuddy 沙箱无 GUI 会话 → `bridge heartbeat timeout`。查 `plushie/testing.gleam` 确认 `PLUSHIE_TEST_BACKEND=headless` 是**测试用软件渲染后端**，不是给正式 app 出图的路径；继续折腾渲染器属于 owner 明令禁止的"乱搞"，停手。结论不变：真运行日志（`LIVE seed ...` / `LIVE 1 real bars ...`）证明实时驱动，真管线 SVG 是可交付的可见结果；活窗口只在有 GUI 的用户终端里出。

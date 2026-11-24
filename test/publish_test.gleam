@@ -190,8 +190,8 @@ fn a_registered_publisher() -> #(
   Subject(wire.ChartPushRequest),
   Subject(wire.ChartPushRequest),
 ) {
-  let publish_name = process.new_name(prefix: "glibe.test.chart_push")
-  let publish_subject = process.named_subject(publish_name)
+  let publish_name = publish.name("glibe.test.chart_push")
+  let publish_subject = publish.channel(publish_name)
   let collect_subject = process.new_subject()
   let pid =
     process.spawn(fn() {

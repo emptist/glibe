@@ -4,7 +4,15 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-25（最新 — R79：真运行实证实时驱动，找到并修复渲染重复 ID bug）
+## 2026-11-25（最新 — R81：结构审计盲区补漏，publish 归属合并到单文件；GREEN）
+
+- **owner 骂**：*"让你去检查模块和类型定义，居然要求用户帮你检查……你是干什么的？"*。上一轮我把检查推回给 owner，是推卸，本轮自己把 29 模块全部 type 逐个读透。
+- **R80 盲区**：R80 只查"一个文件有没有混放不同类 type"，漏了"同一归属的函数是否散落到多文件"。
+- **真问题（file:line 证据）**：publish 通道被拆两半——`PublishName`/`publish_name`/`publish_channel` 在顶层 `glibe.gleam`，`request`/`serve`/`task_tag` 在 `app/publish.gleam`；后者文档自称拥有整条 channel。改 publish 要看两个文件 = owner 说的"维护成本"。
+- **修复（R50）**：三个定义/函数搬进 `app/publish.gleam`（改名 `name(prefix)`/`channel(name)`），`start()` 改调 `publish.name`/`publish.channel`；模块头文档同步。模块总数不变（合并散落，非过度切分）。RED→GREEN，146 passed、WAE 0、无旧引用。
+- **run 看图边界**：实测渲染器二进制可执行但 `mode: windowed` 需 GUI 会话，沙箱无；`PLUSHIE_TEST_BACKEND=headless` 是测试软件渲染后端、不是正式 app 出图路径。停手不再钻（owner 禁"乱搞"）。
+
+## 2026-11-25（R79：真运行实证实时驱动，找到并修复渲染重复 ID bug）
 
 - **owner 指令**：*"运行我看下"*。真跑 `gleam run`（非仅门禁/SVG）才暴露门禁抓不到的问题。
 - **实时驱动实证**：日志 `LIVE seed 60 real bars, newest 2026-11-25T02:29:00+08:00`（启动拉真实窗口）+ 30s 后 `LIVE 1 real bars, newest 2026-11-25T02:30:00+08:00`（轮询抓到下一分钟收盘的新 bar 并注入）。这是真实数据驱动，非合成。

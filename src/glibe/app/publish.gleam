@@ -30,11 +30,30 @@
 //// the same chart cannot cancel each other (plushie cancels same-tag tasks).
 
 import gleam/dynamic
-import gleam/erlang/process.{type Subject}
+import gleam/erlang/process.{type Name, type Subject, named_subject, new_name}
 import gleam/int
 import plushie/command.{type Command}
 
 import glibe/app/wire
+
+/// The publish channel's name. A NAME, not a subject: the publisher runs in its
+/// own process, so the channel has to be reachable by name. Created ONCE by the
+/// composition root — a second `new_name` would burn another atom.
+///
+/// Owned here, with `channel` / `request` / `serve`: the whole publish channel
+/// is ONE ownership relation (R50), so changing it means editing ONE file.
+pub type PublishName =
+  Name(wire.ChartPushRequest)
+
+/// Create the one publish channel's name (once).
+pub fn name(prefix: String) -> PublishName {
+  new_name(prefix: prefix)
+}
+
+/// The publish channel, from its name.
+pub fn channel(publish_name: PublishName) -> Subject(wire.ChartPushRequest) {
+  named_subject(publish_name)
+}
 
 /// Turn one archived-bar request into a background command. The command's work
 /// is only a typed message send; decoding and event construction stay in main.
