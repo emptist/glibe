@@ -145,24 +145,27 @@ pub fn sourcebar_from_event(event: Event) -> Option(SourceBarArrived) {
   }
 }
 
-/// Build the targeted chart-push event. The EventTarget MUST equal the stable
-/// node ID produced by the view; a mismatch is a silent no-op (FINDINGS D).
+/// Build the targeted chart-push event. `EventTarget.id` MUST be the SCOPED
+/// widget id, not the bare stable id: plushie's normalize prefixes every widget
+/// under a window with `<window_id>#` (`plushie/tree.gleam:219 apply_scope`,
+/// window scope `"dashboard#"` at `:314`) and keys the widget registry with
+/// `widget_key(window_id, scoped_id)` (`widget.gleam:299-300`). Routing rebuilds
+/// `widget_key(target.window_id, target.id)` (`widget.gleam:478`); a bare id
+/// misses that key, so the event is Bypassed into `MsgEye` and the bar is
+/// silently dropped. `full` alone does NOT route — only `id` + `scope` do.
+///
+/// Found on a real `gleam run` + `get_tree` 2026-11-25: 10 real bars archived
+/// into the model but only ONE candle shape in the canvas — the empty window.
 pub fn chart_push_event(request: ChartPushRequest) -> Event {
-  let widget_id = chart_widget_id(request.identity)
+  let scoped_id =
+    dashboard_window_id() <> "#" <> chart_widget_id(request.identity)
   Widget(CustomWidget(
     kind: kind_string(WireChartPush),
     target: EventTarget(
       window_id: dashboard_window_id(),
-      id: widget_id,
-      // The chart widget is a DIRECT child of the one window, so its scoped
-      // id IS its own id — `plushie/widget.gleam:462-486` falls back to the
-      // target's own id when the scope is empty, and the registry keys it as
-      // `widget_key(window_id, node.id)` (`:375-407`).
+      id: scoped_id,
       scope: [],
-      // The canonical wire spelling. `event.make_target` is NOT used: it
-      // appends the window to the scope, which would then route the event
-      // to the window instead of the chart (03-00 FINDINGS D).
-      full: dashboard_window_id() <> "#" <> widget_id,
+      full: scoped_id,
     ),
     value: nil_value(),
     data: to_dynamic(request),

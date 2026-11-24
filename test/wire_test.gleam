@@ -136,6 +136,25 @@ pub fn chart_push_event_round_trip_test() {
   Nil
 }
 
+/// A chart-push event's target id MUST be the SCOPED widget id — the same
+/// `dashboard#<widget_id>` that plushie's normalize writes onto the canvas node
+/// and keys the widget registry with. `build_handler_chain` reconstructs
+/// `widget_key(window_id, target.id)`; a bare (unscoped) id misses the registry,
+/// so the event is Bypassed into MsgEye and EVERY bar is silently dropped —
+/// the empty-window bug found on a real run 2026-11-25. `full` is not used for
+/// routing; only `id` + `scope` are.
+pub fn chart_push_target_uses_scoped_widget_id_test() {
+  let request =
+    wire.ChartPushRequest(identity: an_identity(), bar: a_data_bar(7))
+  let event = wire.chart_push_event(request)
+  let assert event.Widget(event.CustomWidget(target: target, ..)) = event
+  let expected =
+    wire.dashboard_window_id() <> "#" <> wire.chart_widget_id(request.identity)
+  assert target.id == expected
+  assert target.full == expected
+  Nil
+}
+
 /// The stable ID is a FUNCTION of the identity: the same triple gives the same
 /// ID every time (the runtime keys the widget registry by it), and two
 /// different triples give two different IDs (two widgets, not one).
