@@ -7447,3 +7447,17 @@ DEMO**：纯函数生成 60 根确定性 `SourceBarOneMinute`（三角波 OHLC�
 **沙箱边界（非代码 bug）**：第二次真跑仍有一条 `plushie: bridge heartbeat timeout, no renderer messages in 30000ms; triggering renderer restart`。手动执行渲染器二进制 `plushie-renderer-darwin-aarch64 --help` 无任何输出即退出；`DISPLAY`/`WAYLAND_DISPLAY` 未设置；`ps` 被沙箱过滤。结论：渲染器是独立 GUI OS 进程，在 WorkBuddy 沙箱里起不来/不回心跳，属环境限制（延续 R77），不是 app 逻辑错误。`start()` 成功、实时数据流入、真管线能出 SVG 三者共同证明 app 逻辑正确。不为此改架构（R60 保持 ONE App + 默认 Spawn；Stdio/Iostream transport 属另一方案，不在本次范围）。
 
 **门禁**：format / check / docs 0、**WAE 0**、**146 passed**。真跑两次实证实时驱动 + 修复渲染 bug。
+
+## R80 — module 与 type 的部署要恰当：不同类不混放（2026-11-25 owner 原则；审计结论：现状符合，无需重构）
+
+**owner 逐字**：*"module和type的文件结构部署，一定要恰当，不要随随便便地把不同类的东西放在一起，这样你后续维护成本才能降低下来"*。这是长期结构原则，出处即 R42（按业务域归属、不另造设计）+ R50（一个模块一条归属关系）+ core §5/§11（按业务域分组、不过度切分、不按设计模式分组）的合并强调；**不新增设计、不重复论证已有裁定**（R76）。
+
+**本次审计（2026-11-25，用证据，不凭感觉）**：核对全部 29 个 `src/**/*.gleam` 的 `////` 职责首行、type 声明归属、import 数（`find` + `grep`，未改任何代码）：
+- 多 type 文件的 type 全部同一归属，无跨域混放：`config.gleam` 的 6 个 type 都是 settings；`app/wire.gleam` 的 4 个都是 wire 边界；`app/message.gleam` 的 `Msg`/`VoiceEvent`/`SourceBarArrived` alias 都是消息闭集；`binance/rest.gleam` 的 `RestError`/`KlineWire` 都是同一 REST wire；`indicator.gleam` 的 `compute_bar`/`BarError`/校验都是指标步骤（11-23 从 `timeframe.gleam` 拆出，owner 当时逐字要求"新建应该用的模块"）；`app/dashboard.gleam` 的 `ChartWidgetState`/`Props` 都是 view widget。
+- 最底层值模块 `account` / `api/symbol` / `id` / `trading/signal` 零 import，符合 R50「id 集中、零依赖」。
+- 这正是 owner 11-23 推动的结构，R50 §6 已做过归属实测表（单向无环），本次不重复。
+
+**裁定与操作判据**：
+1. **现状符合要求，本次不改代码**。core §11 明确「Do not fragment modules — especially common with AI-generated code」；owner 在 R42 删过我造的机制型模块 `engine.gleam` 和 grep 守卫。为"显得在做事"而切分模块正是被禁止的混放反面。R43「推敲=核验空架子」：核验后无缺口即停。
+2. **后续新建 module / type 的硬判据**（owner 这条的目的：降低后续维护成本）：先问「这个 type 跟谁读写的值走、属于哪一条归属关系」，答不出就不许新建；一个文件只能译成一条归属关系（R50 §4）；按业务域分组，绝不按 `types`/`utilities`/`services` 这类设计模式分组（core §5）；一个 type 只放它的定义与直接操作，跨层的读取放持有者模块。
+3. **不臆造问题**：没有 `file:line` 证据的"混放"不得上报、不得据此重构（owner「You shouldn't make up non-existing issues to waste my time anymore」，见 skill do_not）。
