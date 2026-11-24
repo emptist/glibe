@@ -57,7 +57,9 @@ import glibe/desk.{type Desk, Desk}
 import glibe/instrument.{Instrument}
 import glibe/trading/signal.{SignalBuy, SignalNoSignal, SignalSell}
 import plushie/canvas/shape
-import plushie/event.{type Event}
+import plushie/event.{
+  type Event, Key, KeyEvent, KeyPressed, Move, Press, Release, Scroll, Widget,
+}
 import plushie/node.{type Node, type PropValue, DictVal, StringVal}
 import plushie/prop/length
 import plushie/subscription.{type Subscription}
@@ -83,7 +85,17 @@ pub type ChartWidgetState {
     kdj_pv: List(PropValue),
     viewport: Viewport,
     mouse: Option(#(Float, Float)),
+    drag: DragState,
   )
+}
+
+/// Whether a pointer drag is in progress, and where it last was. A custom type
+/// (not a bare Bool + a loose Float) so "dragging with no last x" is
+/// unrepresentable — the compiler forces both fields to be written together
+/// (R13, core §2). `DragIdle` carries no stale coordinate.
+pub type DragState {
+  DragIdle
+  DragActive(last_x: Float)
 }
 
 /// The props a chart widget receives from outside: enough to build a Chart
@@ -108,6 +120,7 @@ pub fn chart_widget_def() -> WidgetDef(ChartWidgetState, ChartWidgetProps) {
         kdj_pv: [],
         viewport: bar_stream_chart.default_viewport(0),
         mouse: None,
+        drag: DragIdle,
       )
     },
     view: fn(id, props, state) { widget_view(id, props, state) },
@@ -227,10 +240,15 @@ pub fn widget_view(
   chart_node(id, props, state)
 }
 
-/// Widget event handler: the ONE domain-significant event is our chart push
-/// (`wire.WireChartPush`), and it writes THIS widget's own chart state. Every
-/// other event is a cosmetic one (pointer, keyboard) and is consumed locally
-/// as `UpdateState` — zoom/pan/crosshair move the viewport, not the model.
+/// canvas width in pixels — the `zoom_at`/`pan_by_pixels` coordinate basis.
+/// Derived from the fixed widget geometry (`:294-297`), not a user setting.
+const canvas_width: Float = 800.0
+
+/// Widget event handler. The chart push is the ONE domain-significant event;
+/// pointer/wheel/key events are cosmetic and change ONLY this widget's O(1)
+/// viewport, mouse and drag state — never the Desk model, never the translated
+/// shape lists (R60 §2). The old version returned `state` unchanged for every
+/// cosmetic event, so zoom/pan/crosshair were dead (audit B1, 2026-11-25).
 pub fn widget_handle_event(
   event: Event,
   state: ChartWidgetState,
@@ -238,14 +256,102 @@ pub fn widget_handle_event(
   case wire.chart_push_from_event(event) {
     Some(#(_stable_id, bar)) ->
       // The runtime routed this event to THIS widget by its stable id, so the
-      // bar belongs to this chart. The widget never re-checks the id: it does
-      // not know its own identity (that lives in the node id), and the routing
-      // already matched it (03-00 FINDINGS D).
+      // bar belongs to this chart (03-00 FINDINGS D).
       #(widget.UpdateState, push_one(state, data_bar_to_chart_bar(bar)))
-    // A cosmetic event (pointer, keyboard): consumed locally, the viewport
-    // moves, the model does not.
-    None -> #(widget.UpdateState, state)
+    None -> #(widget.UpdateState, handle_cosmetic_event(event, state))
   }
+}
+
+/// Route a non-domain event to the interaction that owns it. Each helper is
+/// PURE and O(1): it reads/writes only viewport, mouse and drag — never the
+/// accumulated shape lists and never the model. Unknown events leave state
+/// untouched.
+fn handle_cosmetic_event(
+  event: Event,
+  state: ChartWidgetState,
+) -> ChartWidgetState {
+  case event {
+    Widget(Scroll(x:, delta_y:, ..)) -> scroll_zoom(state, x, delta_y)
+    Widget(Press(x:, ..)) ->
+      ChartWidgetState(..state, drag: DragActive(last_x: x))
+    Widget(Move(x:, y:, ..)) -> pointer_move(state, x, y)
+    Widget(Release(..)) -> ChartWidgetState(..state, drag: DragIdle)
+    Key(KeyEvent(event_type: KeyPressed, key:, ..)) -> key_navigate(state, key)
+    _ -> state
+  }
+}
+
+/// Mouse wheel: zoom around the cursor x. delta_y < 0 zooms in (bar_stream_chart
+/// contract). The total is the chart's O(1) carried count.
+fn scroll_zoom(
+  state: ChartWidgetState,
+  cursor_x: Float,
+  delta_y: Float,
+) -> ChartWidgetState {
+  let total = bar_stream_chart.len(state.spec)
+  let viewport =
+    bar_stream_chart.zoom_at(
+      state.viewport,
+      total,
+      canvas_width,
+      delta_y,
+      cursor_x,
+    )
+  ChartWidgetState(..state, viewport: viewport)
+}
+
+/// Pointer move: a drag pans by the pixel delta; regardless of drag state the
+/// cursor position is stored so `frame` draws a crosshair (previously always
+/// None — the empty crosshair layer). `mouse` never feeds the model.
+fn pointer_move(
+  state: ChartWidgetState,
+  x: Float,
+  y: Float,
+) -> ChartWidgetState {
+  let total = bar_stream_chart.len(state.spec)
+  let #(viewport, drag) = case state.drag {
+    DragActive(last_x:) -> #(
+      bar_stream_chart.pan_by_pixels(
+        state.viewport,
+        total,
+        canvas_width,
+        x -. last_x,
+      ),
+      DragActive(last_x: x),
+    )
+    DragIdle -> #(state.viewport, DragIdle)
+  }
+  ChartWidgetState(
+    ..state,
+    viewport: viewport,
+    mouse: Some(#(x, y)),
+    drag: drag,
+  )
+}
+
+/// Keyboard navigation mirrors try_plushie: up/down zoom, left/right pan.
+fn key_navigate(state: ChartWidgetState, key: String) -> ChartWidgetState {
+  let total = bar_stream_chart.len(state.spec)
+  let viewport = case key {
+    "ArrowUp" ->
+      bar_stream_chart.zoom_step(state.viewport, total, bar_stream_chart.ZoomIn)
+    "ArrowDown" ->
+      bar_stream_chart.zoom_step(
+        state.viewport,
+        total,
+        bar_stream_chart.ZoomOut,
+      )
+    "ArrowLeft" ->
+      bar_stream_chart.pan_step(state.viewport, total, bar_stream_chart.PanLeft)
+    "ArrowRight" ->
+      bar_stream_chart.pan_step(
+        state.viewport,
+        total,
+        bar_stream_chart.PanRight,
+      )
+    _ -> state.viewport
+  }
+  ChartWidgetState(..state, viewport: viewport)
 }
 
 /// Widget subscriptions for this instance. **None**: the chart is driven by the

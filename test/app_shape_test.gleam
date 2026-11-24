@@ -138,6 +138,7 @@ fn empty_chart_state() -> dashboard.ChartWidgetState {
     kdj_pv: [],
     viewport: bar_stream_chart.default_viewport(0),
     mouse: option.None,
+    drag: dashboard.DragIdle,
   )
 }
 
