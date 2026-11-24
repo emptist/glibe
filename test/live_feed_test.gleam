@@ -6,6 +6,7 @@
 //// injected. No bar is re-injected, so the chart never draws a candle twice.
 
 import gleam/option.{None, Some}
+import gleam/string
 import gleam/time/timestamp
 import glibe/api/sourcebar.{type SourceBar, SourceBarOneMinute}
 import glibe/live_feed
@@ -55,5 +56,18 @@ pub fn boundary_advances_to_newest_test() {
       Some(timestamp.from_unix_seconds(300)),
     )
     == Some(timestamp.from_unix_seconds(300))
+  Nil
+}
+
+/// A running feed's log line shows the real count and the newest bar's UTC+8
+/// wall-clock time (epoch 1795543920 = 2026-11-25T02:12:00+08:00, verified).
+pub fn describe_live_shows_count_and_utc8_time_test() {
+  let line =
+    live_feed.describe_live(
+      60,
+      Some(timestamp.from_unix_seconds(1_795_543_920)),
+    )
+  assert string.contains(line, "60 real bars")
+  assert string.contains(line, "2026-11-25T02:12:00+08:00")
   Nil
 }

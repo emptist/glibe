@@ -7430,3 +7430,20 @@ DEMO**：纯函数生成 60 根确定性 `SourceBarOneMinute`（三角波 OHLC�
 - 计划 `.planning/phases/05-live-feed/05-01-PLAN.md`（新），模块 `////` 指向它（R19/R44）。
 
 **落地与门禁**：两个 RED→GREEN（`rest` 5 测、`live_feed` 4 测）；端到端 `fetch` 实测拉到 5 根实时 bar（`Timestamp(1795543920,0)` = 当时分钟，真实 OHLCV）。全门禁：format / check / docs 0、**WAE 0**、**144 passed**。
+
+## R79 — 真运行暴露渲染 bug：affine group 无 id 导致 auto:shape_0 重复、renderer 反复 restart（2026-11-25；已 GREEN）
+
+**触发**：owner「运行我看下」。此前只跑门禁 + 生成 SVG，没有真跑 `gleam run`。真跑第一次日志：
+- `LIVE seed 60 real bars, newest 2026-11-25T02:29:00+08:00` —— 启动时拉到真实窗口（当前分钟）。
+- 约 30s 后 `plushie_renderer_engine::engine: snapshot contains duplicate node IDs: auto:shape_0 (group)` + `plushie: renderer reported duplicate node IDs in the tree` —— 渲染器拒绝整棵树。
+- `LIVE 1 real bars, newest 2026-11-25T02:30:00+08:00` —— 轮询真的抓到 02:30 收盘的新 bar 并注入。**实时数据驱动得到实证，不是合成数据。**
+
+**根因（真运行才暴露，门禁/单测抓不到）**：`app/dashboard.gleam` 的 `affine_group` 给 4 个数据层（candles/overlays/volume/kdj）各建一个 `shape.group`，但都没设 id。plushie tree 层给空 id 节点生成 `auto:shape_0`（按 kind+sibling index），4 个 group 在各自 layer 里都是 index 0 → 4 个 `auto:shape_0` 全撞 → 渲染器判重复 → restart → 图无法稳定显示。
+
+**修复**：`affine_group(children, aff, label)` 增加 `label`，group 经 `with_id("affine:" <> label)` 得到唯一 id；4 处调用分别传 `candles`/`overlays`/`volume`/`kdj`。RED→GREEN 测试 `affine_groups_carry_distinct_ids_test` 断言 4 个 id 互异（提取 DictVal 的 "id" 字段）。修复后真跑第二次：两条 duplicate 报错**消失**，渲染器不再因重复 ID restart。
+
+**可观测性补充**：实时源此前只在失败时打日志，成功路径静默 → 跑起来看不到数据在动。新增纯函数 `live_feed.describe_live(count, boundary)`（RED→GREEN 测试钉住 UTC+8 格式：epoch 1795543920 → `2026-11-25T02:12:00+08:00`），`run` 打 `LIVE seed ...`、`pump` 有新 bar 打 `LIVE ...`。纯格式化，不改域逻辑。
+
+**沙箱边界（非代码 bug）**：第二次真跑仍有一条 `plushie: bridge heartbeat timeout, no renderer messages in 30000ms; triggering renderer restart`。手动执行渲染器二进制 `plushie-renderer-darwin-aarch64 --help` 无任何输出即退出；`DISPLAY`/`WAYLAND_DISPLAY` 未设置；`ps` 被沙箱过滤。结论：渲染器是独立 GUI OS 进程，在 WorkBuddy 沙箱里起不来/不回心跳，属环境限制（延续 R77），不是 app 逻辑错误。`start()` 成功、实时数据流入、真管线能出 SVG 三者共同证明 app 逻辑正确。不为此改架构（R60 保持 ONE App + 默认 Spawn；Stdio/Iostream transport 属另一方案，不在本次范围）。
+
+**门禁**：format / check / docs 0、**WAE 0**、**146 passed**。真跑两次实证实时驱动 + 修复渲染 bug。

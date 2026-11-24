@@ -22,10 +22,12 @@
 //// `todo` → RED test → one body at a time to GREEN.
 
 import gleam/erlang/process
+import gleam/int
 import gleam/io
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/order
+import gleam/time/duration
 import gleam/time/timestamp.{type Timestamp}
 import glibe/api/interval.{type Interval}
 import glibe/api/sourcebar.{type SourceBar}
@@ -104,6 +106,21 @@ pub fn inject(
   })
 }
 
+/// A one-line, human-readable summary of a real fetch turn: how many real
+/// bars were injected and the newest bar's UTC+8 wall-clock time. Pure so a
+/// test can pin the format; the pump calls it with the actual count and
+/// boundary to make a running feed visibly show live data arriving.
+pub fn describe_live(count: Int, boundary: Option(Timestamp)) -> String {
+  let head = int.to_string(count) <> " real bars"
+  case boundary {
+    None -> head
+    Some(newest) ->
+      head
+      <> ", newest "
+      <> timestamp.to_rfc3339(newest, duration.seconds(8 * 3600))
+  }
+}
+
 /// The long-lived poll loop. Carries the last-seen timestamp as a recursion
 /// argument. Each turn fetches a fresh window, keeps only new bars, injects
 /// them, advances the boundary, sleeps, and recurses. A failed fetch is
@@ -126,6 +143,10 @@ pub fn pump(
       let fresh = newer_than(batch, boundary)
       inject(instance, broker, symbol_name, interval, fresh)
       let next = advance_boundary(fresh, boundary)
+      case fresh {
+        [] -> Nil
+        _ -> io.println("LIVE " <> describe_live(list.length(fresh), next))
+      }
       pump(instance, broker, symbol_name, interval, next)
     }
   }
@@ -150,7 +171,9 @@ pub fn run(
     }
     Ok(window) -> {
       inject(instance, broker, symbol_name, interval, window)
-      advance_boundary(window, None)
+      let seen = advance_boundary(window, None)
+      io.println("LIVE seed " <> describe_live(list.length(window), seen))
+      seen
     }
   }
   pump(instance, broker, symbol_name, interval, boundary)

@@ -206,10 +206,10 @@ pub fn chart_node(
   let layers =
     dict.from_list([
       #("axes", translate_list(frame.axes)),
-      #("candles", affine_group(state.candle_pv, frame.candles)),
-      #("overlays", affine_group(state.overlay_pv, frame.overlays)),
-      #("volume", affine_group(state.volume_pv, frame.volume)),
-      #("kdj", affine_group(state.kdj_pv, frame.kdj)),
+      #("candles", affine_group(state.candle_pv, frame.candles, "candles")),
+      #("overlays", affine_group(state.overlay_pv, frame.overlays, "overlays")),
+      #("volume", affine_group(state.volume_pv, frame.volume, "volume")),
+      #("kdj", affine_group(state.kdj_pv, frame.kdj, "kdj")),
       #("crosshair", translate_list(frame.crosshair)),
     ])
   canvas.build(
@@ -351,9 +351,10 @@ fn translate_list(shapes: List(SpecShape)) -> List(PropValue) {
 /// Wrap an already-translated layer in ONE affine group. The layer's shapes
 /// stay byte-identical across zoom and pan; only this group changes (the
 /// package's own contract, `src/bar_stream_chart.gleam:171-185`).
-fn affine_group(
+pub fn affine_group(
   children: List(PropValue),
   aff: bar_stream_chart.Affine,
+  label: String,
 ) -> List(PropValue) {
   [
     shape.group(children, [
@@ -361,7 +362,8 @@ fn affine_group(
         shape.scale(aff.scale_x, aff.scale_y),
         shape.translate(aff.dx, aff.dy),
       ]),
-    ]),
+    ])
+    |> with_id("affine:" <> label),
   ]
 }
 

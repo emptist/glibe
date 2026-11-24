@@ -13,6 +13,7 @@
 
 import bar_stream_chart
 import fixture
+import gleam/dict
 import gleam/list
 import gleam/option.{None}
 import gleam/time/timestamp
@@ -25,6 +26,7 @@ import glibe/desk.{type Desk}
 import glibe/id
 import glibe/trading/signal
 import plushie/event
+import plushie/node.{type PropValue, DictVal, StringVal}
 import plushie/widget
 
 fn a_data_bar(idx: Int) -> databar.DataBar {
@@ -192,4 +194,38 @@ fn length_of_nodes(items: List(a)) -> Int {
 
 fn widget_event_action_update_state() -> widget.EventAction {
   widget.UpdateState
+}
+
+fn prop_id(value: PropValue) -> String {
+  case value {
+    DictVal(fields) ->
+      case dict.get(fields, "id") {
+        Ok(StringVal(id)) -> id
+        _ -> "MISSING"
+      }
+    _ -> "MISSING"
+  }
+}
+
+/// Each data layer's affine group must carry a DISTINCT id. Without it the
+/// renderer auto-numbers every group `auto:shape_0`, sees duplicates, and
+/// restarts forever (observed on a real `gleam run`, 2026-11-25).
+pub fn affine_groups_carry_distinct_ids_test() {
+  let aff =
+    bar_stream_chart.Affine(scale_x: 1.0, scale_y: 1.0, dx: 0.0, dy: 0.0)
+  let ids =
+    list.map(["candles", "overlays", "volume", "kdj"], fn(label) {
+      case dashboard.affine_group([], aff, label) {
+        [group, ..] -> prop_id(group)
+        [] -> "MISSING"
+      }
+    })
+  assert ids
+    == [
+      "affine:candles",
+      "affine:overlays",
+      "affine:volume",
+      "affine:kdj",
+    ]
+  Nil
 }

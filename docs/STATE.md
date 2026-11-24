@@ -4,7 +4,16 @@ Measured facts. Each line carries the day it was taken, so a later reader can
 tell a measurement from an intention. **The newest section is the state.** Older
 sections are kept as history, not as the current answer.
 
-## 2026-11-25（最新 — R78：假数据改为真实 Binance REST 实时拉取）
+## 2026-11-25（最新 — R79：真运行实证实时驱动，找到并修复渲染重复 ID bug）
+
+- **owner 指令**：*"运行我看下"*。真跑 `gleam run`（非仅门禁/SVG）才暴露门禁抓不到的问题。
+- **实时驱动实证**：日志 `LIVE seed 60 real bars, newest 2026-11-25T02:29:00+08:00`（启动拉真实窗口）+ 30s 后 `LIVE 1 real bars, newest 2026-11-25T02:30:00+08:00`（轮询抓到下一分钟收盘的新 bar 并注入）。这是真实数据驱动，非合成。
+- **真 bug 修复**：首跑报 `duplicate node IDs: auto:shape_0 (group)` → renderer 反复 restart、图无法稳定显示。根因：`app/dashboard.gleam` 的 4 个数据层 affine group 无 id，渲染器按 sibling index 自动编号全撞成 `auto:shape_0`。修复：`affine_group(children, aff, label)` 用 `with_id("affine:" <> label)` 设唯一 id；RED→GREEN 测试 `affine_groups_carry_distinct_ids_test`。修复后真跑 duplicate 报错消失。
+- **可观测性**：新增纯函数 `live_feed.describe_live(count, boundary)`（RED→GREEN 钉住 UTC+8 格式），run/pump 成功路径打印注入数量 + 最新 bar 时间；此前成功静默。
+- **沙箱边界（非代码 bug）**：仍有 `bridge heartbeat timeout ... renderer restart` —— 渲染器是独立 GUI OS 进程，手动跑二进制无输出即退出、无 DISPLAY、ps 被过滤，属 WorkBuddy 沙箱环境限制（延续 R77）。`start()` 成功 + 实时数据流入 + 真管线出 SVG 证明 app 逻辑正确；不改架构（R60）。
+- **门禁**：format / check / docs 0、**WAE 0**、**146 passed**。详细见 `docs/RULINGS.md` R79。
+
+## 2026-11-25（R78：假数据改为真实 Binance REST 实时拉取）
 
 - **owner 逐字**：*"不要在乱搞了，老老实实做数据源连接获取真实时数据"*。上一节 R77 的 `demo_feed` 三角波只跑通了管线，**不是数据源、不算实时数据驱动**；owner 判定不合格。已改为真实 REST。
 - **实测端点**：`api.binance.com` / `api-gcp.binance.com` 本机超时；`data-api.binance.vision` 直连 + 代理均 HTTP 200、时间戳为当前挂钟。Gleam `httpc` 直连拉到真实 body；`decode.field(0..7)` 可解 kline 数组（Erlang 侧限前 8 元素）。
