@@ -145,6 +145,9 @@ gleam format --check；本地六门禁是 R48 固定关。
 11. `config.gleam` 只放用户可设值；派生数学、wire 编码字符串、UTC 网格、递归算术不是设置。
 12. `bar_stream_chart` 当前是本地路径覆盖（path override，KDJ fix 未重新发布）；升级前不要
     顺手改回 hex 版本。renderer 期望 `plushie_rust_version = "0.7.1"`。
+13. **流的单向性（R83）**：一根 `SourceBar` 到达即处理、归档、生成该根的形状，之后不再
+    进入数据路径。`command.stream` 只向一个方向走；任何带「再做一次」含义的 `re-`
+    前缀说法都不用于描述本系统的数据、状态或接口。描述只写系统是什么。
 
 ---
 
@@ -182,6 +185,9 @@ gleam format --check；本地六门禁是 R48 固定关。
   （owner 逐字：*「禁止在任何情况下使用Python！只会干扰，没有任何可取之处。」*）。
 - **文档漂移**：改了代码就同步 ROADMAP/SUMMARY；决策区保持 0；不要把 PENDING 当
   待办清单；不要把历史裁定复制进新的散文式文档。
+- **用词污染（R83）**：曾有 AI 用不存在的概念描述单向流，导致文档与计划连锁污染并被
+  owner 多次阻止。判据：每句只写系统里真实发生的事；遇到说不清的词就删掉重写成正面
+  陈述，不扩大任何词的使用范围。历史裁定原文是唯一可引用原词的地方。
 - **提交**：普通 fast-forward push 直接做；`--force` / `--force-with-lease` / rebase 后强推 /
   删远端分支必须先问 owner。绝不 `rm -rf build`（构建产物过期时只删 `build/dev`）。
 
