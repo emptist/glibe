@@ -1,201 +1,251 @@
-# HANDOFF — glibe / `doc-tdd`
+# HANDOFF — glibe / `doc-tdd`（2026-11-26 权威交接）
 
-> **新会话先读这一节。** 再读 `docs/RULINGS.md` R44–R50。
-> **不要读 `deprecated/`**：里面是旧实现，只读、不是依据、不是词库（R44/R45）。
-> **动手前**：载入 `gl-center` 技能并**全文**读
-> `~/.workbuddy/skills/gl-center/references/gleam-core.md`
-> （仓库镜像 `docs/gleam-thinking-core-to-memory.md`，`cmp` 一致，R19）。
-> **list 效率设计与骨架填写**：`DEVELOPER_GUIDE.md`（2026-11-15 起，
-> 导航文件，不是第二份规格）。
+> **新会话第一步：读本文件。** 旧交接（2026-11-13 的「零行实代码」阶段）已作废，
+> 本文件是当前唯一交接入口。
 >
-> 首次交接 2026-11-13 00:28，owner 当时最后一句：
-> *「完了，你。一片混乱。写交接文档，开新会话吧。这样做下去毫无意义。」*
-> ⇒ 那一会话**停止重构**，只做实测、校准、交接、提交。
-> 本文件由 2026-11-13 的新会话（载入核心卡片后）更新，见 §1.1。
+> owner 本次逐字：*「glibe是一个真实项目，而try_plushie是开路先锋无中生有的试验，
+> 你正式项目能做到比试验项目要烂10倍，你的任务很简单，现在写交接班文档，
+> 在新会话中继续开发，只能比所有前期项目加起来都好，决不允许更差。」*
+>
+> 本文件只写**当前代码可验证的事实**与**下一步必须执行的计划**。推断必须标「推断」；
+> 不得把我的旧文档当 owner 原话。写成本文件时基线：`doc-tdd`、HEAD `0321f87`、
+> 工作树干净；本文件提交后的 HEAD 以 `git log -1` 为准。`src/` 本轮未改。
 
 ---
 
-## 1. 状态（实测，非估计）
+## 0. 新会话必读顺序（不读完不许动 Gleam）
 
-- 分支 **`doc-tdd`**，2026-11-14 **已普通 push** 到 `origin/doc-tdd`
-  （fast-forward，无 force）；工作树干净。本 §1 其余数字是 2026-11-13
-  快照，当前实测见 `docs/STATE.md` **顶部（2026-11-16 03:09）**；
-  待裁决项现为 **1 项**（2026-11-17 10:16，`sourcebar_buffer` 已裁定
-  非法撤出），见该节。知识中心 `~gits/gl-center` 已于
-  2026-11-16 提交 `dc736df`（owner 授权），**无 remote、无法 push**；
-  skill 目录不是 git 仓库，只是硬 `ln` 的消费者。
-- `src/` = **14 个 Gleam 模块、零行实代码**（函数体全 `todo as "…"`）。
-- `test/` = **9 个空 shape test**，只钉 in/out types，无断言、不调用 `todo`。
-- 待裁决 **0 项**（2026-11-13 快照；当前 **1 项**，见
-  `docs/PENDING_DECISIONS.md`「需要你决定」节）。已撤出的项：原第 1 项
-  `sourcebar_buffer` 由 owner 2026-11-17 10:16 裁定**非法、glibe 不引入**
-  （`sourcebar_list` 只用于之后离线导出）；原第 3 项导出格式由 owner
-  09:40 定案为 **ETF term**（`term_to_binary` 逐根）；plushie 选型 08:13
-  已定。09:09 的 BEAM 门裁定、09:22 的「靠 BEAM 吃饭 / 语言知识归知识
-  中心」**都不新增决策项**。定案、优先级与逐字在 `docs/RULINGS.md`
-  「2026-11-17 10:16」与「2026-11-17 09:40」；逐字与 inode 实测在
-  「2026-11-15 09:22」，三条编译探针在同文件「2026-11-15 09:09」。
+1. **本文件全文。**
+2. `.planning/BRIEF.md`、`.planning/ROADMAP.md`、
+   `docs/AUDIT-2026-11-25.md`、`docs/AUDIT-2026-11-26.md`。
+3. `docs/RULINGS.md` 中 R19 / R20 / R21 / R33 / R41 / R44–R50 / R58 / R80–R82；
+   `docs/STATE.md` 只读顶部与相关专题，**不要整文件吞**。两文件已达 50 万/15 万字节级，
+   再无节制追加就是违反「doc volume ∝ mistakes」。
+4. 动手 judgement 前：载入 `gl-center` 技能，**全文**读
+   `~/.workbuddy/skills/gl-center/references/gleam-core.md`
+   （仓库镜像 `docs/gleam-thinking-core-to-memory.md`，`cmp` 一致，R19）。
+5. 按要改的模块读源码，只读它和它的消费者。`glib/` 是冻结设计源（代码 + `.planning`），
+   只读；`glib/docs/` 是禁用的 AI 散文。`try_plushie/` 是试验，README 明言交易/分析
+   部分不可借鉴；只读官方 plushie 能力与踩坑，不整段抄业务结构。
+6. `docs/PENDING_DECISIONS.md` 决策区当前 **0 项**。**计划内工作不问 owner**；
+   owner 2026-11-21 逐字：*「按计划所做的事情，就不用等我的同意了。如果遇到意外，
+   遇到你不能决断的危险事件，需要问我。」* 只在意外/危险/改写远端历史时停。
 
-| 命令 | exit | 结果 |
+---
+
+## 1. 当前真状态（2026-11-26 实测，不是估计）
+
+### 1.1 六门禁
+
+```
+export PATH="/opt/homebrew/bin:$PATH"
+gleam format --check src test          # exit 0
+gleam check                            # exit 0
+gleam test                             # 149 passed, no failures
+gleam docs build                       # exit 0
+gleam export package-interface --out /tmp/glibe-interface.json   # exit 0
+gleam build --warnings-as-errors       # exit 0（0 Todo + 0 unused）
+```
+
+CI（`.github/workflows/test.yml`）跑的是 WAE → test → format；本地六门禁是 R48 固定关。
+`--warnings-as-errors` 只在 `build` 子命令有，`check` 顶替不了；禁止 `_` 前缀批量静音。
+
+### 1.2 运行与证据
+
+- 真实数据链已通：`data-api.binance.vision` → `src/glibe/binance/rest.gleam` →
+  `live_feed` → `wire.sourcebar_event` → ONE App → `desk → broker → instrument → timeframe` →
+  `working_databar_archived` → publish → `chart_push` → widget state → `get_tree` → SVG。
+- 真跑日志有 `LIVE seed 60 real bars...`；无合成 bar、无 demo_feed、无手工拼图。
+- `artifacts/glibe_runtime_tree.svg` 来自 `dev/export_tree_svg.gleam` 的
+  `plushie.get_tree` 真运行时导出；`artifacts/glibe_live_chart.svg`（手工拼图）已删。
+- 同标准对比（同翻译器 / 同 60 根真实 bar）：glibe vs try_plushie 的 axes 10/10、
+  candles 120/120、overlays 178/179、volume 60/60、kdj 177/177；配色一致。
+  **图形内容层等价，但机制不等价**（见 §5）。
+- 交互已恢复：wheel zoom / drag pan / 方向键 / crosshair；真跑 dispatch Move 后
+  crosshair 0→3。静态 SVG 里 crosshair 为 0 只是没发指针事件，不代表交互缺失。
+- `screencapture` 在本机被沙箱挡；同环境 try_plushie 能 1 秒出图，所以**禁止再用
+  「沙箱不能运行」当借口**。证据只能是 get_tree / 真 renderer 图，不冒充像素截图。
+
+### 1.3 已知唯一大结构差（`docs/AUDIT-2026-11-26.md` B）
+
+| | try_plushie（作者机制） | glibe（当前） |
 |---|---|---|
-| `gleam check` | 0 | |
-| `gleam test` | 0 | **9 passed, no failures** |
-| `gleam format --check src test` | 0 | |
-| `gleam docs build` | 0 | |
-| `gleam export package-interface --out …` | 0 | **14 模块** `////` 全渲染 |
-| `gleam build --warnings-as-errors` | **1** | **故意红**：73 warnings = 27 `Todo` + 43 `Unused function argument` + 3 `Unused private constructor` |
+| 入口 | `init()` 返空 chart + `command.stream` | `runtime.gleam:94-96` `init()` 返 `command.none()` |
+| 数据驱动 | runtime 内部 stream 逐根 emit | 外部 process `live_feed.pump` 逐根 `dispatch_event` |
+| Msg | `Event.Stream(StreamEvent)` → update | `message.from_event` 只解 `CustomWidget` → `MsgSourceBarArrived` |
+| 单 bar 更新 UI | 是 | 是，但由外部批量循环驱动 |
 
-`export PATH="/opt/homebrew/bin:$PATH"` 后才有 `gleam`。
-
-### 1.1 新会话（载入核心卡片后）实测
-
-- `gl-center` 技能已载入；核心卡片全文读过，
-  `gleam-core.md` 与 `docs/gleam-thinking-core-to-memory.md` `cmp` exit 0。
-- 上表六条命令在**源码改动前后各跑一次**，数字逐项相同：WAE 仍 73；
-  `package-interface` 复验 **14 模块** `////` 全渲染、无 `//` 截断。
-- 改动只在 `src/glibe/leaf.gleam` / `branch.gleam` 的 `////`：删掉
-  R47 §2 禁止的自我豁免措辞「a documented type is a valid skeleton
-  item」，换成 `timeframe.leaves` / `timeframe.branches` 与 `Timeframe`
-  具体字段的读写关系。**零行实代码、零个新名字、零个 `_` 静音。**
-- R19 ④（空 shape test → 真断言、逐个填 body）**尚未开始**；
-  §5「本阶段不写实现」边界未解除，等 owner 明示。
-
-### WAE 是什么
-`gleam build --warnings-as-errors` 把编译器的 warning 当 error，使 build
-返回非 0。**逐个查过 `gleam --help`：这个 flag 只在 `build` 子命令有**，
-`check` / `test` / `docs` / `format` 都没有，`gleam check` 顶替不了。
-R48 由 owner 点名启用，原话 *「把warnings当作奖励，也是AI特有的
-美德，所以你要用 gleam warnings-as-error 这个开关」*。
-
-### 门禁是什么
-`.github/workflows/test.yml` 里排在 `gleam test` 之前、必须 exit 0 才继续
-的那条命令。骨架阶段它**从第一具空架子起就故意红**：每一条 warning
-对应一行还没写的代码（27 个 `todo` + 43 个未用参数 + 3 个未用私有
-构造子），填一个 body 少一条。R48 已作废「warnings 是预期骨架形状」
-这类免检牌，并禁止用 `_` 前缀批量静音（实测 `_a` 是 discard name，
-body 引用会报 `Found a discard name`）。
-**它不是成绩单，是逐条待实现清单。** 本分支已 push（2026-11-14）、CI 的 push 触发
-只有 master/main，所以现在没拦住东西；**开 PR 到 master 会红**。
+结果等价、机制不同。正式项目必须采用作者机制；下一步就是 Phase 07，不是可选项。
 
 ---
 
-## 2. 当前结构（R50）
+## 2. 不可破坏的结构不变量
 
-一条规则：**一个模块只读写它自己那一层「持有的」 Dict；函数跟着它
-读写的 Dict 的持有者走。** `Broker` 按 R33/R36 持有两个 Dict，仍属同一层。
-`Desk` 是唯一顶层 Value，**上面不再有任何 module**（R42 / R50 §7）。
+1. **ONE App**：全系统一次 `plushie.start`；多图是同一 window 内的稳定-ID widget，
+   不是每图一个 App。try_plushie §30/§31 的「多 App 实例」与它自己 §26.1 冲突，
+   且 README 声明交易部分不可借鉴；官方原话已记在 `docs/RULINGS.md:5413`：
+   *"All windows share the same model, update, and view. That's the whole multi-window story"*。
+2. **ONE Desk**：`Desk → Broker → Instrument → Timeframe` 单向持有；`view` 是 Desk 的
+   投影，Chart 是 widget state，**不得写回 Desk**。没有 second model、shadow、bar 搬运。
+3. **唯一发布点**：`timeframe.working_databar_archived`。每根归档后只取 `databar_list`
+   head 的一根 `DataBar` 推给图；没有 batch / replay / list push。
+4. **事件路由**：plushie 用 `EventTarget.id + scope`，`full` 不参与；`chart_push`
+   target id 必须是 `dashboard#<widget_id>`（R82）。裸 id 会 Bypassed 成空窗口。
+5. **translate 归 push，view O(1)**；每个 shape 显式全局唯一 id；无信号 bar 不发
+   `Size(0.0)` text；颜色遵循中国市场：涨红 `#ff4d4f` / 跌绿 `#00c853`。
+6. **归属**：一个文件一条 ownership 关系（R50/R80），同类函数跟着 owner 走（R81）。
+   动手前问「谁读写这个具体值」，答不出就不创建 type/module。
+7. **真实数据**：失败只记日志重试，永不合成 fallback；历史与实时是一条流（R33）。
+   取数窗口 ≠ emit 数据；poll 拉回整窗只 emit 水位线之上的新根。
+8. **复杂度/列表**：列表最新在前，取更旧元素用 `list.drop(xs, 1)`，不用 O(n) 的
+   `list.last`；禁止 O(n²) 全窗重算 / `Σx²−(Σx)²/n`。owner 的「Qn2」永远指 O(n²)。
+9. **命名/词法**：构造器写全名；Gleam 没有 enum，写 custom/closed type（R45）；
+   不用 `new`/`create`/`make`（R49）；`LEAF` 是专有名词，只指 `leaf.gleam` 的
+   `YinLeaf`/`YangLeaf` DataLeaf 构造器。
+10. **BEAM 原生**：`target = "erlang"`；`@external(erlang, …)` 正常且必要；禁止手写
+    `.erl` / `.ex` / `.mjs` 进 `src/`，禁止 JS/webclient/前端框架。
+11. `config.gleam` 只放用户可设值；派生数学、wire code、UTC 网格、递归算术不是设置。
+12. `bar_stream_chart` 当前是本地 path override（KDJ fix 未重新发布）；升级前不要
+    顺手改回 hex 版本。renderer 期望 `plushie_rust_version = "0.7.1"`。
+
+---
+
+## 3. 模块归属图（先读再改）
+
+| 模块 | 拥有什么 | 不搬到哪里 |
+|---|---|---|
+| `src/glibe.gleam` | 组合根：ONE `plushie.start`、publisher 注册、进程入口 | 不放 domain 计算、不放 chart 状态 |
+| `app/runtime.gleam` | MVU：`init` / `update` / `step` / `route`；唯一 publish 点 | 不放 widget state、不放时钟/轮询 |
+| `app/message.gleam` | 开放 `Event` → 闭合 `Msg` 的唯一解码器 | 不放 wire codec |
+| `app/wire.gleam` | 两个 `CustomWidget` kind、typed payload、scoped target | 不放业务规则、不放第二套 identity |
+| `app/publish.gleam` | 命名 channel + request + serve（R81 已合并） | 不放 runtime 逻辑 |
+| `app/dashboard.gleam` | WidgetDef / viewport / mouse / drag / translate / view | 不放 Desk 写操作 |
+| `live_feed.gleam` | 输入边界：fetch、水位线、去重、emit | 不放 domain gate、不放 view |
+| `binance/rest.gleam` | HTTP + JSON → `SourceBar` 的唯一 provider edge | 不放通用 provider 框架 |
+| `desk/broker/instrument/timeframe` | 各层 Dict 与自己的读写对 | 不跨层代写 |
+| `config.gleam` | 用户可设值 | 不放派生值 |
+| `dev/export_tree_svg.gleam` | 常驻 get_tree→SVG 诊断 | 不是 app，不冒充运行截图 |
+
+---
+
+## 4. 失败模式（自己查，不等别人指出来）
+
+- **假绿**：只断言 spec 长度 / shape 数量而不断言 viewport、mouse、crosshair 的测试
+  不算过；「unit green ≠ window has shapes」。R82 空窗口能活这么久就是这个盲区。
+- **假图**：手工 SVG / 静态拼图 / 旧截图不能叫「运行结果」；只能用 get_tree 或真 renderer。
+- **假借口**：「沙箱无 GUI，用户自己运行才看得到」已在 R82 作废。同环境 try_plushie 可跑。
+- **假对称**：拿 try_plushie 的多 App、JSON wire、调速/队列当范式。它只是试验，
+  业务部分 README 明令不可借鉴；只学 `command.stream` 和交互 API 的用法。
+- **假归属**：凭「统一措辞」批量改文档，或把不同 ownership 塞进一个文件；每句 `////`/`///`
+  必须重新对着本模块事实写。
+- **工具错**：怀疑结果时先查 stale build（`rm -rf build/dev` 再跑），再查 sed/awk 调用，
+  最后才查代码。`sed` 在本机是 toybox，`-i ''` 会静默不生效；优先 editor 精确替换，
+  其次 `/bin/ed` 或 `/usr/bin/awk`；**禁止盲删行号**。**禁止任何 Python 文件操作**
+  （owner 逐字：*「禁止在任何情况下使用Python！只会干扰，没有任何可取之处。」*）。
+- **文档漂移**：改了代码就同步 ROADMAP/SUMMARY；决策区保持 0；不要把 PENDING 当
+  待办清单；不要把历史裁定复制进新 prose。
+- **提交**：普通 fast-forward push 直接做；`--force` / `--force-with-lease` / rebase 后强推 /
+  删远端分支必须先问 owner。绝不 `rm -rf build`（stale 时只删 `build/dev`）。
+
+---
+
+## 5. 下一步：Phase 07 `native-stream`（新会话必须按 GDLTDD 做）
+
+### 5.1 目标
+
+把外部 `live_feed.pump → dispatch_event` 换成作者原生的
+`init → command.stream → StreamValue → on_event → Msg → update`，**保持 ONE App 与
+所有 §2 不变量**。这不是风格调整：结果虽然等价，但正式项目不能在机制上比试验项目弱。
+禁止顺手重做 domain、多窗口、voice/vision，避免一锅粥。
+
+### 5.2 先写计划，再写代码
+
+新建 `.planning/phases/07-native-stream/07-01-PLAN.md`、`07-02-PLAN.md`、
+`07-03-PLAN.md`（每个含 `////` 引用、ownership、RED 测试清单、GREEN 步骤、门禁），
+完工各自写 `SUMMARY.md`，再更新 `.planning/ROADMAP.md` Phase 07。
+**文档先于代码；不允许先改 `src/` 再补计划。**
+
+### 5.3 07-01 读书与接线定案（只落盘，不改 src）
+
+实读并带行号记录：
+- `build/packages/plushie_gleam/src/plushie/command.gleam:35-38, 302-310`（`Stream` 语义）
+- `build/packages/plushie_gleam/src/plushie/app.gleam:143-158`（`application` 的 `on_event`）
+- `build/packages/plushie_gleam/src/plushie/event.gleam:44-45, 310-311`（`StreamEvent`）
+- `try_plushie/src/try_plushie.gleam:163-195, 377-381`、`try_plushie/src/live_feed.gleam:58-64, 81-118`
+- `src/glibe/app/runtime.gleam:84-96`、`src/glibe/app/message.gleam:41-56, 89-97`、
+  `src/glibe/live_feed.gleam:129-180`、`src/glibe.gleam:63-125`
+
+定案要点（写入 PLAN，不在对话里拍脑袋）：
+- `runtime.app(publisher, binding)` 在 wiring 时捕获** typed feed binding**
+  （broker_id / symbol / interval / stream tag），不塞进每根 bar 的 payload（R58）。
+- `init()` 返 `command.stream(live_feed.stream(binding), tag)`；`on_event` 变成闭包，
+  只把 `Stream(StreamEvent(tag: tag, value:))` 解成 `MsgSourceBarArrived`，其余仍 `MsgEye`。
+  不要新增无真实消费方的 Msg 变体；如果需要状态文本，先证明 view 有读者。
+- `live_feed.stream(binding)` 返回 `fn(fn(Dynamic) -> Nil) -> Dynamic`；沿用
+  `rest.fetch_klines` + `newer_than` + `advance_boundary`；每根真实 bar emit 一次。
+  **禁 send_after、队列、调速、合成 bar、整窗 replay**；poll 间隔是取数频率，不是画图节奏。
+- `main` 不再 spawn feed process；publisher process 仍需 `Instance` 来 dispatch chart_push。
+- `feed_sourcebar` 若除 `dev/export_tree_svg.gleam` 外无消费者，随本阶段删除或改为
+  测试专用 seam；不留半死 API。诊断工具必须去掉手工 60 根注入，改为等待 stream 自己灌满。
+
+### 5.4 07-02 RED → GREEN
+
+RED 测试至少钉住：
+1. `runtime.init()` 的 command 是 `command.Stream`，tag 与 binding 一致，不再是 `None`。
+2. 用 `plushie/testing/command_processor.gleam` 的 `process_commands` 喂一根假 stream value，
+   断言模型增长 1 根、publish request 恰好 1 个；外国 tag 不进 Msg。
+3. `message.from_event` 对 `StreamEvent` 与 `CustomWidget` 两条入口都闭合，无 catch-all
+   漏掉 eye event。
+4. `live_feed` 的水位线/去重纯函数仍保持「取数窗口 ≠ emit 数据」。
+5. 真 `binance/rest.gleam` 的 decode 测试不动；网络不可用时只重试，不合成。
+
+GREEN 后：`gleam test` 必须 **>149 passed**，WAE 0。
+
+### 5.5 07-03 端到端回归 + 真跑证据
+
+- 把「数据→窗口有图形」固化成常驻测试/诊断：驱动真实 App，从 `get_tree`/testing tree
+  逐层 count：axes>0、candles≥2N、overlays>0、volume>0、kdj>0；发 scoped Move 后
+  crosshair>0。**故意保留一个 R82 回归断言**：target id 去掉 `dashboard#` 时必须 RED。
+- 真跑：`gleam run` 看 `LIVE seed 60 real bars...`；`gleam run -m export_tree_svg`
+  导出 `artifacts/glibe_runtime_tree.svg` 并打印 crosshair before/after。
+  与 §1.2 基线对比；若出现 renderer restart，如实记录，不掩盖。
+- 更新 ROADMAP / SUMMARY / 本文件 §1 数字；**不写长篇 prose，不膨胀 STATE/RULINGS**。
+
+### 5.6 验收线（低于任何一项 = 未完成）
+
+- 六门禁全绿，测试数 >149，WAE 0，format 0。
+- ONE App、ONE Desk、ONE publish 点、单 bar 增量、无 batch/replay/panic。
+- 生产路径零合成数据、零 demo_feed、零手工 SVG、零假绿测试。
+- 真跑有真实 Binance 日志 + get_tree 图形计数 + 交互 crosshair 证据。
+- 作者机制 `command.stream` 已接线，且 wire/identity/Model 不变量未被破坏。
+- `docs/PENDING_DECISIONS.md` 决策区仍 0； owner 不需要替我找任何问题。
+
+---
+
+## 6. 常用命令
 
 ```
-id, account     零 import 最底层模块
-instrument      Instrument + get/put_timeframe          → timeframes
-broker          Broker + get/put_instrument/account     → instruments, accounts
-desk            Desk   + get/put_broker                → brokers
-timeframe       Timeframe + 直线 / 管道全部 fn
-其余            api/{interval,symbol,sourcebar}, databar, leaf, branch,
-                trading/signal, binance/kline
+export PATH="/opt/homebrew/bin:$PATH"
+
+# 六门禁（见 §1.1）
+gleam format --check src test
+gleam check
+gleam test
+gleam docs build
+gleam export package-interface --out /tmp/glibe-interface.json
+gleam build --warnings-as-errors
+
+# 真 app（阻塞；后台跑并记日志，别留失控进程）
+gleam run
+
+# 运行时树导出与交互诊断（会拉 60 根真实 bar）
+gleam run -m export_tree_svg
+
+# 文书法
+git diff --check
+git status --short
+git log -1 --oneline
 ```
 
-依赖单向无环：`id` / `account` → `instrument` → `broker` → `desk`。
-实测约束：`pub opaque` 构造子跨模块 → `error: Use of private value`；
-互相 import → `error: Import cycle`。所以 id 必须是零 import 的最底层模块，
-`broker_id` / `account_id` 必须与 id type 同模块。
-
-**已删除**：`config.gleam`（import desk、返回 Desk，是包在根上面的
-配置层）、`timeframe_under`、`put_timeframe_under`、`LookupError`、
-`indicator_settings.gleam`、`Timeframe.settings`、`timeframe.new`。
-四个 `get_*` 返回 `Result(v, Nil)`（core §6 / R37：caller 本来就持有 key）。
-
----
-
-## 3. 权威与词源
-
-- **owner 当前陈述 > spec > 旧代码 > 我的推断。**
-- 名字只从 **owner 逐字用词 + 裁定**取；没命名的按 R26/R32 **留空**。
-- `glib/docs/` 是另一个模型 hy4 的 AI 散文，不是证据、不是词源。
-- **AI 自己记在 `RULINGS.md` 里的裁定也不是 owner 逐字**（R46/R49）。
-- 裁定全文与逐字原话在 `docs/RULINGS.md`（R44–R50）；**别凭转述**。
-- 引用必须真逐字，不得把转述或截断句标成 `owner, verbatim`（R43/R47）。
-
----
-
-## 4. 失败模式（新会话要防的那几条）
-
-上一会话：我在 `desk.gleam` 的 `////` 里自己写着
-`WRITES: Desk, Broker, Instrument, Account...` —— **一个模块读写四层，
-证据就在这个文件里**，却没拿它去量这个文件；还把 core §5
-「Do not fragment modules」（那条官方反模式针对的是**按设计模式切**
-controllers/services/types，不是按业务域归属切）当免检牌。
-R47 的判据只用在「单条 `///` 能否自译」，**没有用在「一个文件能否
-译成一条归属关系」**。
-
-owner 连续点出的 `TimeframeSettings` → `new` → `LookupError` →
-`config.gleam` 是**同一层错误**：造了一个没有真实消费方、没有归属、
-讲不出「谁读写哪个具体值」的东西，每轮都靠 owner 点名才发现。
-**诚实标注：「无提示自行发现」至今未实测，不预写成功。**
-
-**2026-11-13 新会话又犯了一次同类错误**：把 `leaf.gleam` / `branch.gleam` 的
-`No function here yet.`（这两个模块确实零个函数）按「统一措辞」换成
-描述 `todo` 骨架的 `No working line here.` —— 一次字符串替换，不是
-重新描述（R47 §1.1）。owner 逐字 *「no function here yet -> no working
-line here yet; nonsense」*，已恢复原句。
-⇒ 把措辞对齐到别的模块不是理由；每句 `////` / `///` 都要重新对着
-**这个模块**的事实写。该会话加载核心卡片后主动跑 §13 / R47 判据，
-查出上述两处 R47 残留（owner 未点名文件）；但同一处改动里的替换错误
-仍由 owner 点出，是否算「无提示自行发现」不自行下结论。
-
-> **动手前先问：这个 type / fn / module 谁读写它？答不出就不要写。**
-
----
-
-## 5. 不要做
-
-- 不要翻 `deprecated/` 取名字或抄实现。
-- 不做字符串级「措辞统一」；每句文档重新对着本模块事实写（§4）。
-- 本阶段**不写实现**；不要为让 WAE 变绿而用 `_` 静音或整包豁免。
-- 不新增 guard sh；不新建 `engine` / `monitor` / `replay` / `AppConfig` /
-  `config` / 任何 provider 统一框架 / 任何跨层便捷函数。
-- **不手写 `.erl` / `.ex` / `.mjs` 进 `src/`**（owner 2026-11-15 08:16 /
-  08:28 逐字，见 `docs/RULINGS.md` 同名注记）。但**`@external(erlang, …)`
-  是必须、正常、合理的 Gleam 设计**：它不等于 FFI、不基于手写 erl；
-  「FFI 只限于 JS」的理由是 BEAM 同 VM / JS 跨运行时
-  （`~gits/gl-center/knowledge/externals.md` §2）。需要运行时 API
-  就调 OTP 模块或 `gleam add` 的包，**零 external 不是目标、不是成绩**。
-  根包的 target 声明会让 JS 外实现编译失败，但**手写 `.erl` 会被静默
-  编译成 `.beam`**，所以禁手写这一半不靠编译绿来证明，靠 `src/` 的
-  文件清单。Gleam 语言知识的家是 `~gits/gl-center`，不是 WorkBuddy
-  全局 Memory（owner 08:30）；owner 09:22 追加：实测验证的语言感悟
-  **写进知识中心**，消费方用**单文件硬 `ln`**接过去，
-  **不得用 symbol link、不得链接目录结构**，检查用
-  `stat -f '%i %l'`（`cmp` 分不出副本与链接）。本项目的
-  `docs/externals.md` 就是这么链进来的查阅入口，不是新写的规格。
-- **不要把「依赖 BEAM」当顾虑**（owner 09:22：*"我就是打算靠BEAM
-  吃饭的。你没看到我最近的项目都是gleam"*）。BEAM 原生是性质，
-  不是格式选项的减分项——这正是 09:40 选 ETF term（BEAM 原生格式）
-  的依据之一。
-- **不要改写远端历史**：普通 fast-forward `git push` 直接做；
-  `--force` / `--force-with-lease` / rebase 后强推 / 删远端分支
-  **必须先问 owner**（2026-11-14 裁定，逐字见 `docs/RULINGS.md`
-  同日执行注记）。原先这行写的「不要 push（owner 没让）」是 AI
-  注记冒充 owner 约定，已作废。
-- 不写长篇 prose 文档记录概念；设计写进 `////` / `///`。
-
-## 6. 留白（R26/R32，等真实消费方，不是待办清单）
-
-`DataBar` 计算字段、leaf/branch 内部字段、`Kline` 线格式字段、
-`SourceBarRejection` 具体原因、`Account` 字段。
-`gleam.toml` 旧依赖表与 `webclient/` 旧实现未收敛。
-
-## 7. 读文件顺序
-
-0. `gl-center` 技能 + `gleam-core.md` 全文（见文件首）
-1. 本文件
-2. `docs/RULINGS.md` **R44–R50**（R50 §7 = 删 `config.gleam`）
-3. `.planning/phases/05-doc-tdd/05-01-PLAN.md`（§4 模块清单、§5 六轮核验）
-4. `src/glibe/desk.gleam` → `broker` → `instrument` → `id` → `account` → `timeframe`
-5. `test/glibe_test.gleam`（空 shape test 钉住各层签名）
-6. `docs/STATE.md` 顶部
-
-**提交**：本轮核验与交接随最后一个 commit 落地；
-`git log --oneline -8` 可看按逻辑分的原子提交。push 边界见
-`docs/RULINGS.md` 2026-11-14 执行注记：普通 fast-forward push 直接做，
-任何 force / 改写远端历史的操作先问 owner。
+新会话如果按本文件做完 Phase 07，应在本文件 §1 更新实测数字与 HEAD，并在
+`.planning/ROADMAP.md` 留 Phase 07 收口记录；交接链不能断。
