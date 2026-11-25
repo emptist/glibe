@@ -42,7 +42,7 @@
 - **C1 唯一触发点**：owner 2026-11-20「完全使用 model 方面的 `working_databar_archived` 作为 plushie update 的触发点」，理由「working_databar 如果还在工作…model 不完整，怎么更新 view？」全文在 `docs/RULINGS.md:5565-5590` 与归档 `06-05-TRIGGER-RULING.md`。`working_databar` 为 `Some` = 各层 field 半成品 = 禁止 view；归档后 `None` + head 完整才可画。
 - **C2 取 bar 点**：owner 选「归档后读 history head」，见 `docs/RULINGS.md:5582-5583`、`06-05-TRIGGER-RULING.md` C2。**bar 的来源必须是 model 的归档结果，不是入站 Msg payload**——这一条与「注入事件的 payload 携带已归档 bar」并不矛盾：后者是归档后的出向传递，前者是入向数据来源。
 - **C3 不另搞一套**：`Desk` 唯一；chart 是表现层派生，不回写（`06-05` C3；`SYSTEM_MODEL.md:626-639` "a shadow is a second copy of state"）。
-- **多×多×多 view 方案**：owner 2026-11-19 08:35 追问后记入 `docs/RULINGS.md:5440-5450` 与 `06-02-CHALLENGES.md:91-152`：每 (broker,symbol,interval) 一个稳定 ID widget；运行时持有 widget state；view 只读 `SpecShape` IR；「绝不搬运 model 的各种 list」由 chart 库无 load-list API 在类型层保证。
+- **多×多×多 view 方案**：owner 2026-11-19 08:35 追问后记入 `docs/RULINGS.md:5440-5450` 与 `06-02-CHALLENGES.md:91-152`：每 (broker,symbol,interval) 一个稳定 ID widget；运行时持有 widget state；view 只读 `SpecShape` IR；图表状态只由逐根 `push` 增长，不持有调用方的列表。
 - **一个 App / Dashboard 命名**：官方 "All windows share the same model, update, and view"（`docs/RULINGS.md:5408`）；view 叫 Dashboard、对应 model 的 Desk（`:5384`、R20）。
 - **2026-11-23 当面纠正（本会话，尚未写入稳定文档）**：「chart 作为 View 你要把它变成 Desk model 的一部分？？？？」——明确否决把 chart 写进 `Timeframe`。`docs/PENDING_DECISIONS.md:24-54` 的撤销记录中「图表状态在 model 里，不在 runtime 持有的 widget state 里」一句与 owner 本轮话冲突，需在重写计划时更正为「图表状态在 View 的 widget state 里」。这是**文档漂移**，不是待裁决项。
 - **旧结论需更正**：`docs/RULINGS.md:5416` 与 `src/glibe/app/message.gleam:24` 的「0.6.0 无 `Custom`」应精确化为「顶层 `Event` 无 `Custom`；`WidgetEvent.CustomWidget` 存在（`event.gleam:230`）」。
@@ -90,7 +90,7 @@
 
 ### H. bar_stream_chart 边界
 
-- `push`/`push_generating`/`shapes` 是唯一输入面，无 batch/replay/load-list（`../bar_stream_chart/README.md:61-74`；`src/bar_stream_chart.gleam:357-403, 807`）；`Chart` opaque，只持生成形状与 O(1) carried bounds，不持调用者 bar list（`:201, 362-403`）。
+- `push`/`push_generating`/`shapes` 是唯一输入面，每次一根 `DataBar` 到达即生成该根的形状（`../bar_stream_chart/README.md:61-74`；`src/bar_stream_chart.gleam:357-403, 807`）；`Chart` opaque，只持生成形状与 O(1) carried bounds（`:201, 362-403`）。
 - 本地依赖符合 owner 要求：`gleam.toml:22` = `bar_stream_chart = { path = "../bar_stream_chart" }`，`manifest.toml:10` = 1.2.1；发布后再切回 hex（owner 2026-11-23 之前指令）。
 
 ## Code Examples（仅抄自已核实源码，逐条给出 file:line）
@@ -147,7 +147,7 @@ SDK 层结论均为本机 0.6.0 源码逐行核实；owner 裁决与冻结设计
 
 <assumptions>
 - 假设 owner 2026-11-23「chart 是 View」当面纠正继续有效，且 06-02 §G2 的 widget-state 机制仍是唯一获准的 View 状态承载方式；两者在本次会话中均由 owner 明确。
-- 假设 `plushie_gleam` 保持 0.6.0 pin；升级会让上述行号失效，须重跑本计划。
+- 假设 `plushie_gleam` 保持 0.6.0 pin；升级会让上述行号失效，须重新核对本计划。
 </assumptions>
 
 <quality_report>
@@ -155,7 +155,7 @@ SDK 层结论均为本机 0.6.0 源码逐行核实；owner 裁决与冻结设计
     docs/RULINGS.md（2026-11-19 08:35 / 2026-11-20 C1–C4 / 2026-11-23 会话纠正）、归档 06-02-CHALLENGES.md / 06-05-TRIGGER-RULING.md、glib SYSTEM_MODEL.md、build/packages/plushie_gleam/src/{widget,event,plushie,runtime,runtime_core,command,command_encode}.gleam、plushie/testing/widget_harness.gleam、~/.workbuddy/skills/gl-center/references/beam-plushie-concurrency-measured.md、try_plushie/src/{try_plushie,window_switch}.gleam、bar_stream_chart/README.md 与 src。
   </sources_consulted>
   <claims_verified>
-    WidgetEvent.CustomWidget 存在；dispatch_event 走完整 MVU；widget state 只能由 handle_event 写；Done/SendAfter 不到 widget 链；renderer NativeCommand 与 Gleam widget registry 分离；try_plushie 三次 start；chart 库无 batch API；本地 path 依赖 1.2.1。
+    WidgetEvent.CustomWidget 存在；dispatch_event 走完整 MVU；widget state 只能由 handle_event 写；Done/SendAfter 不到 widget 链；renderer NativeCommand 与 Gleam widget registry 分离；try_plushie 三次 start；chart 库的输入面只有逐根 `push`；本地 path 依赖 1.2.1。
   </claims_verified>
   <claims_assumed>
     「归档后注入 event 不算 bar 经 Msg payload 直喂 widget」是对 owner C1/C2 的解释（bar 源是 model head，入站 Msg 不带 bar）；若 owner 另有解读，需更正后再写 body。其余候选拒绝均基于源码而非推断。

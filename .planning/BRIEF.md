@@ -53,5 +53,5 @@ Current rulings and measured state: `docs/RULINGS.md`, `docs/STATE.md`. Open wor
 ## Out of scope
 
 - JS target, web front, `webclient/`, hand-written `.erl`/`.mjs`.
-- Actor / scheduler / clock / poll / rewind / buffer / replay — the system is already live (R33/R38).
+- One live stream: arrival → `working_databar` → archive (R33/R38).
 - Rewriting glib's `.planning/` — frozen design source, read-only.

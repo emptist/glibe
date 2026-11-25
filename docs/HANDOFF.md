@@ -42,7 +42,7 @@
 |---|---|---|
 | 冻结参考 `glib` | `/Users/jk/gits/hub/tools_ib/glib/src/**`、`/Users/jk/gits/hub/tools_ib/glib/.planning/**`；重点 `.planning/BRIEF.md`、`ROADMAP.md`、`HANDOFF-2026-11-03.md`、`SESSION_CONTEXT.md` | 设计源、只读；`glib/docs/` 是另一模型的 AI 散文，禁止引用（R38/R42） |
 | 试验项目 `try_plushie` | `/Users/jk/gits/hub/tools_ib/try_plushie/README.md`、`plushie-architecture.md`、`plushie-capabilities.md`、`fusion-design.md`、`chart-package-plan.md`、`docs/*.md` | 开路先锋，证明能力并记录坑；README 明言交易/分析不可借鉴；§30/§31 的多 App 与它自己 §26.1 冲突。只学官方 plushie 能力、`command.stream` 接线和交互 API |
-| 图表库 `bar_stream_chart` | `/Users/jk/gits/hub/tools_ib/bar_stream_chart/README.md`、`src/**`；本项目经 `gleam.toml` 的 path override 使用 | 作者设计是 `push(chart, bar)` 单根增量、无 batch/replay；`zoom_at` / `pan_by_pixels` / `zoom_step` / `pan_step` 是交互 API；每个 shape 必须显式唯一 id，无信号 `DataBar` 不发文本 |
+| 图表库 `bar_stream_chart` | `/Users/jk/gits/hub/tools_ib/bar_stream_chart/README.md`、`src/**`；本项目经 `gleam.toml` 的 path override 使用 | 作者设计是 `push(chart, bar)` 单根增量，`push` / `push_generating` / `shapes` 是唯一输入面，每次一根 `DataBar` 到达即生成该根的形状；`zoom_at` / `pan_by_pixels` / `zoom_step` / `pan_step` 是交互 API；每个 shape 必须显式唯一 id，无信号 `DataBar` 不发文本 |
 | 知识中心 `gl-center` | 源 `/Users/jk/gits/gl-center/`（`README.md`、`knowledge/**`、`gleam-thinking-core.md`）；技能消费者 `~/.workbuddy/skills/gl-center/`（`SKILL.md`、`references/**`） | Gleam/BEAM 实测语言事实的家；`references/gleam-core.md` 动手前必读全文。部分知识文件（如本项目 `docs/externals.md`）用**单文件硬链接**消费，实测与源 inode 相同；核心卡本体是 byte-equal 镜像（`cmp` exit 0）。禁止符号链接/目录链接（owner 2026-11-15） |
 | Gleam 官方文档 | `https://tour.gleam.run/`（语言导览）、`https://hexdocs.pm/gleam_stdlib/`、`https://hexdocs.pm/gleam_erlang/`、`https://hexdocs.pm/gleam_otp/`；本地版本事实 `build/packages/gleam_*/src/**` | 语言与 stdlib 接口契约；`gleam-lang.org/docs.html` 实测 404，别再当入口。与本地安装版本冲突时，本项目以 `build/packages/` 的 pin 版本为准 |
 | plushie 官方文档 | `https://plushie-ui.com/`、`https://hexdocs.pm/plushie_gleam/`、`https://github.com/plushie-ui/plushie-gleam`；本地版本事实 `build/packages/plushie_gleam/src/plushie/**` | 接口契约与组合模式；本项目用 `0.6.0`，**本地源码高于网页泛论**。官方「多窗口共享 model/update/view」原话已记在 `docs/RULINGS.md:5413-5416` |
@@ -108,7 +108,7 @@ gleam format --check；本地六门禁是 R48 固定关。
 | 入口 | `init()` 返空 chart + `command.stream` | `runtime.gleam:94-96` `init()` 返 `command.none()` |
 | 数据驱动 | runtime 内部 stream 逐根 emit | 外部 process `live_feed.pump` 逐根 `dispatch_event` |
 | Msg | `Event.Stream(StreamEvent)` → update | `message.from_event` 只解 `CustomWidget` → `MsgSourceBarArrived` |
-| 单根增量更新 UI（一次一根 `DataBar`） | 是 | 是，但由外部批量循环驱动 |
+| 单根增量更新 UI（一次一根 `DataBar`） | 是 | 是，但由外部输入进程逐根驱动 |
 
 结果等价、机制不同。正式项目必须采用官方机制；下一步就是 Phase 07，不是可选项。
 
@@ -124,7 +124,7 @@ gleam format --check；本地六门禁是 R48 固定关。
    投影，Chart 存放在 widget 的 `ChartWidgetState`，**不得写回 `Desk`**。没有第二个 model、
    影子 `Desk` 或 `databar_list` 搬运。
 3. **唯一发布点**：`timeframe.working_databar_archived`。每根归档后只取 `databar_list`
-   head 的一根 `DataBar` 推给图；没有批量推送、整窗回放（replay）或列表搬运。
+   head 的一根 `DataBar` 推给图；图形按到达顺序逐根生长。
 4. **事件路由**：plushie 用 `EventTarget.id + scope`，`full` 不参与；`chart_push`
    target id 必须是 `dashboard#<widget_id>`（R82）。裸 id 会被路由旁路（Bypassed），
    结果是空窗口。
@@ -133,7 +133,7 @@ gleam format --check；本地六门禁是 R48 固定关。
 6. **归属**：一个文件一条 ownership 关系（R50/R80），同类函数跟着 owner 走（R81）。
    动手前问「谁读写这个具体值」，答不出就不创建 type/module。
 7. **真实数据**：失败只记日志重试，永不回退到合成数据（fallback）；历史与实时是一条流（R33）。
-   取数窗口 ≠ emit 数据；poll 拉回整窗只 emit 水位线之上的新 `SourceBar`。
+   取数窗口 ≠ emit 数据；poll 每次取数只把水位线之上的新 `SourceBar` 交给正常到达路径。
 8. **复杂度/列表**：列表最新在前，取更旧元素用 `list.drop(xs, 1)`，不用 O(n) 的
    `list.last`；禁止 O(n²) 全窗重算 / `Σx²−(Σx)²/n`。owner 的「Qn2」永远指 O(n²)。
 9. **命名/词法**：构造器写全名；Gleam 没有 enum，写自定义类型（custom type）或
@@ -176,7 +176,7 @@ gleam format --check；本地六门禁是 R48 固定关。
   业务部分 README 明令不可借鉴；只学 `command.stream` 和交互 API 的用法。
 - **假归属**：凭「统一措辞」批量改文档，或把不同 ownership 塞进一个文件；每句 `////`/`///`
   必须重新对着本模块事实写。
-- **工具错**：怀疑结果时先查过期的构建产物（删除 `build/dev` 后重跑），再查 `sed`/`awk`
+- **工具错**：怀疑结果时先查过期的构建产物（删除 `build/dev` 后重新执行门禁），再查 `sed`/`awk`
   调用，最后才查代码。`sed` 在本机是 toybox，`-i ''` 会静默不生效；优先用编辑器精确替换，
   其次 `/bin/ed` 或 `/usr/bin/awk`；**禁止盲删行号**。**禁止任何 Python 文件操作**
   （owner 逐字：*「禁止在任何情况下使用Python！只会干扰，没有任何可取之处。」*）。
@@ -224,8 +224,7 @@ GDLTDD = 文档先行 + 计划 + `////`/`///` 与 todo 骨架 + RED 测试 + GRE
   不要新增无真实消费方的 Msg 变体；如果需要状态文本，先证明 view 有读者。
 - `live_feed.stream(binding)` 返回 `fn(fn(Dynamic) -> Nil) -> Dynamic`；沿用
   `rest.fetch_klines` + `newer_than` + `advance_boundary`；每根真实 `SourceBar` emit 一次。
-  **禁 `send_after`、队列、调速、合成 `SourceBar`、整窗回放（replay）**；
-  poll 间隔是取数频率，不是画图节奏。
+  `command.stream` 一次 send 一根到达的 `SourceBar`（R38 的直接 emit），poll 间隔是取数频率。
 - `main` 不再启动输入轮询进程；publisher 进程仍需 `Instance` 来派发 `chart_push` 事件。
 - `feed_sourcebar` 若除 `dev/export_tree_svg.gleam` 外无消费者，随本阶段删除或改为
   测试专用的注入边界；不留半死 API。诊断工具必须去掉手工 60 根注入，改为等待
@@ -260,7 +259,7 @@ RED 测试至少钉住：
 
 - 六门禁全绿，测试数 >149，warnings-as-errors（WAE）为 0，`format --check` 为 0。
 - 单一 App、单一 `Desk`、单一 publish 点、单根 `DataBar` 增量，
-  无批量推送、整窗回放（replay）或 panic。
+  到达一根处理一根，不 panic。
 - 生产路径零合成数据、零 `demo_feed`、零手工 SVG、零假绿测试。
 - 真跑有真实 Binance 日志 + `get_tree` 图形计数 + 交互 `crosshair` 证据。
 - 官方 `command.stream` 机制已接线，且 `app/wire.gleam`、身份键（identity keys）、

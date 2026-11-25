@@ -95,8 +95,8 @@ table, exact `file:line` evidence, and an explicit confidence level.
   Record what is reusable (event injection, IR adapter) and what is NOT
   (one App per chart; per-chart model).
 - **bar_stream_chart boundary**: `push`/`push_generating`/`shapes` are the
-  only inputs; no batch/replay/load-list; Chart opaque. Confirm the local
-  path dependency and version 1.2.1 in `gleam.toml`/`../bar_stream_chart`.
+  only inputs; one `DataBar` at a time, never a whole window; Chart opaque.
+  Confirm the local path dependency and version 1.2.1 in `gleam.toml`/`../bar_stream_chart`.
 
 <exclude>
 - Editing ANY `.gleam` file, including `////` / `///` comments. No code-file
@@ -131,8 +131,8 @@ as inference and do not use it as a plan assumption.
 <verification_checklist>
 □ Enumerate EVERY candidate mechanism listed above; none silently dropped.
 □ Every "cannot / only / must" claim carries an exact `file:line` or owner
-  quote. Absence claims ("no Custom at top level", "no batch API") carry the
-  grep that returned empty plus the positive variant that does exist.
+  quote. Absence claims ("no Custom at top level") carry the grep that returned
+  empty plus the positive variant that does exist.
 □ Verify precedence: owner > frozen design record > official SDK source >
   try_plushie > my inference. Contradictions are recorded, not smoothed over.
 □ Confirm the installed SDK version is 0.6.0 before quoting any line number.
